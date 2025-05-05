@@ -141,7 +141,7 @@ export const defaultModelsOfProvider = {
 
 export type VoidStaticModelInfo = { // not stateful
 	contextWindow: number; // input tokens
-	maxOutputTokens: number | null; // output tokens, defaults to 4092
+	reservedOutputTokenSpace: number | null; // output tokens, defaults to 4092
 	cost: { // <-- UNUSED
 		input: number;
 		output: number;
@@ -162,7 +162,7 @@ export type VoidStaticModelInfo = { // not stateful
 		// reasoning options if supports reasoning
 		readonly canTurnOffReasoning: boolean; // whether or not the user can disable reasoning mode (false if the model only supports reasoning)
 		readonly canIOReasoning: boolean; // whether or not the model actually outputs reasoning (eg o1 lets us control reasoning but not output it)
-		readonly reasoningMaxOutputTokens?: number; // overrides normal maxOutputTokens
+		readonly reasoningReservedOutputTokenSpace?: number; // overrides normal reservedOutputTokenSpace
 		readonly reasoningBudgetSlider?: { type: 'slider'; min: number; max: number; default: number };
 
 		// options related specifically to model output
@@ -174,7 +174,7 @@ export type VoidStaticModelInfo = { // not stateful
 
 
 export type ModelOverrideOptions = Partial<Pick<VoidStaticModelInfo,
-	'contextWindow' | 'maxOutputTokens' | 'specialToolFormat' | 'supportsSystemMessage' | 'supportsFIM' | 'reasoningCapabilities'
+	'contextWindow' | 'reservedOutputTokenSpace' | 'specialToolFormat' | 'supportsSystemMessage' | 'supportsFIM' | 'reasoningCapabilities'
 >>
 
 
@@ -199,7 +199,7 @@ type VoidStaticProviderInfo = { // doesn't change (not stateful)
 
 const defaultModelOptions = {
 	contextWindow: 4_096,
-	maxOutputTokens: 4_096,
+	reservedOutputTokenSpace: 4_096,
 	cost: { input: 0, output: 0 },
 	downloadable: false,
 	supportsSystemMessage: false,
@@ -215,57 +215,57 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: false,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'deepseekCoderV3': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'deepseekCoderV2': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'codestral': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
-		contextWindow: 128_000, maxOutputTokens: 4_096
+		contextWindow: 128_000, reservedOutputTokenSpace: 4_096
 	},
 	'phi4': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 16_000, maxOutputTokens: 4_096,
+		contextWindow: 16_000, reservedOutputTokenSpace: 4_096,
 	},
 
 	'gemma': { // https://news.ycombinator.com/item?id=43451406
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	// llama 4 https://ai.meta.com/blog/llama-4-multimodal-intelligence/
 	'llama4-scout': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 10_000_000, maxOutputTokens: 4_096,
+		contextWindow: 10_000_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama4-maverick': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 10_000_000, maxOutputTokens: 4_096,
+		contextWindow: 10_000_000, reservedOutputTokenSpace: 4_096,
 	},
 
 	// llama 3
@@ -273,65 +273,65 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.1': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.2': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	// qwen
 	'qwen2.5coder': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 32_000, maxOutputTokens: 4_096,
+		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'qwq': {
 		supportsFIM: false, // no FIM, yes reasoning
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
-		contextWindow: 128_000, maxOutputTokens: 8_192,
+		contextWindow: 128_000, reservedOutputTokenSpace: 8_192,
 	},
 	'qwen3': {
 		supportsFIM: false, // replaces QwQ
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
-		contextWindow: 32_768, maxOutputTokens: 8_192,
+		contextWindow: 32_768, reservedOutputTokenSpace: 8_192,
 	},
 	// FIM only
 	'starcoder2': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		reasoningCapabilities: false,
-		contextWindow: 128_000, maxOutputTokens: 8_192,
+		contextWindow: 128_000, reservedOutputTokenSpace: 8_192,
 
 	},
 	'codegemma:2b': {
 		supportsFIM: true,
 		supportsSystemMessage: false,
 		reasoningCapabilities: false,
-		contextWindow: 128_000, maxOutputTokens: 8_192,
+		contextWindow: 128_000, reservedOutputTokenSpace: 8_192,
 
 	},
 	'quasar': { // openrouter/quasar-alpha
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 1_000_000, maxOutputTokens: 32_000,
+		contextWindow: 1_000_000, reservedOutputTokenSpace: 32_000,
 	}
 } as const satisfies { [s: string]: Partial<VoidStaticModelInfo> }
 
@@ -416,7 +416,7 @@ const extensiveModelFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (
 const anthropicModelOptions = {
 	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
 		contextWindow: 200_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -426,14 +426,14 @@ const anthropicModelOptions = {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
 			canIOReasoning: true,
-			reasoningMaxOutputTokens: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningReservedOutputTokenSpace: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
 			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
 
 	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -443,7 +443,7 @@ const anthropicModelOptions = {
 	},
 	'claude-3-5-haiku-20241022': {
 		contextWindow: 200_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.80, cache_read: 0.08, cache_write: 1.00, output: 4.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -453,7 +453,7 @@ const anthropicModelOptions = {
 	},
 	'claude-3-opus-20240229': {
 		contextWindow: 200_000,
-		maxOutputTokens: 4_096,
+		reservedOutputTokenSpace: 4_096,
 		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 75.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -464,7 +464,7 @@ const anthropicModelOptions = {
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
 		contextWindow: 200_000, cost: { input: 3.00, output: 15.00 },
 		downloadable: false,
-		maxOutputTokens: 4_096,
+		reservedOutputTokenSpace: 4_096,
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
@@ -493,7 +493,7 @@ const anthropicSettings: VoidStaticProviderInfo = {
 		if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
 		if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
 		if (fallbackName) return { modelName: fallbackName, ...anthropicModelOptions[fallbackName] }
-		return { modelName, ...defaultModelOptions, maxOutputTokens: 4_096 }
+		return { modelName, ...defaultModelOptions, reservedOutputTokenSpace: 4_096 }
 	},
 }
 
@@ -502,7 +502,7 @@ const anthropicSettings: VoidStaticProviderInfo = {
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	'o3': {
 		contextWindow: 1_047_576,
-		maxOutputTokens: 32_768,
+		reservedOutputTokenSpace: 32_768,
 		cost: { input: 10.00, output: 40.00, cache_read: 2.50 },
 		downloadable: false,
 		supportsFIM: false,
@@ -512,7 +512,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o4-mini': {
 		contextWindow: 1_047_576,
-		maxOutputTokens: 32_768,
+		reservedOutputTokenSpace: 32_768,
 		cost: { input: 1.10, output: 4.40, cache_read: 0.275 },
 		downloadable: false,
 		supportsFIM: false,
@@ -522,7 +522,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4.1': {
 		contextWindow: 1_047_576,
-		maxOutputTokens: 32_768,
+		reservedOutputTokenSpace: 32_768,
 		cost: { input: 2.00, output: 8.00, cache_read: 0.50 },
 		downloadable: false,
 		supportsFIM: false,
@@ -532,7 +532,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4.1-mini': {
 		contextWindow: 1_047_576,
-		maxOutputTokens: 32_768,
+		reservedOutputTokenSpace: 32_768,
 		cost: { input: 0.40, output: 1.60, cache_read: 0.10 },
 		downloadable: false,
 		supportsFIM: false,
@@ -542,7 +542,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4.1-nano': {
 		contextWindow: 1_047_576,
-		maxOutputTokens: 32_768,
+		reservedOutputTokenSpace: 32_768,
 		cost: { input: 0.10, output: 0.40, cache_read: 0.03 },
 		downloadable: false,
 		supportsFIM: false,
@@ -552,7 +552,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o1': {
 		contextWindow: 128_000,
-		maxOutputTokens: 100_000,
+		reservedOutputTokenSpace: 100_000,
 		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
 		downloadable: false,
 		supportsFIM: false,
@@ -561,7 +561,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o3-mini': {
 		contextWindow: 200_000,
-		maxOutputTokens: 100_000,
+		reservedOutputTokenSpace: 100_000,
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		downloadable: false,
 		supportsFIM: false,
@@ -570,7 +570,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4o': {
 		contextWindow: 128_000,
-		maxOutputTokens: 16_384,
+		reservedOutputTokenSpace: 16_384,
 		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
 		downloadable: false,
 		supportsFIM: false,
@@ -580,7 +580,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'o1-mini': {
 		contextWindow: 128_000,
-		maxOutputTokens: 65_536,
+		reservedOutputTokenSpace: 65_536,
 		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
 		downloadable: false,
 		supportsFIM: false,
@@ -589,7 +589,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	},
 	'gpt-4o-mini': {
 		contextWindow: 128_000,
-		maxOutputTokens: 16_384,
+		reservedOutputTokenSpace: 16_384,
 		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
 		downloadable: false,
 		supportsFIM: false,
@@ -617,7 +617,7 @@ const openAISettings: VoidStaticProviderInfo = {
 const xAIModelOptions = {
 	'grok-2': {
 		contextWindow: 131_072,
-		maxOutputTokens: null, // 131_072,
+		reservedOutputTokenSpace: null, // 131_072,
 		cost: { input: 2.00, output: 10.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -626,7 +626,7 @@ const xAIModelOptions = {
 	},
 	// 'grok-3': {
 	// 	contextWindow: 1_000_000,
-	// 	maxOutputTokens: null,
+	// 	reservedOutputTokenSpace: null,
 	// 	cost: {},
 	// 	downloadable: false,
 	// 	supportsFIM: false,
@@ -651,7 +651,7 @@ const xAISettings: VoidStaticProviderInfo = {
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	'gemini-2.5-flash-preview-04-17': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.15, output: .60 }, // TODO $3.50 output with thinking not included
 		downloadable: false,
 		supportsFIM: false,
@@ -661,7 +661,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.5-pro-exp-03-25': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -671,7 +671,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192, // 8_192,
+		reservedOutputTokenSpace: 8_192, // 8_192,
 		cost: { input: 0.10, output: 0.40 },
 		downloadable: false,
 		supportsFIM: false,
@@ -681,7 +681,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192, // 8_192,
+		reservedOutputTokenSpace: 8_192, // 8_192,
 		cost: { input: 0.075, output: 0.30 },
 		downloadable: false,
 		supportsFIM: false,
@@ -691,7 +691,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192, // 8_192,
+		reservedOutputTokenSpace: 8_192, // 8_192,
 		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
@@ -701,7 +701,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-pro': {
 		contextWindow: 2_097_152,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
@@ -711,7 +711,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	},
 	'gemini-1.5-flash-8b': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
 		downloadable: false,
 		supportsFIM: false,
@@ -733,14 +733,14 @@ const deepseekModelOptions = {
 	'deepseek-chat': {
 		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
-		maxOutputTokens: 8_000, // 8_000,
+		reservedOutputTokenSpace: 8_000, // 8_000,
 		cost: { cache_read: .07, input: .27, output: 1.10, },
 		downloadable: false,
 	},
 	'deepseek-reasoner': {
 		...openSourceModelOptions_assumingOAICompat.deepseekCoderV2,
 		contextWindow: 64_000,
-		maxOutputTokens: 8_000, // 8_000,
+		reservedOutputTokenSpace: 8_000, // 8_000,
 		cost: { cache_read: .14, input: .55, output: 2.19, },
 		downloadable: false,
 	},
@@ -763,7 +763,7 @@ const deepseekSettings: VoidStaticProviderInfo = {
 const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#pricing https://docs.mistral.ai/getting-started/models/models_overview/#premier-models
 	'mistral-large-latest': {
 		contextWindow: 131_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 2.00, output: 6.00 },
 		supportsFIM: false,
 		downloadable: { sizeGb: 73 },
@@ -772,7 +772,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 	},
 	'codestral-latest': {
 		contextWindow: 256_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.30, output: 0.90 },
 		supportsFIM: true,
 		downloadable: { sizeGb: 13 },
@@ -781,7 +781,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 	},
 	'ministral-8b-latest': { // ollama 'mistral'
 		contextWindow: 131_000,
-		maxOutputTokens: 4_096,
+		reservedOutputTokenSpace: 4_096,
 		cost: { input: 0.10, output: 0.10 },
 		supportsFIM: false,
 		downloadable: { sizeGb: 4.1 },
@@ -790,7 +790,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 	},
 	'ministral-3b-latest': {
 		contextWindow: 131_000,
-		maxOutputTokens: 4_096,
+		reservedOutputTokenSpace: 4_096,
 		cost: { input: 0.04, output: 0.04 },
 		supportsFIM: false,
 		downloadable: { sizeGb: 'not-known' },
@@ -809,7 +809,7 @@ const mistralSettings: VoidStaticProviderInfo = {
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
 	'llama-3.3-70b-versatile': {
 		contextWindow: 128_000,
-		maxOutputTokens: 32_768, // 32_768,
+		reservedOutputTokenSpace: 32_768, // 32_768,
 		cost: { input: 0.59, output: 0.79 },
 		downloadable: false,
 		supportsFIM: false,
@@ -818,7 +818,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 	},
 	'llama-3.1-8b-instant': {
 		contextWindow: 128_000,
-		maxOutputTokens: 8_192,
+		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.05, output: 0.08 },
 		downloadable: false,
 		supportsFIM: false,
@@ -827,7 +827,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 	},
 	'qwen-2.5-coder-32b': {
 		contextWindow: 128_000,
-		maxOutputTokens: null, // not specified?
+		reservedOutputTokenSpace: null, // not specified?
 		cost: { input: 0.79, output: 0.79 },
 		downloadable: false,
 		supportsFIM: false, // unfortunately looks like no FIM support on groq
@@ -836,7 +836,7 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 	},
 	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
 		contextWindow: 128_000,
-		maxOutputTokens: null, // not specified?
+		reservedOutputTokenSpace: null, // not specified?
 		cost: { input: 0.29, output: 0.39 },
 		downloadable: false,
 		supportsFIM: false,
@@ -882,7 +882,7 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 const ollamaModelOptions = {
 	'qwen2.5-coder:7b': {
 		contextWindow: 32_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
@@ -891,7 +891,7 @@ const ollamaModelOptions = {
 	},
 	'qwen2.5-coder:3b': {
 		contextWindow: 32_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
@@ -900,7 +900,7 @@ const ollamaModelOptions = {
 	},
 	'qwen2.5-coder:1.5b': {
 		contextWindow: 32_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: .986 },
 		supportsFIM: true,
@@ -909,7 +909,7 @@ const ollamaModelOptions = {
 	},
 	'llama3.1': {
 		contextWindow: 128_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 4.9 },
 		supportsFIM: false,
@@ -918,7 +918,7 @@ const ollamaModelOptions = {
 	},
 	'qwen2.5-coder': {
 		contextWindow: 128_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
@@ -927,7 +927,7 @@ const ollamaModelOptions = {
 	},
 	'qwq': {
 		contextWindow: 128_000,
-		maxOutputTokens: 32_000,
+		reservedOutputTokenSpace: 32_000,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 20 },
 		supportsFIM: false,
@@ -936,7 +936,7 @@ const ollamaModelOptions = {
 	},
 	'deepseek-r1': {
 		contextWindow: 128_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
@@ -986,7 +986,7 @@ const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/doc
 const openRouterModelOptions_assumingOpenAICompat = {
 	'mistralai/mistral-small-3.1-24b-instruct:free': {
 		contextWindow: 128_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -995,7 +995,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	},
 	'google/gemini-2.0-flash-lite-preview-02-05:free': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1004,7 +1004,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	},
 	'google/gemini-2.0-pro-exp-02-05:free': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1013,7 +1013,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	},
 	'google/gemini-2.0-flash-exp:free': {
 		contextWindow: 1_048_576,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1023,13 +1023,13 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	'deepseek/deepseek-r1': {
 		...openSourceModelOptions_assumingOAICompat.deepseekR1,
 		contextWindow: 128_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0.8, output: 2.4 },
 		downloadable: false,
 	},
 	'anthropic/claude-3.7-sonnet:thinking': {
 		contextWindow: 200_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 3.00, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1038,13 +1038,13 @@ const openRouterModelOptions_assumingOpenAICompat = {
 			supportsReasoning: true,
 			canTurnOffReasoning: false,
 			canIOReasoning: true,
-			reasoningMaxOutputTokens: 64_000,
+			reasoningReservedOutputTokenSpace: 64_000,
 			reasoningBudgetSlider: { type: 'slider', min: 1024, max: 32_000, default: 1024 }, // they recommend batching if max > 32_000
 		},
 	},
 	'anthropic/claude-3.7-sonnet': {
 		contextWindow: 200_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 3.00, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1053,7 +1053,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	},
 	'anthropic/claude-3.5-sonnet': {
 		contextWindow: 200_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 3.00, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
@@ -1063,7 +1063,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	'mistralai/codestral-2501': {
 		...openSourceModelOptions_assumingOAICompat.codestral,
 		contextWindow: 256_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0.3, output: 0.9 },
 		downloadable: false,
 		reasoningCapabilities: false,
@@ -1071,14 +1071,14 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	'qwen/qwen-2.5-coder-32b-instruct': {
 		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
 		contextWindow: 33_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0.07, output: 0.16 },
 		downloadable: false,
 	},
 	'qwen/qwq-32b': {
 		...openSourceModelOptions_assumingOAICompat['qwq'],
 		contextWindow: 33_000,
-		maxOutputTokens: null,
+		reservedOutputTokenSpace: null,
 		cost: { input: 0.07, output: 0.16 },
 		downloadable: false,
 	}
@@ -1201,12 +1201,12 @@ export const getIsReasoningEnabledState = (
 }
 
 
-export const getMaxOutputTokens = (providerName: ProviderName, modelName: string, opts: { isReasoningEnabled: boolean, overridesOfModel: OverridesOfModel | undefined }) => {
+export const getReservedOutputTokenSpace = (providerName: ProviderName, modelName: string, opts: { isReasoningEnabled: boolean, overridesOfModel: OverridesOfModel | undefined }) => {
 	const {
 		reasoningCapabilities,
-		maxOutputTokens,
+		reservedOutputTokenSpace,
 	} = getModelCapabilities(providerName, modelName, opts.overridesOfModel)
-	return opts.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
+	return opts.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningReservedOutputTokenSpace : reservedOutputTokenSpace
 }
 
 // used to force reasoning state (complex) into something simple we can just read from when sending a message

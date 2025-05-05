@@ -6,7 +6,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
-import { getIsReasoningEnabledState, getMaxOutputTokens, getModelCapabilities } from '../common/modelCapabilities.js';
+import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
 import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
@@ -259,7 +259,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 	specialToolFormat,
 	supportsAnthropicReasoning,
 	contextWindow,
-	maxOutputTokens,
+	reservedOutputTokenSpace,
 }: {
 	messages: SimpleLLMMessage[],
 	systemMessage: string,
@@ -268,10 +268,10 @@ const prepareOpenAIOrAnthropicMessages = ({
 	specialToolFormat: 'openai-style' | 'anthropic-style' | undefined,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
-	maxOutputTokens: number | null | undefined,
+	reservedOutputTokenSpace: number | null | undefined,
 }): { messages: AnthropicOrOpenAILLMMessage[], separateSystemMessage: string | undefined } => {
 
-	maxOutputTokens = maxOutputTokens ?? 4_096 // default to 4096
+	reservedOutputTokenSpace = reservedOutputTokenSpace ?? 4_096 // default to 4096
 	let messages: (SimpleLLMMessage | { role: 'system', content: string })[] = deepClone(messages_)
 
 	// ================ system message ================
@@ -336,7 +336,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 	let totalLen = 0
 	for (const m of messages) { totalLen += m.content.length }
 	const charsNeedToTrim = totalLen - Math.max(
-		(contextWindow - maxOutputTokens) * CHARS_PER_TOKEN, // can be 0, in which case charsNeedToTrim=everything, bad
+		(contextWindow - reservedOutputTokenSpace) * CHARS_PER_TOKEN, // can be 0, in which case charsNeedToTrim=everything, bad
 		4_096 // ensure we don't trim at least 4096 chars (just a random small value)
 	)
 
@@ -494,7 +494,7 @@ const prepareMessages = (params: {
 	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
-	maxOutputTokens: number | null | undefined,
+	reservedOutputTokenSpace: number | null | undefined,
 	providerName: ProviderName
 }): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
 
@@ -647,7 +647,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const aiInstructions = this._getCombinedAIInstructions();
 
 		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled, overridesOfModel })
+		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: simpleMessages,
@@ -657,7 +657,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			specialToolFormat,
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
-			maxOutputTokens,
+			reservedOutputTokenSpace,
 			providerName,
 		})
 		return { messages, separateSystemMessage };
@@ -681,7 +681,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const aiInstructions = this._getCombinedAIInstructions();
 
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled, overridesOfModel })
+		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({
@@ -692,7 +692,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			specialToolFormat,
 			supportsAnthropicReasoning: providerName === 'anthropic',
 			contextWindow,
-			maxOutputTokens,
+			reservedOutputTokenSpace,
 			providerName,
 		})
 		return { messages, separateSystemMessage };

@@ -329,24 +329,24 @@ const ModelSettingsDialog = ({
 	// Initialize form state for all potential override options
 	const [formValues, setFormValues] = useState<{
 		contextWindow: string;
-		maxOutputTokens: string;
+		reservedOutputTokenSpace: string;
 		specialToolFormat: 'openai-style' | 'gemini-style' | 'anthropic-style' | undefined | '';
 		supportsSystemMessage: 'system-role' | 'developer-role' | 'separated' | false | '';
 		supportsFIM: boolean | null;
 		reasoningCapabilities: boolean | null;
 		canTurnOffReasoning: boolean;
-		reasoningMaxOutputTokens: string;
+		reasoningReservedOutputTokenSpace: string;
 		openSourceThinkTags: [string, string] | null;
 	}>({
 		// start form as default values
 		contextWindow: '',
-		maxOutputTokens: '',
+		reservedOutputTokenSpace: '',
 		specialToolFormat: '',
 		supportsSystemMessage: '',
 		supportsFIM: null,
 		reasoningCapabilities: null,
 		canTurnOffReasoning: false,
-		reasoningMaxOutputTokens: '',
+		reasoningReservedOutputTokenSpace: '',
 		openSourceThinkTags: null,
 	});
 
@@ -370,15 +370,15 @@ const ModelSettingsDialog = ({
 			// to indicate default values should be used
 			setFormValues({
 				contextWindow: overrides.contextWindow !== undefined ? String(overrides.contextWindow) : '',
-				maxOutputTokens: overrides.maxOutputTokens !== undefined ? String(overrides.maxOutputTokens) : '',
+				reservedOutputTokenSpace: overrides.reservedOutputTokenSpace !== undefined ? String(overrides.reservedOutputTokenSpace) : '',
 				specialToolFormat: overrides.specialToolFormat !== undefined ? overrides.specialToolFormat : '',
 				supportsSystemMessage: overrides.supportsSystemMessage !== undefined ? overrides.supportsSystemMessage : '',
 				supportsFIM: overrides.supportsFIM !== undefined ? overrides.supportsFIM : null,
 				reasoningCapabilities: overrides.reasoningCapabilities !== undefined ?
 					!!overrides.reasoningCapabilities : null,
 				canTurnOffReasoning: typeof reasoningCapabilities === 'object' ? !!reasoningCapabilities.canTurnOffReasoning : false,
-				reasoningMaxOutputTokens: typeof reasoningCapabilities === 'object' && reasoningCapabilities.reasoningMaxOutputTokens ?
-					String(reasoningCapabilities.reasoningMaxOutputTokens) : '',
+				reasoningReservedOutputTokenSpace: typeof reasoningCapabilities === 'object' && reasoningCapabilities.reasoningReservedOutputTokenSpace ?
+					String(reasoningCapabilities.reasoningReservedOutputTokenSpace) : '',
 				openSourceThinkTags: thinkTags,
 			});
 		}
@@ -406,11 +406,11 @@ const ModelSettingsDialog = ({
 			if (!isNaN(tokens)) newSettings.contextWindow = tokens;
 		}
 
-		if (formValues.maxOutputTokens.trim() === '') {
-			newSettings.maxOutputTokens = defaultModelCapabilities.maxOutputTokens;
-		} else if (formValues.maxOutputTokens) {
-			const tokens = parseInt(formValues.maxOutputTokens);
-			if (!isNaN(tokens)) newSettings.maxOutputTokens = tokens;
+		if (formValues.reservedOutputTokenSpace.trim() === '') {
+			newSettings.reservedOutputTokenSpace = defaultModelCapabilities.reservedOutputTokenSpace;
+		} else if (formValues.reservedOutputTokenSpace) {
+			const tokens = parseInt(formValues.reservedOutputTokenSpace);
+			if (!isNaN(tokens)) newSettings.reservedOutputTokenSpace = tokens;
 		}
 
 		// Handle dropdown fields
@@ -442,8 +442,8 @@ const ModelSettingsDialog = ({
 			};
 
 			// Only add these if they have values
-			if (formValues.reasoningMaxOutputTokens) {
-				reasoningSettings.reasoningMaxOutputTokens = parseInt(formValues.reasoningMaxOutputTokens);
+			if (formValues.reasoningReservedOutputTokenSpace) {
+				reasoningSettings.reasoningReservedOutputTokenSpace = parseInt(formValues.reasoningReservedOutputTokenSpace);
 			}
 
 			if (formValues.openSourceThinkTags) {
@@ -506,18 +506,18 @@ const ModelSettingsDialog = ({
 							<div className="flex items-center gap-2">
 								<VoidSwitch
 									size="xxs"
-									value={formValues.maxOutputTokens !== ''}
+									value={formValues.reservedOutputTokenSpace !== ''}
 									onChange={(enabled) => {
-										updateField('maxOutputTokens', enabled ? String(defaultModelCapabilities.maxOutputTokens) : '');
+										updateField('reservedOutputTokenSpace', enabled ? String(defaultModelCapabilities.reservedOutputTokenSpace) : '');
 									}}
 								/>
-								{formValues.maxOutputTokens === '' ? (
-									<span className="text-void-fg-3 text-xs w-24 text-right">Default ({defaultModelCapabilities.maxOutputTokens})</span>
+								{formValues.reservedOutputTokenSpace === '' ? (
+									<span className="text-void-fg-3 text-xs w-24 text-right">Default ({defaultModelCapabilities.reservedOutputTokenSpace})</span>
 								) : (
 									<VoidSimpleInputBox
-										value={formValues.maxOutputTokens}
-										onChangeValue={(value) => updateField('maxOutputTokens', value)}
-										placeholder={String(defaultModelCapabilities.maxOutputTokens)}
+										value={formValues.reservedOutputTokenSpace}
+										onChangeValue={(value) => updateField('reservedOutputTokenSpace', value)}
+										placeholder={String(defaultModelCapabilities.reservedOutputTokenSpace)}
 										compact={true}
 										className="max-w-24"
 									/>
@@ -633,19 +633,19 @@ const ModelSettingsDialog = ({
 										<div className="flex items-center gap-2">
 											<VoidSwitch
 												size="xxs"
-												value={formValues.reasoningMaxOutputTokens !== ''}
+												value={formValues.reasoningReservedOutputTokenSpace !== ''}
 												onChange={(enabled) => {
 													// Use a reasonable default value when enabling
-													const defaultValue = defaultModelCapabilities.maxOutputTokens || 500;
-													updateField('reasoningMaxOutputTokens', enabled ? String(defaultValue) : '');
+													const defaultValue = defaultModelCapabilities.reservedOutputTokenSpace || 500;
+													updateField('reasoningReservedOutputTokenSpace', enabled ? String(defaultValue) : '');
 												}}
 											/>
-											{formValues.reasoningMaxOutputTokens === '' ? (
+											{formValues.reasoningReservedOutputTokenSpace === '' ? (
 												<span className="text-void-fg-3 text-xs w-24 text-right">Default</span>
 											) : (
 												<VoidSimpleInputBox
-													value={formValues.reasoningMaxOutputTokens}
-													onChangeValue={(value) => updateField('reasoningMaxOutputTokens', value)}
+													value={formValues.reasoningReservedOutputTokenSpace}
+													onChangeValue={(value) => updateField('reasoningReservedOutputTokenSpace', value)}
 													placeholder="Default"
 													compact={true}
 													className="max-w-24"

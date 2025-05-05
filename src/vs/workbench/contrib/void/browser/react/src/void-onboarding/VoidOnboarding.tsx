@@ -364,7 +364,7 @@ const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName
 					contextWindow,
 
 					isUnrecognizedModel,
-					maxOutputTokens,
+					reservedOutputTokenSpace,
 					supportsSystemMessage,
 				} = capabilities
 

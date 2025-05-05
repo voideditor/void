@@ -517,7 +517,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'o4-mini': {
 		contextWindow: 1_047_576,
@@ -527,7 +527,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4.1': {
 		contextWindow: 1_047_576,
@@ -566,7 +566,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false }, // it doesn't actually output reasoning, but our logic is fine with it
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'o3-mini': {
 		contextWindow: 200_000,
@@ -575,7 +575,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false },
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4o': {
 		contextWindow: 128_000,
@@ -594,7 +594,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: false, // does not support any system
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false },
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4o-mini': {
 		contextWindow: 128_000,
@@ -635,24 +635,54 @@ const openAISettings: VoidStaticProviderInfo = {
 
 // ---------------- XAI ----------------
 const xAIModelOptions = {
+	// https://docs.x.ai/docs/guides/reasoning#reasoning
+	// https://docs.x.ai/docs/models#models-and-pricing
 	'grok-2': {
 		contextWindow: 131_072,
-		reservedOutputTokenSpace: null, // 131_072,
+		reservedOutputTokenSpace: null,
 		cost: { input: 2.00, output: 10.00 },
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	// 'grok-3': {
-	// 	contextWindow: 1_000_000,
-	// 	reservedOutputTokenSpace: null,
-	// 	cost: {},
-	// 	downloadable: false,
-	// 	supportsFIM: false,
-	// 	supportsSystemMessage: 'system-role',
-	// 	reasoningCapabilities: {canIOReasoning:false, canTurnOffReasoning:true,},
-	// }
+	'grok-3': {
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: null,
+		cost: { input: 3.00, output: 15.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'grok-3-fast': {
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: null,
+		cost: { input: 5.00, output: 25.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	// only mini supports thinking
+	'grok-3-mini': {
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.30, output: 0.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
+	},
+	'grok-3-mini-fast': {
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.60, output: 4.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
+	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 const xAISettings: VoidStaticProviderInfo = {
@@ -663,7 +693,9 @@ const xAISettings: VoidStaticProviderInfo = {
 		if (lower.includes('grok-2')) fallbackName = 'grok-2'
 		if (fallbackName) return { modelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
-	}
+	},
+	// same implementation as openai
+	providerReasoningIOSettings: openAISettings.providerReasoningIOSettings,
 }
 
 

@@ -199,7 +199,7 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 				step={stepSize}
 				value={value}
 				onChange={(newVal) => {
-					const isOff = canTurnOffReasoning && newVal === min
+					const isOff = canTurnOffReasoning && newVal === valueIfOff
 					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningBudget: newVal })
 				}}
 			/>
@@ -214,27 +214,24 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		const min = canTurnOffReasoning ? -1 : 0
 		const max = values.length - 1
 
+		const currentEffort = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal
 		const valueIfOff = -1
-
-		const value = isReasoningEnabled ?
-			values.indexOf(voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal)
-			: valueIfOff
-
+		const value = isReasoningEnabled && currentEffort ? values.indexOf(currentEffort) : valueIfOff
 		return <div className='flex items-center gap-x-2'>
 			<span className='text-void-fg-3 text-xs pointer-events-none inline-block w-10 pr-1'>Thinking</span>
 			<VoidSlider
-				width={50}
+				width={30}
 				size='xs'
 				min={min}
 				max={max}
 				step={1}
 				value={value}
 				onChange={(newVal) => {
-					const isOff = canTurnOffReasoning && newVal === min
-					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningBudget: newVal })
+					const isOff = canTurnOffReasoning && newVal === valueIfOff
+					voidSettingsService.setOptionsOfModelSelection(featureName, modelSelection.providerName, modelSelection.modelName, { reasoningEnabled: !isOff, reasoningEffort: values[newVal] ?? undefined })
 				}}
 			/>
-			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${value}` : 'Thinking disabled'}</span>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>{isReasoningEnabled ? `${currentEffort}` : 'Thinking disabled'}</span>
 		</div>
 	}
 

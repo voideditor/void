@@ -25,6 +25,8 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
 import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplaceGivenDescription_systemMessage, searchReplaceGivenDescription_userMessage, tripleTick, } from '../common/prompt/prompts.js';
 import { IVoidCommandBarService } from './voidCommandBarService.js';
+import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
+import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
 
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
@@ -2252,9 +2254,12 @@ registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
 
 
+const processRawKeybindingText = (keybindingStr: string) => {
+	return keybindingStr
+		.replace(/Enter/g, '↵') // ⏎
+		.replace(/Backspace/g, '⌫')
 
-
-
+}
 
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
@@ -2282,7 +2287,8 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 			startLine: number,
 			offsetLines: number
 		},
-		@IVoidCommandBarService private readonly _voidCommandBarService: IVoidCommandBarService
+		@IVoidCommandBarService private readonly _voidCommandBarService: IVoidCommandBarService,
+		@IKeybindingService private readonly _keybindingService: IKeybindingService
 	) {
 		super();
 
@@ -2302,6 +2308,27 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
 		const lineHeight = editor.getOption(EditorOption.lineHeight);
 
+		const getAcceptRejectText = () => {
+			const acceptKeybinding = this._keybindingService.lookupKeybinding(VOID_ACCEPT_DIFF_ACTION_ID);
+			const rejectKeybinding = this._keybindingService.lookupKeybinding(VOID_REJECT_DIFF_ACTION_ID);
+
+			const acceptKeybindLabel = processRawKeybindingText(acceptKeybinding && acceptKeybinding.getLabel() || '');
+			const rejectKeybindLabel = processRawKeybindingText(rejectKeybinding && rejectKeybinding.getLabel() || '')
+
+			const commandBarStateAtUri = this._voidCommandBarService.stateOfURI[uri.fsPath];
+			const selectedDiffIdx = commandBarStateAtUri?.diffIdx ?? 0; // 0th item is selected by default
+			const thisDiffIdx = commandBarStateAtUri?.sortedDiffIds.indexOf(diffid) ?? null;
+
+			const showLabel = thisDiffIdx === selectedDiffIdx
+
+			const acceptText = `Accept${showLabel ? ` ` + acceptKeybindLabel : ''}`;
+			const rejectText = `Reject${showLabel ? ` ` + rejectKeybindLabel : ''}`;
+
+			return { acceptText, rejectText }
+		}
+
+		const { acceptText, rejectText } = getAcceptRejectText()
+
 		// Create container div with buttons
 		const { acceptButton, rejectButton, buttons } = dom.h('div@buttons', [
 			dom.h('button@acceptButton', []),
@@ -2315,11 +2342,14 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		buttons.style.paddingRight = '4px';
 		buttons.style.zIndex = '1';
 		buttons.style.transform = `translateY(${offsetLines * lineHeight}px)`;
+		buttons.style.justifyContent = 'flex-end';
+		buttons.style.width = '100%';
+		buttons.style.pointerEvents = 'none';
 
 
 		// Style accept button
 		acceptButton.onclick = onAccept;
-		acceptButton.textContent = 'Accept';
+		acceptButton.textContent = acceptText;
 		acceptButton.style.backgroundColor = acceptBg;
 		acceptButton.style.border = acceptBorder;
 		acceptButton.style.color = buttonTextColor;
@@ -2333,10 +2363,12 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		acceptButton.style.cursor = 'pointer';
 		acceptButton.style.height = '100%';
 		acceptButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
+		acceptButton.style.pointerEvents = 'auto';
+
 
 		// Style reject button
 		rejectButton.onclick = onReject;
-		rejectButton.textContent = 'Reject';
+		rejectButton.textContent = rejectText;
 		rejectButton.style.backgroundColor = rejectBg;
 		rejectButton.style.border = rejectBorder;
 		rejectButton.style.color = buttonTextColor;
@@ -2350,6 +2382,7 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		rejectButton.style.cursor = 'pointer';
 		rejectButton.style.height = '100%';
 		rejectButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
+		rejectButton.style.pointerEvents = 'auto';
 
 
 
@@ -2384,18 +2417,12 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		// Listen for state changes in the command bar service
 		this._register(this._voidCommandBarService.onDidChangeState(e => {
 			if (uri && e.uri.fsPath === uri.fsPath) {
-				const commandBarStateAtUri = this._voidCommandBarService.stateOfURI[uri.fsPath];
-				const selectedDiffIdx = commandBarStateAtUri?.diffIdx ?? null;
-				const thisDiffIdx = commandBarStateAtUri?.sortedDiffIds.indexOf(diffid) ?? null;
 
-				// Update button text based on styles
-				if (thisDiffIdx !== null && selectedDiffIdx === thisDiffIdx) {
-					acceptButton.textContent = 'Accept';
-					rejectButton.textContent = 'Reject';
-				} else {
-					acceptButton.textContent = 'Accept';
-					rejectButton.textContent = 'Reject';
-				}
+				const { acceptText, rejectText } = getAcceptRejectText()
+
+				acceptButton.textContent = acceptText;
+				rejectButton.textContent = rejectText;
+
 			}
 		}));
 

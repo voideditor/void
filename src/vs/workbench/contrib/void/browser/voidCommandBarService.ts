@@ -18,6 +18,14 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { ITextModel } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
+import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
+import { localize2 } from '../../../../nls.js';
+import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { KeyMod } from '../../../../editor/common/services/editorBaseApi.js';
+import { KeyCode } from '../../../../base/common/keyCodes.js';
 
 
 
@@ -456,3 +464,74 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 		super.dispose();
 	}
 }
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_ACCEPT_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidAcceptDiffAction', 'Void: Accept Diff'),
+			keybinding: {
+				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Enter,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editCodeService = accessor.get(IEditCodeService);
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		const commandBarState = commandBarService.stateOfURI[activeURI.fsPath];
+		if (!commandBarState) return;
+		const diffIdx = commandBarState.diffIdx ?? 0;
+
+		const diffid = commandBarState.sortedDiffIds[diffIdx];
+		if (!diffid) return;
+
+		metricsService.capture('Accept Diff', { diffid, keyboard: true });
+		editCodeService.acceptDiff({ diffid: parseInt(diffid) })
+
+	}
+});
+
+
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_REJECT_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidRejectDiffAction', 'Void: Reject Diff'),
+			keybinding: {
+				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Backspace,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const editCodeService = accessor.get(IEditCodeService);
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		const commandBarState = commandBarService.stateOfURI[activeURI.fsPath];
+		if (!commandBarState) return;
+		const diffIdx = commandBarState.diffIdx ?? 0;
+
+		const diffid = commandBarState.sortedDiffIds[diffIdx];
+		if (!diffid) return;
+
+		metricsService.capture('Reject Diff', { diffid, keyboard: true });
+		editCodeService.rejectDiff({ diffid: parseInt(diffid) })
+	}
+});

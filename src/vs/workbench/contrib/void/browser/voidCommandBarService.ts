@@ -417,8 +417,8 @@ class AcceptRejectAllFloatingWidget extends Widget implements IOverlayWidget {
 
 		// Style the container
 		// root.style.backgroundColor = 'rgb(248 113 113)';
-		root.style.height = '16rem'; // make a fixed size, and all contents go on the bottom right. this fixes annoying VS Code mounting issues
-		root.style.width = '16rem';
+		root.style.height = '256px'; // make a fixed size, and all contents go on the bottom right. this fixes annoying VS Code mounting issues
+		root.style.width = '100%';
 		root.style.flexDirection = 'column';
 		root.style.justifyContent = 'flex-end';
 		root.style.alignItems = 'flex-end';

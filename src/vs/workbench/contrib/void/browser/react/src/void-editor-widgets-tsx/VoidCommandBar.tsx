@@ -24,16 +24,12 @@ export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	</div>
 }
 
-
-
 const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
 	if (len === 0) return null
 	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
 }
 
-
-
-const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
+export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const editorService = accessor.get('ICodeEditorService')
@@ -42,11 +38,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const commandBarService = accessor.get('IVoidCommandBarService')
 	const voidModelService = accessor.get('IVoidModelService')
 	const { stateOfURI: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
-
-
-	// useEffect(() => {
-	// 	console.log('MOUNTING!!!')
-	// }, [])
 
 	// latestUriIdx is used to remember place in leftRight
 	const _latestValidUriIdxRef = useRef<number | null>(null)
@@ -120,7 +111,6 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? [] : []
 	const sortedDiffZoneIds = uri ? commandBarState[uri.fsPath]?.sortedDiffZoneIds ?? [] : []
 
-
 	const isADiffInThisFile = sortedDiffIds.length !== 0
 	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
 	const isADiffZoneInAnyFile = sortedCommandBarURIs.length !== 0
@@ -134,69 +124,7 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const prevURIIdx = getNextUriIdx(-1)
 
 	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
-	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null // || (sortedCommandBarURIs.length === 1 && isADiffZoneInThisFile)
-
-	const upButton = <button
-		className={`
-			size-4 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}// --border border-void-border-3 focus:border-void-border-1
-		disabled={upDownDisabled}
-		onClick={() => { goToDiffIdx(prevDiffIdx) }}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToDiffIdx(prevDiffIdx);
-			}
-		}}
-	><MoveUp className='size-4' /></button>
-
-	const downButton = <button
-		className={`
-			size-4 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={upDownDisabled}
-		onClick={() => { goToDiffIdx(nextDiffIdx) }}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToDiffIdx(nextDiffIdx);
-			}
-		}}
-	><MoveDown className='size-4' /></button>
-
-	const leftButton = <button
-		className={`
-			size-4 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={leftRightDisabled}
-		onClick={() => goToURIIdx(prevURIIdx)}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToURIIdx(prevURIIdx);
-			}
-		}}
-	><MoveLeft className='size-4' /></button>
-
-	const rightButton = <button
-		className={`
-			size-4 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={leftRightDisabled}
-		onClick={() => goToURIIdx(nextURIIdx)}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToURIIdx(nextURIIdx);
-			}
-		}}
-	><MoveRight className='size-4' /></button>
-
-
+	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null
 
 	// accept/reject if current URI has changes
 	const onAcceptAll = () => {
@@ -210,109 +138,120 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		metricsService.capture('Reject All', {})
 	}
 
-
 	if (!isADiffZoneInAnyFile) return null
 
-	// const acceptAllButton = <button
-	// 	className='text-nowrap'
-	// 	onClick={onAcceptAll}
-	// 	style={{
-	// 		backgroundColor: acceptAllBg,
-	// 		border: acceptBorder,
-	// 		color: buttonTextColor,
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// >
-	// 	Accept File
-	// </button>
-
-	// const rejectAllButton = <button
-	// 	className='text-nowrap'
-	// 	onClick={onRejectAll}
-	// 	style={{
-	// 		backgroundColor: rejectBg,
-	// 		border: rejectBorder,
-	// 		color: 'white',
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// >
-	// 	Reject File
-	// </button>
-
-	const acceptAllButton = <AcceptAllButtonWrapper
-		text={'Keep Changes'}
-		onClick={onAcceptAll}
-	/>
-
-	const rejectAllButton = <RejectAllButtonWrapper
-		text={'Reject All'}
-		onClick={onRejectAll}
-	/>
-
-	const acceptRejectAllButtons = <div className="flex items-center gap-1 text-sm">
-		{acceptAllButton}
-		{rejectAllButton}
-	</div>
-
-	// const closeCommandBar = useCallback(() => {
-	// 	commandService.executeCommand('void.hideCommandBar');
-	// }, [commandService]);
-
-	// const hideButton = <button
-	// 	className='ml-auto pointer-events-auto'
-	// 	onClick={closeCommandBar}
-	// 	style={{
-	// 		color: buttonTextColor,
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// 	title="Close command bar"
-	// >x
-	// </button>
-
-	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-center bg-void-bg-2 rounded shadow-md border border-void-border-2 w-full'>
-		<div className="flex flex-col gap-1">
-			{/* Changes in file */}
-			<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
-				{upButton}
-				{downButton}
-				<span className="min-w-16 px-2 text-xs leading-[1]">
-					{isADiffInThisFile ?
-						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-						: streamState === 'streaming' ?
-							'No changes yet'
-							: `No changes`
-					}
-				</span>
+	// Triple colon button (menu)
+	const tripleColonButton = (
+		<button
+			className="flex items-center justify-center rounded cursor-pointer hover:bg-void-bg-1-alt size-6"
+			title="Menu"
+		>
+			<div className="flex flex-col items-center justify-center gap-[2px]">
+				<div className="w-[3px] h-[3px] rounded-full bg-current"></div>
+				<div className="w-[3px] h-[3px] rounded-full bg-current"></div>
+				<div className="w-[3px] h-[3px] rounded-full bg-current"></div>
 			</div>
+		</button>
+	)
 
-			{/* Files */}
-			<div className={`${!isADiffZoneInAnyFile ? 'hidden' : ''} flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
-				{leftButton}
-				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-				{rightButton}
-				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-				<span className="min-w-16 px-2 text-xs leading-[1]">
-					{currFileIdx !== null ?
-						`File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
-						: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
-					}
-				</span>
+	return (
+		<div className="pointer-events-auto">
+			<div className="flex items-center gap-3 px-1 py-0.5 bg-void-bg-2 rounded shadow-md border border-void-border-2">
+				{/* Diff Navigation Group */}
+				<div className="flex items-center">
+					<button
+						className="size-6 flex items-center justify-center rounded cursor-default"
+						disabled={upDownDisabled}
+						onClick={() => goToDiffIdx(prevDiffIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								goToDiffIdx(prevDiffIdx);
+							}
+						}}
+						title="Previous diff"
+					>
+						<MoveUp className='size-4 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+					<span className="text-xs whitespace-nowrap px-1">
+						{isADiffInThisFile
+							? `Diff ${(currDiffIdx ?? 0) + 1}/${sortedDiffIds.length}`
+							: streamState === 'streaming'
+								? 'No changes yet'
+								: 'No changes'
+						}
+					</span>
+					<button
+						className="size-6 flex items-center justify-center rounded cursor-default"
+						disabled={upDownDisabled}
+						onClick={() => goToDiffIdx(nextDiffIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								goToDiffIdx(nextDiffIdx);
+							}
+						}}
+						title="Next diff"
+					>
+						<MoveDown className='size-4 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+				</div>
+
+				{/* File Navigation Group */}
+				<div className="flex items-center">
+					<button
+						className="size-6 flex items-center justify-center rounded cursor-default"
+						disabled={leftRightDisabled}
+						onClick={() => goToURIIdx(prevURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								goToURIIdx(prevURIIdx);
+							}
+						}}
+						title="Previous file"
+					>
+						<MoveLeft className='size-4 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+					<span className="text-xs whitespace-nowrap px-1">
+						{currFileIdx !== null
+							? `File ${currFileIdx + 1}/${sortedCommandBarURIs.length}`
+							: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'}`
+						}
+					</span>
+					<button
+						className="size-6 flex items-center justify-center rounded cursor-default"
+						disabled={leftRightDisabled}
+						onClick={() => goToURIIdx(nextURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								goToURIIdx(nextURIIdx);
+							}
+						}}
+						title="Next file"
+					>
+						<MoveRight className='size-4 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+				</div>
+
+				{/* Accept/Reject buttons - only shown when appropriate */}
+				{showAcceptRejectAll && (
+					<div className="flex items-center gap-2">
+						<AcceptAllButtonWrapper
+							text="Accept File"
+							onClick={onAcceptAll}
+						/>
+						<RejectAllButtonWrapper
+							text="Reject File"
+							onClick={onRejectAll}
+						/>
+					</div>
+				)}
+
+				{/* Triple colon menu button */}
+				{tripleColonButton}
 			</div>
 		</div>
-	</div>
-
-	return <div className={`flex flex-col items-center gap-y-2 pointer-events-auto`}>
-		{showAcceptRejectAll && acceptRejectAllButtons}
-		{leftRightUpDownButtons}
-
-	</div>
+	)
 }

@@ -3020,14 +3020,14 @@ export const SidebarChat = () => {
 			{landingPageInput}
 		</ErrorBoundary>
 
-		{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
+			{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
 			<ErrorBoundary>
-				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Previous Threads</div>
+				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Previous Threads</div>
 				<PastThreadsList />
 			</ErrorBoundary>
 			:
 			<ErrorBoundary>
-				<div className='pt-8 mb-2 text-void-fg-1 text-root'>Suggestions</div>
+				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Suggestions</div>
 				{initiallySuggestedPromptsHTML}
 			</ErrorBoundary>
 		}

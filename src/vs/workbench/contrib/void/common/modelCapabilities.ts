@@ -173,22 +173,9 @@ export type VoidStaticModelInfo = { // not stateful
 }
 
 
-export type ModelOverrideOptions = Partial<{
-	contextWindow: number; // input tokens
-	maxOutputTokens: number; // output tokens, defaults to 4092
-	supportsTools: 'openai-style' | undefined;
-	supportsSystemMessage: 'system-role' | 'developer-role' | false;
-	supportsFIM: boolean;
-	reasoningCapabilities: false | {
-		readonly supportsReasoning: true;
-		readonly canTurnOffReasoning: boolean;
-		readonly canIOReasoning: boolean;
-		readonly reasoningMaxOutputTokens?: number;
-		readonly openSourceThinkTags?: [string, string];
-	}
-}>
-
-
+export type ModelOverrideOptions = Partial<Pick<VoidStaticModelInfo,
+	'contextWindow' | 'maxOutputTokens' | 'specialToolFormat' | 'supportsSystemMessage' | 'supportsFIM' | 'reasoningCapabilities'
+>>
 
 
 
@@ -210,7 +197,7 @@ type VoidStaticProviderInfo = { // doesn't change (not stateful)
 
 
 
-export const defaultModelOptions = {
+const defaultModelOptions = {
 	contextWindow: 4_096,
 	maxOutputTokens: 4_096,
 	cost: { input: 0, output: 0 },
@@ -1155,7 +1142,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 export const getModelCapabilities = (
 	providerName: ProviderName,
 	modelName: string,
-	overridesOfModel?: OverridesOfModel
+	overridesOfModel: OverridesOfModel | undefined
 ): VoidStaticModelInfo & { modelName: string; isUnrecognizedModel: boolean } => {
 
 	const lowercaseModelName = modelName.toLowerCase()
@@ -1201,8 +1188,9 @@ export const getIsReasoningEnabledState = (
 	providerName: ProviderName,
 	modelName: string,
 	modelSelectionOptions: ModelSelectionOptions | undefined,
+	overridesOfModel: OverridesOfModel | undefined,
 ) => {
-	const { supportsReasoning, canTurnOffReasoning } = getModelCapabilities(providerName, modelName).reasoningCapabilities || {}
+	const { supportsReasoning, canTurnOffReasoning } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
 	if (!supportsReasoning) return false
 
 	// default to enabled if can't turn off, or if the featureName is Chat.
@@ -1213,11 +1201,11 @@ export const getIsReasoningEnabledState = (
 }
 
 
-export const getMaxOutputTokens = (providerName: ProviderName, modelName: string, opts: { isReasoningEnabled: boolean }) => {
+export const getMaxOutputTokens = (providerName: ProviderName, modelName: string, opts: { isReasoningEnabled: boolean, overridesOfModel: OverridesOfModel | undefined }) => {
 	const {
 		reasoningCapabilities,
-		maxOutputTokens
-	} = getModelCapabilities(providerName, modelName)
+		maxOutputTokens,
+	} = getModelCapabilities(providerName, modelName, opts.overridesOfModel)
 	return opts.isReasoningEnabled && reasoningCapabilities ? reasoningCapabilities.reasoningMaxOutputTokens : maxOutputTokens
 }
 
@@ -1227,11 +1215,12 @@ export const getSendableReasoningInfo = (
 	providerName: ProviderName,
 	modelName: string,
 	modelSelectionOptions: ModelSelectionOptions | undefined,
+	overridesOfModel: OverridesOfModel | undefined,
 ): SendableReasoningInfo => {
 
-	const { canIOReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName).reasoningCapabilities || {}
+	const { canIOReasoning, reasoningBudgetSlider } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
 	if (!canIOReasoning) return null
-	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
+	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
 	if (!isReasoningEnabled) return null
 
 	// check for reasoning budget

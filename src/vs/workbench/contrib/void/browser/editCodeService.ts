@@ -106,37 +106,42 @@ const removeWhitespaceExceptNewlines = (str: string): string => {
 
 // finds block.orig in fileContents and return its range in file
 // startingAtLine is 1-indexed and inclusive
-const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' | 'indices' }) => {
+// returns 1-indexed lines
+const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' }) => {
 
-	const startLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
+	const returnAns = (fileContents: string, idx: number) => {
+		const startLine = numLinesOfStr(fileContents.substring(0, idx + 1))
+		const numLines = numLinesOfStr(text)
+		const endLine = startLine + numLines - 1
+
+		return [startLine, endLine] as const
+	}
+
+	const startingAtLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
 		fileContents.split('\n').slice(0, opts.startingAtLine).join('\n').length // num characters in all lines before startingAtLine
 		: 0
 
 	// idx = starting index in fileContents
-	let idx = fileContents.indexOf(text, startLineIdx(fileContents))
+	let idx = fileContents.indexOf(text, startingAtLineIdx(fileContents))
+
+	// if idx was found
+	if (idx !== -1) {
+		return returnAns(fileContents, idx)
+	}
+
+	if (!canFallbackToRemoveWhitespace)
+		return 'Not found' as const
 
 	// try to find it ignoring all whitespace this time
-	if (idx === -1 && canFallbackToRemoveWhitespace) {
-		text = removeWhitespaceExceptNewlines(text)
-		fileContents = removeWhitespaceExceptNewlines(fileContents)
-		idx = fileContents.indexOf(text, startLineIdx(fileContents));
-	}
+	text = removeWhitespaceExceptNewlines(text)
+	fileContents = removeWhitespaceExceptNewlines(fileContents)
+	idx = fileContents.indexOf(text, startingAtLineIdx(fileContents));
 
 	if (idx === -1) return 'Not found' as const
 	const lastIdx = fileContents.lastIndexOf(text)
 	if (lastIdx !== idx) return 'Not unique' as const
 
-	if (opts.returnType === 'lines') {
-		const startLine = fileContents.substring(0, idx).split('\n').length
-		const numLines = numLinesOfStr(text)
-		const endLine = startLine + numLines - 1
-		return [startLine, endLine] as const
-	}
-
-	else if (opts.returnType === 'indices') {
-		return [idx, idx + text.length] as const
-	}
-	else throw new Error(`findTextInCode: Invalid returnType ${opts.returnType}`)
+	return returnAns(fileContents, idx)
 }
 
 
@@ -1331,6 +1336,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const { from, } = opts
 		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
@@ -1482,6 +1488,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {
@@ -1556,17 +1563,30 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	private _errContentOfInvalidStr = (str: 'Not found' | 'Not unique' | 'Has overlap', blockOrig: string) => {
-
+	/**
+	 * Generates a human-readable error message for an invalid ORIGINAL search block.
+	 */
+	private _errContentOfInvalidStr = (
+		str: 'Not found' | 'Not unique' | 'Has overlap',
+		blockOrig: string,
+	): string => {
 		const problematicCode = `${tripleTick[0]}\n${JSON.stringify(blockOrig)}\n${tripleTick[1]}`
 
-		const descStr = str === `Not found` ?
-			`The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
-			: str === `Not unique` ?
-				`The edit was not applied. The text in ORIGINAL must be unique in the file being edited, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
-				: str === 'Has overlap' ?
-					`The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
-					: ``
+		// use a switch for better readability / exhaustiveness check
+		let descStr: string
+		switch (str) {
+			case 'Not found':
+				descStr = `The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
+				break
+			case 'Not unique':
+				descStr = `The edit was not applied. The text in ORIGINAL must be unique in the file being edited, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
+				break
+			case 'Has overlap':
+				descStr = `The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
+				break
+			default:
+				descStr = ''
+		}
 		return descStr
 	}
 
@@ -1578,22 +1598,34 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) throw new Error(`Error applying Search/Replace blocks: File does not exist.`)
 		const modelStr = model.getValue(EndOfLinePreference.LF)
+		// .split('\n').map(l => '\t' + l).join('\n') // for testing purposes only, remember to remove this
+		const modelStrLines = modelStr.split('\n')
+
+
 
 
 		const replacements: { origStart: number; origEnd: number; block: ExtractedSearchReplaceBlock }[] = []
 		for (const b of blocks) {
-			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'indices' })
+			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'lines' })
 			if (typeof res === 'string')
 				throw new Error(this._errContentOfInvalidStr(res, b.orig))
-			const [i, _] = res
+			let [startLine, endLine] = res
+			startLine -= 1 // 0-index
+			endLine -= 1
 
-			replacements.push({
-				origStart: i,
-				origEnd: i + b.orig.length - 1, // INCLUSIVE
-				block: b,
-			})
+			// including newline before start
+			const contentBeforeStart = startLine !== 0 ?
+				modelStrLines.slice(0, startLine).join('\n') + '\n'
+				: ''
+
+			// including endline at end
+			const contentUpToEnd = modelStrLines.slice(0, endLine + 1).join('\n')
+
+			const origStart = contentBeforeStart.length;
+			const origEnd = contentUpToEnd.length;
+
+			replacements.push({ origStart, origEnd, block: b });
 		}
-
 		// sort in increasing order
 		replacements.sort((a, b) => a.origStart - b.origStart)
 
@@ -1610,17 +1642,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const { origStart, origEnd, block } = replacements[i]
 			newCode = newCode.slice(0, origStart) + block.final + newCode.slice(origEnd + 1, Infinity)
 		}
+		console.log('REPLACEMENTS', replacements, newCode)
 
 		this._writeURIText(uri, newCode,
 			'wholeFileRange',
 			{ shouldRealignDiffAreas: true }
 		)
-
 	}
 
 	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
 		const { from, applyStr, } = opts
 		const featureName: FeatureName = 'Apply'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
@@ -1900,6 +1933,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					separateSystemMessage,
 					chatMode: null, // not chat
 					onText: (params) => {

@@ -153,14 +153,16 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 	const voidSettingsState = useSettingsState()
 
 	const modelSelection = voidSettingsState.modelSelectionOfFeature[featureName]
+	const overridesOfModel = voidSettingsState.overridesOfModel
+
 	if (!modelSelection) return null
 
 	const { modelName, providerName } = modelSelection
-	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName)
+	const { reasoningCapabilities } = getModelCapabilities(providerName, modelName, overridesOfModel)
 	const { canTurnOffReasoning, reasoningBudgetSlider } = reasoningCapabilities || {}
 
 	const modelSelectionOptions = voidSettingsState.optionsOfModelSelection[featureName][providerName]?.[modelName]
-	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
+	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
 	if (canTurnOffReasoning && !reasoningBudgetSlider) { // if it's just a on/off toggle without a power slider (no models right now)
 		return null // unused right now
 		// return <div className='flex items-center gap-x-2'>

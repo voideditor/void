@@ -607,20 +607,23 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 	prepareLLMSimpleMessages: IConvertToLLMMessageService['prepareLLMSimpleMessages'] = ({ simpleMessages, systemMessage, modelSelection, featureName }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
+
+		const { overridesOfModel } = this.voidSettingsService.state
+
 		const { providerName, modelName } = modelSelection
 		const {
 			specialToolFormat,
 			contextWindow,
 			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName)
+		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]
 
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
 
-		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
+		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
+		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: simpleMessages,
@@ -637,12 +640,15 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 	}
 	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
+
+		const { overridesOfModel } = this.voidSettingsService.state
+
 		const { providerName, modelName } = modelSelection
 		const {
 			specialToolFormat,
 			contextWindow,
 			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName)
+		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 		const systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
@@ -650,8 +656,8 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
 
-		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions)
-		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled })
+		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
+		const maxOutputTokens = getMaxOutputTokens(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({

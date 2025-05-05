@@ -303,7 +303,7 @@ export const AddModelInputBox = ({ providerName: permanentProviderName, classNam
 
 
 // Import the getModelCapabilities function to access default values
-import { defaultModelOptions, getModelCapabilities, ModelOverrideOptions } from '../../../../common/modelCapabilities.js';
+import { getModelCapabilities, ModelOverrideOptions } from '../../../../common/modelCapabilities.js';
 
 // Modal dialog to show model settings
 const ModelSettingsDialog = ({
@@ -324,45 +324,68 @@ const ModelSettingsDialog = ({
 
 	// Get current model capabilities and override settings
 	const modelCapabilities = getModelCapabilities(providerName, modelName, settingsState.overridesOfModel);
+	const defaultModelCapabilities = getModelCapabilities(providerName, modelName, undefined)
 
 	// Initialize form state for all potential override options
 	const [formValues, setFormValues] = useState<{
 		contextWindow: string;
 		maxOutputTokens: string;
-		supportsTools: 'openai-style' | undefined | '';
-		supportsSystemMessage: 'system-role' | 'developer-role' | false | '';
+		specialToolFormat: 'openai-style' | 'gemini-style' | 'anthropic-style' | undefined | '';
+		supportsSystemMessage: 'system-role' | 'developer-role' | 'separated' | false | '';
 		supportsFIM: boolean | null;
 		reasoningCapabilities: boolean | null;
+		canTurnOffReasoning: boolean;
+		reasoningMaxOutputTokens: string;
+		openSourceThinkTags: [string, string] | null;
 	}>({
+		// start form as default values
 		contextWindow: '',
 		maxOutputTokens: '',
-		supportsTools: '',
+		specialToolFormat: '',
 		supportsSystemMessage: '',
 		supportsFIM: null,
-		reasoningCapabilities: null
+		reasoningCapabilities: null,
+		canTurnOffReasoning: false,
+		reasoningMaxOutputTokens: '',
+		openSourceThinkTags: null,
 	});
 
 	// When dialog opens or model changes, reset form values
 	useEffect(() => {
 		if (isOpen && modelInfo) {
-
 			// Get current overrides
 			const overrides = settingsState.overridesOfModel?.[providerName]?.[modelName] || {};
 
+			// Extract reasoning capabilities if available (use any to avoid TS union narrowing issues)
+			const reasoningCapabilities: any = typeof overrides.reasoningCapabilities === 'object' ?
+				overrides.reasoningCapabilities : overrides.reasoningCapabilities ? { supportsReasoning: true, canIOReasoning: true } : false;
+
+			// Extract the think tags if they exist
+			let thinkTags: [string, string] | null = null;
+			if (typeof reasoningCapabilities === 'object' && reasoningCapabilities.openSourceThinkTags) {
+				thinkTags = reasoningCapabilities.openSourceThinkTags as [string, string];
+			}
+
+			// Only set values that are explicitly overridden, otherwise leave them empty
+			// to indicate default values should be used
 			setFormValues({
-				contextWindow: (overrides.contextWindow !== undefined) ? overrides.contextWindow?.toString() : '',
-				maxOutputTokens: (overrides.maxOutputTokens !== undefined) ? overrides.maxOutputTokens?.toString() : '',
-				supportsTools: overrides.supportsTools !== undefined ? overrides.supportsTools : '',
+				contextWindow: overrides.contextWindow !== undefined ? String(overrides.contextWindow) : '',
+				maxOutputTokens: overrides.maxOutputTokens !== undefined ? String(overrides.maxOutputTokens) : '',
+				specialToolFormat: overrides.specialToolFormat !== undefined ? overrides.specialToolFormat : '',
 				supportsSystemMessage: overrides.supportsSystemMessage !== undefined ? overrides.supportsSystemMessage : '',
 				supportsFIM: overrides.supportsFIM !== undefined ? overrides.supportsFIM : null,
 				reasoningCapabilities: overrides.reasoningCapabilities !== undefined ?
-					!!overrides.reasoningCapabilities : null
+					!!overrides.reasoningCapabilities : null,
+				canTurnOffReasoning: typeof reasoningCapabilities === 'object' ? !!reasoningCapabilities.canTurnOffReasoning : false,
+				reasoningMaxOutputTokens: typeof reasoningCapabilities === 'object' && reasoningCapabilities.reasoningMaxOutputTokens ?
+					String(reasoningCapabilities.reasoningMaxOutputTokens) : '',
+				openSourceThinkTags: thinkTags,
 			});
 		}
 	}, [isOpen, modelInfo, settingsState.overridesOfModel, providerName, modelName]);
 
 	// Update a single field in the form
-	const updateField = (field: string, value: any) => {
+	const updateField = (field: keyof typeof formValues, value: any) => {
 		setFormValues(prev => ({
 			...prev,
 			[field]: value
@@ -371,52 +394,78 @@ const ModelSettingsDialog = ({
 
 	// Handle saving settings
 	const handleSave = async () => {
-		const settings: ModelOverrideOptions = {};
+		// Get current overrides to see what needs to be updated/removed
+		const currentOverrides = settingsState.overridesOfModel?.[providerName]?.[modelName] || {};
+		const newSettings: ModelOverrideOptions = {};
 
-		// Only add fields to the override if they have been changed from defaults
-		if (formValues.contextWindow) {
+		// Handle numeric fields - empty strings should remove the override
+		if (formValues.contextWindow.trim() === '') {
+			newSettings.contextWindow = defaultModelCapabilities.contextWindow;
+		} else if (formValues.contextWindow) {
 			const tokens = parseInt(formValues.contextWindow);
-			if (!isNaN(tokens)) settings.contextWindow = tokens;
+			if (!isNaN(tokens)) newSettings.contextWindow = tokens;
 		}
 
-		if (formValues.maxOutputTokens) {
+		if (formValues.maxOutputTokens.trim() === '') {
+			newSettings.maxOutputTokens = defaultModelCapabilities.maxOutputTokens;
+		} else if (formValues.maxOutputTokens) {
 			const tokens = parseInt(formValues.maxOutputTokens);
-			if (!isNaN(tokens)) settings.maxOutputTokens = tokens;
+			if (!isNaN(tokens)) newSettings.maxOutputTokens = tokens;
 		}
 
-		if (formValues.supportsTools !== '') {
-			settings.supportsTools = formValues.supportsTools as any;
+		// Handle dropdown fields
+		if (formValues.specialToolFormat === '') {
+			newSettings.specialToolFormat = defaultModelCapabilities.specialToolFormat
+		} else {
+			newSettings.specialToolFormat = formValues.specialToolFormat
 		}
 
-		if (formValues.supportsSystemMessage !== '') {
-			settings.supportsSystemMessage = formValues.supportsSystemMessage as any;
+		if (formValues.supportsSystemMessage === '') {
+			newSettings.supportsSystemMessage = defaultModelCapabilities.supportsSystemMessage;
+		} else {
+			newSettings.supportsSystemMessage = formValues.supportsSystemMessage as any;
 		}
 
-		if (formValues.supportsFIM !== null) {
-			settings.supportsFIM = formValues.supportsFIM;
+		if (formValues.supportsFIM === null) {
+			newSettings.supportsFIM = defaultModelCapabilities.supportsFIM
+		} else {
+			newSettings.supportsFIM = formValues.supportsFIM;
 		}
 
-		if (formValues.reasoningCapabilities !== null) {
-			if (formValues.reasoningCapabilities) {
-				settings.reasoningCapabilities = {
-					supportsReasoning: true,
-					canTurnOffReasoning: true,
-					canIOReasoning: true
-				};
-			} else {
-				settings.reasoningCapabilities = false;
+		if (formValues.reasoningCapabilities === null) {
+			newSettings.reasoningCapabilities = defaultModelCapabilities.reasoningCapabilities;
+		} else if (formValues.reasoningCapabilities) {
+			const reasoningSettings: any = {
+				supportsReasoning: true,
+				canIOReasoning: true,
+				canTurnOffReasoning: formValues.canTurnOffReasoning
+			};
+
+			// Only add these if they have values
+			if (formValues.reasoningMaxOutputTokens) {
+				reasoningSettings.reasoningMaxOutputTokens = parseInt(formValues.reasoningMaxOutputTokens);
 			}
+
+			if (formValues.openSourceThinkTags) {
+				reasoningSettings.openSourceThinkTags = formValues.openSourceThinkTags;
+			}
+
+			newSettings.reasoningCapabilities = reasoningSettings;
+		} else {
+			newSettings.reasoningCapabilities = false;
 		}
 
-		await settingsStateService.setOverridesOfModel(providerName, modelName, settings);
+		await settingsStateService.setOverridesOfModel(providerName, modelName, newSettings);
 		onClose();
 	};
+
+
 
 	return (
 		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
 			<div className="bg-void-bg-1 rounded-md p-4 max-w-md w-full shadow-xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
 				<div className="flex justify-between items-center mb-4">
-					<h3 className="text-lg font-medium">Override defaults for {modelName} ({displayInfoOfProviderName(providerName).title})</h3>
+					<h3 className="text-lg font-medium">Change Defaults for {modelName} ({displayInfoOfProviderName(providerName).title})</h3>
 					<button onClick={onClose} className="text-void-fg-3 hover:text-void-fg-1">
 						<X className="size-5" />
 					</button>
@@ -429,25 +478,51 @@ const ModelSettingsDialog = ({
 						{/* Context window */}
 						<div className="flex items-center justify-between py-1">
 							<span className="text-void-fg-2">Context window (tokens)</span>
-							<VoidSimpleInputBox
-								value={formValues.contextWindow}
-								onChangeValue={(value) => updateField('contextWindow', value)}
-								placeholder={(modelCapabilities.contextWindow || defaultModelOptions.contextWindow) + ''}
-								compact={true}
-								className="max-w-24"
-							/>
+							<div className="flex items-center gap-2">
+								<VoidSwitch
+									size="xxs"
+									value={formValues.contextWindow !== ''}
+									onChange={(enabled) => {
+										updateField('contextWindow', enabled ? String(defaultModelCapabilities.contextWindow) : '');
+									}}
+								/>
+								{formValues.contextWindow === '' ? (
+									<span className="text-void-fg-3 text-xs w-24 text-right">Default ({defaultModelCapabilities.contextWindow})</span>
+								) : (
+									<VoidSimpleInputBox
+										value={formValues.contextWindow}
+										onChangeValue={(value) => updateField('contextWindow', value)}
+										placeholder={String(defaultModelCapabilities.contextWindow)}
+										compact={true}
+										className="max-w-24"
+									/>
+								)}
+							</div>
 						</div>
 
 						{/* Maximum output tokens */}
 						<div className="flex items-center justify-between py-1">
 							<span className="text-void-fg-2">Maximum output tokens</span>
-							<VoidSimpleInputBox
-								value={formValues.maxOutputTokens}
-								onChangeValue={(value) => updateField('maxOutputTokens', value)}
-								placeholder={(modelCapabilities.maxOutputTokens || defaultModelOptions.maxOutputTokens) + ''}
-								compact={true}
-								className="max-w-24"
-							/>
+							<div className="flex items-center gap-2">
+								<VoidSwitch
+									size="xxs"
+									value={formValues.maxOutputTokens !== ''}
+									onChange={(enabled) => {
+										updateField('maxOutputTokens', enabled ? String(defaultModelCapabilities.maxOutputTokens) : '');
+									}}
+								/>
+								{formValues.maxOutputTokens === '' ? (
+									<span className="text-void-fg-3 text-xs w-24 text-right">Default ({defaultModelCapabilities.maxOutputTokens})</span>
+								) : (
+									<VoidSimpleInputBox
+										value={formValues.maxOutputTokens}
+										onChangeValue={(value) => updateField('maxOutputTokens', value)}
+										placeholder={String(defaultModelCapabilities.maxOutputTokens)}
+										compact={true}
+										className="max-w-24"
+									/>
+								)}
+							</div>
 						</div>
 
 						{/* Supports Tools */}
@@ -455,10 +530,10 @@ const ModelSettingsDialog = ({
 							<span className="text-void-fg-2">Supports tools</span>
 							<VoidCustomDropdownBox
 								options={['', 'openai-style']}
-								selectedOption={formValues.supportsTools}
-								onChangeOption={(value) => updateField('supportsTools', value)}
+								selectedOption={formValues.specialToolFormat}
+								onChangeOption={(value) => updateField('specialToolFormat', value)}
 								getOptionDisplayName={(opt) => {
-									if (opt === '') return `Default (${modelCapabilities.specialToolFormat || 'No'})`;
+									if (opt === '') return `Default (${defaultModelCapabilities.specialToolFormat || 'No'})`;
 									return opt;
 								}}
 								getOptionDropdownName={(opt) => {
@@ -478,7 +553,7 @@ const ModelSettingsDialog = ({
 								selectedOption={formValues.supportsSystemMessage}
 								onChangeOption={(value) => updateField('supportsSystemMessage', value)}
 								getOptionDisplayName={(opt) => {
-									if (opt === '') return `Default (${modelCapabilities.supportsSystemMessage || 'No'})`;
+									if (opt === '') return `Default (${defaultModelCapabilities.supportsSystemMessage || 'No'})`;
 									if (opt === false) return 'No'
 									if (opt === true) return 'Yes' // should never happen
 									return opt;
@@ -502,7 +577,7 @@ const ModelSettingsDialog = ({
 								selectedOption={formValues.supportsFIM}
 								onChangeOption={(value) => updateField('supportsFIM', value)}
 								getOptionDisplayName={(opt) => {
-									if (opt === null) return `Default (${modelCapabilities.supportsFIM ? 'Yes' : 'No'})`;
+									if (opt === null) return `Default (${defaultModelCapabilities.supportsFIM ? 'Yes' : 'No'})`;
 									return opt ? 'Yes' : 'No';
 								}}
 								getOptionDropdownName={(opt) => {
@@ -522,7 +597,7 @@ const ModelSettingsDialog = ({
 								selectedOption={formValues.reasoningCapabilities}
 								onChangeOption={(value) => updateField('reasoningCapabilities', value)}
 								getOptionDisplayName={(opt) => {
-									if (opt === null) return `Default (${modelCapabilities.reasoningCapabilities ? 'Yes' : 'No'})`;
+									if (opt === null) return `Default (${defaultModelCapabilities.reasoningCapabilities ? 'Yes' : 'No'})`;
 									return opt ? 'Yes' : 'No';
 								}}
 								getOptionDropdownName={(opt) => {
@@ -533,6 +608,100 @@ const ModelSettingsDialog = ({
 								className="max-w-32 text-xs"
 							/>
 						</div>
+
+						{/* Additional reasoning options - only show when reasoning is enabled */}
+						{formValues.reasoningCapabilities && (
+							<>
+								{/* Can Turn Off Reasoning */}
+								<div className="flex items-center justify-between py-1 pl-6">
+									<span className="text-void-fg-2">Allow turning off reasoning</span>
+									<VoidCustomDropdownBox
+										options={[true, false]}
+										selectedOption={formValues.canTurnOffReasoning}
+										onChangeOption={(value) => updateField('canTurnOffReasoning', value)}
+										getOptionDisplayName={(opt) => opt ? 'Yes' : 'No'}
+										getOptionDropdownName={(opt) => opt ? 'Yes' : 'No'}
+										getOptionsEqual={(a, b) => a === b}
+										className="max-w-32 text-xs"
+									/>
+								</div>
+
+								{/* Reasoning Max Output Tokens - only shown if canTurnOffReasoning is true */}
+								{formValues.canTurnOffReasoning && (
+									<div className="flex items-center justify-between py-1 pl-6">
+										<span className="text-void-fg-2">Max output tokens when reasoning</span>
+										<div className="flex items-center gap-2">
+											<VoidSwitch
+												size="xxs"
+												value={formValues.reasoningMaxOutputTokens !== ''}
+												onChange={(enabled) => {
+													// Use a reasonable default value when enabling
+													const defaultValue = defaultModelCapabilities.maxOutputTokens || 500;
+													updateField('reasoningMaxOutputTokens', enabled ? String(defaultValue) : '');
+												}}
+											/>
+											{formValues.reasoningMaxOutputTokens === '' ? (
+												<span className="text-void-fg-3 text-xs w-24 text-right">Default</span>
+											) : (
+												<VoidSimpleInputBox
+													value={formValues.reasoningMaxOutputTokens}
+													onChangeValue={(value) => updateField('reasoningMaxOutputTokens', value)}
+													placeholder="Default"
+													compact={true}
+													className="max-w-24"
+												/>
+											)}
+										</div>
+									</div>
+								)}
+
+								{/* Open Source Think Tags Toggle + Input Fields */}
+								<div className="flex items-center justify-between py-1 pl-6">
+									<span className="text-void-fg-2">Open source think tags</span>
+									<div className="flex items-center gap-2">
+										<VoidSwitch
+											size="xxs"
+											value={formValues.openSourceThinkTags !== null}
+											onChange={(enabled) => {
+												if (enabled) {
+													// Enable with default values
+													updateField('openSourceThinkTags', ['<think>', '</think>']);
+												} else {
+													// Disable
+													updateField('openSourceThinkTags', null);
+												}
+											}}
+										/>
+
+										{formValues.openSourceThinkTags !== null && (
+											<div className="flex gap-1 items-center">
+												<VoidSimpleInputBox
+													value={formValues.openSourceThinkTags ? formValues.openSourceThinkTags[0] : ''}
+													onChangeValue={(value) => {
+														const currentTags = formValues.openSourceThinkTags || ['', ''];
+														updateField('openSourceThinkTags', [value, currentTags[1]]);
+													}}
+													placeholder="<think>"
+													compact={true}
+													className="max-w-16"
+												/>
+												<span className="text-void-fg-3">...</span>
+												<VoidSimpleInputBox
+													value={formValues.openSourceThinkTags ? formValues.openSourceThinkTags[1] : ''}
+													onChangeValue={(value) => {
+														const currentTags = formValues.openSourceThinkTags || ['', ''];
+														updateField('openSourceThinkTags', [currentTags[0], value]);
+													}}
+													placeholder="</think>"
+													compact={true}
+													className="max-w-16"
+												/>
+											</div>
+										)}
+									</div>
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 
@@ -587,8 +756,8 @@ export const ModelDump = () => {
 
 			const tooltipName = (
 				disabled ? `Add ${providerTitle} to enable`
-					: value === true ? 'Enabled'
-						: 'Disabled'
+					: value === true ? 'Show in Dropdown'
+						: 'Hide from Dropdown'
 			)
 
 
@@ -601,50 +770,39 @@ export const ModelDump = () => {
 
 
 			return <div key={`${modelName}${providerName}`}
-				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate
+				className={`flex items-center justify-between gap-4 hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 px-3 rounded-sm overflow-hidden cursor-default truncate group
 				`}
 			>
 				{/* left part is width:full */}
-				<div className={`flex-grow flex items-center gap-4`}>
+				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}{detailAboutModel}</span>
+					<span className='w-fit truncate'>{modelName}</span>
 				</div>
+
 				{/* right part is anything that fits */}
-				<div className='flex items-center gap-4'
-				// data-tooltip-id='void-tooltip'
-				// data-tooltip-place='top'
-				// data-tooltip-content={disabled ? `${displayInfoOfProviderName(providerName).title} is disabled`
-				// 	: (isHidden ? `'${modelName}' won't appear in dropdowns` : ``)
-				// }
-				>
+				<div className="flex items-center gap-4 w-fit">
+
+					{/* Advanced Settings button - only for custom or locally detected models */}
+					<div className="w-5 flex items-center justify-center">
+						<button
+							onClick={() => { setOpenSettingsModel({ modelName, providerName, type }) }}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-place='right'
+							data-tooltip-content='Advanced Settings'
+							className="opacity-0 group-hover:opacity-100 transition-opacity"
+						>
+							<SettingsIcon size={14} className="text-void-fg-3" />
+						</button>
+					</div>
+
+					{/* Blue star */}
+					{detailAboutModel}
 
 
-					{/* <span className='opacity-50 truncate'>{type === 'autodetected' ? '(detected locally)' : type === 'default' ? '' : '(custom model)'}</span> */}
-
-					{/* Settings button - only for custom or locally detected models */}
-					{(type === 'autodetected' || type === 'custom') && (
-						<div className="w-5 flex items-center justify-center">
-							<button
-								onClick={() => {
-									setOpenSettingsModel({
-										modelName,
-										providerName,
-										type
-									})
-								}}
-								data-tooltip-id='void-tooltip'
-								data-tooltip-place='right'
-								data-tooltip-content="Model Settings"
-							>
-								<SettingsIcon size={14} className="text-void-fg-3" />
-							</button>
-						</div>
-					)}
-
-
+					{/* Switch */}
 					<VoidSwitch
 						value={value}
-						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName) }}
+						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName); }}
 						disabled={disabled}
 						size='sm'
 
@@ -653,8 +811,9 @@ export const ModelDump = () => {
 						data-tooltip-content={tooltipName}
 					/>
 
+					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName) }}><X className='size-4' /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}><X className="size-4" /></button>}
 					</div>
 				</div>
 			</div>
@@ -1301,7 +1460,7 @@ export const Settings = () => {
 								<span
 									className='hover:brightness-110'
 									data-tooltip-id='void-tooltip'
-									data-tooltip-content='We recommend using qwen2.5-coder:1.5b with Ollama.'
+									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
 									data-tooltip-class-name='void-max-w-[20px]'
 								>
 									Only works with FIM models.*

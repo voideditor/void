@@ -56,7 +56,7 @@ const MemoizedModelDropdown = ({ featureName, className }: { featureName: Featur
 
 	useEffect(() => {
 		const oldOptions = oldOptionsRef.current
-		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection, { chatMode: settingsState.globalSettings.chatMode }))
+		const newOptions = settingsState._modelOptions.filter((o) => filter(o.selection, { chatMode: settingsState.globalSettings.chatMode, overridesOfModel: settingsState.overridesOfModel }))
 
 		if (!optionsEqual(oldOptions, newOptions)) {
 			setMemoizedOptions(newOptions)

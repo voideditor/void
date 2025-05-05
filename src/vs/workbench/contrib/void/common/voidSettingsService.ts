@@ -96,8 +96,15 @@ const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulMo
 }
 
 
-export const modelFilterOfFeatureName: { [featureName in FeatureName]: { filter: (o: ModelSelection, opts: { chatMode: ChatMode }) => boolean; emptyMessage: null | { message: string, priority: 'always' | 'fallback' } } } = {
-	'Autocomplete': { filter: (o) => getModelCapabilities(o.providerName, o.modelName).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
+export const modelFilterOfFeatureName: {
+	[featureName in FeatureName]: {
+		filter: (
+			o: ModelSelection,
+			opts: { chatMode: ChatMode, overridesOfModel: OverridesOfModel }
+		) => boolean;
+		emptyMessage: null | { message: string, priority: 'always' | 'fallback' }
+	} } = {
+	'Autocomplete': { filter: (o, opts) => getModelCapabilities(o.providerName, o.modelName, opts.overridesOfModel).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
 	'Chat': { filter: o => true, emptyMessage: null, },
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
@@ -165,7 +172,7 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 	for (const featureName of featureNames) {
 
 		const { filter } = modelFilterOfFeatureName[featureName]
-		const filterOpts = { chatMode: state.globalSettings.chatMode }
+		const filterOpts = { chatMode: state.globalSettings.chatMode, overridesOfModel: state.overridesOfModel }
 		const modelOptionsForThisFeature = newModelOptions.filter((o) => filter(o.selection, filterOpts))
 
 		const modelSelectionAtFeature = newModelSelectionOfFeature[featureName]

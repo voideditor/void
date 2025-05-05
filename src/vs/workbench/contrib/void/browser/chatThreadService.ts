@@ -641,6 +641,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// above just defines helpers, below starts the actual function
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
+		const { overridesOfModel } = this._settingsService.state
 
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
@@ -694,6 +695,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					messages: messages,
 					modelSelection,
 					modelSelectionOptions,
+					overridesOfModel,
 					logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
 					separateSystemMessage: separateSystemMessage,
 					onText: ({ fullText, fullReasoning, toolCall }) => {

@@ -15,7 +15,7 @@ import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
 import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
-import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getMaxOutputTokens } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo, isAToolName, ToolParamName, voidTools } from '../../common/prompt/prompts.js';
@@ -39,6 +39,7 @@ type InternalCommonMessageParams = {
 	providerName: ProviderName;
 	settingsOfProvider: SettingsOfProvider;
 	modelSelectionOptions: ModelSelectionOptions | undefined;
+	overridesOfModel: OverridesOfModel | undefined;
 	modelName: string;
 	_setAborter: (aborter: () => void) => void;
 }
@@ -144,9 +145,9 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 }
 
 
-const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, }: SendFIMParams_Internal) => {
+const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, overridesOfModel }: SendFIMParams_Internal) => {
 
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -230,18 +231,18 @@ const rawToolCallObjOf = (name: string, toolParamsStr: string, id: string): RawT
 // ------------ OPENAI-COMPATIBLE ------------
 
 
-const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage }: SendChatParams_Internal) => {
+const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, providerName, chatMode, separateSystemMessage, overridesOfModel }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
 		reasoningCapabilities,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
 	const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// tools
@@ -415,21 +416,21 @@ const anthropicToolToRawToolCallObj = (toolBlock: Anthropic.Messages.ToolUseBloc
 }
 
 // ------------ ANTHROPIC ------------
-const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
+const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName: modelName_, _setAborter, separateSystemMessage, chatMode }: SendChatParams_Internal) => {
 	const {
 		modelName,
 		specialToolFormat,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const thisConfig = settingsOfProvider.anthropic
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// anthropic-specific - max tokens
-	const maxTokens = getMaxOutputTokens(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled })
+	const maxTokens = getMaxOutputTokens(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled, overridesOfModel })
 
 	// tools
 	const potentialTools = chatMode !== null ? anthropicTools(chatMode) : null
@@ -539,8 +540,8 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 
 // ------------ MISTRAL ------------
 // https://docs.mistral.ai/api/#tag/fim
-const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName }: SendFIMParams_Internal) => {
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_)
+const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, overridesOfModel, modelName: modelName_, _setAborter, providerName }: SendFIMParams_Internal) => {
+	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -679,6 +680,7 @@ const sendGeminiChat = async ({
 	onFinalMessage,
 	onError,
 	settingsOfProvider,
+	overridesOfModel,
 	modelName: modelName_,
 	_setAborter,
 	providerName,
@@ -694,13 +696,13 @@ const sendGeminiChat = async ({
 		modelName,
 		specialToolFormat,
 		// reasoningCapabilities,
-	} = getModelCapabilities(providerName, modelName_)
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
 	// const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
-	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions) // user's modelName_ here
+	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
 	// tools

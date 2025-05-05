@@ -790,6 +790,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		console.log('starting autocomplete...', predictionType)
 
 		const featureName: FeatureName = 'Autocomplete'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
 		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
@@ -807,6 +808,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				}),
 				modelSelection,
 				modelSelectionOptions,
+				overridesOfModel,
 				logging: { loggingName: 'Autocomplete' },
 				onText: () => { }, // unused in FIMMessage
 				// onText: async ({ fullText, newText }) => {

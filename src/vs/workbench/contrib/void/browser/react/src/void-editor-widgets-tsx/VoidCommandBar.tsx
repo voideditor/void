@@ -175,7 +175,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					</button>
 					<span className="text-xs whitespace-nowrap px-1">
 						{isADiffInThisFile
-							? `Diff ${(currDiffIdx ?? 0) + 1}/${sortedDiffIds.length}`
+							? `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
 							: streamState === 'streaming'
 								? 'No changes yet'
 								: 'No changes'
@@ -215,7 +215,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					</button>
 					<span className="text-xs whitespace-nowrap px-1">
 						{currFileIdx !== null
-							? `File ${currFileIdx + 1}/${sortedCommandBarURIs.length}`
+							? `File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
 							: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'}`
 						}
 					</span>

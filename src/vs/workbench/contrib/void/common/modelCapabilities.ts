@@ -958,7 +958,7 @@ const vLLMSettings: VoidStaticProviderInfo = {
 
 const lmStudioSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
-	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveModelFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
 	modelOptions: {}, // TODO
 }
 

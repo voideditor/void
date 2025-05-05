@@ -1614,15 +1614,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			endLine -= 1
 
 			// including newline before start
-			const contentBeforeStart = startLine !== 0 ?
+			const origStart = (startLine !== 0 ?
 				modelStrLines.slice(0, startLine).join('\n') + '\n'
-				: ''
+				: '').length
 
 			// including endline at end
-			const contentUpToEnd = modelStrLines.slice(0, endLine + 1).join('\n')
-
-			const origStart = contentBeforeStart.length;
-			const origEnd = contentUpToEnd.length;
+			const origEnd = modelStrLines.slice(0, endLine + 1).join('\n').length - 1
 
 			replacements.push({ origStart, origEnd, block: b });
 		}

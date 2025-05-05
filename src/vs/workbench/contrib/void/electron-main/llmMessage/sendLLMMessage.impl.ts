@@ -245,6 +245,8 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
+	console.log('include', includeInPayload)
+	console.log('reasoningInfo', reasoningInfo)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?

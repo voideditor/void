@@ -163,6 +163,8 @@ export type VoidStaticModelInfo = { // not stateful
 
 		// if it's open source and specifically outputs think tags, put the think tags here and we'll parse them out (e.g. ollama)
 		readonly openSourceThinkTags?: [string, string];
+
+		// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 	};
 
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---
@@ -248,10 +250,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
 		contextWindow: 128_000, reservedOutputTokenSpace: 4_096
 	},
+
+	// really only phi4-reasoning supports reasoning... simpler to combine them though
 	'phi4': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 16_000, reservedOutputTokenSpace: 4_096,
 	},
 
@@ -1051,7 +1055,16 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true },
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false },
+	},
+	'microsoft/phi-4-reasoning-plus:free': { // a 14B model...
+		contextWindow: 32_768,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false },
 	},
 	'mistralai/mistral-small-3.1-24b-instruct:free': {
 		contextWindow: 128_000,

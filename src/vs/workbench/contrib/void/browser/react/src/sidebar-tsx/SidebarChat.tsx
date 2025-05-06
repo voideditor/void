@@ -2420,53 +2420,6 @@ const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, me
 
 }
 
-
-
-
-export const AcceptAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
-	<button
-		className={`
-			px-1 py-0.5
-			flex items-center gap-1
-			text-white text-[11px] text-nowrap
-			rounded-md
-			cursor-pointer
-			${className}
-		`}
-		style={{
-			backgroundColor: acceptAllBg,
-			border: acceptBorder,
-		}}
-		type='button'
-		onClick={onClick}
-	>
-		{text ? <span>{text}</span> : <Check size={16} />}
-	</button>
-)
-
-export const RejectAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
-	<button
-		className={`
-			px-1 py-0.5
-			flex items-center gap-1
-			text-white text-[11px] text-nowrap
-			rounded-md
-			cursor-pointer
-			${className}
-		`}
-		style={{
-			backgroundColor: rejectAllBg,
-			border: rejectBorder,
-		}}
-		type='button'
-		onClick={onClick}
-	>
-		{text ? <span>{text}</span> : <X size={16} />}
-	</button>
-)
-
-
-
 const CommandBarInChat = () => {
 	const { stateOfURI: commandBarStateOfURI, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 	const numFilesChanged = sortedCommandBarURIs.length

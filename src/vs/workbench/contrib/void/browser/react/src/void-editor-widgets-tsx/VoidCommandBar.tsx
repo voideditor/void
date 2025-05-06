@@ -33,16 +33,9 @@ export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	</div>
 }
 
-const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
-	if (len === 0) return null
-	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
-}
 
 
-
-
-
-export const AcceptAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
+export const AcceptAllButtonWrapper = ({ text, onClick, className, ...props }: { text: string, onClick: () => void, className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
 	<button
 		className={`
 			px-2 py-0.5
@@ -59,13 +52,13 @@ export const AcceptAllButtonWrapper = ({ text, onClick, className }: { text: str
 		}}
 		type='button'
 		onClick={onClick}
+		{...props}
 	>
 		{text ? <span>{text}</span> : <Check size={16} />}
 	</button>
 )
 
-
-export const RejectAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
+export const RejectAllButtonWrapper = ({ text, onClick, className, ...props }: { text: string, onClick: () => void, className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
 	<button
 		className={`
 			px-2 py-0.5
@@ -82,10 +75,12 @@ export const RejectAllButtonWrapper = ({ text, onClick, className }: { text: str
 		}}
 		type='button'
 		onClick={onClick}
+		{...props}
 	>
 		{text ? <span>{text}</span> : <X size={16} />}
 	</button>
 )
+
 
 
 export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
@@ -189,13 +184,40 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const downKeybindLabel = editCodeService.processRawKeybindingText(_downKeybinding?.getLabel() || '');
 	const leftKeybindLabel = editCodeService.processRawKeybindingText(_leftKeybinding?.getLabel() || '');
 	const rightKeybindLabel = editCodeService.processRawKeybindingText(_rightKeybinding?.getLabel() || '');
-	const acceptFileKeybindLabel = editCodeService.processRawKeybindingText(_acceptFileKeybinding?.getLabel() || '');
-	const rejectFileKeybindLabel = editCodeService.processRawKeybindingText(_rejectFileKeybinding?.getLabel() || '');
-	const acceptAllKeybindLabel = editCodeService.processRawKeybindingText(_acceptAllKeybinding?.getLabel() || '');
-	const rejectAllKeybindLabel = editCodeService.processRawKeybindingText(_rejectAllKeybinding?.getLabel() || '');
+	const acceptFileKeybindLabel = editCodeService.processRawKeybindingText(_acceptFileKeybinding?.getAriaLabel() || '');
+	const rejectFileKeybindLabel = editCodeService.processRawKeybindingText(_rejectFileKeybinding?.getAriaLabel() || '');
+	const acceptAllKeybindLabel = editCodeService.processRawKeybindingText(_acceptAllKeybinding?.getAriaLabel() || '');
+	const rejectAllKeybindLabel = editCodeService.processRawKeybindingText(_rejectAllKeybinding?.getAriaLabel() || '');
 
 
 	if (!isADiffZoneInAnyFile) return null
+
+	// For pages without a current file index, show a simplified command bar
+	if (currFileIdx === null) {
+		return (
+			<div className="pointer-events-auto">
+				<div className="flex bg-void-bg-2 shadow-md border border-void-border-2 [&>*:first-child]:pl-3 [&>*:last-child]:pr-3 [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
+					<div className="flex items-center px-3">
+						<span className="text-xs whitespace-nowrap">
+							{`${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`}
+						</span>
+					</div>
+					<button
+						className="text-xs whitespace-nowrap cursor-pointer flex items-center justify-center gap-1 bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:opacity-90 h-full px-3"
+						onClick={() => commandBarService.goToURIIdx(nextURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToURIIdx(nextURIIdx);
+							}
+						}}
+					>
+						Open <MoveRight className='size-3 my-1' />
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="pointer-events-auto">
@@ -207,11 +229,19 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					<div className="inline-flex bg-void-bg-2 rounded shadow-md border border-void-border-2 overflow-hidden">
 						<div className="flex items-center [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
 							<AcceptAllButtonWrapper
-								text={`Accept All${acceptAllKeybindLabel ? ` ${acceptAllKeybindLabel}` : ''}`}
+								// text={`Accept All${acceptAllKeybindLabel ? ` ${acceptAllKeybindLabel}` : ''}`}
+								text={`Accept All`}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={acceptAllKeybindLabel}
+								data-tooltip-delay-show={500}
 								onClick={onAcceptAll}
-							/>
+								/>
 							<RejectAllButtonWrapper
-								text={`Reject All${rejectAllKeybindLabel ? ` ${rejectAllKeybindLabel}` : ''}`}
+								// text={`Reject All${rejectAllKeybindLabel ? ` ${rejectAllKeybindLabel}` : ''}`}
+								text={`Reject All`}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={rejectAllKeybindLabel}
+								data-tooltip-delay-show={500}
 								onClick={onRejectAll}
 							/>
 						</div>
@@ -234,7 +264,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 							}
 						}}
 						data-tooltip-id="void-tooltip"
-						data-tooltip-content={`Previous diff ${upKeybindLabel ? `${upKeybindLabel}` : ''}`}
+						data-tooltip-content={`${upKeybindLabel ? `${upKeybindLabel}` : ''}`}
 						data-tooltip-delay-show={500}
 					>
 						<MoveUp className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
@@ -259,7 +289,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 							}
 						}}
 						data-tooltip-id="void-tooltip"
-						data-tooltip-content={`Next diff ${downKeybindLabel ? `${downKeybindLabel}` : ''}`}
+						data-tooltip-content={`${downKeybindLabel ? `${downKeybindLabel}` : ''}`}
 						data-tooltip-delay-show={500}
 					>
 						<MoveDown className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
@@ -281,7 +311,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 							}
 						}}
 						data-tooltip-id="void-tooltip"
-						data-tooltip-content={`Previous file ${leftKeybindLabel ? `${leftKeybindLabel}` : ''}`}
+						data-tooltip-content={`${leftKeybindLabel ? `${leftKeybindLabel}` : ''}`}
 						data-tooltip-delay-show={500}
 					>
 						<MoveLeft className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
@@ -303,7 +333,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 							}
 						}}
 						data-tooltip-id="void-tooltip"
-						data-tooltip-content={`Next file ${rightKeybindLabel ? `${rightKeybindLabel}` : ''}`}
+						data-tooltip-content={`${rightKeybindLabel ? `${rightKeybindLabel}` : ''}`}
 						data-tooltip-delay-show={500}
 					>
 						<MoveRight className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
@@ -315,11 +345,19 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				{showAcceptRejectAll && (
 					<div className='flex self-stretch gap-0 !px-0 !py-0'>
 						<AcceptAllButtonWrapper
-							text={`Accept File${acceptFileKeybindLabel ? ` ${acceptFileKeybindLabel}` : ''}`}
+							// text={`Accept File${acceptFileKeybindLabel ? ` ${acceptFileKeybindLabel}` : ''}`}
+							text={`Accept File`}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content={acceptFileKeybindLabel}
+							data-tooltip-delay-show={500}
 							onClick={onAcceptFile}
 						/>
 						<RejectAllButtonWrapper
-							text={`Reject File${rejectFileKeybindLabel ? ` ${rejectFileKeybindLabel}` : ''}`}
+							// text={`Reject File${rejectFileKeybindLabel ? ` ${rejectFileKeybindLabel}` : ''}`}
+							text={`Reject File`}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content={rejectFileKeybindLabel}
+							data-tooltip-delay-show={500}
 							onClick={onRejectFile}
 						/>
 					</div>

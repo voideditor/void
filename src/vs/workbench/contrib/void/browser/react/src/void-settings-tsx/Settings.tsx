@@ -607,7 +607,7 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 		console.log('Error: Provider setting had a non-string value.')
 		return
 	}
-	
+
 	// Create a stable callback reference using useCallback with proper dependencies
 	const handleChangeValue = useCallback((newVal: string) => {
 		voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -835,7 +835,7 @@ const RedoOnboardingButton = ({ className }: { className?: string }) => {
 type TransferEditorType = 'VS Code' | 'Cursor' | 'Windsurf'
 // https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
 // https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
-type TransferFilesInfo = { from: URI, to: URI }[]
+type TransferFilesInfo = { from: URI, to: URI, isExtensions?: boolean }[]
 const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEditor: TransferEditorType = 'VS Code'): TransferFilesInfo => {
 	if (os === null)
 		throw new Error(`One-click switch is not possible in this environment.`)
@@ -853,6 +853,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Cursor') {
 			return [{
@@ -864,6 +865,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Windsurf') {
 			return [{
@@ -875,6 +877,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		}
 	}
@@ -893,6 +896,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Cursor') {
 			return [{
@@ -904,6 +908,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Windsurf') {
 			return [{
@@ -915,6 +920,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		}
 	}
@@ -935,6 +941,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Cursor') {
 			return [{
@@ -946,6 +953,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.cursor', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		} else if (fromEditor === 'Windsurf') {
 			return [{
@@ -957,6 +965,7 @@ const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEdit
 			}, {
 				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.windsurf', 'extensions'),
 				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
+				isExtensions: true,
 			}]
 		}
 	}
@@ -1022,43 +1031,59 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 		// Define extensions to skip when transferring
 		const extensionBlacklist = [
 			// ignore extensions
-			'ms-vscode-remote.remote-ssh',
-			'ms-vscode-remote.remote-wsl',
+			'ms-vscode-remote.remote', // ms-vscode-remote.remote-ssh, ms-vscode-remote.remote-wsl
 			// ignore other AI copilots that could conflict with Void keybindings
 			'sourcegraph.cody-ai',
 			'continue.continue',
 			'codeium.codeium',
 			'saoudrizwan.claude-dev', // cline
 			'rooveterinaryinc.roo-cline', // roo
+			// 'github.copilot',
 		];
-		for (const { from, to } of transferTheseFiles) {
-			console.log('Transferring...', from)
-			try {
-				// find a blacklisted item
-				const isBlacklisted = extensionBlacklist.find(blacklistItem => {
-					return from.fsPath?.includes(blacklistItem)
-				})
-				if (isBlacklisted) {
-					console.log(`Skipping conflicting item (${isBlacklisted})`)
-					continue
-				}
-
-			} catch { }
-
-			console.log('transferring', from, to)
+		for (const { from, to, isExtensions } of transferTheseFiles) {
 			// Check if the source file exists before attempting to copy
 			try {
-				const exists = await fileService.exists(from)
-				if (exists) {
-					// Ensure the destination directory exists
-					const toParent = URI.joinPath(to, '..')
-					const toParentExists = await fileService.exists(toParent)
-					if (!toParentExists) {
-						await fileService.createFolder(toParent)
+				if (!isExtensions) {
+					console.log('transferring item', from, to)
+
+					const exists = await fileService.exists(from)
+					if (exists) {
+						// Ensure the destination directory exists
+						const toParent = URI.joinPath(to, '..')
+						const toParentExists = await fileService.exists(toParent)
+						if (!toParentExists) {
+							await fileService.createFolder(toParent)
+						}
+						await fileService.copy(from, to, true)
+					} else {
+						console.log(`Skipping file that doesn't exist: ${from.toString()}`)
 					}
-					await fileService.copy(from, to, true)
-				} else {
-					console.log(`Skipping file that doesn't exist: ${from.toString()}`)
+				}
+				// extensions folder
+				else {
+					console.log('transferring extensions...', from, to)
+					const exists = await fileService.exists(from)
+					if (exists) {
+						const stat = await fileService.resolve(from)
+						const toParent = URI.joinPath(to) // extensions/
+						const toParentExists = await fileService.exists(toParent)
+						if (!toParentExists) {
+							await fileService.createFolder(toParent)
+						}
+						for (const extensionFolder of stat.children ?? []) {
+							if (extensionBlacklist.find(bItem => extensionFolder.resource.path.includes(bItem))) {
+								console.log('Skipping...', extensionFolder.resource.path)
+								continue
+							}
+							const from = extensionFolder.resource
+							const to = URI.joinPath(toParent, extensionFolder.name)
+							await fileService.copy(from, to, true)
+						}
+						// Ensure the destination directory exists
+					} else {
+						console.log(`Skipping file that doesn't exist: ${from.toString()}`)
+					}
+					console.log('done transferring extensions.')
 				}
 			}
 			catch (e) {

@@ -49,6 +49,7 @@ import { IToolsService } from '../../../toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
+import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -211,6 +212,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IToolsService: accessor.get(IToolsService),
 		IConvertToLLMMessageService: accessor.get(IConvertToLLMMessageService),
 		ITerminalService: accessor.get(ITerminalService),
+		IExtensionManagementService: accessor.get(IExtensionManagementService),
 
 	} as const
 	return reactAccessor

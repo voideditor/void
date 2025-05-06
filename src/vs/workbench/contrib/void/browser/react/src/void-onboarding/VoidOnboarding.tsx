@@ -114,7 +114,7 @@ const descriptionOfTab: Record<TabName, string> = {
 	Free: `Providers with a 100% free tier. Add as many as you'd like!`,
 	Paid: `Connect directly with any provider (bring your own key).`,
 	Local: `Add as many local providers as you'd like! Active providers should appear automatically.`,
-	'Cloud/Other': `Reach out for custom configuration requests.`,
+	'Cloud/Other': `Add as many providers as you'd like! Reach out for custom configuration requests.`,
 };
 
 

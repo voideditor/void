@@ -31,7 +31,7 @@ export const defaultProviderSettings = {
 	openAICompatible: {
 		endpoint: '',
 		apiKey: '',
-		headersJSON: '',
+		headersJSON: '{}', // default to {}
 	},
 	gemini: {
 		apiKey: '',

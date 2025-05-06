@@ -11,7 +11,7 @@ import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/p
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
-import { IDirectoryStrService } from './directoryStrService.js';
+import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -38,7 +38,7 @@ type SimpleLLMMessage = {
 
 const EMPTY_MESSAGE = '(empty message)'
 
-const CHARS_PER_TOKEN = 4
+const CHARS_PER_TOKEN = 4 // assume abysmal chars per token
 const TRIM_TO_LEN = 120
 
 
@@ -271,7 +271,10 @@ const prepareOpenAIOrAnthropicMessages = ({
 	reservedOutputTokenSpace: number | null | undefined,
 }): { messages: AnthropicOrOpenAILLMMessage[], separateSystemMessage: string | undefined } => {
 
-	reservedOutputTokenSpace = reservedOutputTokenSpace ?? 4_096 // default to 4096
+	reservedOutputTokenSpace = Math.max(
+		contextWindow * 1 / 2, // reserve at least 1/4 of the token window length
+		reservedOutputTokenSpace ?? 4_096 // defaults to 4096
+	)
 	let messages: (SimpleLLMMessage | { role: 'system', content: string })[] = deepClone(messages_)
 
 	// ================ system message ================
@@ -337,7 +340,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 	for (const m of messages) { totalLen += m.content.length }
 	const charsNeedToTrim = totalLen - Math.max(
 		(contextWindow - reservedOutputTokenSpace) * CHARS_PER_TOKEN, // can be 0, in which case charsNeedToTrim=everything, bad
-		4_096 // ensure we don't trim at least 4096 chars (just a random small value)
+		5_000 // ensure we don't trim at least 5k chars (just a random small value)
 	)
 
 
@@ -359,6 +362,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 		// if can finish here, do
 		const numCharsWillTrim = m.content.length - TRIM_TO_LEN
 		if (numCharsWillTrim > remainingCharsToTrim) {
+			// trim remainingCharsToTrim + '...'.length chars
 			m.content = m.content.slice(0, m.content.length - remainingCharsToTrim - '...'.length).trim() + '...'
 			break
 		}
@@ -581,6 +585,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				`...Directories string cut off, use tools to read more...`
 				: `...Directories string cut off, ask user for more if necessary...`
 		})
+
 		const includeXMLToolDefinitions = !specialToolFormat
 
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()

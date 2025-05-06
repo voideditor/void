@@ -607,15 +607,17 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 		console.log('Error: Provider setting had a non-string value.')
 		return
 	}
+	
+	// Create a stable callback reference using useCallback with proper dependencies
+	const handleChangeValue = useCallback((newVal: string) => {
+		voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
+	}, [voidSettingsService, providerName, settingName]);
 
 	return <ErrorBoundary>
 		<div className='my-1'>
 			<VoidSimpleInputBox
 				value={settingValue}
-				onChangeValue={useCallback((newVal) => {
-					voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
-				}, [voidSettingsService, providerName, settingName])}
-				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
+				onChangeValue={handleChangeValue}
 				placeholder={`${settingTitle} (${placeholder})`}
 				passwordBlur={isPasswordField}
 				compact={true}

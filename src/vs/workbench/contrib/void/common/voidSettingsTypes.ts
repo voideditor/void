@@ -92,7 +92,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 		return { title: 'Groq', }
 	}
 	else if (providerName === 'xAI') {
-		return { title: 'Grok', }
+		return { title: 'Grok (xAI)', }
 	}
 	else if (providerName === 'mistral') {
 		return { title: 'Mistral', }

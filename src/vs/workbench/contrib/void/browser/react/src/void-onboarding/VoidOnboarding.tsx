@@ -130,6 +130,24 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 	const settingsState = useSettingsState();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+	// Clear error message after 5 seconds
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout | null = null;
+
+		if (errorMessage) {
+			timeoutId = setTimeout(() => {
+				setErrorMessage(null);
+			}, 5000);
+		}
+
+		// Cleanup function to clear the timeout if component unmounts or error changes
+		return () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [errorMessage]);
+
 	return (
 		<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto relative">
 			{/* Left Column - Fixed */}
@@ -192,13 +210,13 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 							<div className="text-xl font-medium text-[#0e70c0]">Models</div>
 							<div className="h-px flex-grow bg-void-border-2/30"></div>
 						</div>
-						
+
 						{currentTab === 'Local' && (
 							<div className="text-sm text-void-fg-3 mb-4 bg-void-bg-3/30 p-3 rounded border-l-2 border-[#0e70c0]/70">
 								Local models should be detected automatically. You can add custom models below.
 							</div>
 						)}
-						
+
 						{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
 						{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
 					</div>
@@ -222,7 +240,7 @@ Only applies to models labeled \`:free\`. More information [here](https://openro
 				{/* Navigation buttons in right column */}
 				<div className="flex flex-col items-end w-full mt-auto pt-8">
 					{errorMessage && (
-						<div className="text-amber-400 mb-2 text-sm opacity-80">{errorMessage}</div>
+						<div className="text-amber-400 mb-2 text-sm opacity-80 transition-opacity duration-300">{errorMessage}</div>
 					)}
 					<div className="flex items-center gap-2">
 						<PreviousButton onClick={() => setPageIndex(pageIndex - 1)} />
@@ -235,7 +253,7 @@ Only applies to models labeled \`:free\`. More information [here](https://openro
 									setErrorMessage(null);
 								} else {
 									// Show error message
-									setErrorMessage("Please set up at least one Chat model first.");
+									setErrorMessage("Please set up at least one Chat model before moving on.");
 								}
 							}}
 						/>

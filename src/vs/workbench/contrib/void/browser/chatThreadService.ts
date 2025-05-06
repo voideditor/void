@@ -35,6 +35,8 @@ import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 import { timeout } from '../../../../base/common/async.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { IDirectoryStrService } from '../common/directoryStrService.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 
 
 // related to retrying when LLM message has error
@@ -319,6 +321,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@INotificationService private readonly _notificationService: INotificationService,
 		@IConvertToLLMMessageService private readonly _convertToLLMMessagesService: IConvertToLLMMessageService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
+		@IDirectoryStrService private readonly _directoryStringService: IDirectoryStrService,
+		@IFileService private readonly _fileService: IFileService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -1189,14 +1193,12 @@ We only need to do it for files that were edited since `from`, ie files between 
 			this._addUserCheckpoint({ threadId })
 		}
 
-		const { chatMode } = this._settingsService.state.globalSettings
 
 		// add user's message to chat history
 		const instructions = userMessage
 		const currSelns: StagingSelectionItem[] = _chatSelections ?? thread.state.stagingSelections
-		const opts = chatMode !== 'normal' ? { type: 'references' } as const : { type: 'fullCode', voidModelService: this._voidModelService } as const
 
-		const userMessageContent = await chat_userMessageContent(instructions, currSelns, opts) // user message + names of files (NOT content)
+		const userMessageContent = await chat_userMessageContent(instructions, currSelns, { directoryStrService: this._directoryStringService, fileService: this._fileService }) // user message + names of files (NOT content)
 		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 

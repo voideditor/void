@@ -141,7 +141,6 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
-	// for some examples, see openAIModelOptions and anthropicModelOptions below.
 	contextWindow: number; // input tokens
 	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4096 if null
 
@@ -162,9 +161,11 @@ export type VoidStaticModelInfo = { // not stateful
 
 		// if it's open source and specifically outputs think tags, put the think tags here and we'll parse them out (e.g. ollama)
 		readonly openSourceThinkTags?: [string, string];
-
-		// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 	};
+
+	// for some more examples, see openAIModelOptions and anthropicModelOptions below.
+	// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
+
 
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---
 	cost: {

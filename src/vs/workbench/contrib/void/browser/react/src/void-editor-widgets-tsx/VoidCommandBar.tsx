@@ -143,23 +143,23 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const onAcceptFile = () => {
 		if (!uri) return
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
-		metricsService.capture('Accept All', {})
+		metricsService.capture('Accept File', {})
 	}
 	const onRejectFile = () => {
 		if (!uri) return
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
-		metricsService.capture('Reject All', {})
+		metricsService.capture('Reject File', {})
 	}
 
 	const onAcceptAll = () => {
 		commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' });
-		metricsService.capture('Accept File', {})
+		metricsService.capture('Accept All', {})
 		setShowAcceptRejectAllButtons(false);
 	}
 
 	const onRejectAll = () => {
 		commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' });
-		metricsService.capture('Reject File', {})
+		metricsService.capture('Reject All', {})
 		setShowAcceptRejectAllButtons(false);
 	}
 

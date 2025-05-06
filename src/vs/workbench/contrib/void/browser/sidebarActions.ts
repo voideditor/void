@@ -129,7 +129,7 @@ registerAction2(class extends Action2 {
 			uri: model.uri,
 			language: model.getLanguageId(),
 			range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
-			state: { wasAddedAsCurrentFile: false }
+			state: { wasAddedAsCurrentFile: false },
 		})
 
 		await chatThreadService.focusCurrentChat()
@@ -196,7 +196,7 @@ registerAction2(class extends Action2 {
 			uri: model.uri,
 			language: model.getLanguageId(),
 			range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
-			state: { wasAddedAsCurrentFile: false }
+			state: { wasAddedAsCurrentFile: false },
 		})
 	}
 })

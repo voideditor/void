@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
 import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
-import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName } from '../../../../common/voidSettingsTypes.js';
+import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
@@ -113,21 +113,10 @@ const providerNamesOfTab: Record<TabName, ProviderName[]> = {
 const descriptionOfTab: Record<TabName, string> = {
 	Free: `Providers with a 100% free tier. Add as many as you'd like!`,
 	Paid: `Connect directly with any provider (bring your own key).`,
-	Local: `Add as many local providers as you'd like! Running providers should appear automatically.`,
+	Local: `Add as many local providers as you'd like! Active providers should appear automatically.`,
 	'Cloud/Other': `Reach out for custom configuration requests.`,
 };
 
-const subtextMdOfTab: Record<TabName, string | null> = {
-	Free: `
-Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500.
-We recommend using models down the line as you run out of free credits. More information [here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).
-
-OpenRouter offers 50 free messages a day, and that increases to 1000 if you deposit $10. Only applies to models labeled \`:free\`. More information [here](https://openrouter.ai/docs/api-reference/limits).
-`,
-	Paid: null,
-	Local: null,
-	'Cloud/Other': null,
-};
 
 const featureNameMap: { display: string, featureName: FeatureName }[] = [
 	{ display: 'Chat', featureName: 'Chat' },
@@ -139,6 +128,7 @@ const featureNameMap: { display: string, featureName: FeatureName }[] = [
 const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setPageIndex: (index: number) => void }) => {
 	const [currentTab, setCurrentTab] = useState<TabName>('Free');
 	const settingsState = useSettingsState();
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	return (
 		<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto relative">
@@ -153,7 +143,10 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
 								: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'
 								} transition-all duration-200`}
-							onClick={() => setCurrentTab(tab as TabName)}
+							onClick={() => {
+								setCurrentTab(tab as TabName);
+								setErrorMessage(null); // Reset error message when changing tabs
+							}}
 						>
 							{tab}
 						</button>
@@ -161,12 +154,18 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 				</div>
 
 				{/* Feature Checklist */}
-				<div className="flex flex-col gap-1 mt-4 text-sm">
+				<div className="flex flex-col gap-1 mt-4 text-sm opacity-80">
 					{featureNameMap.map(({ display, featureName }) => {
 						const hasModel = settingsState.modelSelectionOfFeature[featureName] !== null;
 						return (
 							<div key={featureName} className="flex items-center gap-2">
-								{hasModel ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-rose-500" />}
+								{hasModel ? (
+									<Check className="w-4 h-4 text-emerald-500" />
+								) : (
+									<div className="w-3 h-3 rounded-full flex items-center justify-center">
+										<div className="w-1 h-1 rounded-full bg-white/70"></div>
+									</div>
+								)}
 								<span>{display}</span>
 							</div>
 						);
@@ -178,9 +177,6 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 			<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
 				<div className="text-4xl font-light mb-2 text-center w-full">{currentTab}</div>
 				<div className="text-sm text-void-fg-3 mb-2 text-center w-full max-w-lg">{descriptionOfTab[currentTab]}</div>
-				{subtextMdOfTab[currentTab] ? <div className="flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full max-w-lg">
-					<ChatMarkdownRender string={subtextMdOfTab[currentTab]} chatMessageLocation={undefined} />
-				</div> : null}
 
 				{providerNamesOfTab[currentTab].map((providerName) => (
 					<div key={providerName} className="w-full max-w-xl mb-10">
@@ -191,18 +187,58 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 				))}
 
 				{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
-					<div className="w-full max-w-xl mt-4">
-						<div className="text-xl mb-2">Models</div>
+					<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-2/30">
+						<div className="flex items-center gap-2 mb-4">
+							<div className="text-xl font-medium text-[#0e70c0]">Models</div>
+							<div className="h-px flex-grow bg-void-border-2/30"></div>
+						</div>
+						
+						{currentTab === 'Local' && (
+							<div className="text-sm text-void-fg-3 mb-4 bg-void-bg-3/30 p-3 rounded border-l-2 border-[#0e70c0]/70">
+								Local models should be detected automatically. You can add custom models below.
+							</div>
+						)}
+						
 						{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
 						{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
 					</div>
 				)}
 
+
+				{currentTab === 'Free' && <div className='opacity-80'>
+
+					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
+						<ChatMarkdownRender string={`
+Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500.
+We recommend using models down the line as you run out of free credits. More information [here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).
+`} chatMessageLocation={undefined} /></div>
+					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
+						<ChatMarkdownRender string={`
+OpenRouter offers 50 free messages a day, and 1000 if you deposit $10.
+Only applies to models labeled \`:free\`. More information [here](https://openrouter.ai/docs/api-reference/limits).
+`} chatMessageLocation={undefined} /></div>
+				</div>
+				}
 				{/* Navigation buttons in right column */}
-				<div className="flex justify-end w-full mt-auto pt-8">
+				<div className="flex flex-col items-end w-full mt-auto pt-8">
+					{errorMessage && (
+						<div className="text-amber-400 mb-2 text-sm opacity-80">{errorMessage}</div>
+					)}
 					<div className="flex items-center gap-2">
 						<PreviousButton onClick={() => setPageIndex(pageIndex - 1)} />
-						<NextButton onClick={() => setPageIndex(pageIndex + 1)} />
+						<NextButton
+							onClick={() => {
+								const isDisabled = isFeatureNameDisabled('Chat', settingsState)
+
+								if (!isDisabled) {
+									setPageIndex(pageIndex + 1);
+									setErrorMessage(null);
+								} else {
+									// Show error message
+									setErrorMessage("Please set up at least one Chat model first.");
+								}
+							}}
+						/>
 					</div>
 				</div>
 			</div>

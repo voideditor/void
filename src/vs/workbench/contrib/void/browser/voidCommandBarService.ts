@@ -598,8 +598,13 @@ registerAction2(class extends Action2 {
 		if (!diffid) return;
 
 		metricsService.capture('Accept Diff', { diffid, keyboard: true });
-		editCodeService.acceptDiff({ diffid: parseInt(diffid) })
+		editCodeService.acceptDiff({ diffid: parseInt(diffid) });
 
+		// After accepting the diff, navigate to the next diff
+		const nextDiffIdx = commandBarService.getNextDiffIdx(1);
+		if (nextDiffIdx !== null) {
+			commandBarService.goToDiffIdx(nextDiffIdx);
+		}
 	}
 });
 
@@ -635,7 +640,13 @@ registerAction2(class extends Action2 {
 		if (!diffid) return;
 
 		metricsService.capture('Reject Diff', { diffid, keyboard: true });
-		editCodeService.rejectDiff({ diffid: parseInt(diffid) })
+		editCodeService.rejectDiff({ diffid: parseInt(diffid) });
+
+		// After rejecting the diff, navigate to the next diff
+		const nextDiffIdx = commandBarService.getNextDiffIdx(1);
+		if (nextDiffIdx !== null) {
+			commandBarService.goToDiffIdx(nextDiffIdx);
+		}
 	}
 });
 

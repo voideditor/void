@@ -212,7 +212,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 							}
 						}}
 					>
-						Open <MoveRight className='size-3 my-1' />
+						Next <MoveRight className='size-3 my-1' />
 					</button>
 				</div>
 			</div>

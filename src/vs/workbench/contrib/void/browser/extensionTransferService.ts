@@ -124,7 +124,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 
 			try {
 				console.log('Deleting extension', child.resource.fsPath)
-				this._fileService.del(child.resource)
+				await this._fileService.del(child.resource, { recursive: true, useTrash: true })
 			}
 			catch (e) {
 				console.error('Could not delete extension', child.resource.fsPath, e)

@@ -161,10 +161,11 @@ export type VoidStaticModelInfo = { // not stateful
 
 		// if it's open source and specifically outputs think tags, put the think tags here and we'll parse them out (e.g. ollama)
 		readonly openSourceThinkTags?: [string, string];
+
+		// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 	};
 
 	// for some more examples, see openAIModelOptions and anthropicModelOptions below.
-	// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 
 
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---

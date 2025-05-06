@@ -498,18 +498,14 @@ const prepareMessages = (params: {
 	providerName: ProviderName
 }): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
 
-	const specialFormat = params.specialToolFormat // this is just for ts idiocy
-	if (params.providerName === 'gemini') {
-		// treat as anthropic style, then convert to gemini style
+	const specialFormat = params.specialToolFormat // this is just for ts stupidness
+
+	// if need to convert to gemini style of messaes, do that (treat as anthropic style, then convert to gemini style)
+	if (params.providerName === 'gemini' || specialFormat === 'gemini-style') {
 		const res = prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat === 'gemini-style' ? 'anthropic-style' : undefined })
 		const messages = res.messages as AnthropicLLMChatMessage[]
 		const messages2 = prepareGeminiMessages(messages)
 		return { messages: messages2, separateSystemMessage: res.separateSystemMessage }
-	}
-	else {
-		if (specialFormat === 'gemini-style') {
-			throw new Error(`Tried preparing messages with tool format ${params.specialToolFormat} but the provider was ${params.providerName}, not Gemini.`)
-		}
 	}
 
 	return prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat })

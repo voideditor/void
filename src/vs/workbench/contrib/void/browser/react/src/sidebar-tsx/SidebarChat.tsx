@@ -1552,8 +1552,8 @@ export const ToolChildrenWrapper = ({ children, className }: { children: React.R
 		</div>
 	</div>
 }
-export const CodeChildren = ({ children }: { children: React.ReactNode }) => {
-	return <div className='bg-void-bg-3 p-1 rounded-sm overflow-auto text-sm'>
+export const CodeChildren = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+	return <div className={`${className ?? ''} p-1 rounded-sm overflow-auto text-sm`}>
 		<div className='!select-text cursor-auto'>
 			{children}
 		</div>
@@ -1642,7 +1642,7 @@ const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: strin
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 	componentParams.children = <ToolChildrenWrapper>
-		<CodeChildren>
+		<CodeChildren className='bg-void-bg-3'>
 			{message}
 		</CodeChildren>
 	</ToolChildrenWrapper>
@@ -2042,7 +2042,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				componentParams.numResults = result.lines.length;
 				componentParams.children = result.lines.length === 0 ? undefined :
 					<ToolChildrenWrapper>
-						<CodeChildren>
+						<CodeChildren className='bg-void-bg-3'>
 							<pre className='font-mono whitespace-pre'>
 								{toolsService.stringOfResult['search_in_file'](params, result)}
 							</pre>
@@ -2176,7 +2176,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = componentParams.bottomChildren = <BottomChildren title='Error'>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>

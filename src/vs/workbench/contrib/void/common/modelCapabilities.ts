@@ -141,6 +141,9 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
+	// Void uses the information below to know how to handle each model.
+	// for some examples, see openAIModelOptions and anthropicModelOptions (below).
+
 	contextWindow: number; // input tokens
 	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4096 if null
 
@@ -164,8 +167,6 @@ export type VoidStaticModelInfo = { // not stateful
 
 		// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 	};
-
-	// for some more examples, see openAIModelOptions and anthropicModelOptions below.
 
 
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---

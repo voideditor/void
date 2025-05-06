@@ -7,13 +7,10 @@ import { URI } from '../../../../base/common/uri.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
+import { IFileService, IFileStat } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { ShallowDirectoryItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js';
-import { IExplorerService } from '../../files/browser/files.js';
-import { SortOrder } from '../../files/common/files.js';
-import { ExplorerItem } from '../../files/common/explorerModel.js';
-import { MAX_CHILDREN_URIs_PAGE, MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from '../common/prompt/prompts.js';
+import { ShallowDirectoryItem, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { MAX_CHILDREN_URIs_PAGE, MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from './prompt/prompts.js';
 
 
 const MAX_FILES_TOTAL = 1000;
@@ -28,8 +25,10 @@ const DEFAULT_MAX_ITEMS_PER_DIR = 3;
 export interface IDirectoryStrService {
 	readonly _serviceBrand: undefined;
 
-	getDirectoryStrTool(uri: URI, options?: { maxItemsPerDir?: number }): Promise<string>
-	getAllDirectoriesStr(opts: { cutOffMessage: string, maxItemsPerDir?: number }): Promise<string>
+	getDirectoryStrTool(uri: URI): Promise<string>
+	getAllDirectoriesStr(opts: { cutOffMessage: string }): Promise<string>
+
+	getAllURIsInDirectory(uri: URI, opts: { maxResults: number }): Promise<URI[]>
 
 }
 export const IDirectoryStrService = createDecorator<IDirectoryStrService>('voidDirectoryStrService');
@@ -38,35 +37,35 @@ export const IDirectoryStrService = createDecorator<IDirectoryStrService>('voidD
 
 
 // Check if it's a known filtered type like .git
-const shouldExcludeDirectory = (item: ExplorerItem) => {
-	if (item.name === '.git' ||
-		item.name === 'node_modules' ||
-		item.name.startsWith('.') ||
-		item.name === 'dist' ||
-		item.name === 'build' ||
-		item.name === 'out' ||
-		item.name === 'bin' ||
-		item.name === 'coverage' ||
-		item.name === '__pycache__' ||
-		item.name === 'env' ||
-		item.name === 'venv' ||
-		item.name === 'tmp' ||
-		item.name === 'temp' ||
-		item.name === 'artifacts' ||
-		item.name === 'target' ||
-		item.name === 'obj' ||
-		item.name === 'vendor' ||
-		item.name === 'logs' ||
-		item.name === 'cache' ||
-		item.name === 'resource' ||
-		item.name === 'resources'
+const shouldExcludeDirectory = (name: string) => {
+	if (name === '.git' ||
+		name === 'node_modules' ||
+		name.startsWith('.') ||
+		name === 'dist' ||
+		name === 'build' ||
+		name === 'out' ||
+		name === 'bin' ||
+		name === 'coverage' ||
+		name === '__pycache__' ||
+		name === 'env' ||
+		name === 'venv' ||
+		name === 'tmp' ||
+		name === 'temp' ||
+		name === 'artifacts' ||
+		name === 'target' ||
+		name === 'obj' ||
+		name === 'vendor' ||
+		name === 'logs' ||
+		name === 'cache' ||
+		name === 'resource' ||
+		name === 'resources'
 
 	) {
 		return true;
 	}
 
-	if (item.name.match(/\bout\b/)) return true
-	if (item.name.match(/\bbuild\b/)) return true
+	if (name.match(/\bout\b/)) return true
+	if (name.match(/\bbuild\b/)) return true
 
 	return false;
 }
@@ -138,10 +137,16 @@ export const stringifyDirectoryTree1Deep = (params: ToolCallParams['ls_dir'], re
 
 // ---------- IN GENERAL ----------
 
+const resolveChildren = async (children: undefined | IFileStat[], fileService: IFileService): Promise<IFileStat[]> => {
+	const res = await fileService.resolveAll(children ?? [])
+	const stats = res.map(s => s.success ? s.stat : null).filter(s => !!s)
+	return stats
+}
+
 // Remove the old computeDirectoryTree function and replace with a combined version that handles both computation and rendering
 const computeAndStringifyDirectoryTree = async (
-	eItem: ExplorerItem,
-	explorerService: IExplorerService,
+	eItem: IFileStat,
+	fileService: IFileService,
 	MAX_CHARS: number,
 	fileCount: { count: number } = { count: 0 },
 	options: { maxDepth?: number, currentDepth?: number, maxItemsPerDir?: number } = {}
@@ -181,12 +186,13 @@ const computeAndStringifyDirectoryTree = async (
 	let remainingChars = MAX_CHARS - nodeLine.length;
 
 	// Check if it's a directory we should skip
-	const isGitIgnoredDirectory = eItem.isDirectory && shouldExcludeDirectory(eItem);
+	const isGitIgnoredDirectory = eItem.isDirectory && shouldExcludeDirectory(eItem.name);
+
 
 	// Fetch and process children if not a filtered directory
 	if (eItem.isDirectory && !isGitIgnoredDirectory) {
 		// Fetch children with Modified sort order to show recently modified first
-		const eChildren = await eItem.fetchChildren(SortOrder.Modified);
+		const eChildren = await resolveChildren(eItem.children, fileService)
 
 		// Then recursively add all children with proper tree formatting
 		if (eChildren && eChildren.length > 0) {
@@ -194,7 +200,7 @@ const computeAndStringifyDirectoryTree = async (
 				eChildren,
 				remainingChars,
 				'',
-				explorerService,
+				fileService,
 				fileCount,
 				{ maxDepth, currentDepth, maxItemsPerDir } // Pass maxItemsPerDir to the render function
 			);
@@ -208,10 +214,10 @@ const computeAndStringifyDirectoryTree = async (
 
 // Helper function to render children with proper tree formatting
 const renderChildrenCombined = async (
-	children: ExplorerItem[],
+	children: IFileStat[],
 	maxChars: number,
 	parentPrefix: string,
-	explorerService: IExplorerService,
+	fileService: IFileService,
 	fileCount: { count: number },
 	options: { maxDepth: number, currentDepth: number, maxItemsPerDir?: number }
 ): Promise<{ childrenContent: string, childrenCutOff: boolean }> => {
@@ -263,12 +269,12 @@ const renderChildrenCombined = async (
 		const nextLevelPrefix = parentPrefix + (isLast ? '    ' : '│   ');
 
 		// Skip processing children for git ignored directories
-		const isGitIgnoredDirectory = child.isDirectory && shouldExcludeDirectory(child);
+		const isGitIgnoredDirectory = child.isDirectory && shouldExcludeDirectory(child.name);
 
 		// Create the prefix for the next level (continuation line or space)
 		if (child.isDirectory && !isGitIgnoredDirectory) {
 			// Fetch children with Modified sort order to show recently modified first
-			const eChildren = await child.fetchChildren(SortOrder.Modified);
+			const eChildren = await resolveChildren(child.children, fileService)
 
 			if (eChildren && eChildren.length > 0) {
 				const {
@@ -278,7 +284,7 @@ const renderChildrenCombined = async (
 					eChildren,
 					remainingChars,
 					nextLevelPrefix,
-					explorerService,
+					fileService,
 					fileCount,
 					{ maxDepth, currentDepth: nextDepth, maxItemsPerDir }
 				);
@@ -311,7 +317,68 @@ const renderChildrenCombined = async (
 };
 
 
-// ---------------------------------------------------
+// ------------------------- FOLDERS -------------------------
+
+export async function getAllUrisInDirectory(
+	directoryUri: URI,
+	maxResults: number,
+	fileService: IFileService,
+): Promise<URI[]> {
+	const result: URI[] = [];
+
+	// Helper function to recursively collect URIs
+	async function visitAll(folderStat: IFileStat): Promise<boolean> {
+		// Stop if we've reached the limit
+		if (result.length >= maxResults) {
+			return false;
+		}
+
+		try {
+
+			if (!folderStat.isDirectory || !folderStat.children) {
+				return true;
+			}
+
+			const eChildren = await resolveChildren(folderStat.children, fileService)
+
+			// Process files first (common convention to list files before directories)
+			for (const child of eChildren) {
+				if (!child.isDirectory) {
+					result.push(child.resource);
+
+					// Check if we've hit the limit
+					if (result.length >= maxResults) {
+						return false;
+					}
+				}
+			}
+
+			// Then process directories recursively
+			for (const child of eChildren) {
+				const isGitIgnored = shouldExcludeDirectory(child.name)
+				if (child.isDirectory && !isGitIgnored) {
+					const shouldContinue = await visitAll(child);
+					if (!shouldContinue) {
+						return false;
+					}
+				}
+			}
+
+			return true;
+		} catch (error) {
+			console.error(`Error processing directory ${folderStat.resource.fsPath}: ${error}`);
+			return true; // Continue despite errors in a specific directory
+		}
+	}
+
+	const rootStat = await fileService.resolve(directoryUri)
+	await visitAll(rootStat);
+	return result;
+}
+
+
+
+// --------------------------------------------------
 
 
 class DirectoryStrService extends Disposable implements IDirectoryStrService {
@@ -319,21 +386,25 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 
 	constructor(
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-		@IExplorerService private readonly explorerService: IExplorerService,
+		@IFileService private readonly fileService: IFileService,
 	) {
 		super();
 	}
 
-	async getDirectoryStrTool(uri: URI, options?: { maxItemsPerDir?: number }) {
-		const eRoot = this.explorerService.findClosest(uri)
+	async getAllURIsInDirectory(uri: URI, opts: { maxResults: number }): Promise<URI[]> {
+		return getAllUrisInDirectory(uri, opts.maxResults, this.fileService)
+	}
+
+	async getDirectoryStrTool(uri: URI) {
+		const eRoot = await this.fileService.resolve(uri)
 		if (!eRoot) throw new Error(`The folder ${uri.fsPath} does not exist.`)
 
-		const maxItemsPerDir = options?.maxItemsPerDir ?? START_MAX_ITEMS_PER_DIR; // Use START_MAX_ITEMS_PER_DIR
+		const maxItemsPerDir = START_MAX_ITEMS_PER_DIR; // Use START_MAX_ITEMS_PER_DIR
 
 		// First try with START_MAX_DEPTH
 		const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
 			eRoot,
-			this.explorerService,
+			this.fileService,
 			MAX_DIRSTR_CHARS_TOTAL_TOOL,
 			{ count: 0 },
 			{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir }
@@ -344,7 +415,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		if (initialCutOff) {
 			const result = await computeAndStringifyDirectoryTree(
 				eRoot,
-				this.explorerService,
+				this.fileService,
 				MAX_DIRSTR_CHARS_TOTAL_TOOL,
 				{ count: 0 },
 				{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
@@ -363,7 +434,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		return c
 	}
 
-	async getAllDirectoriesStr({ cutOffMessage, maxItemsPerDir }: { cutOffMessage: string, maxItemsPerDir?: number }) {
+	async getAllDirectoriesStr({ cutOffMessage, }: { cutOffMessage: string, }) {
 		let str: string = '';
 		let cutOff = false;
 		const folders = this.workspaceContextService.getWorkspace().folders;
@@ -371,7 +442,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			return '(NO WORKSPACE OPEN)';
 
 		// Use START_MAX_ITEMS_PER_DIR if not specified
-		const startMaxItemsPerDir = maxItemsPerDir ?? START_MAX_ITEMS_PER_DIR;
+		const startMaxItemsPerDir = START_MAX_ITEMS_PER_DIR;
 
 		for (let i = 0; i < folders.length; i += 1) {
 			if (i > 0) str += '\n';
@@ -381,13 +452,13 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			str += `Directory of ${f.uri.fsPath}:\n`;
 			const rootURI = f.uri;
 
-			const eRoot = this.explorerService.findClosestRoot(rootURI);
+			const eRoot = await this.fileService.resolve(rootURI)
 			if (!eRoot) continue;
 
 			// First try with START_MAX_DEPTH and startMaxItemsPerDir
 			const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
 				eRoot,
-				this.explorerService,
+				this.fileService,
 				MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
 				{ count: 0 },
 				{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: startMaxItemsPerDir }
@@ -398,7 +469,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			if (initialCutOff) {
 				const result = await computeAndStringifyDirectoryTree(
 					eRoot,
-					this.explorerService,
+					this.fileService,
 					MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
 					{ count: 0 },
 					{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
@@ -417,11 +488,8 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			}
 		}
 
-		if (cutOff) {
-			return `${str.trimEnd()}\n${cutOffMessage}`
-		}
-
-		return str
+		const ans = cutOff ? `${str.trimEnd()}\n${cutOffMessage}` : str
+		return ans
 	}
 }
 

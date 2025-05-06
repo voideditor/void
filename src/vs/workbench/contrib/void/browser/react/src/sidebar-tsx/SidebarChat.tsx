@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -14,7 +14,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
-import { OldSidebarThreadSelector, PastThreadsList } from './SidebarThreadSelector.js';
+import { PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
@@ -950,7 +950,6 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
-	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	// global state
 	let isBeingEdited = false
@@ -1046,7 +1045,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
-			sidebarStateService.fireFocusChat()
+			await chatThreadsService.focusCurrentChat()
 			requestAnimationFrame(() => _scrollToBottom?.())
 		}
 
@@ -1553,8 +1552,8 @@ export const ToolChildrenWrapper = ({ children, className }: { children: React.R
 		</div>
 	</div>
 }
-export const CodeChildren = ({ children }: { children: React.ReactNode }) => {
-	return <div className='bg-void-bg-3 p-1 rounded-sm overflow-auto text-sm'>
+export const CodeChildren = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+	return <div className={`${className ?? ''} p-1 rounded-sm overflow-auto text-sm`}>
 		<div className='!select-text cursor-auto'>
 			{children}
 		</div>
@@ -1643,7 +1642,7 @@ const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: strin
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon }
 
 	componentParams.children = <ToolChildrenWrapper>
-		<CodeChildren>
+		<CodeChildren className='bg-void-bg-3'>
 			{message}
 		</CodeChildren>
 	</ToolChildrenWrapper>
@@ -2043,7 +2042,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				componentParams.numResults = result.lines.length;
 				componentParams.children = result.lines.length === 0 ? undefined :
 					<ToolChildrenWrapper>
-						<CodeChildren>
+						<CodeChildren className='bg-void-bg-3'>
 							<pre className='font-mono whitespace-pre'>
 								{toolsService.stringOfResult['search_in_file'](params, result)}
 							</pre>
@@ -2177,7 +2176,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
-				componentParams.children = componentParams.bottomChildren = <BottomChildren title='Error'>
+				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
 					</CodeChildren>
@@ -2419,53 +2418,6 @@ const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, me
 	}
 
 }
-
-
-
-
-export const AcceptAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
-	<button
-		className={`
-			px-1 py-0.5
-			flex items-center gap-1
-			text-white text-[11px] text-nowrap
-			rounded-md
-			cursor-pointer
-			${className}
-		`}
-		style={{
-			backgroundColor: acceptAllBg,
-			border: acceptBorder,
-		}}
-		type='button'
-		onClick={onClick}
-	>
-		{text ? <span>{text}</span> : <Check size={16} />}
-	</button>
-)
-
-export const RejectAllButtonWrapper = ({ text, onClick, className }: { text: string, onClick: () => void, className?: string }) => (
-	<button
-		className={`
-			px-1 py-0.5
-			flex items-center gap-1
-			text-white text-[11px] text-nowrap
-			rounded-md
-			cursor-pointer
-			${className}
-		`}
-		style={{
-			backgroundColor: rejectAllBg,
-			border: rejectBorder,
-		}}
-		type='button'
-		onClick={onClick}
-	>
-		{text ? <span>{text}</span> : <X size={16} />}
-	</button>
-)
-
-
 
 const CommandBarInChat = () => {
 	const { stateOfURI: commandBarStateOfURI, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
@@ -2771,18 +2723,6 @@ export const SidebarChat = () => {
 
 	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
-	// sidebar state
-	const sidebarStateService = accessor.get('ISidebarStateService')
-	useEffect(() => {
-		const disposables: IDisposable[] = []
-		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.blur() })
-		)
-		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, textAreaRef])
-
-	const { isHistoryOpen } = useSidebarState()
 
 	// threads state
 	const chatThreadsState = useChatThreadsState()
@@ -2841,15 +2781,23 @@ export const SidebarChat = () => {
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
 
-	// scroll to top on thread switch
-	useEffect(() => {
-		if (isHistoryOpen)
-			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
-	}, [isHistoryOpen, currentThread.id])
-
-
 	const threadId = currentThread.id
 	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
+
+
+
+	// resolve mount info
+	const isResolved = chatThreadsState.allThreads[threadId]?.state.mountedInfo?.mountedIsResolvedRef.current
+	useEffect(() => {
+		if (isResolved) return
+		chatThreadsState.allThreads[threadId]?.state.mountedInfo?._whenMountedResolver?.({
+			textAreaRef: textAreaRef,
+			scrollToBottom: () => scrollToBottom(scrollContainerRef),
+		})
+	}, [chatThreadsState, threadId, textAreaRef, scrollContainerRef, isResolved])
+
+
+
 
 	const previousMessagesHTML = useMemo(() => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
@@ -3020,7 +2968,7 @@ export const SidebarChat = () => {
 			{landingPageInput}
 		</ErrorBoundary>
 
-			{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
+		{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
 			<ErrorBoundary>
 				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Previous Threads</div>
 				<PastThreadsList />

@@ -6,10 +6,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
 import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
-import { displayInfoOfProviderName, ProviderName, providerNames, refreshableProviderNames } from '../../../../common/voidSettingsTypes.js';
-import { getModelCapabilities, ollamaRecommendedModels } from '../../../../common/modelCapabilities.js';
+import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
-import { AddModelInputBox, AnimatedCheckmarkButton, OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider } from '../void-settings-tsx/Settings.js';
+import { OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
 import { isLinux } from '../../../../../../../base/common/platform.js';
@@ -27,9 +26,10 @@ export const VoidOnboarding = () => {
 		<div className={`@@void-scope ${isDark ? 'dark' : ''}`}>
 			<div
 				className={`
-					bg-void-bg-3 fixed top-0 right-0 bottom-0 left-0 width-full h-full z-[99999]
+					bg-void-bg-3 fixed top-0 right-0 bottom-0 left-0 width-full z-[99999]
 					transition-all duration-1000 ${isOnboardingComplete ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}
 				`}
+				style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
 			>
 				<ErrorBoundary>
 					<VoidOnboardingContent />
@@ -90,6 +90,180 @@ const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { ch
 }
 
 // Onboarding
+
+// =============================================
+//  New AddProvidersPage Component and helpers
+// =============================================
+
+const tabNames = ['Free', 'Paid', 'Local'] as const;
+
+type TabName = typeof tabNames[number] | 'Cloud/Other';
+
+// Data for cloud providers tab
+const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'openAICompatible'];
+
+// Data structures for provider tabs
+const providerNamesOfTab: Record<TabName, ProviderName[]> = {
+	Free: ['gemini', 'openRouter'],
+	Local: localProviderNames,
+	Paid: providerNames.filter(pn => !(['gemini', 'openRouter', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
+	'Cloud/Other': cloudProviders,
+};
+
+const descriptionOfTab: Record<TabName, string> = {
+	Free: `Providers with a 100% free tier. Add as many as you'd like!`,
+	Paid: `Connect directly with any provider (bring your own key).`,
+	Local: `Add as many local providers as you'd like! Active providers should appear automatically.`,
+	'Cloud/Other': `Reach out for custom configuration requests.`,
+};
+
+
+const featureNameMap: { display: string, featureName: FeatureName }[] = [
+	{ display: 'Chat', featureName: 'Chat' },
+	{ display: 'Quick Edit', featureName: 'Ctrl+K' },
+	{ display: 'Autocomplete', featureName: 'Autocomplete' },
+	{ display: 'Fast Apply', featureName: 'Apply' },
+];
+
+const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setPageIndex: (index: number) => void }) => {
+	const [currentTab, setCurrentTab] = useState<TabName>('Free');
+	const settingsState = useSettingsState();
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+	// Clear error message after 5 seconds
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout | null = null;
+
+		if (errorMessage) {
+			timeoutId = setTimeout(() => {
+				setErrorMessage(null);
+			}, 5000);
+		}
+
+		// Cleanup function to clear the timeout if component unmounts or error changes
+		return () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [errorMessage]);
+
+	return (
+		<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto relative">
+			{/* Left Column - Fixed */}
+			<div className="md:w-1/4 w-full flex flex-col gap-6 p-6 border-r border-void-border-2 h-full overflow-y-auto">
+				{/* Tab Selector */}
+				<div className="flex md:flex-col gap-2">
+					{[...tabNames, 'Cloud/Other'].map(tab => (
+						<button
+							key={tab}
+							className={`py-2 px-4 rounded-md text-left ${currentTab === tab
+								? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
+								: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'
+								} transition-all duration-200`}
+							onClick={() => {
+								setCurrentTab(tab as TabName);
+								setErrorMessage(null); // Reset error message when changing tabs
+							}}
+						>
+							{tab}
+						</button>
+					))}
+				</div>
+
+				{/* Feature Checklist */}
+				<div className="flex flex-col gap-1 mt-4 text-sm opacity-80">
+					{featureNameMap.map(({ display, featureName }) => {
+						const hasModel = settingsState.modelSelectionOfFeature[featureName] !== null;
+						return (
+							<div key={featureName} className="flex items-center gap-2">
+								{hasModel ? (
+									<Check className="w-4 h-4 text-emerald-500" />
+								) : (
+									<div className="w-3 h-3 rounded-full flex items-center justify-center">
+										<div className="w-1 h-1 rounded-full bg-white/70"></div>
+									</div>
+								)}
+								<span>{display}</span>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+
+			{/* Right Column */}
+			<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
+				<div className="text-4xl font-light mb-2 text-center w-full">{currentTab}</div>
+				<div className="text-sm text-void-fg-3 mb-2 text-center w-full max-w-lg">{descriptionOfTab[currentTab]}</div>
+
+				{providerNamesOfTab[currentTab].map((providerName) => (
+					<div key={providerName} className="w-full max-w-xl mb-10">
+						<div className="text-xl mb-2">Add {displayInfoOfProviderName(providerName).title}</div>
+						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
+						{providerName === 'ollama' && <OllamaSetupInstructions />}
+					</div>
+				))}
+
+				{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
+					<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-2/30">
+						<div className="flex items-center gap-2 mb-4">
+							<div className="text-xl font-medium text-[#0e70c0]">Models</div>
+							<div className="h-px flex-grow bg-void-border-2/30"></div>
+						</div>
+
+						{currentTab === 'Local' && (
+							<div className="text-sm text-void-fg-3 mb-4 bg-void-bg-3/30 p-3 rounded border-l-2 border-[#0e70c0]/70">
+								Local models should be detected automatically. You can add custom models below.
+							</div>
+						)}
+
+						{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
+						{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
+					</div>
+				)}
+
+
+				{currentTab === 'Free' && <div className='opacity-80'>
+
+					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
+						<ChatMarkdownRender string={`
+Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500.
+We recommend using models down the line as you run out of free credits. More information [here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).
+`} chatMessageLocation={undefined} /></div>
+					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
+						<ChatMarkdownRender string={`
+OpenRouter offers 50 free messages a day, and 1000 if you deposit $10.
+Only applies to models labeled \`:free\`. More information [here](https://openrouter.ai/docs/api-reference/limits).
+`} chatMessageLocation={undefined} /></div>
+				</div>
+				}
+				{/* Navigation buttons in right column */}
+				<div className="flex flex-col items-end w-full mt-auto pt-8">
+					{errorMessage && (
+						<div className="text-amber-400 mb-2 text-sm opacity-80 transition-opacity duration-300">{errorMessage}</div>
+					)}
+					<div className="flex items-center gap-2">
+						<PreviousButton onClick={() => setPageIndex(pageIndex - 1)} />
+						<NextButton
+							onClick={() => {
+								const isDisabled = isFeatureNameDisabled('Chat', settingsState)
+
+								if (!isDisabled) {
+									setPageIndex(pageIndex + 1);
+									setErrorMessage(null);
+								} else {
+									// Show error message
+									setErrorMessage("Please set up at least one Chat model before moving on.");
+								}
+							}}
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+};
+// =============================================
 // 	OnboardingPage
 // 		title:
 // 			div
@@ -179,7 +353,7 @@ const OnboardingPageShell = ({ top, bottom, content, hasMaxWidth = true, classNa
 	className?: string,
 }) => {
 	return (
-		<div className={`min-h-full text-lg flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
+		<div className={`h-[80vh] text-lg flex flex-col gap-4 w-full mx-auto ${hasMaxWidth ? 'max-w-[600px]' : ''} ${className}`}>
 			{top && <FadeIn className='w-full mb-auto pt-16'>{top}</FadeIn>}
 			{content && <FadeIn className='w-full my-auto'>{content}</FadeIn>}
 			{bottom && <div className='w-full pb-8'>{bottom}</div>}
@@ -188,8 +362,6 @@ const OnboardingPageShell = ({ top, bottom, content, hasMaxWidth = true, classNa
 }
 
 const OllamaDownloadOrRemoveModelButton = ({ modelName, isModelInstalled, sizeGb }: { modelName: string, isModelInstalled: boolean, sizeGb: number | false | 'not-known' }) => {
-
-
 	// for now just link to the ollama download page
 	return <a
 		href={`https://ollama.com/library/${modelName}`}
@@ -199,76 +371,6 @@ const OllamaDownloadOrRemoveModelButton = ({ modelName, isModelInstalled, sizeGb
 	>
 		<ExternalLink className="w-3.5 h-3.5" />
 	</a>
-
-	// if (isModelInstalled) {
-	// 	return <div className="flex items-center">
-
-	// 		<span className="flex items-center">Uninstall</span>
-
-	// 		<IconShell1
-	// 			className="ml-1"
-	// 			Icon={Trash}
-	// 			onClick={() => {
-
-	// 				setIsModelInstalling(false);
-	// 			}}
-	// 		/>
-
-	// 	</div>
-	// }
-
-
-
-	// else if (isModelInstalling) {
-	// 	return <div className="flex items-center">
-
-	// 		<span className="flex items-center">{`Download? ${typeof sizeGb === 'number' ? `(${sizeGb} Gb)` : ''}`}</span>
-
-	// 		<IconShell1
-	// 			className="ml-1"
-	// 			Icon={Square}
-	// 			onClick={() => {
-	// 				// abort()
-
-	// 				// TODO!!!!!!!!!!! don't do this
-	// 				setIsModelInstalling(false);
-	// 			}}
-	// 		/>
-
-	// 	</div>
-	// }
-
-
-	// else if (!isModelInstalled) {
-
-	// 	return <div className="flex items-center">
-
-	// 		<span className="flex items-center">Download ({sizeGb} Gb)</span>
-
-	// 		<IconShell1
-	// 			className="ml-1"
-	// 			Icon={Download}
-	// 			onClick={() => {
-	// 				// this is a check for whether the model was installed:
-
-	// 				if (isModelInstalling) return
-
-
-	// 				// TODO!!!!!! don't do this
-
-
-	// 				// install(modelname), callback = setIsModelInstalling(false);
-
-	// 				setIsModelInstalling(true);
-	// 			}}
-	// 		/>
-
-	// 	</div>
-
-	// }
-
-	// return <></>
-
 
 }
 
@@ -306,114 +408,7 @@ const abbreviateNumber = (num: number): string => {
 	}
 }
 
-const TableOfModelsForProvider = ({ providerName }: { providerName: ProviderName }) => {
 
-	const accessor = useAccessor()
-	const voidSettingsService = accessor.get('IVoidSettingsService')
-	const voidSettingsState = useSettingsState()
-	const isDetectableLocally = (refreshableProviderNames as ProviderName[]).includes(providerName)
-	// const providerCapabilities = getProviderCapabilities(providerName)
-
-
-	// info used to show the table
-	const infoOfModelName: Record<string, { showAsDefault: boolean, isDownloaded: boolean } | undefined> = {}
-
-	voidSettingsState.settingsOfProvider[providerName].models.forEach(m => {
-		infoOfModelName[m.modelName] = {
-			showAsDefault: m.type !== 'custom',
-			isDownloaded: true
-		}
-	})
-
-	// special case  columns for ollama; show recommended models as default
-	if (providerName === 'ollama') {
-		for (const modelName of ollamaRecommendedModels) {
-			if (modelName in infoOfModelName) continue
-			infoOfModelName[modelName] = {
-				isDownloaded: infoOfModelName[modelName]?.isDownloaded ?? false,
-				showAsDefault: true,
-			}
-		}
-	}
-
-	return <table className="table-fixed border-collapse mb-6 bg-void-bg-2 text-sm mx-auto select-text">
-		<thead>
-			<tr className="border-b border-void-border-1 text-nowrap text-ellipsis">
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[200px]">Models Offered</th>
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Cost/M</th>
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Context</th>
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Chat</th>
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Agent</th>
-				<th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Autotab</th>
-				{/* <th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Reasoning</th> */}
-				{isDetectableLocally && <th className="text-left py-2 px-3 font-normal text-void-fg-3 min-w-[10%]">Detected</th>}
-				{providerName === 'ollama' && <th className="text-left py-2 px-3 font-normal text-void-fg-3">Download</th>}
-			</tr>
-		</thead>
-		<tbody>
-			{Object.keys(infoOfModelName).map(modelName => {
-				const { showAsDefault, isDownloaded } = infoOfModelName[modelName] ?? {}
-
-
-				const capabilities = getModelCapabilities(providerName, modelName, undefined)
-				const {
-					downloadable,
-					cost,
-					supportsFIM,
-					reasoningCapabilities,
-					contextWindow,
-
-					isUnrecognizedModel,
-					reservedOutputTokenSpace,
-					supportsSystemMessage,
-				} = capabilities
-
-				// TODO update this when tools work
-
-				const removeModelButton = <button
-					className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-full text-void-fg-3 hover:text-void-fg-1 text-xs"
-					onClick={() => voidSettingsService.deleteModel(providerName, modelName)}
-				>
-					<X className="w-3.5 h-3.5" />
-				</button>
-
-
-
-				return (
-					<tr key={`${modelName}${providerName}`} className="border-b border-void-border-1 hover:bg-void-bg-3/50">
-						<td className="py-2 px-3 relative">
-							{!showAsDefault && removeModelButton}
-							{modelName}
-						</td>
-						<td className="py-2 px-3">${cost.output ?? ''}</td>
-						<td className="py-2 px-3">{contextWindow ? abbreviateNumber(contextWindow) : ''}</td>
-						<td className="py-2 px-3"><YesNoText val={true} /></td>
-						<td className="py-2 px-3"><YesNoText val={!!true} /></td>
-						<td className="py-2 px-3"><YesNoText val={!!supportsFIM} /></td>
-						{/* <td className="py-2 px-3"><YesNoText val={!!reasoningCapabilities} /></td> */}
-						{isDetectableLocally && <td className="py-2 px-3 flex items-center justify-center">{!!isDownloaded ? <Check className="w-4 h-4" /> : <></>}</td>}
-						{providerName === 'ollama' && <th className="py-2 px-3">
-							<OllamaDownloadOrRemoveModelButton modelName={modelName} isModelInstalled={!!infoOfModelName[modelName]?.isDownloaded} sizeGb={downloadable && downloadable.sizeGb} />
-						</th>}
-
-					</tr>
-				)
-			})}
-			<tr className="hover:bg-void-bg-3/50">
-				<td className="py-2 px-3 text-void-accent">
-					<ErrorBoundary>
-						<AddModelInputBox
-							key={providerName}
-							providerName={providerName}
-							compact={true}
-						/>
-					</ErrorBoundary>
-				</td>
-				<td colSpan={4}></td>
-			</tr>
-		</tbody>
-	</table>
-}
 
 
 
@@ -431,21 +426,15 @@ const PrimaryActionButton = ({ children, className, ringSize, ...props }: { chil
 
 				${ringSize === 'xl' ? `
 					gap-2 px-16 py-8
-					hover:ring-8 active:ring-8
 					transition-all duration-300 ease-in-out
 					`
 					: ringSize === 'screen' ? `
 					gap-2 px-16 py-8
-					ring-[3000px]
 					transition-all duration-1000 ease-in-out
 					`: ringSize === undefined ? `
 					gap-1 px-4 py-2
-					hover:ring-2 active:ring-2
 					transition-all duration-300 ease-in-out
 				`: ''}
-
-				hover:ring-black/90 dark:hover:ring-white/90
-				active:ring-black/90 dark:active:ring-white/90
 
 				rounded-lg
 				group
@@ -534,7 +523,6 @@ const VoidOnboardingContent = () => {
 			/>
 			<NextButton
 				onClick={() => { setPageIndex(pageIndex + 1) }}
-				disabled={pageIndex === 2 && !didFillInSelectedProviderSettings}
 			/>
 		</div>
 	</div>
@@ -612,7 +600,7 @@ const VoidOnboardingContent = () => {
 						delayMs={1000}
 					>
 						<PrimaryActionButton
-							onClick={() => { setPageIndex(pageIndex + 1) }}
+							onClick={() => { setPageIndex(1) }}
 						>
 							Get Started
 						</PrimaryActionButton>
@@ -621,255 +609,13 @@ const VoidOnboardingContent = () => {
 				</div>
 			}
 		/>,
-		1: <OnboardingPageShell
 
-			hasMaxWidth={false}
-			top={<></>}
-			content={<div className='flex flex-col items-center -translate-y-[20vh]'>
-				{/* <div className="text-5xl text-center mb-8">AI Preferences</div> */}
-
-				<div className="text-4xl text-void-fg-2 mb-8 text-center">Model Preferences</div>
-
-
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[800px] mx-auto mt-8">
-
-					<button
-						onClick={() => { setWantToUseOption('cheap'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
-					>
-						<div className="flex items-center mb-3">
-							<DollarSign size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Affordable</div>
-						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['cheap']}</div>
-					</button>
-
-					<button
-						onClick={() => { setWantToUseOption('private'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
-					>
-						<div className="flex items-center mb-3">
-							<Lock size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Private</div>
-						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['private']}</div>
-					</button>
-
-					<button
-						onClick={() => { setWantToUseOption('smart'); setPageIndex(pageIndex + 1); }}
-						className="flex flex-col p-6 rounded bg-void-bg-2 border border-void-border-3 hover:brightness-110  transition-colors focus:outline-none focus:border-void-accent-border relative overflow-hidden min-h-[160px]"
-					>
-						<div className="flex items-center mb-3">
-							<Brain size={24} className="text-void-fg-2 mr-2" />
-							<div className="text-lg font-medium text-void-fg-1">Intelligent</div>
-						</div>
-						<div className="text-sm text-void-fg-2 text-left">{basicDescOfWantToUseOption['smart']}</div>
-					</button>
-				</div>
-
-
-			</div>}
-			bottom={
-				<div className='mx-auto w-full max-w-[800px]'>
-					<PreviousButton onClick={() => { setPageIndex(pageIndex - 1) }} />
-				</div>
+		1: <OnboardingPageShell hasMaxWidth={false}
+			content={
+				<AddProvidersPage pageIndex={pageIndex} setPageIndex={setPageIndex} />
 			}
 		/>,
 		2: <OnboardingPageShell
-			top={
-				<>
-					{/* Title */}
-
-					<div className="text-5xl font-light text-center mt-[10vh] mb-6">Choose a Provider</div>
-
-					{/* Preference Selector */}
-
-					<div
-						className="mb-6 w-fit mx-auto flex items-center overflow-hidden bg-zinc-700/5 dark:bg-zinc-300/5 rounded-md"
-					>
-						{[
-							{ id: 'smart', label: 'Intelligent' },
-							{ id: 'private', label: 'Private' },
-							{ id: 'cheap', label: 'Affordable' },
-							{ id: 'all', label: 'All' }
-						].map(option => (
-							<ErrorBoundary
-								key={option.id}
-							>
-								<button
-									onClick={() => setWantToUseOption(option.id as WantToUseOption)}
-									className={`py-1 px-2 text-xs cursor-pointer whitespace-nowrap rounded-sm transition-colors ${wantToUseOption === option.id
-										? 'dark:text-white text-black font-medium'
-										: 'text-void-fg-3 hover:text-void-fg-2'
-										}`}
-									data-tooltip-id='void-tooltip'
-									data-tooltip-content={`${option.label} providers`}
-									data-tooltip-place='bottom'
-								>
-									{option.label}
-								</button>
-							</ErrorBoundary>
-						))}
-					</div>
-
-
-
-					{/* Provider Buttons - Modified to use separate components for each tab */}
-					<div className="mb-2 w-full">
-						{/* Intelligent tab */}
-						<ErrorBoundary>
-							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'smart' ? 'flex' : 'hidden'}`}>
-								{providerNamesOfWantToUseOption['smart'].map((providerName) => {
-									const isSelected = selectedIntelligentProvider === providerName;
-									return (
-										<button
-											key={providerName}
-											onClick={() => setSelectedIntelligentProvider(providerName)}
-											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-										>
-											{displayInfoOfProviderName(providerName).title}
-										</button>
-									);
-								})}
-							</div>
-						</ErrorBoundary>
-
-
-						{/* Private tab */}
-						<ErrorBoundary>
-							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'private' ? 'flex' : 'hidden'}`}>
-								{providerNamesOfWantToUseOption['private'].map((providerName) => {
-									const isSelected = selectedPrivateProvider === providerName;
-									return (
-										<button
-											key={providerName}
-											onClick={() => setSelectedPrivateProvider(providerName)}
-											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-										>
-											{displayInfoOfProviderName(providerName).title}
-										</button>
-									);
-								})}
-							</div>
-						</ErrorBoundary>
-
-
-						{/* Affordable tab */}
-						<ErrorBoundary>
-
-							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'cheap' ? 'flex' : 'hidden'}`}>
-								{providerNamesOfWantToUseOption['cheap'].map((providerName) => {
-									const isSelected = selectedAffordableProvider === providerName;
-									return (
-										<button
-											key={providerName}
-											onClick={() => setSelectedAffordableProvider(providerName)}
-											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-										>
-											{displayInfoOfProviderName(providerName).title}
-										</button>
-									);
-								})}
-							</div>
-						</ErrorBoundary>
-
-
-						{/* All tab */}
-						<ErrorBoundary>
-							<div className={`flex flex-wrap items-center w-full ${wantToUseOption === 'all' ? 'flex' : 'hidden'}`}>
-								{providerNames.map((providerName) => {
-									const isSelected = selectedAllProvider === providerName;
-									return (
-										<button
-											key={providerName}
-											onClick={() => setSelectedAllProvider(providerName)}
-											className={`py-[2px] px-2 mx-0.5 my-0.5 text-xs font-medium cursor-pointer relative rounded-full transition-all duration-300
-											${isSelected ? 'bg-zinc-100 text-zinc-900 shadow-sm border-white/80' : 'bg-zinc-100/40 hover:bg-zinc-100/50 text-zinc-900 border-white/20'}`}
-										>
-											{displayInfoOfProviderName(providerName).title}
-										</button>
-									);
-								})}
-							</div>
-						</ErrorBoundary>
-					</div>
-
-					{/* Description */}
-					<ErrorBoundary>
-						<div className="text-left self-start text-sm text-void-fg-3 px-2 py-1">
-							<ChatMarkdownRender string={detailedDescOfWantToUseOption[wantToUseOption]} chatMessageLocation={undefined} />
-						</div>
-					</ErrorBoundary>
-
-
-					{/* ModelsTable and ProviderFields */}
-					{selectedProviderName && <div className='mt-4 w-fit mx-auto'>
-						{/* Models Table */}
-						<ErrorBoundary>
-							<TableOfModelsForProvider providerName={selectedProviderName} />
-						</ErrorBoundary>
-
-
-						{/* Add provider section - simplified styling */}
-
-						<div className='mb-5 mt-8 mx-auto'>
-							<ErrorBoundary>
-								<div className=''>
-									Add {displayInfoOfProviderName(selectedProviderName).title}
-
-									<div className='my-4'>
-										{selectedProviderName === 'ollama' ? <OllamaSetupInstructions /> : ''}
-									</div>
-
-								</div>
-							</ErrorBoundary>
-
-							<ErrorBoundary>
-								{selectedProviderName &&
-									<SettingsForProvider providerName={selectedProviderName} showProviderTitle={false} showProviderSuggestions={false} />
-								}
-							</ErrorBoundary>
-
-							{/* Button and status indicators */}
-							<ErrorBoundary>
-								{!didFillInProviderSettings ? <p className="text-xs text-void-fg-3 mt-2">Please fill in all fields to continue</p>
-									: !isAtLeastOneModel ? <p className="text-xs text-void-fg-3 mt-2">Please add a model to continue</p>
-										: !isApiKeyLongEnoughIfApiKeyExists ? <p className="text-xs text-void-fg-3 mt-2">Please enter a valid API key</p>
-											: <AnimatedCheckmarkButton className='text-xs text-void-fg-3 mt-2' text='Added' />}
-							</ErrorBoundary>
-						</div>
-
-					</div>}
-				</>
-			}
-
-			bottom={
-				<ErrorBoundary>
-					<FadeIn delayMs={50} durationMs={10}>
-						{prevAndNextButtons}
-					</FadeIn>
-				</ErrorBoundary>
-			}
-
-		/>,
-
-		// 2.5: <div className="max-w-[600px] w-full h-full text-left mx-auto flex flex-col items-center justify-between">
-		// 	<FadeIn>
-		// 		<div className="text-5xl font-light mb-6 mt-12 text-center">Autocomplete</div>
-
-		// 		<div className="text-center flex flex-col gap-4 w-full max-w-md mx-auto">
-		// 			<h4 className="text-void-fg-3 mb-2">Void offers free autocomplete with locally hosted models</h4>
-		// 			<h4 className="text-void-fg-3 mb-2">[have buttons for Ollama install Qwen2.5coder3b and memory requirements] </h4>
-
-		// 		</div>
-		// 	</FadeIn>
-
-		// 	{prevAndNextButtons}
-		// </div>,
-		3: <OnboardingPageShell
 
 			content={
 				<div>
@@ -884,32 +630,11 @@ const VoidOnboardingContent = () => {
 				</div>
 			}
 			bottom={lastPagePrevAndNextButtons}
-		// bottom={prevAndNextButtons}
 		/>,
-		// 4: <OnboardingPageShell
-		// 	content={
-		// 		<>
-		// 			<div
-		// 				className='flex justify-center'
-		// 			>
-		// 				<PrimaryActionButton
-		// 					onClick={() => { voidSettingsService.setGlobalSetting('isOnboardingComplete', true); }}
-		// 					ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
-		// 					className='text-4xl'
-		// 				>Enter the Void</PrimaryActionButton>
-		// 			</div>
-		// 		</>
-		// 	}
-		// 	bottom={
-		// 		<PreviousButton
-		// 			onClick={() => { setPageIndex(pageIndex - 1) }}
-		// 		/>
-		// 	}
-		// />,
 	}
 
 
-	return <div key={pageIndex} className="w-full h-full text-left mx-auto overflow-y-scroll flex flex-col items-center justify-around">
+	return <div key={pageIndex} className="w-full h-[80vh] text-left mx-auto flex flex-col items-center justify-center">
 		<ErrorBoundary>
 			{contentOfIdx[pageIndex]}
 		</ErrorBoundary>

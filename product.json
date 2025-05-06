@@ -1,7 +1,7 @@
 {
 	"nameShort": "Void",
 	"nameLong": "Void",
-	"voidVersion": "1.3.0",
+	"voidVersion": "1.3.2",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
 	"win32MutexName": "voideditor",
@@ -39,6 +39,7 @@
 	"linkProtectionTrustedDomains": [
 		"https://voideditor.com",
 		"https://voideditor.dev",
-		"https://github.com/voideditor/void"
+		"https://github.com/voideditor/void",
+		"https://ollama.com"
 	]
 }

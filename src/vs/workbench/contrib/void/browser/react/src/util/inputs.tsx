@@ -249,7 +249,6 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 						for (let i = 0; i < pathParts.length - 1; i++) {
 							currentPath = i === 0 ? `/${pathParts[i]}` : `${currentPath}/${pathParts[i]}`;
 
-							console.log('filepath', currentPath);
 
 							// Create a proper directory URI
 							const directoryUri = URI.joinPath(
@@ -383,8 +382,21 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		// Focus the textarea first
 		textarea.focus();
 
-		// Insert the @ to mention text in the editor (we decided not to do this for now)
-		// document.execCommand('insertText', false, text + ' '); // add space after too
+		// delete the @ and set the cursor position
+		// Get cursor position
+		const startPos = textarea.selectionStart;
+		const endPos = textarea.selectionEnd;
+
+		// Get the text before the cursor, excluding the @ symbol that triggered the menu
+		const textBeforeCursor = textarea.value.substring(0, startPos - 1);
+		const textAfterCursor = textarea.value.substring(endPos);
+
+		// Replace the text including the @ symbol with the selected option
+		textarea.value = textBeforeCursor + textAfterCursor;
+
+		// Set cursor position after the inserted text
+		const newCursorPos = textBeforeCursor.length;
+		textarea.setSelectionRange(newCursorPos, newCursorPos);
 
 		// React's onChange relies on a SyntheticEvent system
 		// The best way to ensure it runs is to call callbacks directly
@@ -407,17 +419,21 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			setIsMenuOpen(false)
 			insertTextAtCursor(option.abbreviatedName)
 
-			const newSelection: StagingSelectionItem = option.leafNodeType === 'File' ? {
+			let newSelection: StagingSelectionItem
+			if (option.leafNodeType === 'File') newSelection = {
 				type: 'File',
 				uri: option.uri,
 				language: languageService.guessLanguageIdByFilepathOrFirstLine(option.uri) || '',
-				state: { wasAddedAsCurrentFile: false }
-			} : option.leafNodeType === 'Folder' ? {
+				state: { wasAddedAsCurrentFile: false },
+			}
+			else if (option.leafNodeType === 'Folder') newSelection = {
 				type: 'Folder',
 				uri: option.uri,
 				language: undefined,
 				state: undefined,
-			} : (undefined as never)
+			}
+			else throw new Error(`Unexpected leafNodeType ${option.leafNodeType}`)
+
 			chatThreadService.addNewStagingSelection(newSelection)
 			console.log('selected', option.uri?.fsPath)
 		}
@@ -855,15 +871,44 @@ export const VoidSimpleInputBox = ({ value, onChangeValue, placeholder, classNam
 	compact?: boolean;
 	passwordBlur?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) => {
+	// Create a ref for the input element to maintain the same DOM node between renders
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Track if we need to restore selection
+	const selectionRef = useRef<{ start: number | null, end: number | null }>({
+		start: null,
+		end: null
+	});
+
+	// Handle value changes without recreating the input
+	useEffect(() => {
+		const input = inputRef.current;
+		if (input && input.value !== value) {
+			// Store current selection positions
+			selectionRef.current.start = input.selectionStart;
+			selectionRef.current.end = input.selectionEnd;
+
+			// Update the value
+			input.value = value;
+
+			// Restore selection if we had it before
+			if (selectionRef.current.start !== null && selectionRef.current.end !== null) {
+				input.setSelectionRange(selectionRef.current.start, selectionRef.current.end);
+			}
+		}
+	}, [value]);
+
+	const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		onChangeValue(e.target.value);
+	}, [onChangeValue]);
 
 	return (
 		<input
-			value={value}
-			onChange={(e) => onChangeValue(e.target.value)}
+			ref={inputRef}
+			defaultValue={value} // Use defaultValue instead of value to avoid recreation
+			onChange={handleChange}
 			placeholder={placeholder}
 			disabled={disabled}
-			// className='max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root'
-			// className={`w-full resize-none text-void-fg-1 placeholder:text-void-fg-3 px-2 py-1 rounded-sm
 			className={`w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1
 				${compact ? 'py-1 px-2' : 'py-2 px-4 '}
 				rounded

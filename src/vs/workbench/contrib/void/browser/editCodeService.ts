@@ -269,7 +269,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-
+	public processRawKeybindingText(keybindingStr: string): string {
+		return keybindingStr
+			.replace(/Enter/g, '↵') // ⏎
+			.replace(/Backspace/g, '⌫');
+	}
 
 	// private _notifyError = (e: Parameters<OnError>[0]) => {
 	// 	const details = errorDetails(e.fullError)
@@ -2255,13 +2259,6 @@ registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
 
 
-const processRawKeybindingText = (keybindingStr: string) => {
-	return keybindingStr
-		.replace(/Enter/g, '↵') // ⏎
-		.replace(/Backspace/g, '⌫')
-
-}
-
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
 	public getId(): string {
@@ -2289,7 +2286,8 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 			offsetLines: number
 		},
 		@IVoidCommandBarService private readonly _voidCommandBarService: IVoidCommandBarService,
-		@IKeybindingService private readonly _keybindingService: IKeybindingService
+		@IKeybindingService private readonly _keybindingService: IKeybindingService,
+		@IEditCodeService private readonly _editCodeService: IEditCodeService,
 	) {
 		super();
 
@@ -2313,8 +2311,10 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 			const acceptKeybinding = this._keybindingService.lookupKeybinding(VOID_ACCEPT_DIFF_ACTION_ID);
 			const rejectKeybinding = this._keybindingService.lookupKeybinding(VOID_REJECT_DIFF_ACTION_ID);
 
-			const acceptKeybindLabel = processRawKeybindingText(acceptKeybinding && acceptKeybinding.getLabel() || '');
-			const rejectKeybindLabel = processRawKeybindingText(rejectKeybinding && rejectKeybinding.getLabel() || '')
+			// Use the standalone function directly since we're in a nested class that
+			// can't access EditCodeService's methods
+			const acceptKeybindLabel = this._editCodeService.processRawKeybindingText(acceptKeybinding && acceptKeybinding.getLabel() || '');
+			const rejectKeybindLabel = this._editCodeService.processRawKeybindingText(rejectKeybinding && rejectKeybinding.getLabel() || '');
 
 			const commandBarStateAtUri = this._voidCommandBarService.stateOfURI[uri.fsPath];
 			const selectedDiffIdx = commandBarStateAtUri?.diffIdx ?? 0; // 0th item is selected by default

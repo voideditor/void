@@ -9,9 +9,19 @@ import { useAccessor, useCommandBarState, useIsDark } from '../util/services.js'
 import '../styles.css'
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
-import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
-import { AcceptAllButtonWrapper, RejectAllButtonWrapper } from '../sidebar-tsx/SidebarChat.js';
+import { Check, EllipsisVertical, Menu, MoveDown, MoveLeft, MoveRight, MoveUp, X } from 'lucide-react';
+import {
+	VOID_GOTO_NEXT_DIFF_ACTION_ID,
+	VOID_GOTO_PREV_DIFF_ACTION_ID,
+	VOID_GOTO_NEXT_URI_ACTION_ID,
+	VOID_GOTO_PREV_URI_ACTION_ID,
+	VOID_ACCEPT_FILE_ACTION_ID,
+	VOID_REJECT_FILE_ACTION_ID,
+	VOID_ACCEPT_ALL_DIFFS_ACTION_ID,
+	VOID_REJECT_ALL_DIFFS_ACTION_ID
+} from '../../../actionIDs.js';
 
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
@@ -25,14 +35,55 @@ export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 
 
 
-const stepIdx = (currIdx: number | null, len: number, step: -1 | 1) => {
-	if (len === 0) return null
-	return ((currIdx ?? 0) + step + len) % len // for some reason, small negatives are kept negative. just add len to offset
-}
+export const AcceptAllButtonWrapper = ({ text, onClick, className, ...props }: { text: string, onClick: () => void, className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+	<button
+		className={`
+			px-2 py-0.5
+			flex items-center gap-1
+			text-white text-[11px] text-nowrap
+			h-full rounded-none
+			cursor-pointer
+			${className}
+		`}
+		style={{
+			backgroundColor: 'var(--vscode-button-background)',
+			color: 'var(--vscode-button-foreground)',
+			border: 'none',
+		}}
+		type='button'
+		onClick={onClick}
+		{...props}
+	>
+		{text ? <span>{text}</span> : <Check size={16} />}
+	</button>
+)
+
+export const RejectAllButtonWrapper = ({ text, onClick, className, ...props }: { text: string, onClick: () => void, className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+	<button
+		className={`
+			px-2 py-0.5
+			flex items-center gap-1
+			text-white text-[11px] text-nowrap
+			h-full rounded-none
+			cursor-pointer
+			${className}
+		`}
+		style={{
+			backgroundColor: 'var(--vscode-button-secondaryBackground)',
+			color: 'var(--vscode-button-secondaryForeground)',
+			border: 'none',
+		}}
+		type='button'
+		onClick={onClick}
+		{...props}
+	>
+		{text ? <span>{text}</span> : <X size={16} />}
+	</button>
+)
 
 
 
-const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
+export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const editorService = accessor.get('ICodeEditorService')
@@ -40,12 +91,9 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const commandService = accessor.get('ICommandService')
 	const commandBarService = accessor.get('IVoidCommandBarService')
 	const voidModelService = accessor.get('IVoidModelService')
+	const keybindingService = accessor.get('IKeybindingService')
 	const { stateOfURI: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
-
-
-	// useEffect(() => {
-	// 	console.log('MOUNTING!!!')
-	// }, [])
+	const [showAcceptRejectAllButtons, setShowAcceptRejectAllButtons] = useState(false)
 
 	// latestUriIdx is used to remember place in leftRight
 	const _latestValidUriIdxRef = useRef<number | null>(null)
@@ -70,55 +118,17 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			const s = commandBarService.stateOfURI[uri.fsPath]
 			if (!s) return
 			const { diffIdx } = s
-			goToDiffIdx(diffIdx ?? 0)
+			commandBarService.goToDiffIdx(diffIdx ?? 0)
 		}, 50)
 	}, [uri, commandBarService])
 
 	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
 
-	const getNextDiffIdx = (step: 1 | -1) => {
-		// check undefined
-		if (!uri) return null
-		const s = commandBarState[uri.fsPath]
-		if (!s) return null
-		const { diffIdx, sortedDiffIds } = s
-		// get next idx
-		const nextDiffIdx = stepIdx(diffIdx, sortedDiffIds.length, step)
-		return nextDiffIdx
-	}
-	const goToDiffIdx = (idx: number | null) => {
-		if (idx === null) return
-		// check undefined
-		if (!uri) return
-		const s = commandBarState[uri.fsPath]
-		if (!s) return
-		const { sortedDiffIds } = s
-		// reveal
-		const diffid = sortedDiffIds[idx]
-		if (diffid === undefined) return
-		const diff = editCodeService.diffOfId[diffid]
-		if (!diff) return
-		editor.revealLineNearTop(diff.startLine - 1, ScrollType.Immediate)
-		commandBarService.setDiffIdx(uri, idx)
-	}
-	const getNextUriIdx = (step: 1 | -1) => {
-		return stepIdx(uriIdxInStepper, sortedCommandBarURIs.length, step)
-	}
-	const goToURIIdx = async (idx: number | null) => {
-		if (idx === null) return
-		const nextURI = sortedCommandBarURIs[idx]
-		editCodeService.diffAreasOfURI
-		const { model } = await voidModelService.getModelSafe(nextURI)
-		if (model) {
-			// switch to the URI
-			editorService.openCodeEditor({ resource: nextURI, options: { revealIfVisible: true } }, editor)
-		}
-	}
+	// Using service methods directly
 
 	const currDiffIdx = uri ? commandBarState[uri.fsPath]?.diffIdx ?? null : null
 	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? [] : []
 	const sortedDiffZoneIds = uri ? commandBarState[uri.fsPath]?.sortedDiffZoneIds ?? [] : []
-
 
 	const isADiffInThisFile = sortedDiffIds.length !== 0
 	const isADiffZoneInThisFile = sortedDiffZoneIds.length !== 0
@@ -127,191 +137,247 @@ const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const streamState = uri ? commandBarService.getStreamState(uri) : null
 	const showAcceptRejectAll = streamState === 'idle-has-changes'
 
-	const nextDiffIdx = getNextDiffIdx(1)
-	const prevDiffIdx = getNextDiffIdx(-1)
-	const nextURIIdx = getNextUriIdx(1)
-	const prevURIIdx = getNextUriIdx(-1)
+	const nextDiffIdx = commandBarService.getNextDiffIdx(1)
+	const prevDiffIdx = commandBarService.getNextDiffIdx(-1)
+	const nextURIIdx = commandBarService.getNextUriIdx(1)
+	const prevURIIdx = commandBarService.getNextUriIdx(-1)
 
 	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
-	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null // || (sortedCommandBarURIs.length === 1 && isADiffZoneInThisFile)
-
-	const upButton = <button
-		className={`
-			size-6 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}// --border border-void-border-3 focus:border-void-border-1
-		disabled={upDownDisabled}
-		onClick={() => { goToDiffIdx(prevDiffIdx) }}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToDiffIdx(prevDiffIdx);
-			}
-		}}
-	>↑</button>
-
-	const downButton = <button
-		className={`
-			size-6 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={upDownDisabled}
-		onClick={() => { goToDiffIdx(nextDiffIdx) }}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToDiffIdx(nextDiffIdx);
-			}
-		}}
-	>↓</button>
-
-	const leftButton = <button
-		className={`
-			size-6 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={leftRightDisabled}
-		onClick={() => goToURIIdx(prevURIIdx)}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToURIIdx(prevURIIdx);
-			}
-		}}
-	>←</button>
-
-	const rightButton = <button
-		className={`
-			size-6 rounded cursor-default
-			hover:bg-void-bg-1-alt
-		`}
-		disabled={leftRightDisabled}
-		onClick={() => goToURIIdx(nextURIIdx)}
-		onKeyDown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				goToURIIdx(nextURIIdx);
-			}
-		}}
-	>→</button>
-
-
+	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null
 
 	// accept/reject if current URI has changes
-	const onAcceptAll = () => {
+	const onAcceptFile = () => {
 		if (!uri) return
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false, _addToHistory: true })
-		metricsService.capture('Accept All', {})
+		metricsService.capture('Accept File', {})
 	}
-	const onRejectAll = () => {
+	const onRejectFile = () => {
 		if (!uri) return
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'reject', removeCtrlKs: false, _addToHistory: true })
-		metricsService.capture('Reject All', {})
+		metricsService.capture('Reject File', {})
 	}
+
+	const onAcceptAll = () => {
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' });
+		metricsService.capture('Accept All', {})
+		setShowAcceptRejectAllButtons(false);
+	}
+
+	const onRejectAll = () => {
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' });
+		metricsService.capture('Reject All', {})
+		setShowAcceptRejectAllButtons(false);
+	}
+
+
+
+	const _upKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_PREV_DIFF_ACTION_ID);
+	const _downKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_NEXT_DIFF_ACTION_ID);
+	const _leftKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_PREV_URI_ACTION_ID);
+	const _rightKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_NEXT_URI_ACTION_ID);
+	const _acceptFileKeybinding = keybindingService.lookupKeybinding(VOID_ACCEPT_FILE_ACTION_ID);
+	const _rejectFileKeybinding = keybindingService.lookupKeybinding(VOID_REJECT_FILE_ACTION_ID);
+	const _acceptAllKeybinding = keybindingService.lookupKeybinding(VOID_ACCEPT_ALL_DIFFS_ACTION_ID);
+	const _rejectAllKeybinding = keybindingService.lookupKeybinding(VOID_REJECT_ALL_DIFFS_ACTION_ID);
+
+	const upKeybindLabel = editCodeService.processRawKeybindingText(_upKeybinding?.getLabel() || '');
+	const downKeybindLabel = editCodeService.processRawKeybindingText(_downKeybinding?.getLabel() || '');
+	const leftKeybindLabel = editCodeService.processRawKeybindingText(_leftKeybinding?.getLabel() || '');
+	const rightKeybindLabel = editCodeService.processRawKeybindingText(_rightKeybinding?.getLabel() || '');
+	const acceptFileKeybindLabel = editCodeService.processRawKeybindingText(_acceptFileKeybinding?.getAriaLabel() || '');
+	const rejectFileKeybindLabel = editCodeService.processRawKeybindingText(_rejectFileKeybinding?.getAriaLabel() || '');
+	const acceptAllKeybindLabel = editCodeService.processRawKeybindingText(_acceptAllKeybinding?.getAriaLabel() || '');
+	const rejectAllKeybindLabel = editCodeService.processRawKeybindingText(_rejectAllKeybinding?.getAriaLabel() || '');
 
 
 	if (!isADiffZoneInAnyFile) return null
 
-	// const acceptAllButton = <button
-	// 	className='text-nowrap'
-	// 	onClick={onAcceptAll}
-	// 	style={{
-	// 		backgroundColor: acceptAllBg,
-	// 		border: acceptBorder,
-	// 		color: buttonTextColor,
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// >
-	// 	Accept File
-	// </button>
-
-	// const rejectAllButton = <button
-	// 	className='text-nowrap'
-	// 	onClick={onRejectAll}
-	// 	style={{
-	// 		backgroundColor: rejectBg,
-	// 		border: rejectBorder,
-	// 		color: 'white',
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// >
-	// 	Reject File
-	// </button>
-
-	const acceptAllButton = <AcceptAllButtonWrapper
-		text={'Keep Changes'}
-		onClick={onAcceptAll}
-	/>
-
-	const rejectAllButton = <RejectAllButtonWrapper
-		text={'Reject All'}
-		onClick={onRejectAll}
-	/>
-
-	const acceptRejectAllButtons = <div className="flex items-center gap-1 text-sm">
-		{acceptAllButton}
-		{rejectAllButton}
-	</div>
-
-	// const closeCommandBar = useCallback(() => {
-	// 	commandService.executeCommand('void.hideCommandBar');
-	// }, [commandService]);
-
-	// const hideButton = <button
-	// 	className='ml-auto pointer-events-auto'
-	// 	onClick={closeCommandBar}
-	// 	style={{
-	// 		color: buttonTextColor,
-	// 		fontSize: buttonFontSize,
-	// 		padding: '2px 4px',
-	// 		borderRadius: '6px',
-	// 		cursor: 'pointer'
-	// 	}}
-	// 	title="Close command bar"
-	// >x
-	// </button>
-
-	const leftRightUpDownButtons = <div className='p-1 gap-1 flex flex-col items-center bg-void-bg-2 rounded shadow-md border border-void-border-2 w-full'>
-		<div className="flex flex-col gap-1">
-			{/* Changes in file */}
-			<div className={`${!isADiffZoneInThisFile ? 'hidden' : ''} flex items-center ${upDownDisabled ? 'opacity-50' : ''}`}>
-				{upButton}
-				{downButton}
-				<span className="min-w-16 px-2 text-xs leading-[1]">
-					{isADiffInThisFile ?
-						`Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
-						: streamState === 'streaming' ?
-							'No changes yet'
-							: `No changes`
-					}
-				</span>
+	// For pages without a current file index, show a simplified command bar
+	if (currFileIdx === null) {
+		return (
+			<div className="pointer-events-auto">
+				<div className="flex bg-void-bg-2 shadow-md border border-void-border-2 [&>*:first-child]:pl-3 [&>*:last-child]:pr-3 [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
+					<div className="flex items-center px-3">
+						<span className="text-xs whitespace-nowrap">
+							{`${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`}
+						</span>
+					</div>
+					<button
+						className="text-xs whitespace-nowrap cursor-pointer flex items-center justify-center gap-1 bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:opacity-90 h-full px-3"
+						onClick={() => commandBarService.goToURIIdx(nextURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToURIIdx(nextURIIdx);
+							}
+						}}
+					>
+						Next <MoveRight className='size-3 my-1' />
+					</button>
+				</div>
 			</div>
+		);
+	}
 
-			{/* Files */}
-			<div className={`${!isADiffZoneInAnyFile ? 'hidden' : ''} flex items-center ${leftRightDisabled ? 'opacity-50' : ''}`}>
-				{leftButton}
-				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-				{rightButton}
-				{/* <div className="w-px h-3 bg-void-border-3 mx-0.5 shadow-sm"></div> */}
-				<span className="min-w-16 px-2 text-xs leading-[1]">
-					{currFileIdx !== null ?
-						`File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
-						: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'} changed`
-					}
-				</span>
+	return (
+		<div className="pointer-events-auto">
+
+
+			{/* Accept All / Reject All buttons that appear when the vertical ellipsis is clicked */}
+			{showAcceptRejectAllButtons && showAcceptRejectAll && (
+				<div className="flex justify-end mb-1">
+					<div className="inline-flex bg-void-bg-2 rounded shadow-md border border-void-border-2 overflow-hidden">
+						<div className="flex items-center [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
+							<AcceptAllButtonWrapper
+								// text={`Accept All${acceptAllKeybindLabel ? ` ${acceptAllKeybindLabel}` : ''}`}
+								text={`Accept All`}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={acceptAllKeybindLabel}
+								data-tooltip-delay-show={500}
+								onClick={onAcceptAll}
+								/>
+							<RejectAllButtonWrapper
+								// text={`Reject All${rejectAllKeybindLabel ? ` ${rejectAllKeybindLabel}` : ''}`}
+								text={`Reject All`}
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={rejectAllKeybindLabel}
+								data-tooltip-delay-show={500}
+								onClick={onRejectAll}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
+
+			<div className="flex items-center bg-void-bg-2 rounded shadow-md border border-void-border-2 [&>*:first-child]:pl-3 [&>*:last-child]:pr-3 [&>*]:px-3 [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
+
+				{/* Diff Navigation Group */}
+				<div className="flex items-center py-0.5">
+					<button
+						className="cursor-pointer"
+						disabled={upDownDisabled}
+						onClick={() => commandBarService.goToDiffIdx(prevDiffIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToDiffIdx(prevDiffIdx);
+							}
+						}}
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`${upKeybindLabel ? `${upKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
+					>
+						<MoveUp className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+					<span className={`text-xs whitespace-nowrap px-1 ${!isADiffInThisFile ? 'opacity-70' : ''}`}>
+						{isADiffInThisFile
+							? `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
+							: streamState === 'streaming'
+								? 'No changes yet'
+								: 'No changes'
+						}
+
+					</span>
+					<button
+						className="cursor-pointer"
+						disabled={upDownDisabled}
+						onClick={() => commandBarService.goToDiffIdx(nextDiffIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToDiffIdx(nextDiffIdx);
+							}
+						}}
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`${downKeybindLabel ? `${downKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
+					>
+						<MoveDown className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+				</div>
+
+
+
+				{/* File Navigation Group */}
+				<div className="flex items-center py-0.5">
+					<button
+						className="cursor-pointer"
+						disabled={leftRightDisabled}
+						onClick={() => commandBarService.goToURIIdx(prevURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToURIIdx(prevURIIdx);
+							}
+						}}
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`${leftKeybindLabel ? `${leftKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
+					>
+						<MoveLeft className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+					<span className="text-xs whitespace-nowrap px-1 mx-0.5">
+						{currFileIdx !== null
+							? `File ${currFileIdx + 1} of ${sortedCommandBarURIs.length}`
+							: `${sortedCommandBarURIs.length} file${sortedCommandBarURIs.length === 1 ? '' : 's'}`
+						}
+					</span>
+					<button
+						className="cursor-pointer"
+						disabled={leftRightDisabled}
+						onClick={() => commandBarService.goToURIIdx(nextURIIdx)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								commandBarService.goToURIIdx(nextURIIdx);
+							}
+						}}
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`${rightKeybindLabel ? `${rightKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
+					>
+						<MoveRight className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
+					</button>
+				</div>
+
+
+				{/* Accept/Reject buttons - only shown when appropriate */}
+				{showAcceptRejectAll && (
+					<div className='flex self-stretch gap-0 !px-0 !py-0'>
+						<AcceptAllButtonWrapper
+							// text={`Accept File${acceptFileKeybindLabel ? ` ${acceptFileKeybindLabel}` : ''}`}
+							text={`Accept File`}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content={acceptFileKeybindLabel}
+							data-tooltip-delay-show={500}
+							onClick={onAcceptFile}
+						/>
+						<RejectAllButtonWrapper
+							// text={`Reject File${rejectFileKeybindLabel ? ` ${rejectFileKeybindLabel}` : ''}`}
+							text={`Reject File`}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-content={rejectFileKeybindLabel}
+							data-tooltip-delay-show={500}
+							onClick={onRejectFile}
+						/>
+					</div>
+				)}
+				{/* Triple colon menu button */}
+				{showAcceptRejectAll && <div className='!px-0 !py-0 self-stretch flex justify-center items-center'>
+					<div
+						className="cursor-pointer px-1 self-stretch flex justify-center items-center"
+						onClick={() => setShowAcceptRejectAllButtons(!showAcceptRejectAllButtons)}
+					>
+						<EllipsisVertical
+							className="size-3"
+						/>
+					</div>
+				</div>}
 			</div>
 		</div>
-	</div>
-
-	return <div className={`flex flex-col items-center gap-y-2 pointer-events-auto`}>
-		{showAcceptRejectAll && acceptRejectAllButtons}
-		{leftRightUpDownButtons}
-
-	</div>
+	)
 }
+
+
+
+

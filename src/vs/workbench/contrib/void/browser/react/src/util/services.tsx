@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
-import { VoidSidebarState } from '../../../sidebarStateService.js'
 import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
@@ -23,7 +22,6 @@ import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js'
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
 
-import { ISidebarStateService } from '../../../sidebarStateService.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'
@@ -58,9 +56,6 @@ import { ISearchService } from '../../../../../../services/search/common/search.
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
 
-let sidebarState: VoidSidebarState
-const sidebarStateListeners: Set<(s: VoidSidebarState) => void> = new Set()
-
 let chatThreadsState: ThreadsState
 const chatThreadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 
@@ -91,7 +86,6 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	_registerAccessor(accessor)
 
 	const stateServices = {
-		sidebarStateService: accessor.get(ISidebarStateService),
 		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(IVoidSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
@@ -101,15 +95,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		modelService: accessor.get(IModelService),
 	}
 
-	const { sidebarStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService } = stateServices
+	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService } = stateServices
 
-	sidebarState = sidebarStateService.state
-	disposables.push(
-		sidebarStateService.onDidChangeState(() => {
-			sidebarState = sidebarStateService.state
-			sidebarStateListeners.forEach(l => l(sidebarState))
-		})
-	)
+
+
 
 	chatThreadsState = chatThreadsStateService.state
 	disposables.push(
@@ -193,7 +182,6 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IEditCodeService: accessor.get(IEditCodeService),
-		ISidebarStateService: accessor.get(ISidebarStateService),
 		IChatThreadService: accessor.get(IChatThreadService),
 
 		IInstantiationService: accessor.get(IInstantiationService),
@@ -249,16 +237,6 @@ export const useAccessor = () => {
 
 
 // -- state of services --
-
-export const useSidebarState = () => {
-	const [s, ss] = useState(sidebarState)
-	useEffect(() => {
-		ss(sidebarState)
-		sidebarStateListeners.add(ss)
-		return () => { sidebarStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
 
 export const useSettingsState = () => {
 	const [s, ss] = useState(settingsState)

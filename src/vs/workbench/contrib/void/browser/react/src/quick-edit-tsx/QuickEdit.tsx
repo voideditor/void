@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useEffect, useState } from 'react'
-import { useIsDark, useSidebarState } from '../util/services.js'
+import { useIsDark } from '../util/services.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { QuickEditChat } from './QuickEditChat.js'
 import { QuickEditPropsType } from '../../../quickEditActions.js'

@@ -3,12 +3,13 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { EndOfLinePreference } from '../../../../../editor/common/model.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IDirectoryStrService } from '../directoryStrService.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
 import { approvalTypeOfToolName, ToolCallParams, ToolResultType } from '../toolsServiceTypes.js';
-import { IVoidModelService } from '../voidModelService.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
 // Triple backtick wrapper used throughout the prompts for code blocks
@@ -524,40 +525,66 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 // 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', persistentTerminalIDs: [], directoryStr: 'lol', }))
 // }
 
+const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: number): Promise<{
+	val: string,
+	truncated: boolean,
+	fullFileLen: number,
+} | {
+	val: null,
+	truncated?: undefined
+	fullFileLen?: undefined,
+}> => {
+	try {
+		const fileContent = await fileService.readFile(uri)
+		const val = fileContent.value.toString()
+		if (val.length > fileSizeLimit) return { val: val.substring(0, fileSizeLimit), truncated: true, fullFileLen: val.length }
+		return { val, truncated: false, fullFileLen: val.length }
+	}
+	catch (e) {
+		return { val: null }
+	}
+}
+
+
+
+
+
+
+
 
 export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
-	opts: { type: 'references' } | { type: 'fullCode', voidModelService: IVoidModelService }
+	opts: { directoryStrService: IDirectoryStrService, fileService: IFileService }
 ) => {
 
 	const lineNumAddition = (range: [number, number]) => ` (lines ${range[0]}:${range[1]})`
 	let selnsStrs: string[] = []
-	if (opts.type === 'references') {
-		selnsStrs = currSelns?.map((s) => {
-			if (s.type === 'File') return `${s.uri.fsPath}`
-			if (s.type === 'CodeSelection') return `${s.uri.fsPath}${lineNumAddition(s.range)}`
-			if (s.type === 'Folder') return `${s.uri.fsPath}/`
-			return ''
-		}) ?? []
-	}
-	if (opts.type === 'fullCode') {
-		selnsStrs = await Promise.all(currSelns?.map(async (s) => {
-			if (s.type === 'File' || s.type === 'CodeSelection') {
-				const voidModelService = opts.voidModelService
-				const { model } = await voidModelService.getModelSafe(s.uri)
-				if (!model) return ''
-				const val = model.getValue(EndOfLinePreference.LF)
+	selnsStrs = await Promise.all(currSelns?.map(async (s) => {
 
-				const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
-				const str = `${s.uri.fsPath}${lineNumAdd}\n${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+		if (s.type === 'File' || s.type === 'CodeSelection') {
+			const { val } = await readFile(opts.fileService, s.uri, 2_000_000)
+			const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
+			const content = val === null ? 'null' : `${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+			const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`
+			return str
+		}
+		else if (s.type === 'Folder') {
+			const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)
+			const folderStructure = `${s.uri.fsPath} folder structure:${tripleTick[0]}\n${dirStr}\n${tripleTick[1]}`
+
+			const uris = await opts.directoryStrService.getAllURIsInDirectory(s.uri, { maxResults: 1_000 })
+			const strOfFiles = await Promise.all(uris.map(async uri => {
+				const { val, truncated } = await readFile(opts.fileService, uri, 100_000)
+				const truncationStr = truncated ? `\n... file truncated ...` : ''
+				const content = val === null ? 'null' : `${tripleTick[0]}\n${val}${truncationStr}\n${tripleTick[1]}`
+				const str = `${uri.fsPath}:\n${content}`
 				return str
-			}
-			if (s.type === 'Folder') {
-				// TODO
-				return ''
-			}
+			}))
+			const contentStr = [folderStructure, ...strOfFiles].join('\n\n')
+			return contentStr
+		}
+		else
 			return ''
-		}) ?? [])
-	}
+	}) ?? [])
 
 	const selnsStr = selnsStrs.join('\n') ?? ''
 	let str = ''

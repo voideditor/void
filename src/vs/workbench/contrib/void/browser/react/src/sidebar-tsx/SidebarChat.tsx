@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useSidebarState, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -14,7 +14,7 @@ import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
-import { OldSidebarThreadSelector, PastThreadsList } from './SidebarThreadSelector.js';
+import { PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
@@ -950,7 +950,6 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
-	const sidebarStateService = accessor.get('ISidebarStateService')
 
 	// global state
 	let isBeingEdited = false
@@ -1046,7 +1045,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
-			sidebarStateService.fireFocusChat()
+			await chatThreadsService.focusCurrentChat()
 			requestAnimationFrame(() => _scrollToBottom?.())
 		}
 
@@ -2724,18 +2723,6 @@ export const SidebarChat = () => {
 
 	const settingsState = useSettingsState()
 	// ----- HIGHER STATE -----
-	// sidebar state
-	const sidebarStateService = accessor.get('ISidebarStateService')
-	useEffect(() => {
-		const disposables: IDisposable[] = []
-		disposables.push(
-			sidebarStateService.onDidFocusChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.focus() }),
-			sidebarStateService.onDidBlurChat(() => { !chatThreadsService.isCurrentlyFocusingMessage() && textAreaRef.current?.blur() })
-		)
-		return () => disposables.forEach(d => d.dispose())
-	}, [sidebarStateService, textAreaRef])
-
-	const { isHistoryOpen } = useSidebarState()
 
 	// threads state
 	const chatThreadsState = useChatThreadsState()
@@ -2794,15 +2781,23 @@ export const SidebarChat = () => {
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(VOID_CTRL_L_ACTION_ID)?.getLabel()
 
-	// scroll to top on thread switch
-	useEffect(() => {
-		if (isHistoryOpen)
-			scrollContainerRef.current?.scrollTo({ top: 0, left: 0 })
-	}, [isHistoryOpen, currentThread.id])
-
-
 	const threadId = currentThread.id
 	const currCheckpointIdx = chatThreadsState.allThreads[threadId]?.state?.currCheckpointIdx ?? undefined  // if not exist, treat like checkpoint is last message (infinity)
+
+
+
+	// resolve mount info
+	const isResolved = chatThreadsState.allThreads[threadId]?.state.mountedInfo?.mountedIsResolvedRef.current
+	useEffect(() => {
+		if (isResolved) return
+		chatThreadsState.allThreads[threadId]?.state.mountedInfo?._whenMountedResolver?.({
+			textAreaRef: textAreaRef,
+			scrollToBottom: () => scrollToBottom(scrollContainerRef),
+		})
+	}, [chatThreadsState, threadId, textAreaRef, scrollContainerRef, isResolved])
+
+
+
 
 	const previousMessagesHTML = useMemo(() => {
 		// const lastMessageIdx = previousMessages.findLastIndex(v => v.role !== 'checkpoint')
@@ -2973,7 +2968,7 @@ export const SidebarChat = () => {
 			{landingPageInput}
 		</ErrorBoundary>
 
-			{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
+		{Object.keys(chatThreadsState.allThreads).length > 1 ? // show if there are threads
 			<ErrorBoundary>
 				<div className='pt-8 mb-2 text-void-fg-3 text-root select-none pointer-events-none'>Previous Threads</div>
 				<PastThreadsList />

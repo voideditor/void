@@ -383,8 +383,21 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		// Focus the textarea first
 		textarea.focus();
 
-		// Insert the @ to mention text in the editor (we decided not to do this for now)
-		// document.execCommand('insertText', false, text + ' '); // add space after too
+		// delete the @ and set the cursor position
+		// Get cursor position
+		const startPos = textarea.selectionStart;
+		const endPos = textarea.selectionEnd;
+
+		// Get the text before the cursor, excluding the @ symbol that triggered the menu
+		const textBeforeCursor = textarea.value.substring(0, startPos - 1);
+		const textAfterCursor = textarea.value.substring(endPos);
+
+		// Replace the text including the @ symbol with the selected option
+		textarea.value = textBeforeCursor + textAfterCursor;
+
+		// Set cursor position after the inserted text
+		const newCursorPos = textBeforeCursor.length;
+		textarea.setSelectionRange(newCursorPos, newCursorPos);
 
 		// React's onChange relies on a SyntheticEvent system
 		// The best way to ensure it runs is to call callbacks directly

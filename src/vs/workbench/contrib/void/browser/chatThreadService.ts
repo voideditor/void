@@ -100,6 +100,13 @@ const defaultMessageState: UserMessageState = {
 
 // a 'thread' means a chat message history
 
+type WhenMounted = {
+	textAreaRef: { current: HTMLTextAreaElement | null }; // the textarea that this thread has, gets set in SidebarChat
+	scrollToBottom: () => void;
+}
+
+
+
 export type ThreadType = {
 	id: string; // store the id here too
 	createdAt: string; // ISO string
@@ -120,6 +127,15 @@ export type ThreadType = {
 				[codespanName: string]: CodespanLocationLink
 			}
 		}
+
+
+		mountedInfo?: {
+			whenMounted: Promise<WhenMounted>
+			_whenMountedResolver: (res: WhenMounted) => void
+			mountedIsResolvedRef: { current: boolean };
+		}
+
+
 	};
 }
 
@@ -267,6 +283,9 @@ export interface IChatThreadService {
 
 	// jump to history
 	jumpToCheckpointBeforeMessageIdx(opts: { threadId: string, messageIdx: number, jumpToUserModified: boolean }): void;
+
+	focusCurrentChat: () => Promise<void>
+	blurCurrentChat: () => Promise<void>
 }
 
 export const IChatThreadService = createDecorator<IChatThreadService>('voidChatThreadService');
@@ -333,6 +352,29 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	}
 
+	async focusCurrentChat() {
+		const threadId = this.state.currentThreadId
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		console.log('awaiting')
+		const s = await thread.state.mountedInfo?.whenMounted
+		console.log('got!', s)
+		if (!this.isCurrentlyFocusingMessage()) {
+			console.log('running focus!')
+			s?.textAreaRef.current?.focus()
+		}
+	}
+	async blurCurrentChat() {
+		const threadId = this.state.currentThreadId
+		const thread = this.state.allThreads[threadId]
+		if (!thread) return
+		const s = await thread.state.mountedInfo?.whenMounted
+		if (!this.isCurrentlyFocusingMessage()) {
+			s?.textAreaRef.current?.blur()
+		}
+	}
+
+
 
 	dangerousSetState = (newState: ThreadsState) => {
 		this.state = newState
@@ -377,7 +419,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 	// this should be the only place this.state = ... appears besides constructor
-	private _setState(state: Partial<ThreadsState>, affectsCurrent: boolean) {
+	private _setState(state: Partial<ThreadsState>, doNotRefreshMountInfo?: boolean) {
 		const newState = {
 			...this.state,
 			...state
@@ -385,8 +427,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		this.state = newState
 
-		if (affectsCurrent)
-			this._onDidChangeCurrentThread.fire()
+		this._onDidChangeCurrentThread.fire()
 
 
 		// if we just switched to a thread, update its current stream state if it's not streaming to possibly streaming
@@ -407,6 +448,27 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 
 		}
+
+
+		// if we did not just set the state to true, set mount info
+		if (doNotRefreshMountInfo) return
+
+		let whenMountedResolver: (w: WhenMounted) => void
+		const whenMountedPromise = new Promise<WhenMounted>((res) => whenMountedResolver = res)
+
+		this._setThreadState(threadId, {
+			mountedInfo: {
+				whenMounted: whenMountedPromise,
+				mountedIsResolvedRef: { current: false },
+				_whenMountedResolver: (w: WhenMounted) => {
+					whenMountedResolver(w)
+					const mountInfo = this.state.allThreads[threadId]?.state.mountedInfo
+					if (mountInfo) mountInfo.mountedIsResolvedRef.current = true
+				},
+			}
+		}, true) // do not trigger an update
+
+
 
 	}
 
@@ -724,8 +786,10 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 				this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: '', reasoningSoFar: '', toolCallSoFar: null }, interrupt: Promise.resolve(() => this._llmMessageService.abort(llmCancelToken)) })
 				const llmRes = await messageIsDonePromise // wait for message to complete
+
+				// if something else started running in the meantime
 				if (this.streamState[threadId]?.isRunning !== 'LLM') {
-					console.log('Unexpected chat agent state when', this.streamState[threadId]?.isRunning)
+					// console.log('Chat thread interrupted by a newer chat thread', this.streamState[threadId]?.isRunning)
 					return
 				}
 
@@ -823,7 +887,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 		}
 		this._storeAllThreads(newThreads)
-		this._setState({ allThreads: newThreads }, true) // the current thread just changed (it had a message added to it)
+		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 
 
@@ -1091,7 +1155,10 @@ We only need to do it for files that were edited since `from`, ie files between 
 						class: undefined,
 						run: () => {
 							this.switchToThread(threadId)
-							// TODO!!! scroll to bottom
+							// scroll to bottom
+							this.state.allThreads[threadId]?.state.mountedInfo?.whenMounted.then(m => {
+								m.scrollToBottom()
+							})
 						}
 					}]
 				},
@@ -1142,6 +1209,11 @@ We only need to do it for files that were edited since `from`, ie files between 
 			this._runChatAgent({ threadId, ...this._currentModelSelectionProps(), }),
 			threadId,
 		)
+
+		// scroll to bottom
+		this.state.allThreads[threadId]?.state.mountedInfo?.whenMounted.then(m => {
+			m.scrollToBottom()
+		})
 	}
 
 
@@ -1164,7 +1236,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 				}
 			};
 			this._storeAllThreads(newThreads);
-			this._setState({ allThreads: newThreads }, true);
+			this._setState({ allThreads: newThreads });
 		}
 
 		// Now call the original method to add the user message and stream the response
@@ -1194,7 +1266,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 					messages: slicedMessages
 				}
 			}
-		}, true)
+		})
 
 		// re-add the message and stream it
 		this._addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId })
@@ -1467,7 +1539,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 				}
 			}
-		}, true)
+		})
 	}
 
 
@@ -1498,7 +1570,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 	}
 
 	switchToThread(threadId: string) {
-		this._setState({ currentThreadId: threadId }, true)
+		this._setState({ currentThreadId: threadId })
 	}
 
 
@@ -1521,7 +1593,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			[newThread.id]: newThread
 		}
 		this._storeAllThreads(newThreads)
-		this._setState({ allThreads: newThreads, currentThreadId: newThread.id }, true)
+		this._setState({ allThreads: newThreads, currentThreadId: newThread.id })
 	}
 
 
@@ -1534,7 +1606,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 		// store the updated threads
 		this._storeAllThreads(newThreads);
-		this._setState({ ...this.state, allThreads: newThreads }, true)
+		this._setState({ ...this.state, allThreads: newThreads })
 	}
 
 	duplicateThread(threadId: string) {
@@ -1550,7 +1622,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			[newThread.id]: newThread,
 		}
 		this._storeAllThreads(newThreads)
-		this._setState({ allThreads: newThreads }, true)
+		this._setState({ allThreads: newThreads })
 	}
 
 
@@ -1571,7 +1643,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			}
 		}
 		this._storeAllThreads(newThreads)
-		this._setState({ allThreads: newThreads }, true) // the current thread just changed (it had a message added to it)
+		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 
 	// sets the currently selected message (must be undefined if no message is selected)
@@ -1592,7 +1664,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 					}
 				}
 			}
-		}, true)
+		})
 
 		// // when change focused message idx, jump - do not jump back when click edit, too confusing.
 		// if (messageIdx !== undefined)
@@ -1680,12 +1752,12 @@ We only need to do it for files that were edited since `from`, ie files between 
 					)
 				}
 			}
-		}, true)
+		})
 
 	}
 
 	// set thread.state
-	private _setThreadState(threadId: string, state: Partial<ThreadType['state']>): void {
+	private _setThreadState(threadId: string, state: Partial<ThreadType['state']>, doNotRefreshMountInfo?: boolean): void {
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
 
@@ -1700,7 +1772,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 					}
 				}
 			}
-		}, true)
+		}, doNotRefreshMountInfo)
 
 	}
 

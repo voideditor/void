@@ -112,50 +112,13 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			const s = commandBarService.stateOfURI[uri.fsPath]
 			if (!s) return
 			const { diffIdx } = s
-			goToDiffIdx(diffIdx ?? 0)
+			commandBarService.goToDiffIdx(diffIdx ?? 0)
 		}, 50)
 	}, [uri, commandBarService])
 
 	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
 
-	const getNextDiffIdx = (step: 1 | -1) => {
-		// check undefined
-		if (!uri) return null
-		const s = commandBarState[uri.fsPath]
-		if (!s) return null
-		const { diffIdx, sortedDiffIds } = s
-		// get next idx
-		const nextDiffIdx = stepIdx(diffIdx, sortedDiffIds.length, step)
-		return nextDiffIdx
-	}
-	const goToDiffIdx = (idx: number | null) => {
-		if (idx === null) return
-		// check undefined
-		if (!uri) return
-		const s = commandBarState[uri.fsPath]
-		if (!s) return
-		const { sortedDiffIds } = s
-		// reveal
-		const diffid = sortedDiffIds[idx]
-		if (diffid === undefined) return
-		const diff = editCodeService.diffOfId[diffid]
-		if (!diff) return
-		editor.revealLineNearTop(diff.startLine - 1, ScrollType.Immediate)
-		commandBarService.setDiffIdx(uri, idx)
-	}
-	const getNextUriIdx = (step: 1 | -1) => {
-		return stepIdx(uriIdxInStepper, sortedCommandBarURIs.length, step)
-	}
-	const goToURIIdx = async (idx: number | null) => {
-		if (idx === null) return
-		const nextURI = sortedCommandBarURIs[idx]
-		editCodeService.diffAreasOfURI
-		const { model } = await voidModelService.getModelSafe(nextURI)
-		if (model) {
-			// switch to the URI
-			editorService.openCodeEditor({ resource: model.uri, options: { revealIfVisible: true } }, editor)
-		}
-	}
+	// Using service methods directly
 
 	const currDiffIdx = uri ? commandBarState[uri.fsPath]?.diffIdx ?? null : null
 	const sortedDiffIds = uri ? commandBarState[uri.fsPath]?.sortedDiffIds ?? [] : []
@@ -168,10 +131,10 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const streamState = uri ? commandBarService.getStreamState(uri) : null
 	const showAcceptRejectAll = streamState === 'idle-has-changes'
 
-	const nextDiffIdx = getNextDiffIdx(1)
-	const prevDiffIdx = getNextDiffIdx(-1)
-	const nextURIIdx = getNextUriIdx(1)
-	const prevURIIdx = getNextUriIdx(-1)
+	const nextDiffIdx = commandBarService.getNextDiffIdx(1)
+	const prevDiffIdx = commandBarService.getNextDiffIdx(-1)
+	const nextURIIdx = commandBarService.getNextUriIdx(1)
+	const prevURIIdx = commandBarService.getNextUriIdx(-1)
 
 	const upDownDisabled = prevDiffIdx === null || nextDiffIdx === null
 	const leftRightDisabled = prevURIIdx === null || nextURIIdx === null
@@ -188,6 +151,18 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		metricsService.capture('Reject All', {})
 	}
 
+	const onAcceptAll = () => {
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' });
+		metricsService.capture('Accept File', {})
+		setShowAcceptRejectAllButtons(false);
+	}
+
+	const onRejectAll = () => {
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' });
+		metricsService.capture('Reject File', {})
+		setShowAcceptRejectAllButtons(false);
+	}
+
 	if (!isADiffZoneInAnyFile) return null
 
 	return (
@@ -201,17 +176,11 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 						<div className="flex items-center [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
 							<AcceptAllButtonWrapper
 								text="Accept All"
-								onClick={() => {
-									onAcceptFile();
-									setShowAcceptRejectAllButtons(false);
-								}}
+								onClick={onAcceptAll}
 							/>
 							<RejectAllButtonWrapper
 								text="Reject All"
-								onClick={() => {
-									onRejectFile();
-									setShowAcceptRejectAllButtons(false);
-								}}
+								onClick={onRejectAll}
 							/>
 						</div>
 					</div>
@@ -221,22 +190,22 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 			<div className="flex items-center bg-void-bg-2 rounded shadow-md border border-void-border-2 [&>*:first-child]:pl-3 [&>*:last-child]:pr-3 [&>*]:px-3 [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
 
 				{/* Diff Navigation Group */}
-				<div className="flex items-center">
+				<div className="flex items-center py-0.5">
 					<button
 						className="cursor-pointer"
 						disabled={upDownDisabled}
-						onClick={() => goToDiffIdx(prevDiffIdx)}
+						onClick={() => commandBarService.goToDiffIdx(prevDiffIdx)}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								goToDiffIdx(prevDiffIdx);
+								commandBarService.goToDiffIdx(prevDiffIdx);
 							}
 						}}
 						title="Previous diff"
 					>
 						<MoveUp className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
 					</button>
-					<span className="text-xs whitespace-nowrap px-1">
+					<span className={`text-xs whitespace-nowrap px-1 ${!isADiffInThisFile ? 'opacity-70' : ''}`}>
 						{isADiffInThisFile
 							? `Diff ${(currDiffIdx ?? 0) + 1} of ${sortedDiffIds.length}`
 							: streamState === 'streaming'
@@ -248,11 +217,11 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					<button
 						className="cursor-pointer"
 						disabled={upDownDisabled}
-						onClick={() => goToDiffIdx(nextDiffIdx)}
+						onClick={() => commandBarService.goToDiffIdx(nextDiffIdx)}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								goToDiffIdx(nextDiffIdx);
+								commandBarService.goToDiffIdx(nextDiffIdx);
 							}
 						}}
 						title="Next diff"
@@ -264,15 +233,15 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 
 
 				{/* File Navigation Group */}
-				<div className="flex items-center">
+				<div className="flex items-center py-0.5">
 					<button
 						className="cursor-pointer"
 						disabled={leftRightDisabled}
-						onClick={() => goToURIIdx(prevURIIdx)}
+						onClick={() => commandBarService.goToURIIdx(prevURIIdx)}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								goToURIIdx(prevURIIdx);
+								commandBarService.goToURIIdx(prevURIIdx);
 							}
 						}}
 						title="Previous file"
@@ -288,11 +257,11 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					<button
 						className="cursor-pointer"
 						disabled={leftRightDisabled}
-						onClick={() => goToURIIdx(nextURIIdx)}
+						onClick={() => commandBarService.goToURIIdx(nextURIIdx)}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								goToURIIdx(nextURIIdx);
+								commandBarService.goToURIIdx(nextURIIdx);
 							}
 						}}
 						title="Next file"
@@ -316,13 +285,15 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					</div>
 				)}
 				{/* Triple colon menu button */}
-				{showAcceptRejectAll && <div className='!px-1 !py-0 flex justify-center items-center'>
-
-					<EllipsisVertical
-						className="cursor-pointer size-3"
+				{showAcceptRejectAll && <div className='!px-0 !py-0 self-stretch flex justify-center items-center'>
+					<div
+						className="cursor-pointer px-1 self-stretch flex justify-center items-center"
 						onClick={() => setShowAcceptRejectAllButtons(!showAcceptRejectAllButtons)}
-					/>
-
+					>
+						<EllipsisVertical
+							className="size-3"
+						/>
+					</div>
 				</div>}
 			</div>
 		</div>

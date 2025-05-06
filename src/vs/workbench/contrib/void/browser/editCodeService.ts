@@ -2259,7 +2259,6 @@ const processRawKeybindingText = (keybindingStr: string) => {
 	return keybindingStr
 		.replace(/Enter/g, '↵') // ⏎
 		.replace(/Backspace/g, '⌫')
-
 }
 
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {

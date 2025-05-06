@@ -132,6 +132,9 @@ registerAction2(class extends Action2 {
 			state: { wasAddedAsCurrentFile: false }
 		})
 
+		await chatThreadService.focusCurrentChat()
+
+
 	}
 })
 

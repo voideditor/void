@@ -19,13 +19,15 @@ import { ITextModel } from '../../../../editor/common/model.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
+import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID, VOID_GOTO_NEXT_DIFF_ACTION_ID, VOID_GOTO_PREV_DIFF_ACTION_ID, VOID_GOTO_NEXT_URI_ACTION_ID, VOID_GOTO_PREV_URI_ACTION_ID, VOID_ACCEPT_FILE_ACTION_ID, VOID_REJECT_FILE_ACTION_ID, VOID_ACCEPT_ALL_DIFFS_ACTION_ID, VOID_REJECT_ALL_DIFFS_ACTION_ID } from './actionIDs.js';
 import { localize2 } from '../../../../nls.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { KeyMod } from '../../../../editor/common/services/editorBaseApi.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
+import { ScrollType } from '../../../../editor/common/editorCommon.js';
+import { IVoidModelService } from '../common/voidModelService.js';
 
 
 
@@ -40,6 +42,11 @@ export interface IVoidCommandBarService {
 
 	getStreamState: (uri: URI) => 'streaming' | 'idle-has-changes' | 'idle-no-changes';
 	setDiffIdx(uri: URI, newIdx: number | null): void;
+
+	getNextDiffIdx(step: 1 | -1): number | null;
+	getNextUriIdx(step: 1 | -1): number | null;
+	goToDiffIdx(idx: number | null): void;
+	goToURIIdx(idx: number | null): Promise<void>;
 
 	acceptOrRejectAllFiles(opts: { behavior: 'reject' | 'accept' }): void;
 	anyFileIsStreaming(): boolean;
@@ -93,6 +100,7 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IEditCodeService private readonly _editCodeService: IEditCodeService,
+		@IVoidModelService private readonly _voidModelService: IVoidModelService,
 	) {
 		super();
 
@@ -374,6 +382,99 @@ export class VoidCommandBarService extends Disposable implements IVoidCommandBar
 		return this.sortedURIs.some(uri => this.getStreamState(uri) === 'streaming')
 	}
 
+	getNextDiffIdx(step: 1 | -1): number | null {
+		// If no active URI, return null
+		if (!this.activeURI) return null;
+
+		const state = this.stateOfURI[this.activeURI.fsPath];
+		if (!state) return null;
+
+		const { diffIdx, sortedDiffIds } = state;
+
+		// If no diffs, return null
+		if (sortedDiffIds.length === 0) return null;
+
+		// Calculate next index with wrapping
+		const nextIdx = ((diffIdx ?? 0) + step + sortedDiffIds.length) % sortedDiffIds.length;
+		return nextIdx;
+	}
+
+	getNextUriIdx(step: 1 | -1): number | null {
+		// If no URIs with changes, return null
+		if (this.sortedURIs.length === 0) return null;
+
+		// If no active URI, return first or last based on step
+		if (!this.activeURI) {
+			return step === 1 ? 0 : this.sortedURIs.length - 1;
+		}
+
+		// Find current index
+		const currentIdx = this.sortedURIs.findIndex(uri => uri.fsPath === this.activeURI?.fsPath);
+
+		// If not found, return first or last based on step
+		if (currentIdx === -1) {
+			return step === 1 ? 0 : this.sortedURIs.length - 1;
+		}
+
+		// Calculate next index with wrapping
+		const nextIdx = (currentIdx + step + this.sortedURIs.length) % this.sortedURIs.length;
+		return nextIdx;
+	}
+
+	goToDiffIdx(idx: number | null): void {
+		// If null or no active URI, return
+		if (idx === null || !this.activeURI) return;
+
+		// Get state for the current URI
+		const state = this.stateOfURI[this.activeURI.fsPath];
+		if (!state) return;
+
+		const { sortedDiffIds } = state;
+
+		// Find the diff at the specified index
+		const diffid = sortedDiffIds[idx];
+		if (diffid === undefined) return;
+
+		// Get the diff object
+		const diff = this._editCodeService.diffOfId[diffid];
+		if (!diff) return;
+
+		// Find an active editor to focus
+		const editor = this._codeEditorService.getFocusedCodeEditor() ||
+			this._codeEditorService.getActiveCodeEditor();
+		if (!editor) return;
+
+		// Reveal the line in the editor
+		editor.revealLineNearTop(diff.startLine - 1, ScrollType.Immediate);
+
+		// Update the current diff index
+		this.setDiffIdx(this.activeURI, idx);
+	}
+
+	async goToURIIdx(idx: number | null): Promise<void> {
+		// If null or no URIs, return
+		if (idx === null || this.sortedURIs.length === 0) return;
+
+		// Get the URI at the specified index
+		const nextURI = this.sortedURIs[idx];
+		if (!nextURI) return;
+
+		// Get the model for this URI
+		const { model } = await this._voidModelService.getModelSafe(nextURI);
+		if (!model) return;
+
+		// Find an editor to use
+		const editor = this._codeEditorService.getFocusedCodeEditor() ||
+			this._codeEditorService.getActiveCodeEditor();
+		if (!editor) return;
+
+		// Open the URI in the editor
+		await this._codeEditorService.openCodeEditor(
+			{ resource: model.uri, options: { revealIfVisible: true } },
+			editor
+		);
+	}
+
 	acceptOrRejectAllFiles(opts: { behavior: 'reject' | 'accept' }) {
 		const { behavior } = opts
 		// if anything is streaming, do nothing
@@ -535,5 +636,225 @@ registerAction2(class extends Action2 {
 
 		metricsService.capture('Reject Diff', { diffid, keyboard: true });
 		editCodeService.rejectDiff({ diffid: parseInt(diffid) })
+	}
+});
+
+// Go to next diff action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_GOTO_NEXT_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidGoToNextDiffAction', 'Void: Go to Next Diff'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.DownArrow,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.DownArrow },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const nextDiffIdx = commandBarService.getNextDiffIdx(1);
+		if (nextDiffIdx === null) return;
+
+		metricsService.capture('Navigate Diff', { direction: 'next', keyboard: true });
+		commandBarService.goToDiffIdx(nextDiffIdx);
+	}
+});
+
+// Go to previous diff action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_GOTO_PREV_DIFF_ACTION_ID,
+			f1: true,
+			title: localize2('voidGoToPrevDiffAction', 'Void: Go to Previous Diff'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.UpArrow,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.UpArrow },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const prevDiffIdx = commandBarService.getNextDiffIdx(-1);
+		if (prevDiffIdx === null) return;
+
+		metricsService.capture('Navigate Diff', { direction: 'previous', keyboard: true });
+		commandBarService.goToDiffIdx(prevDiffIdx);
+	}
+});
+
+// Go to next URI action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_GOTO_NEXT_URI_ACTION_ID,
+			f1: true,
+			title: localize2('voidGoToNextUriAction', 'Void: Go to Next File with Diffs'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.RightArrow,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.RightArrow },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const nextUriIdx = commandBarService.getNextUriIdx(1);
+		if (nextUriIdx === null) return;
+
+		metricsService.capture('Navigate URI', { direction: 'next', keyboard: true });
+		await commandBarService.goToURIIdx(nextUriIdx);
+	}
+});
+
+// Go to previous URI action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_GOTO_PREV_URI_ACTION_ID,
+			f1: true,
+			title: localize2('voidGoToPrevUriAction', 'Void: Go to Previous File with Diffs'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyMod.Shift | KeyCode.LeftArrow,
+				mac: { primary: KeyMod.WinCtrl | KeyMod.Alt | KeyCode.LeftArrow },
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const prevUriIdx = commandBarService.getNextUriIdx(-1);
+		if (prevUriIdx === null) return;
+
+		metricsService.capture('Navigate URI', { direction: 'previous', keyboard: true });
+		await commandBarService.goToURIIdx(prevUriIdx);
+	}
+});
+
+// Accept current file action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_ACCEPT_FILE_ACTION_ID,
+			f1: true,
+			title: localize2('voidAcceptFileAction', 'Void: Accept All Diffs in Current File'),
+			keybinding: {
+				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Enter,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const editCodeService = accessor.get(IEditCodeService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		metricsService.capture('Accept File', { keyboard: true });
+		editCodeService.acceptOrRejectAllDiffAreas({
+			uri: activeURI,
+			behavior: 'accept',
+			removeCtrlKs: true
+		});
+	}
+});
+
+// Reject current file action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_REJECT_FILE_ACTION_ID,
+			f1: true,
+			title: localize2('voidRejectFileAction', 'Void: Reject All Diffs in Current File'),
+			keybinding: {
+				primary: KeyMod.Alt | KeyMod.Shift | KeyCode.Backspace,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const editCodeService = accessor.get(IEditCodeService);
+		const metricsService = accessor.get(IMetricsService);
+
+		const activeURI = commandBarService.activeURI;
+		if (!activeURI) return;
+
+		metricsService.capture('Reject File', { keyboard: true });
+		editCodeService.acceptOrRejectAllDiffAreas({
+			uri: activeURI,
+			behavior: 'reject',
+			removeCtrlKs: true
+		});
+	}
+});
+
+// Accept all diffs in all files action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_ACCEPT_ALL_DIFFS_ACTION_ID,
+			f1: true,
+			title: localize2('voidAcceptAllDiffsAction', 'Void: Accept All Diffs in All Files'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Enter,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		if (commandBarService.anyFileIsStreaming()) return;
+
+		metricsService.capture('Accept All Files', { keyboard: true });
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'accept' });
+	}
+});
+
+// Reject all diffs in all files action
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: VOID_REJECT_ALL_DIFFS_ACTION_ID,
+			f1: true,
+			title: localize2('voidRejectAllDiffsAction', 'Void: Reject All Diffs in All Files'),
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Backspace,
+				weight: KeybindingWeight.VoidExtension,
+			}
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const commandBarService = accessor.get(IVoidCommandBarService);
+		const metricsService = accessor.get(IMetricsService);
+
+		if (commandBarService.anyFileIsStreaming()) return;
+
+		metricsService.capture('Reject All Files', { keyboard: true });
+		commandBarService.acceptOrRejectAllFiles({ behavior: 'reject' });
 	}
 });

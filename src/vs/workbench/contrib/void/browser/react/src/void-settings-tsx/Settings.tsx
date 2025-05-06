@@ -361,127 +361,9 @@ const SimpleModelSettingsDialog = ({
 };
 
 
-// shows a providerName dropdown if no `providerName` is given
-export const AddModelInputBox = ({ providerName: permanentProviderName, className, compact }: { providerName?: ProviderName, className?: string, compact?: boolean }) => {
-
-	const accessor = useAccessor()
-	const settingsStateService = accessor.get('IVoidSettingsService')
-
-	const settingsState = useSettingsState()
-
-	const [isOpen, setIsOpen] = useState(false)
-	const [showCheckmark, setShowCheckmark] = useState(false)
-
-	// const providerNameRef = useRef<ProviderName | null>(null)
-	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null)
-
-	const providerName = permanentProviderName ?? userChosenProviderName;
-
-	const [modelName, setModelName] = useState<string>('')
-	const [errorString, setErrorString] = useState('')
-
-	const numModels = providerName === null ? 0 : settingsState.settingsOfProvider[providerName].models.length
-
-	if (showCheckmark) {
-		return <AnimatedCheckmarkButton text='Added' className={`bg-[#0e70c0] text-white px-3 py-1 rounded-sm ${className}`} />
-	}
-
-	if (!isOpen) {
-		return <div
-			className={`text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer ${className}`}
-			onClick={() => setIsOpen(true)}
-
-		>
-			<div>
-				{numModels > 0 ? `Add a different model?` : `Add a model`}
-			</div>
-		</div>
-	}
 
 
-	return <>
-		<form className={`flex items-center gap-2 ${className}`}>
-
-			{/* X button
-			<button onClick={() => { setIsOpen(false) }} className='text-void-fg-4'><X className='size-4' /></button> */}
-
-			{/* provider input */}
-			<ErrorBoundary>
-				{!permanentProviderName &&
-					<VoidCustomDropdownBox
-						options={providerNames}
-						selectedOption={providerName}
-						onChangeOption={(pn) => setUserChosenProviderName(pn)}
-						getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-						getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
-						getOptionsEqual={(a, b) => a === b}
-						// className={`max-w-44 w-full border border-void-border-2 bg-void-bg-1 text-void-fg-3 text-root py-[4px] px-[6px]`}
-						className={`max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded`}
-						arrowTouchesText={false}
-					/>
-				}
-			</ErrorBoundary>
-
-
-			{/* model input */}
-			<ErrorBoundary>
-				<VoidSimpleInputBox
-					value={modelName}
-					onChangeValue={setModelName}
-					placeholder='Model Name'
-					compact={compact}
-					className={'max-w-32'}
-				/>
-			</ErrorBoundary>
-
-			{/* add button */}
-			<ErrorBoundary>
-				<AddButton
-					type='submit'
-					disabled={!modelName}
-					onClick={(e) => {
-						if (providerName === null) {
-							setErrorString('Please select a provider.')
-							return
-						}
-						if (!modelName) {
-							setErrorString('Please enter a model name.')
-							return
-						}
-						// if model already exists here
-						if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-							// setErrorString(`This model already exists under ${providerName}.`)
-							setErrorString(`This model already exists.`)
-							return
-						}
-
-						settingsStateService.addModel(providerName, modelName)
-						setShowCheckmark(true)
-						setTimeout(() => {
-							setShowCheckmark(false)
-							setIsOpen(false)
-						}, 1500)
-						setErrorString('')
-						setModelName('')
-					}}
-				/>
-			</ErrorBoundary>
-
-
-		</form>
-
-		{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap mt-1'>
-			{errorString}
-		</div>}
-
-	</>
-
-}
-
-
-
-
-export const ModelDump = () => {
+export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderName[] }) => {
 	const accessor = useAccessor()
 	const settingsStateService = accessor.get('IVoidSettingsService')
 	const settingsState = useSettingsState()
@@ -493,9 +375,20 @@ export const ModelDump = () => {
 		type: 'autodetected' | 'custom' | 'default'
 	} | null>(null);
 
+	// States for add model functionality
+	const [isAddModelOpen, setIsAddModelOpen] = useState(false);
+	const [showCheckmark, setShowCheckmark] = useState(false);
+	const [userChosenProviderName, setUserChosenProviderName] = useState<ProviderName | null>(null);
+	const [modelName, setModelName] = useState<string>('');
+	const [errorString, setErrorString] = useState('');
+
 	// a dump of all the enabled providers' models
 	const modelDump: (VoidStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
-	for (let providerName of providerNames) {
+
+	// Use either filtered providers or all providers
+	const providersToShow = filteredProviders || providerNames;
+
+	for (let providerName of providersToShow) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
 		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._didFillInProviderSettings })))
@@ -505,6 +398,34 @@ export const ModelDump = () => {
 	modelDump.sort((a, b) => {
 		return Number(b.providerEnabled) - Number(a.providerEnabled)
 	})
+
+	// Add model handler
+	const handleAddModel = () => {
+		if (!userChosenProviderName) {
+			setErrorString('Please select a provider.');
+			return;
+		}
+		if (!modelName) {
+			setErrorString('Please enter a model name.');
+			return;
+		}
+
+		// Check if model already exists
+		if (settingsState.settingsOfProvider[userChosenProviderName].models.find(m => m.modelName === modelName)) {
+			setErrorString(`This model already exists.`);
+			return;
+		}
+
+		settingsStateService.addModel(userChosenProviderName, modelName);
+		setShowCheckmark(true);
+		setTimeout(() => {
+			setShowCheckmark(false);
+			setIsAddModelOpen(false);
+			setUserChosenProviderName(null);
+			setModelName('');
+		}, 1500);
+		setErrorString('');
+	};
 
 	return <div className=''>
 		{modelDump.map((m, i) => {
@@ -583,6 +504,82 @@ export const ModelDump = () => {
 				</div>
 			</div>
 		})}
+
+		{/* Add Model Section */}
+		{showCheckmark ? (
+			<div className="mt-4">
+				<AnimatedCheckmarkButton text='Added' className="bg-[#0e70c0] text-white px-3 py-1 rounded-sm" />
+			</div>
+		) : isAddModelOpen ? (
+			<div className="mt-4">
+				<form className="flex items-center gap-2">
+
+					{/* Provider dropdown */}
+					<ErrorBoundary>
+						<VoidCustomDropdownBox
+							options={providersToShow}
+							selectedOption={userChosenProviderName}
+							onChangeOption={(pn) => setUserChosenProviderName(pn)}
+							getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+							getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : 'Provider Name'}
+							getOptionsEqual={(a, b) => a === b}
+							className="max-w-32 mx-2 w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1 py-1 px-2 rounded"
+							arrowTouchesText={false}
+						/>
+					</ErrorBoundary>
+
+					{/* Model name input */}
+					<ErrorBoundary>
+						<VoidSimpleInputBox
+							value={modelName}
+							compact={true}
+							onChangeValue={setModelName}
+							placeholder='Model Name'
+							className='max-w-32'
+						/>
+					</ErrorBoundary>
+
+					{/* Add button */}
+					<ErrorBoundary>
+						<AddButton
+							type='button'
+							disabled={!modelName || !userChosenProviderName}
+							onClick={handleAddModel}
+						/>
+					</ErrorBoundary>
+
+					{/* X button to cancel */}
+					<button
+						type="button"
+						onClick={() => {
+							setIsAddModelOpen(false);
+							setErrorString('');
+							setModelName('');
+							setUserChosenProviderName(null);
+						}}
+						className='text-void-fg-4'
+					>
+						<X className='size-4' />
+					</button>
+				</form>
+
+				{errorString && (
+					<div className='text-red-500 truncate whitespace-nowrap mt-1'>
+						{errorString}
+					</div>
+				)}
+			</div>
+		) : (
+			<div
+				className="text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer mt-4"
+				onClick={() => setIsAddModelOpen(true)}
+			>
+				<div className="flex items-center gap-1">
+					<Plus size={16} />
+					<span>Add a model</span>
+				</div>
+			</div>
+		)}
 
 		{/* Model Settings Dialog */}
 		<SimpleModelSettingsDialog
@@ -804,7 +801,7 @@ const FastApplyMethodDropdown = () => {
 }
 
 
-export const OllamaSetupInstructions = () => {
+export const OllamaSetupInstructions = ({ sayWeAutoDetect }: { sayWeAutoDetect?: boolean }) => {
 	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
 		<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
 		<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
@@ -815,7 +812,7 @@ export const OllamaSetupInstructions = () => {
 		>
 			<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
 		</div>
-		<div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>
+		{sayWeAutoDetect && <div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>}
 	</div>
 }
 
@@ -1176,17 +1173,20 @@ export const Settings = () => {
 
 				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
 
-				{/* separator */}
-				<div className='w-full h-[1px] my-4' />
+				<div className='w-full h-[1px] my-2' />
 
 				{/* Models section (formerly FeaturesTab) */}
+				<ErrorBoundary>
+					<RedoOnboardingButton />
+				</ErrorBoundary>
+
+				<div className='w-full h-[1px] my-4' />
 
 				{/* Models section (formerly FeaturesTab) */}
 				<ErrorBoundary>
 					<h2 className={`text-3xl mb-2`}>Models</h2>
 					<ModelDump />
-					<AddModelInputBox className='mt-4' compact />
-					<RedoOnboardingButton className='mt-2 mb-4' />
+					<div className='w-full h-[1px] my-4' />
 					<AutoDetectLocalModelsToggle />
 					<RefreshableModels />
 				</ErrorBoundary>
@@ -1196,7 +1196,7 @@ export const Settings = () => {
 				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 
 				<div className='opacity-80 mb-4'>
-					<OllamaSetupInstructions />
+					<OllamaSetupInstructions sayWeAutoDetect={true} />
 				</div>
 
 				<ErrorBoundary>

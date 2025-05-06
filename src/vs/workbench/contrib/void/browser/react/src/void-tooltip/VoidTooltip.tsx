@@ -112,11 +112,14 @@ export const VoidTooltip = () => {
 					</div>
 					<div style={{ marginBottom: 4 }}>
 						<span style={{ opacity: 0.8 }}>For chat:{` `}</span>
-						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>llama3.1</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>gemma3</span>
 					</div>
-					<div>
+					<div style={{ marginBottom: 4 }}>
 						<span style={{ opacity: 0.8 }}>For autocomplete:{` `}</span>
-						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>qwen2.5-coder:1.5b</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>qwen2.5-coder</span>
+					</div>
+					<div style={{ marginBottom: 0 }}>
+						<span style={{ opacity: 0.8 }}>Use the largest version of these you can!</span>
 					</div>
 				</div>
 			</Tooltip>

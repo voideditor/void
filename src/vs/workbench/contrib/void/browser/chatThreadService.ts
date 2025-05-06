@@ -356,11 +356,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const threadId = this.state.currentThreadId
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return
-		console.log('awaiting')
 		const s = await thread.state.mountedInfo?.whenMounted
-		console.log('got!', s)
 		if (!this.isCurrentlyFocusingMessage()) {
-			console.log('running focus!')
 			s?.textAreaRef.current?.focus()
 		}
 	}

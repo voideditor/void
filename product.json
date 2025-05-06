@@ -39,6 +39,7 @@
 	"linkProtectionTrustedDomains": [
 		"https://voideditor.com",
 		"https://voideditor.dev",
-		"https://github.com/voideditor/void"
+		"https://github.com/voideditor/void",
+		"https://ollama.com"
 	]
 }

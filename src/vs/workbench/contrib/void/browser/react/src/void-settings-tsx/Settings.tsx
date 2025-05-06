@@ -276,7 +276,7 @@ const SimpleModelSettingsDialog = ({
 		onClose();
 	};
 
-	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/afacd324077c2a5759d16a79ff9c075add3759e9/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144-L168`
+	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/main/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144-L168`
 
 	return (
 		<div // Backdrop

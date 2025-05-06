@@ -12,6 +12,16 @@ import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 import { Check, EllipsisVertical, Menu, MoveDown, MoveLeft, MoveRight, MoveUp, X } from 'lucide-react';
+import {
+	VOID_GOTO_NEXT_DIFF_ACTION_ID,
+	VOID_GOTO_PREV_DIFF_ACTION_ID,
+	VOID_GOTO_NEXT_URI_ACTION_ID,
+	VOID_GOTO_PREV_URI_ACTION_ID,
+	VOID_ACCEPT_FILE_ACTION_ID,
+	VOID_REJECT_FILE_ACTION_ID,
+	VOID_ACCEPT_ALL_DIFFS_ACTION_ID,
+	VOID_REJECT_ALL_DIFFS_ACTION_ID
+} from '../../../actionIDs.js';
 
 export const VoidCommandBarMain = ({ uri, editor }: VoidCommandBarProps) => {
 	const isDark = useIsDark()
@@ -86,6 +96,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 	const commandService = accessor.get('ICommandService')
 	const commandBarService = accessor.get('IVoidCommandBarService')
 	const voidModelService = accessor.get('IVoidModelService')
+	const keybindingService = accessor.get('IKeybindingService')
 	const { stateOfURI: commandBarState, sortedURIs: sortedCommandBarURIs } = useCommandBarState()
 	const [showAcceptRejectAllButtons, setShowAcceptRejectAllButtons] = useState(false)
 
@@ -163,6 +174,27 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		setShowAcceptRejectAllButtons(false);
 	}
 
+
+
+	const _upKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_PREV_DIFF_ACTION_ID);
+	const _downKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_NEXT_DIFF_ACTION_ID);
+	const _leftKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_PREV_URI_ACTION_ID);
+	const _rightKeybinding = keybindingService.lookupKeybinding(VOID_GOTO_NEXT_URI_ACTION_ID);
+	const _acceptFileKeybinding = keybindingService.lookupKeybinding(VOID_ACCEPT_FILE_ACTION_ID);
+	const _rejectFileKeybinding = keybindingService.lookupKeybinding(VOID_REJECT_FILE_ACTION_ID);
+	const _acceptAllKeybinding = keybindingService.lookupKeybinding(VOID_ACCEPT_ALL_DIFFS_ACTION_ID);
+	const _rejectAllKeybinding = keybindingService.lookupKeybinding(VOID_REJECT_ALL_DIFFS_ACTION_ID);
+
+	const upKeybindLabel = editCodeService.processRawKeybindingText(_upKeybinding?.getLabel() || '');
+	const downKeybindLabel = editCodeService.processRawKeybindingText(_downKeybinding?.getLabel() || '');
+	const leftKeybindLabel = editCodeService.processRawKeybindingText(_leftKeybinding?.getLabel() || '');
+	const rightKeybindLabel = editCodeService.processRawKeybindingText(_rightKeybinding?.getLabel() || '');
+	const acceptFileKeybindLabel = editCodeService.processRawKeybindingText(_acceptFileKeybinding?.getLabel() || '');
+	const rejectFileKeybindLabel = editCodeService.processRawKeybindingText(_rejectFileKeybinding?.getLabel() || '');
+	const acceptAllKeybindLabel = editCodeService.processRawKeybindingText(_acceptAllKeybinding?.getLabel() || '');
+	const rejectAllKeybindLabel = editCodeService.processRawKeybindingText(_rejectAllKeybinding?.getLabel() || '');
+
+
 	if (!isADiffZoneInAnyFile) return null
 
 	return (
@@ -175,11 +207,11 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 					<div className="inline-flex bg-void-bg-2 rounded shadow-md border border-void-border-2 overflow-hidden">
 						<div className="flex items-center [&>*]:border-r [&>*]:border-void-border-2 [&>*:last-child]:border-r-0">
 							<AcceptAllButtonWrapper
-								text="Accept All"
+								text={`Accept All${acceptAllKeybindLabel ? ` ${acceptAllKeybindLabel}` : ''}`}
 								onClick={onAcceptAll}
 							/>
 							<RejectAllButtonWrapper
-								text="Reject All"
+								text={`Reject All${rejectAllKeybindLabel ? ` ${rejectAllKeybindLabel}` : ''}`}
 								onClick={onRejectAll}
 							/>
 						</div>
@@ -201,7 +233,9 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 								commandBarService.goToDiffIdx(prevDiffIdx);
 							}
 						}}
-						title="Previous diff"
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`Previous diff ${upKeybindLabel ? `${upKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
 					>
 						<MoveUp className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
 					</button>
@@ -224,7 +258,9 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 								commandBarService.goToDiffIdx(nextDiffIdx);
 							}
 						}}
-						title="Next diff"
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`Next diff ${downKeybindLabel ? `${downKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
 					>
 						<MoveDown className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
 					</button>
@@ -244,7 +280,9 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 								commandBarService.goToURIIdx(prevURIIdx);
 							}
 						}}
-						title="Previous file"
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`Previous file ${leftKeybindLabel ? `${leftKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
 					>
 						<MoveLeft className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
 					</button>
@@ -264,7 +302,9 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 								commandBarService.goToURIIdx(nextURIIdx);
 							}
 						}}
-						title="Next file"
+						data-tooltip-id="void-tooltip"
+						data-tooltip-content={`Next file ${rightKeybindLabel ? `${rightKeybindLabel}` : ''}`}
+						data-tooltip-delay-show={500}
 					>
 						<MoveRight className='size-3 transition-opacity duration-200 opacity-70 hover:opacity-100' />
 					</button>
@@ -275,11 +315,11 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 				{showAcceptRejectAll && (
 					<div className='flex self-stretch gap-0 !px-0 !py-0'>
 						<AcceptAllButtonWrapper
-							text="Accept File"
+							text={`Accept File${acceptFileKeybindLabel ? ` ${acceptFileKeybindLabel}` : ''}`}
 							onClick={onAcceptFile}
 						/>
 						<RejectAllButtonWrapper
-							text="Reject File"
+							text={`Reject File${rejectFileKeybindLabel ? ` ${rejectFileKeybindLabel}` : ''}`}
 							onClick={onRejectFile}
 						/>
 					</div>

@@ -42,6 +42,8 @@ export const IEditCodeService = createDecorator<IEditCodeService>('editCodeServi
 export interface IEditCodeService {
 	readonly _serviceBrand: undefined;
 
+	processRawKeybindingText(keybindingStr: string): string;
+
 	callBeforeStartApplying(opts: CallBeforeStartApplyingOpts): Promise<void>;
 	startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null;
 	instantlyApplySearchReplaceBlocks(opts: { uri: URI; searchReplaceBlocks: string }): void;

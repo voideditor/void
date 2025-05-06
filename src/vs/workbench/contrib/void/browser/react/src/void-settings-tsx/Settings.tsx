@@ -720,8 +720,8 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 
 			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
-					<WarningBox className="mt-1" text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox className="mt-1" text={`Please add a model for ${providerTitle} (Models section).`} />
+					<WarningBox className="pl-2 mb-4" text={`Please install an Ollama model. We'll auto-detect it.`} />
+					: <WarningBox className="pl-2 mb-4" text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >

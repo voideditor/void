@@ -10,7 +10,6 @@ import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInp
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
-import { env } from '../../../../../../../base/common/process.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
@@ -19,6 +18,7 @@ import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
 import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, ModelOverrides } from '../../../../common/modelCapabilities.js';
+import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -607,7 +607,7 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 		console.log('Error: Provider setting had a non-string value.')
 		return
 	}
-	
+
 	// Create a stable callback reference using useCallback with proper dependencies
 	const handleChangeValue = useCallback((newVal: string) => {
 		voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
@@ -832,137 +832,7 @@ const RedoOnboardingButton = ({ className }: { className?: string }) => {
 }
 
 
-type TransferEditorType = 'VS Code' | 'Cursor' | 'Windsurf'
-// https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
-// https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
-type TransferFilesInfo = { from: URI, to: URI }[]
-const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEditor: TransferEditorType = 'VS Code'): TransferFilesInfo => {
-	if (os === null)
-		throw new Error(`One-click switch is not possible in this environment.`)
-	if (os === 'mac') {
-		const homeDir = env['HOME']
-		if (!homeDir) throw new Error(`$HOME not found`)
 
-		if (fromEditor === 'VS Code') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Cursor') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Windsurf') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Windsurf', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		}
-	}
-
-	if (os === 'linux') {
-		const homeDir = env['HOME']
-		if (!homeDir) throw new Error(`variable for $HOME location not found`)
-
-		if (fromEditor === 'VS Code') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Cursor') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Cursor', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.cursor', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Windsurf') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Windsurf', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.windsurf', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.void-editor', 'extensions'),
-			}]
-		}
-	}
-
-	if (os === 'windows') {
-		const appdata = env['APPDATA']
-		if (!appdata) throw new Error(`variable for %APPDATA% location not found`)
-		const userprofile = env['USERPROFILE']
-		if (!userprofile) throw new Error(`variable for %USERPROFILE% location not found`)
-
-		if (fromEditor === 'VS Code') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Cursor') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Cursor', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.cursor', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-			}]
-		} else if (fromEditor === 'Windsurf') {
-			return [{
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'settings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'settings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Windsurf', 'User', 'keybindings.json'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Void', 'User', 'keybindings.json'),
-			}, {
-				from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.windsurf', 'extensions'),
-				to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.void-editor', 'extensions'),
-			}]
-		}
-	}
-
-	throw new Error(`os '${os}' not recognized or editor type '${fromEditor}' not supported for this OS`)
-}
 
 
 
@@ -995,77 +865,18 @@ export const ToolApprovalTypeSwitch = ({ approvalType, size, desc }: { approvalT
 
 export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
 	const accessor = useAccessor()
-	const fileService = accessor.get('IFileService')
+	const extensionTransferService = accessor.get('IExtensionTransferService')
 
 	const [transferState, setTransferState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
 
-	let transferTheseFiles: TransferFilesInfo = [];
-	let editorError: string | null = null;
 
-	try {
-		transferTheseFiles = transferTheseFilesOfOS(os, fromEditor)
-	} catch (e) {
-		editorError = e + ''
-	}
-
-	if (transferTheseFiles.length === 0)
-		return <>
-			<WarningBox text={editorError ?? `Transfer from ${fromEditor} not available.`} />
-		</>
 
 	const onClick = async () => {
 		if (transferState.type !== 'done') return
 
 		setTransferState({ type: 'loading' })
 
-		let errAcc = ''
-		// Define extensions to skip when transferring
-		const extensionBlacklist = [
-			// ignore extensions
-			'ms-vscode-remote.remote-ssh',
-			'ms-vscode-remote.remote-wsl',
-			// ignore other AI copilots that could conflict with Void keybindings
-			'sourcegraph.cody-ai',
-			'continue.continue',
-			'codeium.codeium',
-			'saoudrizwan.claude-dev', // cline
-			'rooveterinaryinc.roo-cline', // roo
-		];
-		for (const { from, to } of transferTheseFiles) {
-			console.log('Transferring...', from)
-			try {
-				// find a blacklisted item
-				const isBlacklisted = extensionBlacklist.find(blacklistItem => {
-					return from.fsPath?.includes(blacklistItem)
-				})
-				if (isBlacklisted) {
-					console.log(`Skipping conflicting item (${isBlacklisted})`)
-					continue
-				}
-
-			} catch { }
-
-			console.log('transferring', from, to)
-			// Check if the source file exists before attempting to copy
-			try {
-				const exists = await fileService.exists(from)
-				if (exists) {
-					// Ensure the destination directory exists
-					const toParent = URI.joinPath(to, '..')
-					const toParentExists = await fileService.exists(toParent)
-					if (!toParentExists) {
-						await fileService.createFolder(toParent)
-					}
-					await fileService.copy(from, to, true)
-				} else {
-					console.log(`Skipping file that doesn't exist: ${from.toString()}`)
-				}
-			}
-			catch (e) {
-				console.error('Error copying file:', e)
-				errAcc += `Error copying ${from.toString()}: ${e}\n`
-			}
-		}
+		const errAcc = await extensionTransferService.transferExtensions(os, fromEditor)
 
 		// Even if some files were missing, consider it a success if no actual errors occurred
 		const hadError = !!errAcc

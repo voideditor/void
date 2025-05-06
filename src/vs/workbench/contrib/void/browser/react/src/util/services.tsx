@@ -21,6 +21,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
+import { IExtensionTransferService } from '../../../../../../../workbench/contrib/void/browser/extensionTransferService.js'
 
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
@@ -49,6 +50,7 @@ import { IToolsService } from '../../../toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
+import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -211,6 +213,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IToolsService: accessor.get(IToolsService),
 		IConvertToLLMMessageService: accessor.get(IConvertToLLMMessageService),
 		ITerminalService: accessor.get(ITerminalService),
+		IExtensionManagementService: accessor.get(IExtensionManagementService),
+		IExtensionTransferService: accessor.get(IExtensionTransferService),
 
 	} as const
 	return reactAccessor

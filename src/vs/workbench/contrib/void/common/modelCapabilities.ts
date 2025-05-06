@@ -88,8 +88,9 @@ export const defaultModelsOfProvider = {
 		'grok-3-latest',
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
-		'gemini-2.5-pro-exp-03-25',
+		'gemini-2.5-pro-preview-05-06',
 		'gemini-2.5-flash-preview-04-17',
+		'gemini-2.0-flash',
 		'gemini-2.0-flash-lite',
 	],
 	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
@@ -713,6 +714,26 @@ const xAISettings: VoidStaticProviderInfo = {
 
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	'gemini-2.5-pro-preview-05-06': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: false,
+	},
+	'gemini-2.0-flash-lite': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: false,
+	},
 	'gemini-2.5-flash-preview-04-17': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,

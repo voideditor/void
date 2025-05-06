@@ -571,7 +571,7 @@ export const chat_userMessageContent = async (instructions: string, currSelns: S
 			const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)
 			const folderStructure = `${s.uri.fsPath} folder structure:${tripleTick[0]}\n${dirStr}\n${tripleTick[1]}`
 
-			const uris = await opts.directoryStrService.getAllURIsInDirectory(s.uri, { maxResults: 1_000 })
+			const uris = await opts.directoryStrService.getAllURIsInDirectory(s.uri, { maxResults: 100 })
 			const strOfFiles = await Promise.all(uris.map(async uri => {
 				const { val, truncated } = await readFile(opts.fileService, uri, 100_000)
 				const truncationStr = truncated ? `\n... file truncated ...` : ''

@@ -276,6 +276,8 @@ const SimpleModelSettingsDialog = ({
 		onClose();
 	};
 
+	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/main/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144-L168`
+
 	return (
 		<div // Backdrop
 			className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999999]"
@@ -322,12 +324,12 @@ const SimpleModelSettingsDialog = ({
 				{/* override toggle */}
 				<div className="flex items-center gap-2 mb-4">
 					<VoidSwitch size='xs' value={overrideEnabled} onChange={setOverrideEnabled} />
-<span className="text-void-fg-3 text-sm">Override model defaults</span>
+					<span className="text-void-fg-3 text-sm">Override model defaults</span>
 				</div>
 
 				{/* Informational link */}
 				{overrideEnabled && <div className="text-sm text-void-fg-3 mb-4">
-					<ChatMarkdownRender string={"See the [sourcecode](https://github.com/voideditor/void/blob/d125d8698bf6ccd46c9367c1445e4adfe9aa2c1c/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L144C1-L168C1) for a reference on how to set this JSON (advanced)."} chatMessageLocation={undefined} />
+					<ChatMarkdownRender string={`See the [sourcecode](${sourcecodeOverridesLink}) for a reference on how to set this JSON (advanced).`} chatMessageLocation={undefined} />
 				</div>}
 
 				<textarea

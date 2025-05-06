@@ -141,13 +141,15 @@ export const defaultModelsOfProvider = {
 
 
 export type VoidStaticModelInfo = { // not stateful
-	// for some examples, see openAIModelOptions and anthropicModelOptions below.
+	// Void uses the information below to know how to handle each model.
+	// for some examples, see openAIModelOptions and anthropicModelOptions (below).
+
 	contextWindow: number; // input tokens
 	reservedOutputTokenSpace: number | null; // reserve this much space in the context window for output, defaults to 4096 if null
 
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated'; // typically you should use 'system-role'. 'separated' means the system message is passed as a separate field (e.g. anthropic)
 	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // typically you should use 'openai-style'. null means "can't call tools by default", and asks the LLM to output XML in agent mode
-	supportsFIM: boolean;
+	supportsFIM: boolean; // whether the model was specifically designed for autocomplete or "FIM" ("fill-in-middle" format)
 
 	// reasoning options
 	reasoningCapabilities: false | {
@@ -165,6 +167,7 @@ export type VoidStaticModelInfo = { // not stateful
 
 		// the only other field related to reasoning is "providerReasoningIOSettings", which varies by provider.
 	};
+
 
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---
 	cost: {
@@ -349,7 +352,7 @@ const openSourceModelOptions_assumingOAICompat = {
 
 
 // keep modelName, but use the fallback's defaults
-const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (modelName, fallbackKnownValues) => {
+const extensiveOAICompatModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallback'] = (modelName, fallbackKnownValues) => {
 
 	const lower = modelName.toLowerCase()
 
@@ -1015,32 +1018,32 @@ export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq',
 const vLLMSettings: VoidStaticProviderInfo = {
 	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
 	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveOAICompatModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }
 
 const lmStudioSettings: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
+	modelOptionsFallback: (modelName) => extensiveOAICompatModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
 	modelOptions: {}, // TODO
 }
 
 const ollamaSettings: VoidStaticProviderInfo = {
 	// reasoning: we need to filter out reasoning <think> tags manually
 	providerReasoningIOSettings: { output: { needsManualParse: true }, },
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveOAICompatModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: ollamaModelOptions,
 }
 
 const openaiCompatible: VoidStaticProviderInfo = {
 	// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName),
+	modelOptionsFallback: (modelName) => extensiveOAICompatModelOptionsFallback(modelName),
 	modelOptions: {},
 }
 
 const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
 	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptionsFallback: (modelName) => extensiveOAICompatModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: {}, // TODO
 }
 
@@ -1193,7 +1196,14 @@ const openRouterSettings: VoidStaticProviderInfo = {
 	},
 	modelOptions: openRouterModelOptions_assumingOpenAICompat,
 	// TODO!!! send a query to openrouter to get the price, etc.
-	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName),
+	modelOptionsFallback: (modelName) => {
+		const res = extensiveOAICompatModelOptionsFallback(modelName)
+		// openRouter does not support gemini-style, use openai-style instead
+		if (res?.specialToolFormat === 'gemini-style') {
+			res.specialToolFormat = 'openai-style'
+		}
+		return res
+	},
 }
 
 

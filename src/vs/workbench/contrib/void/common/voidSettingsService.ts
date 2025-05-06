@@ -304,6 +304,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 						else m.type = 'custom'
 					}
 				}
+
+				// remove when enough people have had it run (default is now {})
+				if (providerName === 'openAICompatible' && !readS.settingsOfProvider[providerName].headersJSON) {
+					readS.settingsOfProvider[providerName].headersJSON = '{}'
+				}
 			}
 		}
 

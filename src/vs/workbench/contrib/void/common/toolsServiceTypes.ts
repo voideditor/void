@@ -23,6 +23,8 @@ export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'term
 	'edit_file': 'edits',
 	'run_command': 'terminal',
 	'run_persistent_command': 'terminal',
+	'open_persistent_terminal': 'terminal',
+	'kill_persistent_terminal': 'terminal',
 }
 
 

@@ -148,10 +148,9 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 		};
 	}, [errorMessage]);
 
-	return (
-		<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto relative">
-			{/* Left Column - Fixed */}
-			<div className="md:w-1/4 w-full flex flex-col gap-6 p-6 border-r border-void-border-2 h-full overflow-y-auto">
+	return (<div className="flex flex-col w-full h-[80vh] max-w-[900px] mx-auto relative">
+		<div className="flex flex-col md:flex-row w-full gap-6">			{/* Left Column - Fixed */}
+			<div className="md:w-1/4 w-full flex flex-col gap-6 p-6 border-none border-void-border-2 h-full overflow-y-auto">
 				{/* Tab Selector */}
 				<div className="flex md:flex-col gap-2">
 					{[...tabNames, 'Cloud/Other'].map(tab => (
@@ -193,13 +192,38 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 
 			{/* Right Column */}
 			<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
-				<div className="text-4xl font-light mb-2 text-center w-full">{currentTab}</div>
-				<div className="text-sm text-void-fg-3 mb-2 text-center w-full max-w-lg">{descriptionOfTab[currentTab]}</div>
+				<div className="text-5xl mb-2 text-center w-full">Add a Provider</div>
+
+				<div className="w-full max-w-xl mt-4 mb-10">
+					<div className="text-4xl font-light my-4 w-full">{currentTab}</div>
+					<div className="text-[14px] text-void-fg-3 my-4 w-full">{descriptionOfTab[currentTab]}</div>
+				</div>
 
 				{providerNamesOfTab[currentTab].map((providerName) => (
 					<div key={providerName} className="w-full max-w-xl mb-10">
-						<div className="text-xl mb-2">Add {displayInfoOfProviderName(providerName).title}</div>
-						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
+						<div className="text-xl mb-2">
+							Add {displayInfoOfProviderName(providerName).title}
+							{providerName === 'gemini' && (
+								<span
+									data-tooltip-id="void-tooltip-provider-info"
+									data-tooltip-content="Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500. We recommend using models down the line as you run out of free credits."
+									data-tooltip-place="right"
+									className="ml-1 text-xs align-top text-blue-400"
+								>*</span>
+							)}
+							{providerName === 'openRouter' && (
+								<span
+									data-tooltip-id="void-tooltip-provider-info"
+									data-tooltip-content="OpenRouter offers 50 free messages a day, and 1000 if you deposit $10. Only applies to models labeled ':free'."
+									data-tooltip-place="right"
+									className="ml-1 text-xs align-top text-blue-400"
+								>*</span>
+							)}
+						</div>
+						<div>
+							<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
+
+						</div>
 						{providerName === 'ollama' && <OllamaSetupInstructions />}
 					</div>
 				))}
@@ -223,20 +247,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 				)}
 
 
-				{currentTab === 'Free' && <div className='opacity-80'>
 
-					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
-						<ChatMarkdownRender string={`
-Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500.
-We recommend using models down the line as you run out of free credits. More information [here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).
-`} chatMessageLocation={undefined} /></div>
-					<div className="pl-2 flex flex-col gap-y-4 text-sm text-void-fg-3 mb-4 w-full">
-						<ChatMarkdownRender string={`
-OpenRouter offers 50 free messages a day, and 1000 if you deposit $10.
-Only applies to models labeled \`:free\`. More information [here](https://openrouter.ai/docs/api-reference/limits).
-`} chatMessageLocation={undefined} /></div>
-				</div>
-				}
 				{/* Navigation buttons in right column */}
 				<div className="flex flex-col items-end w-full mt-auto pt-8">
 					{errorMessage && (
@@ -261,7 +272,7 @@ Only applies to models labeled \`:free\`. More information [here](https://openro
 				</div>
 			</div>
 		</div>
-	);
+	</div>);
 };
 // =============================================
 // 	OnboardingPage

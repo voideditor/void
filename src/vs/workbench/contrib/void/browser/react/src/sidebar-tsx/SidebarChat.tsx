@@ -7,6 +7,7 @@ import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, K
 
 
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
+import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
@@ -18,6 +19,7 @@ import { PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+import { ICommandService } from '../../../../../../../platform/commands/common/commands.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
@@ -530,6 +532,38 @@ export const getBasename = (pathStr: string, parts: number = 1) => {
 }
 
 
+
+// Open file utility function
+export const voidOpenFileFn = (
+	uri: URI,
+	accessor: ReturnType<typeof useAccessor>,
+	options?: { selection?: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }, }
+) => {
+	const commandService = accessor.get('ICommandService')
+	const editorService = accessor.get('ICodeEditorService')
+
+	const selection = options?.selection
+
+	// open the file
+	commandService.executeCommand('vscode.open', uri).then(() => {
+
+		// select the text
+		setTimeout(() => {
+			if (!selection) return;
+
+			const editor = editorService.getActiveCodeEditor()
+			if (!editor) return;
+
+			editor.setSelection(selection)
+			editor.revealRange(selection, ScrollType.Immediate)
+
+		}, 50) // needed when document was just opened and needs to initialize
+
+	})
+
+};
+
+
 export const SelectedFiles = (
 	{ type, selections, setSelections, showProspectiveSelections, messageIdx, }:
 		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined, messageIdx: number, }
@@ -641,10 +675,7 @@ export const SelectedFiles = (
 							}
 							else if (selection.type === 'File') { // open files
 
-								commandService.executeCommand('vscode.open', selection.uri, {
-									preview: true,
-									// preserveFocus: false,
-								});
+								voidOpenFileFn(selection.uri, accessor);
 
 								const wasAddedAsCurrentFile = selection.state.wasAddedAsCurrentFile
 								if (wasAddedAsCurrentFile) {
@@ -658,10 +689,7 @@ export const SelectedFiles = (
 								}
 							}
 							else if (selection.type === 'CodeSelection') {
-								commandService.executeCommand('vscode.open', selection.uri, {
-									preview: true,
-									// TODO!!! open in range
-								});
+								voidOpenFileFn(selection.uri, accessor);
 							}
 							else if (selection.type === 'Folder') {
 								// TODO!!! reveal in tree
@@ -714,6 +742,7 @@ type ToolHeaderParams = {
 	icon?: React.ReactNode;
 	title: React.ReactNode;
 	desc1: React.ReactNode;
+	desc1OnClick?: () => void;
 	desc2?: React.ReactNode;
 	isError?: boolean;
 	info?: string;
@@ -733,6 +762,7 @@ const ToolHeaderWrapper = ({
 	icon,
 	title,
 	desc1,
+	desc1OnClick,
 	desc1Info,
 	desc2,
 	numResults,
@@ -754,37 +784,51 @@ const ToolHeaderWrapper = ({
 	const isDropdown = children !== undefined // null ALLOWS dropdown
 	const isClickable = !!(isDropdown || onClick)
 
+	const isDesc1Clickable = !!desc1OnClick
+
+	const desc1HTML = <span
+		className={`text-void-fg-4 text-xs italic truncate ml-2
+			${isDesc1Clickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''}
+		`}
+		onClick={desc1OnClick}
+		{...desc1Info ? {
+			'data-tooltip-id': 'void-tooltip',
+			'data-tooltip-content': desc1Info,
+			'data-tooltip-place': 'top',
+			'data-tooltip-delay-show': 1000,
+		} : {}}
+	>{desc1}</span>
+
 	return (<div className=''>
 		<div className={`w-full border border-void-border-3 rounded px-2 py-1 bg-void-bg-3 overflow-hidden ${className}`}>
 			{/* header */}
 			<div className={`select-none flex items-center min-h-[24px]`}>
 				<div className={`flex items-center w-full gap-x-2 overflow-hidden justify-between ${isRejected ? 'line-through' : ''}`}>
 					{/* left */}
-					<div className={`
-							ml-1
+					<div // container for if desc1 is clickable
+						className='ml-1 flex items-center overflow-hidden'
+					>
+						{/* title eg "> Edited File" */}
+						<div className={`
 							flex items-center min-w-0 overflow-hidden grow
 							${isClickable ? 'cursor-pointer hover:brightness-125 transition-all duration-150' : ''}
 						`}
-						onClick={() => {
-							if (isDropdown) { setIsOpen(v => !v); }
-							if (onClick) { onClick(); }
-						}}
-					>
-						{isDropdown && (<ChevronRight
-							className={`
+							onClick={() => {
+								if (isDropdown) { setIsOpen(v => !v); }
+								if (onClick) { onClick(); }
+							}}
+						>
+							{isDropdown && (<ChevronRight
+								className={`
 								text-void-fg-3 mr-0.5 h-4 w-4 flex-shrink-0 transition-transform duration-100 ease-[cubic-bezier(0.4,0,0.2,1)]
 								${isExpanded ? 'rotate-90' : ''}
 							`}
-						/>)}
-						<span className="text-void-fg-3 flex-shrink-0">{title}</span>
-						<span className="text-void-fg-4 text-xs italic truncate ml-2"
-							{...desc1Info ? {
-								'data-tooltip-id': 'void-tooltip',
-								'data-tooltip-content': desc1Info,
-								'data-tooltip-place': 'top',
-								'data-tooltip-delay-show': 1000,
-							} : {}}
-						>{desc1}</span>
+							/>)}
+							<span className="text-void-fg-3 flex-shrink-0">{title}</span>
+
+							{!isDesc1Clickable && desc1HTML}
+						</div>
+						{isDesc1Clickable && desc1HTML}
 					</div>
 
 					{/* right */}
@@ -850,7 +894,8 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 	const icon = null
 
 	const { rawParams, params, name } = toolMessage
-	const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
+	const desc1OnClick = () => voidOpenFileFn(params.uri, accessor)
+	const componentParams: ToolHeaderParams = { title, desc1, desc1OnClick, desc1Info, isError, icon, isRejected, }
 
 	if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
 		componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
@@ -859,7 +904,7 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 				code={content}
 			/>
 		</ToolChildrenWrapper>
-		componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+		// JumpToFileButton removed in favor of FileLinkText
 	}
 	else if (toolMessage.type === 'success' || toolMessage.type === 'rejected' || toolMessage.type === 'tool_error') {
 		// add apply box
@@ -1365,12 +1410,12 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 
 
 const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined, accessor: ReturnType<typeof useAccessor>): {
-	desc1: string,
+	desc1: React.ReactNode,
 	desc1Info?: string,
 } => {
 
 	if (!_toolParams) {
-		return { desc1: '' };
+		return { desc1: '', };
 	}
 
 	const x = {
@@ -1790,7 +1835,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 				if (result.hasNextPage && params.pageNumber === 1)  // first page
 					componentParams.desc2 = `(truncated after ${Math.round(MAX_FILE_CHARS_PAGE) / 1000}k)`
 				else if (params.pageNumber > 1) // subsequent pages
@@ -1798,7 +1843,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+				// JumpToFileButton removed in favor of FileLinkText
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
@@ -1889,7 +1934,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 							name={`${child.name}${child.isDirectory ? '/' : ''}`}
 							className='w-full overflow-auto'
 							onClick={() => {
-								commandService.executeCommand('vscode.open', child.uri, { preview: true })
+								voidOpenFileFn(child.uri, accessor)
 								// commandService.executeCommand('workbench.view.explorer'); // open in explorer folders view instead
 								// explorerService.select(child.uri, true);
 							}}
@@ -1940,7 +1985,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
-							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+							onClick={() => { voidOpenFileFn(uri, accessor) }}
 						/>))}
 						{result.hasNextPage &&
 							<ListableToolItem name={'Results truncated.'} isSmall={true} className='w-full overflow-auto' />
@@ -1995,7 +2040,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 						{result.uris.map((uri, i) => (<ListableToolItem key={i}
 							name={getBasename(uri.fsPath)}
 							className='w-full overflow-auto'
-							onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+							onClick={() => { voidOpenFileFn(uri, accessor) }}
 						/>))}
 						{result.hasNextPage &&
 							<ListableToolItem name={`Results truncated.`} isSmall={true} className='w-full overflow-auto' />
@@ -2085,7 +2130,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 				if (result.lintErrors)
 					componentParams.children = <LintErrorChildren lintErrors={result.lintErrors} />
 				else
@@ -2094,7 +2139,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				if (params) componentParams.desc2 = <JumpToFileButton uri={params.uri} />
+				// JumpToFileButton removed in favor of FileLinkText
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
@@ -2126,14 +2171,14 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 			else if (toolMessage.type === 'rejected') {
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
+				if (params) { componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) } }
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
@@ -2168,14 +2213,14 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 			else if (toolMessage.type === 'rejected') {
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
-				if (params) { componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) } }
+				if (params) { componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) } }
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
 						{result}
@@ -2184,11 +2229,11 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			}
 			else if (toolMessage.type === 'running_now') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 			else if (toolMessage.type === 'tool_request') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { commandService.executeCommand('vscode.open', params.uri, { preview: true }) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
 			}
 
 			return <ToolHeaderWrapper {...componentParams} />
@@ -2558,7 +2603,7 @@ const CommandBarInChat = () => {
 
 			const fileNameHTML = <div
 				className="flex items-center gap-1.5 text-void-fg-3 hover:brightness-125 transition-all duration-200 cursor-pointer"
-				onClick={() => commandService.executeCommand('vscode.open', uri, { preview: true })}
+				onClick={() => voidOpenFileFn(uri, accessor)}
 			>
 				{/* <FileIcon size={14} className="text-void-fg-3" /> */}
 				<span className="text-void-fg-3">{basename}</span>
@@ -2683,6 +2728,9 @@ const CommandBarInChat = () => {
 
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
+
+	const accessor = useAccessor()
+
 	const uri = toolCallSoFar.rawParams.uri ? URI.file(toolCallSoFar.rawParams.uri) : undefined
 
 	const title = titleOfToolName[toolCallSoFar.name].proposed
@@ -2695,11 +2743,13 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 		<IconLoading />
 	</span>
 
+	const desc1OnClick = () => { uri && voidOpenFileFn(uri, accessor) }
+
 	// If URI has not been specified
 	return <ToolHeaderWrapper
 		title={title}
 		desc1={desc1}
-		desc2={uri && <JumpToFileButton uri={uri} />}
+		desc1OnClick={desc1OnClick}
 	>
 		<EditToolChildren
 			uri={uri}

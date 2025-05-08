@@ -10,7 +10,7 @@ import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { FileSymlink, LucideIcon, RotateCw, Terminal } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
-import { getBasename, ListableToolItem, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, ListableToolItem, voidOpenFileFn, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { PlacesType, VariantType } from 'react-tooltip'
 
 enum CopyButtonText {
@@ -109,7 +109,7 @@ export const JumpToFileButton = ({ uri, ...props }: { uri: URI | 'current' } & R
 		<IconShell1
 			Icon={FileSymlink}
 			onClick={() => {
-				commandService.executeCommand('vscode.open', uri, { preview: true })
+				voidOpenFileFn(uri, accessor)
 			}}
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Go to file' })}
 			{...props}
@@ -441,7 +441,7 @@ export const BlockCodeApplyWrapper = ({
 			name={<span className='not-italic'>{getBasename(uri.fsPath)}</span>}
 			isSmall={true}
 			showDot={false}
-			onClick={() => { commandService.executeCommand('vscode.open', uri, { preview: true }) }}
+			onClick={() => { voidOpenFileFn(uri, accessor) }}
 		/>
 		: <span>{language}</span>
 

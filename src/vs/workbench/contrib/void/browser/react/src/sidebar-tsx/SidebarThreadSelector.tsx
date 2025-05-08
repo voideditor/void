@@ -225,7 +225,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
 	// data-tooltip-place='top'
 	>
-		{/* <span>{numMessages}</span> */}
+		<span>{`(${numMessages})`}</span>
 		{formatDate(new Date(pastThread.lastModified))}
 	</span>
 
@@ -251,7 +251,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
 
-				<span className='opacity-60'>{`(${numMessages})`}</span>
 			</span>
 
 			<div className="flex items-center gap-x-1 opacity-60">

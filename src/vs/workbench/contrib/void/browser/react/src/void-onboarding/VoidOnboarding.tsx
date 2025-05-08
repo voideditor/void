@@ -194,7 +194,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 			<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
 				<div className="text-5xl mb-2 text-center w-full">Add a Provider</div>
 
-				<div className="w-full max-w-xl">
+				<div className="w-full max-w-xl mt-4 mb-10">
 					<div className="text-4xl font-light my-4 w-full">{currentTab}</div>
 					<div className="text-[14px] text-void-fg-3 my-4 w-full">{descriptionOfTab[currentTab]}</div>
 				</div>

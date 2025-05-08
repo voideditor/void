@@ -134,10 +134,10 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 
 	const onClick = () => {
-		if (!link) return;
+		if (!link || !link.selection) return;
 
 		// Use the updated voidOpenFileFn to open the file and handle selection
-		voidOpenFileFn(link.uri, accessor, { selection: link.selection, });
+		voidOpenFileFn(link.uri, accessor, [link.selection.startLineNumber, link.selection.endLineNumber]);
 	}
 
 	return <Codespan

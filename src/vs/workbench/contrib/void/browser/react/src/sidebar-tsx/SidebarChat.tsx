@@ -537,25 +537,36 @@ export const getBasename = (pathStr: string, parts: number = 1) => {
 export const voidOpenFileFn = (
 	uri: URI,
 	accessor: ReturnType<typeof useAccessor>,
-	options?: { selection?: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }, }
+	range?: [number, number]
 ) => {
 	const commandService = accessor.get('ICommandService')
 	const editorService = accessor.get('ICodeEditorService')
 
-	const selection = options?.selection
+	// Get editor selection from CodeSelection range
+	let editorSelection = undefined;
+
+	// If we have a selection, create an editor selection from the range
+	if (range) {
+		editorSelection = {
+			startLineNumber: range[0],
+			startColumn: 1,
+			endLineNumber: range[1],
+			endColumn: Number.MAX_SAFE_INTEGER,
+		};
+	}
 
 	// open the file
 	commandService.executeCommand('vscode.open', uri).then(() => {
 
 		// select the text
 		setTimeout(() => {
-			if (!selection) return;
+			if (!editorSelection) return;
 
 			const editor = editorService.getActiveCodeEditor()
 			if (!editor) return;
 
-			editor.setSelection(selection)
-			editor.revealRange(selection, ScrollType.Immediate)
+			editor.setSelection(editorSelection)
+			editor.revealRange(editorSelection, ScrollType.Immediate)
 
 		}, 50) // needed when document was just opened and needs to initialize
 
@@ -674,7 +685,6 @@ export const SelectedFiles = (
 								setSelections([...selections, selection])
 							}
 							else if (selection.type === 'File') { // open files
-
 								voidOpenFileFn(selection.uri, accessor);
 
 								const wasAddedAsCurrentFile = selection.state.wasAddedAsCurrentFile
@@ -689,7 +699,7 @@ export const SelectedFiles = (
 								}
 							}
 							else if (selection.type === 'CodeSelection') {
-								voidOpenFileFn(selection.uri, accessor);
+								voidOpenFileFn(selection.uri, accessor, selection.range);
 							}
 							else if (selection.type === 'Folder') {
 								// TODO!!! reveal in tree
@@ -1826,16 +1836,18 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
+			let range: [number, number] | undefined = undefined
 			if (toolMessage.params.startLine !== null || toolMessage.params.endLine !== null) {
 				const start = toolMessage.params.startLine === null ? `1` : `${toolMessage.params.startLine}`
 				const end = toolMessage.params.endLine === null ? `` : `${toolMessage.params.endLine}`
 				const addStr = `(${start}-${end})`
 				componentParams.desc1 += ` ${addStr}`
+				range = [params.startLine || 1, params.endLine || 1]
 			}
 
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
-				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor) }
+				componentParams.onClick = () => { voidOpenFileFn(params.uri, accessor, range) }
 				if (result.hasNextPage && params.pageNumber === 1)  // first page
 					componentParams.desc2 = `(truncated after ${Math.round(MAX_FILE_CHARS_PAGE) / 1000}k)`
 				else if (params.pageNumber > 1) // subsequent pages

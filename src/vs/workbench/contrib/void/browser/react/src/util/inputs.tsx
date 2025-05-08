@@ -186,12 +186,8 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 	const toolsService = accessor.get('IToolsService')
 
 
-	console.log('path:' + JSON.stringify(path), ' optionText: ' + optionText)
-
-
 
 	const searchForFilesOrFolders = async (t: string, searchFor: 'files' | 'folders') => {
-		console.log('AAAA', t, searchFor)
 		try {
 
 			const searchResults = (await (await toolsService.callTool.search_pathnames_only({
@@ -303,7 +299,6 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 	let generateNextOptionsAtPath: GenerateNextOptions | undefined = undefined
 
 	for (const pn of path) {
-		console.log('BBBB')
 
 		const selectedOption = nextOptionsAtPath.find(o => o.fullName.toLowerCase() === pn.toLowerCase())
 
@@ -316,12 +311,10 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 
 	if (generateNextOptionsAtPath) {
-		console.log('CCCC')
 
 		nextOptionsAtPath = await generateNextOptionsAtPath(optionText)
 	}
 	else if (path.length === 0 && optionText.trim().length > 0) { // (special case): directly search for both files and folders if optionsPath is empty and there's a search term
-		console.log('DDDD')
 		const filesResults = await searchForFilesOrFolders(optionText, 'files') || [];
 		const foldersResults = await searchForFilesOrFolders(optionText, 'folders') || [];
 		nextOptionsAtPath = [...foldersResults, ...filesResults,]
@@ -446,7 +439,6 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			else throw new Error(`Unexpected leafNodeType ${option.leafNodeType}`)
 
 			chatThreadService.addNewStagingSelection(newSelection)
-			console.log('selected', option.uri?.fsPath)
 		}
 		else {
 

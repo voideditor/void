@@ -391,11 +391,12 @@ export const EditToolButtonsHTML = ({
 	if (isDisabled) return null
 
 	if (streamState === 'idle-no-changes') {
-		return <IconShell1
-			Icon={RotateCw}
-			onClick={onClickSubmit}
-			{...tooltipPropsForApplyBlock({ tooltipName: 'Reapply' })}
-		/>
+		return null
+		// return <IconShell1
+		// 	Icon={RotateCw}
+		// 	onClick={onClickSubmit}
+		// 	{...tooltipPropsForApplyBlock({ tooltipName: 'Reapply' })}
+		// />
 	}
 
 	if (streamState === 'idle-has-changes') {

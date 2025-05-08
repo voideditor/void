@@ -113,8 +113,8 @@ const providerNamesOfTab: Record<TabName, ProviderName[]> = {
 const descriptionOfTab: Record<TabName, string> = {
 	Free: `Providers with a 100% free tier. Add as many as you'd like!`,
 	Paid: `Connect directly with any provider (bring your own key).`,
-	Local: `Add as many local providers as you'd like! Active providers should appear automatically.`,
-	'Cloud/Other': `Add as many providers as you'd like! Reach out for custom configuration requests.`,
+	Local: `Active providers should appear automatically. Add as many as you'd like! `,
+	'Cloud/Other': `Add as many as you'd like! Reach out for custom configuration requests.`,
 };
 
 
@@ -148,127 +148,123 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 		};
 	}, [errorMessage]);
 
-	return (<div className="flex flex-col w-full h-[80vh] max-w-[900px] mx-auto relative">
-		<div className="flex flex-col md:flex-row w-full gap-6">			{/* Left Column - Fixed */}
-			<div className="md:w-1/4 w-full flex flex-col gap-6 p-6 border-none border-void-border-2 h-full overflow-y-auto">
-				{/* Tab Selector */}
-				<div className="flex md:flex-col gap-2">
-					{[...tabNames, 'Cloud/Other'].map(tab => (
-						<button
-							key={tab}
-							className={`py-2 px-4 rounded-md text-left ${currentTab === tab
-								? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
-								: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'
-								} transition-all duration-200`}
-							onClick={() => {
-								setCurrentTab(tab as TabName);
-								setErrorMessage(null); // Reset error message when changing tabs
-							}}
-						>
-							{tab}
-						</button>
-					))}
-				</div>
-
-				{/* Feature Checklist */}
-				<div className="flex flex-col gap-1 mt-4 text-sm opacity-80">
-					{featureNameMap.map(({ display, featureName }) => {
-						const hasModel = settingsState.modelSelectionOfFeature[featureName] !== null;
-						return (
-							<div key={featureName} className="flex items-center gap-2">
-								{hasModel ? (
-									<Check className="w-4 h-4 text-emerald-500" />
-								) : (
-									<div className="w-3 h-3 rounded-full flex items-center justify-center">
-										<div className="w-1 h-1 rounded-full bg-white/70"></div>
-									</div>
-								)}
-								<span>{display}</span>
-							</div>
-						);
-					})}
-				</div>
+	return (<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto relative">
+		{/* Left Column */}
+		<div className="md:w-1/4 w-full flex flex-col gap-6 p-6 border-none border-void-border-2 h-full overflow-y-auto">
+			{/* Tab Selector */}
+			<div className="flex md:flex-col gap-2">
+				{[...tabNames, 'Cloud/Other'].map(tab => (
+					<button
+						key={tab}
+						className={`py-2 px-4 rounded-md text-left ${currentTab === tab
+							? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
+							: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'
+							} transition-all duration-200`}
+						onClick={() => {
+							setCurrentTab(tab as TabName);
+							setErrorMessage(null); // Reset error message when changing tabs
+						}}
+					>
+						{tab}
+					</button>
+				))}
 			</div>
 
-			{/* Right Column */}
-			<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
-				<div className="text-5xl mb-2 text-center w-full">Add a Provider</div>
-
-				<div className="w-full max-w-xl mt-4 mb-10">
-					<div className="text-4xl font-light my-4 w-full">{currentTab}</div>
-					<div className="text-[14px] text-void-fg-3 my-4 w-full">{descriptionOfTab[currentTab]}</div>
-				</div>
-
-				{providerNamesOfTab[currentTab].map((providerName) => (
-					<div key={providerName} className="w-full max-w-xl mb-10">
-						<div className="text-xl mb-2">
-							Add {displayInfoOfProviderName(providerName).title}
-							{providerName === 'gemini' && (
-								<span
-									data-tooltip-id="void-tooltip-provider-info"
-									data-tooltip-content="Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500. We recommend using models down the line as you run out of free credits."
-									data-tooltip-place="right"
-									className="ml-1 text-xs align-top text-blue-400"
-								>*</span>
+			{/* Feature Checklist */}
+			<div className="flex flex-col gap-1 mt-4 text-sm opacity-80">
+				{featureNameMap.map(({ display, featureName }) => {
+					const hasModel = settingsState.modelSelectionOfFeature[featureName] !== null;
+					return (
+						<div key={featureName} className="flex items-center gap-2">
+							{hasModel ? (
+								<Check className="w-4 h-4 text-emerald-500" />
+							) : (
+								<div className="w-3 h-3 rounded-full flex items-center justify-center">
+									<div className="w-1 h-1 rounded-full bg-white/70"></div>
+								</div>
 							)}
-							{providerName === 'openRouter' && (
-								<span
-									data-tooltip-id="void-tooltip-provider-info"
-									data-tooltip-content="OpenRouter offers 50 free messages a day, and 1000 if you deposit $10. Only applies to models labeled ':free'."
-									data-tooltip-place="right"
-									className="ml-1 text-xs align-top text-blue-400"
-								>*</span>
-							)}
+							<span>{display}</span>
 						</div>
-						<div>
-							<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
+					);
+				})}
+			</div>
+		</div>
 
-						</div>
-						{providerName === 'ollama' && <OllamaSetupInstructions />}
-					</div>
-				))}
+		{/* Right Column */}
+		<div className="flex-1 flex flex-col items-center justify-start p-6 h-full overflow-y-auto">
+			<div className="text-5xl mb-2 text-center w-full">Add a Provider</div>
 
-				{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
-					<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-2/30">
-						<div className="flex items-center gap-2 mb-4">
-							<div className="text-xl font-medium text-[#0e70c0]">Models</div>
-							<div className="h-px flex-grow bg-void-border-2/30"></div>
-						</div>
+			<div className="w-full max-w-xl mt-4 mb-10">
+				<div className="text-4xl font-light my-4 w-full">{currentTab}</div>
+				<div className="text-sm opacity-80 text-void-fg-3 my-4 w-full">{descriptionOfTab[currentTab]}</div>
+			</div>
 
-						{currentTab === 'Local' && (
-							<div className="text-sm text-void-fg-3 mb-4 bg-void-bg-3/30 p-3 rounded border-l-2 border-[#0e70c0]/70">
-								Local models should be detected automatically. You can add custom models below.
-							</div>
+			{providerNamesOfTab[currentTab].map((providerName) => (
+				<div key={providerName} className="w-full max-w-xl mb-10">
+					<div className="text-xl mb-2">
+						Add {displayInfoOfProviderName(providerName).title}
+						{providerName === 'gemini' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500. We recommend using models down the line as you run out of free credits."
+								data-tooltip-place="right"
+								className="ml-1 text-xs align-top text-blue-400"
+							>*</span>
 						)}
-
-						{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
-						{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
+						{providerName === 'openRouter' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="OpenRouter offers 50 free messages a day, and 1000 if you deposit $10. Only applies to models labeled ':free'."
+								data-tooltip-place="right"
+								className="ml-1 text-xs align-top text-blue-400"
+							>*</span>
+						)}
 					</div>
-				)}
+					<div>
+						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
 
+					</div>
+					{providerName === 'ollama' && <OllamaSetupInstructions />}
+				</div>
+			))}
 
+			{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
+				<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-4">
+					<div className="flex items-center gap-2 mb-4">
+						<div className="text-xl font-medium">Models</div>
+					</div>
 
-				{/* Navigation buttons in right column */}
-				<div className="flex flex-col items-end w-full mt-auto pt-8">
-					{errorMessage && (
-						<div className="text-amber-400 mb-2 text-sm opacity-80 transition-opacity duration-300">{errorMessage}</div>
+					{currentTab === 'Local' && (
+						<div className="text-sm opacity-80 text-void-fg-3 my-4 w-full">Local models should be detected automatically. You can add custom models below.</div>
 					)}
-					<div className="flex items-center gap-2">
-						<PreviousButton onClick={() => setPageIndex(pageIndex - 1)} />
-						<NextButton
-							onClick={() => {
-								const isDisabled = isFeatureNameDisabled('Chat', settingsState)
 
-								if (!isDisabled) {
-									setPageIndex(pageIndex + 1);
-									setErrorMessage(null);
-								} else {
-									// Show error message
-									setErrorMessage("Please set up at least one Chat model before moving on.");
-								}
-							}}
-						/>
-					</div>
+					{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
+					{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
+				</div>
+			)}
+
+
+
+			{/* Navigation buttons in right column */}
+			<div className="flex flex-col items-end w-full mt-auto pt-8">
+				{errorMessage && (
+					<div className="text-amber-400 mb-2 text-sm opacity-80 transition-opacity duration-300">{errorMessage}</div>
+				)}
+				<div className="flex items-center gap-2">
+					<PreviousButton onClick={() => setPageIndex(pageIndex - 1)} />
+					<NextButton
+						onClick={() => {
+							const isDisabled = isFeatureNameDisabled('Chat', settingsState)
+
+							if (!isDisabled) {
+								setPageIndex(pageIndex + 1);
+								setErrorMessage(null);
+							} else {
+								// Show error message
+								setErrorMessage("Please set up at least one Chat model before moving on.");
+							}
+						}}
+					/>
 				</div>
 			</div>
 		</div>

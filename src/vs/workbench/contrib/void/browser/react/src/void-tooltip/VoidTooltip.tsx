@@ -45,7 +45,7 @@ export const VoidTooltip = () => {
 		<>
 			<style>
 				{`
-				#void-tooltip, #void-tooltip-orange, #void-tooltip-green, #void-tooltip-ollama-settings {
+				#void-tooltip, #void-tooltip-orange, #void-tooltip-green, #void-tooltip-ollama-settings, #void-tooltip-provider-info {
 					font-size: 12px;
 					padding: 0px 8px;
 					border-radius: 6px;
@@ -67,7 +67,7 @@ export const VoidTooltip = () => {
 					color: white;
 				}
 
-				#void-tooltip-ollama-settings {
+				#void-tooltip-ollama-settings, #void-tooltip-provider-info {
 					background-color: var(--vscode-editor-background);
 					color: var(--vscode-input-foreground);
 				}
@@ -123,6 +123,14 @@ export const VoidTooltip = () => {
 					</div>
 				</div>
 			</Tooltip>
+
+			<Tooltip
+				id="void-tooltip-provider-info"
+				border='1px solid rgba(100,100,100,.2)'
+				opacity={1}
+				delayShow={50}
+				style={{ pointerEvents: 'all', userSelect: 'text', fontSize: 11, maxWidth: '280px', paddingTop:'8px', paddingBottom:'8px' }}
+			/>
 		</>
 	);
 };

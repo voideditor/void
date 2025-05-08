@@ -229,16 +229,13 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 			))}
 
 			{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
-				<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-2/30">
+				<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-4">
 					<div className="flex items-center gap-2 mb-4">
 						<div className="text-xl font-medium text-[#0e70c0]">Models</div>
-						<div className="h-px flex-grow bg-void-border-2/30"></div>
 					</div>
 
 					{currentTab === 'Local' && (
-						<div className="text-sm text-void-fg-3 mb-4 bg-void-bg-3/30 p-3 rounded border-l-2 border-[#0e70c0]/70">
-							Local models should be detected automatically. You can add custom models below.
-						</div>
+						<div className="text-sm opacity-80 text-void-fg-3 my-4 w-full">Local models should be detected automatically. You can add custom models below.</div>
 					)}
 
 					{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}

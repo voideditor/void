@@ -1355,10 +1355,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 
 		{/* assistant message */}
 		{chatMessage.displayContent &&
-			<div className={`relative ${isCheckpointGhost ? 'opacity-50' : ''}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-				<div className={`absolute flex -top-1 -right-1 translate-x-0 -translate-y-0 z-1 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-					<CopyButton text={chatMessage.displayContent} toolTipName='Copy' />
-				</div>
+			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
 				<ProseWrapper>
 					<ChatMarkdownRender
 						string={chatMessage.displayContent || ''}
@@ -1367,6 +1364,9 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 						isLinkDetectionEnabled={true}
 					/>
 				</ProseWrapper>
+				<div className={`flex mt-2 justify-end ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+					<CopyButton text={chatMessage.displayContent} toolTipName='Copy' />
+				</div>
 			</div>
 		}
 	</>

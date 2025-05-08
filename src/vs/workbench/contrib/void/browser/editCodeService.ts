@@ -1124,8 +1124,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		return
 	}
 
-	public async callBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
-		const uri = this._getURIBeforeStartApplying(opts)
+	public async callBeforeApplyOrEdit(givenURI: URI | 'current') {
+		const uri = this._uriOfGivenURI(givenURI)
 		if (!uri) return
 		await this._voidModelService.initializeModel(uri)
 		await this._voidModelService.saveModel(uri) // save the URI
@@ -1200,7 +1200,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 
-	public instantlyApplyNewContent({ uri, newContent }: { uri: URI, newContent: string }) {
+	public instantlyRewriteFile({ uri, newContent }: { uri: URI, newContent: string }) {
 		// start diffzone
 		const res = this._startStreamingDiffZone({
 			uri,

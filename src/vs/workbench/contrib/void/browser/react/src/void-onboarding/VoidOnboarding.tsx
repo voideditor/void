@@ -231,7 +231,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 			{(currentTab === 'Local' || currentTab === 'Cloud/Other') && (
 				<div className="w-full max-w-xl mt-8 bg-void-bg-2/50 rounded-lg p-6 border border-void-border-4">
 					<div className="flex items-center gap-2 mb-4">
-						<div className="text-xl font-medium text-[#0e70c0]">Models</div>
+						<div className="text-xl font-medium">Models</div>
 					</div>
 
 					{currentTab === 'Local' && (

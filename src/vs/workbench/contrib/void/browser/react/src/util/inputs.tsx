@@ -185,6 +185,8 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 	const toolsService = accessor.get('IToolsService')
 
+
+
 	const searchForFilesOrFolders = async (t: string, searchFor: 'files' | 'folders') => {
 		try {
 
@@ -309,6 +311,7 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 
 	if (generateNextOptionsAtPath) {
+
 		nextOptionsAtPath = await generateNextOptionsAtPath(optionText)
 	}
 	else if (path.length === 0 && optionText.trim().length > 0) { // (special case): directly search for both files and folders if optionsPath is empty and there's a search term
@@ -371,9 +374,10 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 	const [didLoadInitialOptions, setDidLoadInitialOptions] = useState(false);
 
 	const currentPathRef = useRef<string>(JSON.stringify([]));
-	// Show breadcrumbs when we have options loaded AND we're either at root level OR in a subfolder
-	const areBreadcrumbsShowing = true
 
+	// dont show breadcrums if first page and user hasnt typed anything
+	const isTypingEnabled = true
+	const isBreadcrumbsShowing = optionPath.length === 0 && !optionText ? false : true
 
 	const insertTextAtCursor = (text: string) => {
 		const textarea = textAreaRef.current;
@@ -435,7 +439,6 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			else throw new Error(`Unexpected leafNodeType ${option.leafNodeType}`)
 
 			chatThreadService.addNewStagingSelection(newSelection)
-			console.log('selected', option.uri?.fsPath)
 		}
 		else {
 
@@ -513,7 +516,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		};
 	}, []);
 
-	// debounced
+	// debounced, but immediate if text is empty
 	const onPathTextChange = useCallback((newStr: string) => {
 
 
@@ -525,15 +528,23 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 		currentPathRef.current = JSON.stringify(optionPath);
 
-		// Set a new timeout to fetch options after a delay
-		debounceTimerRef.current = window.setTimeout(async () => {
+		const fetchOptions = async () => {
 			const newOpts = await getOptionsAtPath(accessor, optionPath, newStr) || [];
 			if (currentPathRef.current !== JSON.stringify(optionPath)) { return; }
 			setOptions(newOpts);
 			setOptionIdx(0);
 			debounceTimerRef.current = null;
-		}, 300);
+		};
+
+		// If text is empty, run immediately without debouncing
+		if (newStr.trim() === '') {
+			fetchOptions();
+		} else {
+			// Otherwise, set a new timeout to fetch options after a delay
+			debounceTimerRef.current = window.setTimeout(fetchOptions, 300);
+		}
 	}, [optionPath, accessor]);
+
 
 	const onMenuKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 
@@ -588,7 +599,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				// do nothing
 			}
 			else { // letter
-				if (areBreadcrumbsShowing) {
+				if (isTypingEnabled) {
 					onPathTextChange(optionText + e.key)
 				}
 			}
@@ -803,7 +814,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				onWheel={(e) => e.stopPropagation()}
 			>
 				{/* Breadcrumbs Header */}
-				{areBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-1 bg-void-bg-2-alt border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
+				{isBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-1 bg-void-bg-2-alt border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
 					{optionText ?
 						<div className="flex items-center">
 							{/* {optionPath.map((path, index) => (

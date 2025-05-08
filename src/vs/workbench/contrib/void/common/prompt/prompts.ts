@@ -463,7 +463,7 @@ ${directoryStr}
 		details.push(`Many tools only work if the user has a workspace open.`)
 	}
 	else {
-		details.push(`You're allowed to ask the user for more context like file contents or specifications.`)
+		details.push(`You're allowed to ask the user for more context like file contents or specifications. If this comes up, tell them to reference files and folders by typing @.`)
 	}
 
 	if (mode === 'agent') {

@@ -9,12 +9,12 @@ import { marked, MarkedToken, Token } from 'marked'
 import { convertToVscodeLang, detectLanguage } from '../../../../common/helpers/languageHelpers.js'
 import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
 import { useAccessor } from '../util/services.js'
-import { ScrollType } from '../../../../../../../editor/common/editorCommon.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
 import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
+import { voidOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
 
 
 export type ChatMessageLocation = {
@@ -134,27 +134,10 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 
 	const onClick = () => {
+		if (!link || !link.selection) return;
 
-		if (!link) return;
-		const selection = link.selection
-
-		// open the file
-		commandService.executeCommand('vscode.open', link.uri).then(() => {
-
-			// select the text
-			setTimeout(() => {
-				if (!selection) return;
-
-				const editor = editorService.getActiveCodeEditor()
-				if (!editor) return;
-
-				editor.setSelection(selection)
-				editor.revealRange(selection, ScrollType.Immediate)
-
-			}, 50) // needed when document was just opened and needs to initialize
-
-		})
-
+		// Use the updated voidOpenFileFn to open the file and handle selection
+		voidOpenFileFn(link.uri, accessor, [link.selection.startLineNumber, link.selection.endLineNumber]);
 	}
 
 	return <Codespan

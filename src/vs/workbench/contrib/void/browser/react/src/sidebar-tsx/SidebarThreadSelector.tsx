@@ -220,13 +220,14 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
 	const detailsHTML = <span
-		className='gap-1 inline-flex items-center'
 	// data-tooltip-id='void-tooltip'
 	// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
 	// data-tooltip-place='top'
 	>
-		<span>{`(${numMessages})`}</span>
+		<span className='opacity-60'>{numMessages}</span>
+		{` `}
 		{formatDate(new Date(pastThread.lastModified))}
+		{/* {` messages `} */}
 	</span>
 
 	return <div
@@ -249,8 +250,13 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 						:
 						null}
 				{/* name */}
-				<span className="truncate overflow-hidden text-ellipsis">{firstMsg}</span>
+				<span className="truncate overflow-hidden text-ellipsis"
+					data-tooltip-id='void-tooltip'
+					data-tooltip-content={numMessages + ' messages'}
+					data-tooltip-place='top'
+				>{firstMsg}</span>
 
+				{/* <span className='opacity-60'>{`(${numMessages})`}</span> */}
 			</span>
 
 			<div className="flex items-center gap-x-1 opacity-60">

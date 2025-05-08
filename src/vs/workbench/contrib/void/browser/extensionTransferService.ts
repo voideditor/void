@@ -35,6 +35,7 @@ const extensionBlacklist = [
 	'codeium.codeium',
 	'saoudrizwan.claude-dev', // cline
 	'rooveterinaryinc.roo-cline', // roo
+	'supermaven.supermaven' // supermaven
 	// 'github.copilot',
 ];
 

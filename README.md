@@ -11,6 +11,8 @@
 
 Void is the open-source Cursor alternative.
 
+Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data.
+
 This repo contains the full sourcecode for Void. If you're new, welcome!
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)

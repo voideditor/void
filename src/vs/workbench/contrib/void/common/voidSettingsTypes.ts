@@ -291,7 +291,7 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
 		_didFillInProviderSettings: undefined,
 	},
-	mistral: {
+	cohere: {
 		...defaultCustomSettings,
 		...defaultProviderSettings.cohere,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.cohere),

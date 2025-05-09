@@ -9,7 +9,6 @@ import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { readFile, DEFAULT_FILE_SIZE_LIMIT } from '../common/prompt/prompts.js';
 
 
-
 async function filePrompt(fileService: IFileService, uri: URI, clipboardService: IClipboardService): Promise<string> {
 	const { val } = await readFile(fileService, uri, DEFAULT_FILE_SIZE_LIMIT)
 	const fileName = uri.fsPath.split('/').pop() ?? ''
@@ -54,7 +53,7 @@ class FilePromptActionService extends Action2 {
 	constructor() {
 		super({
 			id: FilePromptActionService.VOID_COPY_FILE_PROMPT_ID,
-			title: localize2('voidCopyPrompt', "Void: Copy Prompt"),
+			title: localize2('voidCopyPrompt', 'Void: Copy Prompt'),
 			menu: [{
 				id: MenuId.ExplorerContext,
 				group: '8_void',

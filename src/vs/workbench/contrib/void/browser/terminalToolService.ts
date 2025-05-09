@@ -246,6 +246,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		})
 
 		const capability = await Promise.any([waitFiveSeconds, waitForCapability])
+			.finally(() => { disposables.forEach((d) => d.dispose()) })
+
 		return capability ?? undefined
 	}
 
@@ -333,8 +335,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 			// wait for result
 			await Promise.any([waitUntilDone, waitUntilInterrupt])
+				.finally(() => disposables.forEach(d => d.dispose()))
 
-			disposables.forEach(d => d.dispose())
 			if (!isPersistent) {
 				interrupt()
 			}

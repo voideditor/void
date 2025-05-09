@@ -1220,10 +1220,10 @@ const openRouterSettings: VoidStaticProviderInfo = {
 	// TODO!!! send a query to openrouter to get the price, etc.
 	modelOptionsFallback: (modelName) => {
 		const res = extensiveModelOptionsFallback(modelName)
-		// // openRouter does not support gemini-style, use openai-style instead
-		// if (res?.specialToolFormat === 'gemini-style') {
-		// 	res.specialToolFormat = 'openai-style'
-		// }
+		// openRouter does not support gemini-style, use openai-style instead
+		if (res?.specialToolFormat === 'gemini-style') {
+			res.specialToolFormat = 'openai-style'
+		}
 		return res
 	},
 }

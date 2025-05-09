@@ -1727,7 +1727,6 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	const commandService = accessor.get('ICommandService')
 	const terminalToolsService = accessor.get('ITerminalToolService')
 	const toolsService = accessor.get('IToolsService')
-	const terminalService = accessor.get('ITerminalService')
 	const isError = false
 	const title = getTitle(toolMessage)
 	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -1754,21 +1753,20 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		const terminal = terminalToolsService.getTemporaryTerminal(toolMessage.params.terminalId);
 		if (!terminal) return;
 
-		terminal.detachFromElement();
-		terminal.attachToElement(container);
+		try {
+			terminal.attachToElement(container);
+			terminal.setVisible(true)
+		} catch {
+		}
 
-		// Listen for size changes
+		// Listen for size changes of the container and keep the terminal layout in sync.
 		const resizeObserver = new ResizeObserver((entries) => {
-			const height = entries[0].borderBoxSize[0].blockSize
-			const width = entries[0].borderBoxSize[0].inlineSize
-			// Layout terminal to fit container dimensions
+			const height = entries[0].borderBoxSize[0].blockSize;
+			const width = entries[0].borderBoxSize[0].inlineSize;
 			if (typeof terminal.layout === 'function') {
-				terminalService.setActiveInstance(terminal)
-				terminal.attachToElement(container);
 				terminal.layout({ width, height });
-
 			}
-		})
+		});
 
 		resizeObserver.observe(container);
 		return () => { terminal.detachFromElement(); resizeObserver?.disconnect(); }
@@ -1790,6 +1788,10 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		if (type === 'run_command') msg = toolsService.stringOfResult['run_command'](toolMessage.params, result)
 		else msg = toolsService.stringOfResult['run_persistent_command'](toolMessage.params, result)
 
+		if (type === 'run_persistent_command') {
+			componentParams.info = persistentTerminalNameOfId(toolMessage.params.persistentTerminalId)
+		}
+
 		componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
 			<div className='!select-text cursor-auto'>
 				<BlockCode initValue={`${msg.trim()}`} language='shellscript' />
@@ -1805,13 +1807,14 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		</BottomChildren>
 	}
 	else if (toolMessage.type === 'running_now') {
-		componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
+		if (type === 'run_command')
+			componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
 	}
 	else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_request') {
 	}
 
 	return <>
-		<ToolHeaderWrapper {...componentParams} isOpen={toolMessage.type === 'running_now' ? true : undefined} />
+		<ToolHeaderWrapper {...componentParams} isOpen={type === 'run_command' && toolMessage.type === 'running_now' ? true : undefined} />
 	</>
 }
 
@@ -2292,7 +2295,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
-			componentParams.info = params.cwd ? `Running in ${getRelative(URI.file(params.cwd), accessor)}` : ''
+			const relativePath = params.cwd ? getRelative(URI.file(params.cwd), accessor) : ''
+			componentParams.info = relativePath ? `Running in ${relativePath}` : undefined
+
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
 				const { persistentTerminalId } = result

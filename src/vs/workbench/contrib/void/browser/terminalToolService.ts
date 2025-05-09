@@ -132,6 +132,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 				// Copy any other properties from the provided config
 				...config,
 			},
+			// Skip profile check to ensure the terminal is created quickly
+			skipContributedProfileCheck: true,
 		};
 
 		const terminal = await this.terminalService.createTerminal(options)

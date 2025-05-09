@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
-import { useAccessor, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
@@ -348,17 +348,19 @@ export const ApplyButtonsHTML = ({
 
 
 
-export const EditToolButtonsHTML = ({
+export const EditToolAcceptRejectButtonsHTML = ({
 	codeStr,
 	applyBoxId,
 	uri,
 	type,
+	threadId,
 }: {
 	codeStr: string,
 	applyBoxId: string,
 } & ({
 	uri: URI,
-	type: 'edit_file' | 'rewrite_file'
+	type: 'edit_file' | 'rewrite_file',
+	threadId: string,
 })
 ) => {
 	const accessor = useAccessor()
@@ -368,17 +370,10 @@ export const EditToolButtonsHTML = ({
 	const { streamState } = useEditToolStreamState({ applyBoxId, uri })
 	const settingsState = useSettingsState()
 
-	const isDisabled = !!isFeatureNameDisabled('Chat', settingsState) || !applyBoxId
+	const chatThreadsStreamState = useChatThreadsStreamState(threadId)
+	const isRunning = chatThreadsStreamState?.isRunning
 
-	const onClickSubmit = useCallback(async () => {
-		await editCodeService.callBeforeApplyOrEdit(uri)
-		if (type === 'edit_file') {
-			editCodeService.instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks: codeStr })
-		}
-		else if (type === 'rewrite_file') {
-			editCodeService.instantlyRewriteFile({ uri, newContent: codeStr })
-		}
-	}, [type, editCodeService, codeStr, uri, applyBoxId, metricsService])
+	const isDisabled = !!isFeatureNameDisabled('Chat', settingsState) || !applyBoxId
 
 	const onAccept = useCallback(() => {
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
@@ -392,14 +387,11 @@ export const EditToolButtonsHTML = ({
 
 	if (streamState === 'idle-no-changes') {
 		return null
-		// return <IconShell1
-		// 	Icon={RotateCw}
-		// 	onClick={onClickSubmit}
-		// 	{...tooltipPropsForApplyBlock({ tooltipName: 'Reapply' })}
-		// />
 	}
 
 	if (streamState === 'idle-has-changes') {
+		if (isRunning === 'LLM' || isRunning === 'tool') return null
+
 		return <>
 			<IconShell1
 				Icon={X}

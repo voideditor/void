@@ -243,26 +243,51 @@ export const ApplyButtonsHTML = ({
 	codeStr,
 	applyBoxId,
 	uri,
+	language,
 }: {
 	codeStr: string,
 	applyBoxId: string,
-} & ({
+	language?: string,
+} & {
 	uri: URI | 'current';
-})
-) => {
+}) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
+	const terminalToolService = accessor.get('ITerminalToolService')
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
 	const { currStreamStateRef, setApplying } = useApplyStreamState({ applyBoxId })
 
+	const isShellLanguage = language === 'bash' || language === 'shellscript'
 
 	const onClickSubmit = useCallback(async () => {
 		if (currStreamStateRef.current === 'streaming') return
 
+		// For shell scripts, run in terminal instead of applying to file
+		if (isShellLanguage) {
+			try {
+				// Create a terminal if none exists or use terminal 1
+				const terminalIds = terminalToolService.listPersistentTerminalIds()
+				let terminalId = '1';
+				if (!terminalIds.includes(terminalId)) {
+					terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
+				}
+				await terminalToolService.runCommand(
+					codeStr,
+					{ type: 'persistent', persistentTerminalId: terminalId }
+				);
+				await terminalToolService.focusPersistentTerminal(terminalId)
+				metricsService.capture('Execute Shell', { length: codeStr.length })
+			} catch (e) {
+				console.error('Failed to execute in terminal:', e)
+			}
+			return;
+		}
+
+		// Normal file apply logic for non-shell languages
 		await editCodeService.callBeforeApplyOrEdit(uri)
 
 		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying({
@@ -281,7 +306,7 @@ export const ApplyButtonsHTML = ({
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 
-	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService])
+	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService, isShellLanguage, terminalToolService])
 
 
 	const onClickStop = useCallback(() => {
@@ -451,7 +476,7 @@ export const BlockCodeApplyWrapper = ({
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
 				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
-				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} />
+				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} language={language} />
 			</div>
 		</div>
 

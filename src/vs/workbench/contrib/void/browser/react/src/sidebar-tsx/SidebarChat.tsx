@@ -1727,7 +1727,6 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	const commandService = accessor.get('ICommandService')
 	const terminalToolsService = accessor.get('ITerminalToolService')
 	const toolsService = accessor.get('IToolsService')
-	const terminalService = accessor.get('ITerminalService')
 	const isError = false
 	const title = getTitle(toolMessage)
 	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -1754,21 +1753,20 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		const terminal = terminalToolsService.getTemporaryTerminal(toolMessage.params.terminalId);
 		if (!terminal) return;
 
-		terminal.detachFromElement();
-		terminal.attachToElement(container);
+		try {
+			terminal.attachToElement(container);
+			terminal.setVisible(true)
+		} catch {
+		}
 
-		// Listen for size changes
+		// Listen for size changes of the container and keep the terminal layout in sync.
 		const resizeObserver = new ResizeObserver((entries) => {
-			const height = entries[0].borderBoxSize[0].blockSize
-			const width = entries[0].borderBoxSize[0].inlineSize
-			// Layout terminal to fit container dimensions
+			const height = entries[0].borderBoxSize[0].blockSize;
+			const width = entries[0].borderBoxSize[0].inlineSize;
 			if (typeof terminal.layout === 'function') {
-				terminalService.setActiveInstance(terminal)
-				terminal.attachToElement(container);
 				terminal.layout({ width, height });
-
 			}
-		})
+		});
 
 		resizeObserver.observe(container);
 		return () => { terminal.detachFromElement(); resizeObserver?.disconnect(); }

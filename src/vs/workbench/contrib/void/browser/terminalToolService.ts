@@ -5,6 +5,7 @@
 
 import { Disposable, IDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { removeAnsiEscapeCodes } from '../../../../base/common/strings.js';
+import { ITerminalCapabilityImplMap, TerminalCapability } from '../../../../platform/terminal/common/capabilities/capabilities.js';
 import { URI } from '../../../../base/common/uri.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
@@ -13,6 +14,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { ITerminalService, ITerminalInstance, ICreateTerminalOptions } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 import { MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_CHARS, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js';
 import { TerminalResolveReason } from '../common/toolsServiceTypes.js';
+import { timeout } from '../../../../base/common/async.js';
 
 
 
@@ -26,22 +28,22 @@ export interface ITerminalToolService {
 
 	createPersistentTerminal(opts: { cwd: string | null }): Promise<string>
 	killPersistentTerminal(terminalId: string): Promise<void>
+	// readTerminal(terminalId: string): Promise<string>
 
 	getPersistentTerminal(terminalId: string): ITerminalInstance | undefined
 	getTemporaryTerminal(terminalId: string): ITerminalInstance | undefined
 }
-
 export const ITerminalToolService = createDecorator<ITerminalToolService>('TerminalToolService');
 
 
 
-function isCommandComplete(output: string) {
-	// https://code.visualstudio.com/docs/terminal/shell-integration#_vs-code-custom-sequences-osc-633-st
-	const completionMatch = output.match(/\]633;D(?:;(\d+))?/)
-	if (!completionMatch) { return false }
-	if (completionMatch[1] !== undefined) return { exitCode: parseInt(completionMatch[1]) }
-	return { exitCode: 0 }
-}
+// function isCommandComplete(output: string) {
+// 	// https://code.visualstudio.com/docs/terminal/shell-integration#_vs-code-custom-sequences-osc-633-st
+// 	const completionMatch = output.match(/\]633;D(?:;(\d+))?/)
+// 	if (!completionMatch) { return false }
+// 	if (completionMatch[1] !== undefined) return { exitCode: parseInt(completionMatch[1]) }
+// 	return { exitCode: 0 }
+// }
 
 
 export const persistentTerminalNameOfId = (id: string) => {
@@ -114,32 +116,39 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 	}
 
 
-	private async _createTerminal(props: { cwd: string | null, config: ICreateTerminalOptions['config'] }) {
-		const { cwd: override_cwd, config } = props
+	private async _createTerminal(props: { cwd: string | null, config: ICreateTerminalOptions['config'], hidden?: boolean }) {
+		const { cwd: override_cwd, config, hidden } = props;
 
-		const cwd: URI | string | undefined = (override_cwd ?? undefined) ?? this.workspaceContextService.getWorkspace().folders[0]?.uri
+		const cwd: URI | string | undefined = (override_cwd ?? undefined) ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
 
-		// create new terminal and return its ID
-		const terminal = await this.terminalService.createTerminal({
-			cwd: cwd,
-			location: TerminalLocation.Panel,
-			config: config,
-		})
+		const options: ICreateTerminalOptions = {
+			cwd,
+			location: hidden ? undefined : TerminalLocation.Panel,
+			config: {
+				name: config && 'name' in config ? config.name : undefined,
+				forceShellIntegration: true,
+				hideFromUser: hidden ? true : undefined,
+				// Copy any other properties from the provided config
+				...config,
+			},
+		};
 
-		// when a new terminal is created, there is an initial command that gets run which is empty, wait for it to end before returning
-		const disposables: IDisposable[] = []
-		const waitForMount = new Promise<void>(res => {
-			let data = ''
-			const d = terminal.onData(newData => {
-				data += newData
-				if (isCommandComplete(data)) { res() }
-			})
-			disposables.push(d)
-		})
-		const waitForTimeout = new Promise<void>(res => { setTimeout(() => { res() }, 5000) })
+		const terminal = await this.terminalService.createTerminal(options)
 
-		await Promise.any([waitForMount, waitForTimeout,])
-		disposables.forEach(d => d.dispose())
+		// // when a new terminal is created, there is an initial command that gets run which is empty, wait for it to end before returning
+		// const disposables: IDisposable[] = []
+		// const waitForMount = new Promise<void>(res => {
+		// 	let data = ''
+		// 	const d = terminal.onData(newData => {
+		// 		data += newData
+		// 		if (isCommandComplete(data)) { res() }
+		// 	})
+		// 	disposables.push(d)
+		// })
+		// const waitForTimeout = new Promise<void>(res => { setTimeout(() => { res() }, 5000) })
+
+		// await Promise.any([waitForMount, waitForTimeout,])
+		// disposables.forEach(d => d.dispose())
 
 		return terminal
 
@@ -192,6 +201,53 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 
 
+	// readTerminal: ITerminalToolService['readTerminal'] = async (terminalId) => {
+	// 	// Try persistent first, then temporary
+	// 	const terminal = this.getPersistentTerminal(terminalId) ?? this.getTemporaryTerminal(terminalId);
+	// 	if (!terminal) {
+	// 		throw new Error(`Read Terminal: Terminal with ID ${terminalId} does not exist.`);
+	// 	}
+
+	// 	// Ensure the xterm.js instance has been created – otherwise we cannot access the buffer.
+	// 	if (!terminal.xterm) {
+	// 		throw new Error('Read Terminal: The requested terminal has not yet been rendered and therefore has no scrollback buffer available.');
+	// 	}
+
+	// 	// Collect lines from the buffer iterator (oldest to newest)
+	// 	const lines: string[] = [];
+	// 	for (const line of terminal.xterm.getBufferReverseIterator()) {
+	// 		lines.unshift(line);
+	// 	}
+
+	// 	let result = removeAnsiEscapeCodes(lines.join('\n'));
+
+	// 	if (result.length > MAX_TERMINAL_CHARS) {
+	// 		const half = MAX_TERMINAL_CHARS / 2;
+	// 		result = result.slice(0, half) + '\n...\n' + result.slice(result.length - half);
+	// 	}
+
+	// 	return result;
+	// };
+
+	private async _waitForCommandDetectionCapability(terminal: ITerminalInstance) {
+		const cmdCap = terminal.capabilities.get(TerminalCapability.CommandDetection);
+		if (cmdCap) return cmdCap
+
+		const disposables: IDisposable[] = []
+
+		const waitFiveSeconds = timeout(5000)
+		const waitForCapability = new Promise<ITerminalCapabilityImplMap[TerminalCapability.CommandDetection]>((res) => {
+			disposables.push(
+				terminal.capabilities.onDidAddCapability((e) => {
+					if (e.id === TerminalCapability.CommandDetection) res(e.capability)
+				})
+			)
+		})
+
+		const capability = await Promise.any([waitFiveSeconds, waitForCapability])
+		return capability ?? undefined
+	}
+
 	runCommand: ITerminalToolService['runCommand'] = async (command, params) => {
 		const { type } = params
 		await this.terminalService.whenConnected;
@@ -208,7 +264,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 		}
 		else {
 			const { cwd } = params
-			terminal = await this._createTerminal({ cwd: cwd, config: { name: 'Void Temporary Terminal', title: 'Void Temporary Terminal' } })
+			terminal = await this._createTerminal({ cwd: cwd, config: undefined, hidden: true })
 			this.temporaryTerminalInstanceOfId[params.terminalId] = terminal
 		}
 
@@ -224,29 +280,28 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 				this.terminalService.setActiveInstance(terminal)
 				await this.terminalService.focusActiveInstance()
 			}
-
 			let result: string = ''
 			let resolveReason: TerminalResolveReason | undefined = undefined
 
 
-			// create this before we send so that  we don't miss events on terminal
-			const waitUntilDone = new Promise<void>((res, rej) => {
-				const d2 = terminal.onData(async newData => {
-					if (resolveReason) return
-					result += newData
-					// onDone
-					const isDone = isCommandComplete(result)
-					if (isDone) {
-						resolveReason = { type: 'done', exitCode: isDone.exitCode }
-						res()
-						return
-					}
+			const cmdCap = await this._waitForCommandDetectionCapability(terminal)
+			if (!cmdCap) throw new Error(`There was an error using the terminal: CommandDetection capability did not mount yet. Please try again in a few seconds or report this to the Void team.`)
+
+			// Prefer the structured command-detection capability when available
+
+			const waitUntilDone = new Promise<void>(resolve => {
+				const l = cmdCap.onCommandFinished(cmd => {
+					if (resolveReason) return // already resolved
+					resolveReason = { type: 'done', exitCode: cmd.exitCode ?? 0 };
+					result = cmd.getOutput() ?? ''
+					l.dispose()
+					resolve()
 				})
-				disposables.push(d2)
+				disposables.push(l)
 			})
 
 
-			// send the command here
+			// send the command now that listeners are attached
 			await terminal.sendText(command, true)
 
 			const waitUntilInterrupt = isPersistent ?
@@ -286,8 +341,6 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
 
 			result = removeAnsiEscapeCodes(result)
-				.split('\n').slice(1, -1) // remove first and last line (first = command, last = andrewpareles/void %)
-				.join('\n')
 
 			if (result.length > MAX_TERMINAL_CHARS) {
 				const half = MAX_TERMINAL_CHARS / 2

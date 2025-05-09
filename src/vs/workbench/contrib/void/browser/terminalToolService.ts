@@ -26,9 +26,10 @@ export interface ITerminalToolService {
 	focusPersistentTerminal(terminalId: string): Promise<void>
 	persistentTerminalExists(terminalId: string): boolean
 
+	readTerminal(terminalId: string): Promise<string>
+
 	createPersistentTerminal(opts: { cwd: string | null }): Promise<string>
 	killPersistentTerminal(terminalId: string): Promise<void>
-	// readTerminal(terminalId: string): Promise<string>
 
 	getPersistentTerminal(terminalId: string): ITerminalInstance | undefined
 	getTemporaryTerminal(terminalId: string): ITerminalInstance | undefined
@@ -201,33 +202,33 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 
 
-	// readTerminal: ITerminalToolService['readTerminal'] = async (terminalId) => {
-	// 	// Try persistent first, then temporary
-	// 	const terminal = this.getPersistentTerminal(terminalId) ?? this.getTemporaryTerminal(terminalId);
-	// 	if (!terminal) {
-	// 		throw new Error(`Read Terminal: Terminal with ID ${terminalId} does not exist.`);
-	// 	}
+	readTerminal: ITerminalToolService['readTerminal'] = async (terminalId) => {
+		// Try persistent first, then temporary
+		const terminal = this.getPersistentTerminal(terminalId) ?? this.getTemporaryTerminal(terminalId);
+		if (!terminal) {
+			throw new Error(`Read Terminal: Terminal with ID ${terminalId} does not exist.`);
+		}
 
-	// 	// Ensure the xterm.js instance has been created – otherwise we cannot access the buffer.
-	// 	if (!terminal.xterm) {
-	// 		throw new Error('Read Terminal: The requested terminal has not yet been rendered and therefore has no scrollback buffer available.');
-	// 	}
+		// Ensure the xterm.js instance has been created – otherwise we cannot access the buffer.
+		if (!terminal.xterm) {
+			throw new Error('Read Terminal: The requested terminal has not yet been rendered and therefore has no scrollback buffer available.');
+		}
 
-	// 	// Collect lines from the buffer iterator (oldest to newest)
-	// 	const lines: string[] = [];
-	// 	for (const line of terminal.xterm.getBufferReverseIterator()) {
-	// 		lines.unshift(line);
-	// 	}
+		// Collect lines from the buffer iterator (oldest to newest)
+		const lines: string[] = [];
+		for (const line of terminal.xterm.getBufferReverseIterator()) {
+			lines.unshift(line);
+		}
 
-	// 	let result = removeAnsiEscapeCodes(lines.join('\n'));
+		let result = removeAnsiEscapeCodes(lines.join('\n'));
 
-	// 	if (result.length > MAX_TERMINAL_CHARS) {
-	// 		const half = MAX_TERMINAL_CHARS / 2;
-	// 		result = result.slice(0, half) + '\n...\n' + result.slice(result.length - half);
-	// 	}
+		if (result.length > MAX_TERMINAL_CHARS) {
+			const half = MAX_TERMINAL_CHARS / 2;
+			result = result.slice(0, half) + '\n...\n' + result.slice(result.length - half);
+		}
 
-	// 	return result;
-	// };
+		return result
+	};
 
 	private async _waitForCommandDetectionCapability(terminal: ITerminalInstance) {
 		const cmdCap = terminal.capabilities.get(TerminalCapability.CommandDetection);
@@ -249,13 +250,13 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 	}
 
 	runCommand: ITerminalToolService['runCommand'] = async (command, params) => {
-		const { type } = params
 		await this.terminalService.whenConnected;
+
+		const { type } = params
+		const isPersistent = type === 'persistent'
 
 		let terminal: ITerminalInstance
 		const disposables: IDisposable[] = []
-
-		const isPersistent = type === 'persistent'
 
 		if (isPersistent) { // BG process
 			const { persistentTerminalId } = params
@@ -281,7 +282,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 				await this.terminalService.focusActiveInstance()
 			}
 			let result: string = ''
-			let resolveReason: TerminalResolveReason | undefined = undefined
+			let resolveReason: TerminalResolveReason | undefined
 
 
 			const cmdCap = await this._waitForCommandDetectionCapability(terminal)
@@ -339,6 +340,12 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			}
 
 			if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
+
+			// read result if timed out, since we didn't get it (could clean this code up but it's ok)
+			if (resolveReason.type === 'timeout') {
+				const terminalId = isPersistent ? params.persistentTerminalId : params.terminalId
+				result = await this.readTerminal(terminalId)
+			}
 
 			result = removeAnsiEscapeCodes(result)
 

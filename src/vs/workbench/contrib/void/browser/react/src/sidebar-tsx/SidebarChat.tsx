@@ -1788,6 +1788,10 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		if (type === 'run_command') msg = toolsService.stringOfResult['run_command'](toolMessage.params, result)
 		else msg = toolsService.stringOfResult['run_persistent_command'](toolMessage.params, result)
 
+		if (type === 'run_persistent_command') {
+			componentParams.info = persistentTerminalNameOfId(toolMessage.params.persistentTerminalId)
+		}
+
 		componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
 			<div className='!select-text cursor-auto'>
 				<BlockCode initValue={`${msg.trim()}`} language='shellscript' />
@@ -1803,7 +1807,8 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		</BottomChildren>
 	}
 	else if (toolMessage.type === 'running_now') {
-		componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
+		if (type === 'run_command')
+			componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
 	}
 	else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_request') {
 	}
@@ -2290,7 +2295,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
-			componentParams.info = params.cwd ? `Running in ${getRelative(URI.file(params.cwd), accessor)}` : ''
+			const relativePath = params.cwd ? getRelative(URI.file(params.cwd), accessor) : ''
+			componentParams.info = relativePath ? `Running in ${relativePath}` : undefined
+
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
 				const { persistentTerminalId } = result

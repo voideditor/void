@@ -5,4 +5,6 @@ Most code we care about lives in src/vs/workbench/contrib/void.
 You may often need to explore the full repo to find relevant parts of code.
 Look for services and built-in functions that you might need to use to solve the problem.
 
-NEVER lazily cast to 'any' in typescript. Find the correct type to apply and use it.
+In typescript, do NOT cast to types if not neccessary. NEVER lazily cast to 'any'. Find the correct type to apply and use it.
+
+Do not add or remove semicolons to any of my files. Just go with convention and make the least number of changes.

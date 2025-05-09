@@ -351,8 +351,11 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 				result = await this.readTerminal(terminalId)
 			}
 
-			result = removeAnsiEscapeCodes(result)
 
+
+			if (!isPersistent) result = `$ ${command}\n${result}`
+			result = removeAnsiEscapeCodes(result)
+			// trim
 			if (result.length > MAX_TERMINAL_CHARS) {
 				const half = MAX_TERMINAL_CHARS / 2
 				result = result.slice(0, half)

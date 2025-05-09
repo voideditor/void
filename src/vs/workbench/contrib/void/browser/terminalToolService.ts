@@ -238,7 +238,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 		const disposables: IDisposable[] = []
 
-		const waitFiveSeconds = timeout(5000)
+		const waitTimeout = timeout(10_000)
 		const waitForCapability = new Promise<ITerminalCapabilityImplMap[TerminalCapability.CommandDetection]>((res) => {
 			disposables.push(
 				terminal.capabilities.onDidAddCapability((e) => {
@@ -247,7 +247,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			)
 		})
 
-		const capability = await Promise.any([waitFiveSeconds, waitForCapability])
+		const capability = await Promise.any([waitTimeout, waitForCapability])
 			.finally(() => { disposables.forEach((d) => d.dispose()) })
 
 		return capability ?? undefined

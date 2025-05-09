@@ -70,7 +70,13 @@ export const IconShell1 = ({ onClick, Icon, disabled, className, ...props }: Ico
 
 const COPY_FEEDBACK_TIMEOUT = 1500 // amount of time to say 'Copied!'
 
-export const CopyButton = ({ codeStr, toolTipName }: { codeStr: string | (() => Promise<string> | string), toolTipName: string }) => {
+interface CopyButtonProps {
+	text: string | (() => Promise<string> | string),
+	toolTipName: string,
+	className?: string
+}
+
+export const CopyButton = ({ text, toolTipName, className }: CopyButtonProps) => {
 	const accessor = useAccessor()
 
 	const metricsService = accessor.get('IMetricsService')
@@ -85,15 +91,16 @@ export const CopyButton = ({ codeStr, toolTipName }: { codeStr: string | (() => 
 	}, [copyButtonText])
 
 	const onCopy = useCallback(async () => {
-		clipboardService.writeText(typeof codeStr === 'string' ? codeStr : await codeStr())
+		clipboardService.writeText(typeof text === 'string' ? text : await text())
 			.then(() => { setCopyButtonText(CopyButtonText.Copied) })
 			.catch(() => { setCopyButtonText(CopyButtonText.Error) })
-		metricsService.capture('Copy Code', { length: codeStr.length }) // capture the length only
-	}, [metricsService, clipboardService, codeStr, setCopyButtonText])
+		metricsService.capture('Copy Code', { length: text.length }) // capture the length only
+	}, [metricsService, clipboardService, text, setCopyButtonText])
 
 	return <IconShell1
 		Icon={copyButtonText === CopyButtonText.Copied ? Check : copyButtonText === CopyButtonText.Error ? X : Copy}
 		onClick={onCopy}
+		className={className}
 		{...tooltipPropsForApplyBlock({ tooltipName: toolTipName })}
 	/>
 }
@@ -450,7 +457,7 @@ export const BlockCodeApplyWrapper = ({
 			</div>
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
-				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
+				{currStreamState === 'idle-no-changes' && <CopyButton text={codeStr} toolTipName='Copy' />}
 				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} />
 			</div>
 		</div>

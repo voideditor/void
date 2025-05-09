@@ -23,6 +23,8 @@ This repo contains the full sourcecode for Void. If you're new, welcome!
 
 - 🧭 [Website](https://voideditor.com)
 
+- [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/voideditor/void) 
+
 ## Contributing
 
 1. To get started working on Void, see [`HOW_TO_CONTRIBUTE`](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).

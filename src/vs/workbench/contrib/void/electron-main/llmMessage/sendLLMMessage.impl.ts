@@ -140,6 +140,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'databricks') {
+		const thisConfig = settingsOfProvider[providerName]
+		const baseURL = `https://${thisConfig.workspace}/serving-endpoints`
+		console.log('baseURL', baseURL)
+		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.token, ...commonPayloadOpts })
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -157,6 +163,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 	}
 
 	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+
 	openai.completions
 		.create({
 			model: modelName,
@@ -247,6 +254,9 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 
 	console.log('include', includeInPayload)
 	console.log('reasoningInfo', reasoningInfo)
+	console.log('modelName', modelName)
+	console.log('providerName', providerName)
+	console.log('settingsOfProvider', settingsOfProvider)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
@@ -255,6 +265,9 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 
 	// instance
 	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
+	console.log('baseUrl', openai.baseURL)
+	console.log('url', openai.buildURL('completions', { model: modelName }))
+	console.log('apiKey', openai.apiKey)
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
@@ -285,7 +298,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	let toolName = ''
 	let toolId = ''
 	let toolParamsStr = ''
-
+	console.log(options)
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
@@ -882,6 +895,11 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	microsoftAzure: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	databricks: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,

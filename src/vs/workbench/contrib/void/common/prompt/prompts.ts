@@ -525,7 +525,9 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 // 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', persistentTerminalIDs: [], directoryStr: 'lol', }))
 // }
 
-const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: number): Promise<{
+export const DEFAULT_FILE_SIZE_LIMIT = 2_000_000
+
+export const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: number): Promise<{
 	val: string,
 	truncated: boolean,
 	fullFileLen: number,
@@ -561,7 +563,7 @@ export const chat_userMessageContent = async (instructions: string, currSelns: S
 	selnsStrs = await Promise.all(currSelns?.map(async (s) => {
 
 		if (s.type === 'File' || s.type === 'CodeSelection') {
-			const { val } = await readFile(opts.fileService, s.uri, 2_000_000)
+			const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
 			const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
 			const content = val === null ? 'null' : `${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
 			const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`

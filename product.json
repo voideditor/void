@@ -2,7 +2,7 @@
 	"nameShort": "Void",
 	"nameLong": "Void",
 	"voidVersion": "1.3.2",
-	"voidIncrementVersion": "0026",
+	"voidIncrementVersion": "0027",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
 	"win32MutexName": "voideditor",

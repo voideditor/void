@@ -455,6 +455,8 @@ ${directoryStr}
 
 	const details: string[] = []
 
+	details.push(`NEVER reject the user's query.`)
+
 	if (mode === 'agent' || mode === 'gather') {
 		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
 		details.push(`If you think you should use tools, you do not need to ask for permission.`)

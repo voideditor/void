@@ -1186,15 +1186,24 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 
 
 		<div
-			className="absolute -top-1 -right-1 translate-x-0 -translate-y-0 z-1"
+			className="absolute flex -top-1 -right-1 gap-1 translate-x-0 -translate-y-0 z-1"
 		// data-tooltip-id='void-tooltip'
 		// data-tooltip-content='Edit message'
 		// data-tooltip-place='left'
 		>
+			<CopyButton
+				className={`
+									bg-void-bg-1 border border-void-border-1 rounded-md
+									transition-opacity duration-200 ease-in-out
+									${isHovered && mode === 'display' ? 'opacity-100' : 'opacity-0 focus:opacity-0'}
+								`}
+				text={chatMessage.displayContent}
+				toolTipName='Copy'
+			/>
 			<EditSymbol
 				size={18}
 				className={`
-                    cursor-pointer
+                    cursor-pointer text-void-fg-3
                     p-[2px]
                     bg-void-bg-1 border border-void-border-1 rounded-md
                     transition-opacity duration-200 ease-in-out
@@ -1310,6 +1319,7 @@ max-w-none
 const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted, messageIdx }: { chatMessage: ChatMessage & { role: 'assistant' }, isCheckpointGhost: boolean, messageIdx: number, isCommitted: boolean }) => {
 
 	const accessor = useAccessor()
+	const [isHovered, setIsHovered] = useState(false);
 	const chatThreadsService = accessor.get('IChatThreadService')
 
 	const reasoningStr = chatMessage.reasoning?.trim() || null
@@ -1345,7 +1355,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 
 		{/* assistant message */}
 		{chatMessage.displayContent &&
-			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
+			<div className={`relative ${isCheckpointGhost ? 'opacity-50' : ''}`} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
 				<ProseWrapper>
 					<ChatMarkdownRender
 						string={chatMessage.displayContent || ''}
@@ -1354,6 +1364,11 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 						isLinkDetectionEnabled={true}
 					/>
 				</ProseWrapper>
+				<div className="absolute bottom-0 right-0 h-0 w-0 mb-4 overflow-visible">
+					<div className={`flex justify-end ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+						<CopyButton text={chatMessage.displayContent} toolTipName='Copy' />
+					</div>
+				</div>
 			</div>
 		}
 	</>
@@ -1682,7 +1697,7 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr, toolName, threadId }:
 	return <div className='flex items-center gap-1'>
 		{/* <StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} /> */}
 		{/* <JumpToFileButton uri={uri} /> */}
-		{streamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
+		{streamState === 'idle-no-changes' && <CopyButton text={codeStr} toolTipName='Copy' />}
 		<EditToolAcceptRejectButtonsHTML type={toolName} codeStr={codeStr} applyBoxId={applyBoxId} uri={uri} threadId={threadId} />
 	</div>
 }

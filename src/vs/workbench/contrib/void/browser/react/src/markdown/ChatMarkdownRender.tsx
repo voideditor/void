@@ -14,7 +14,7 @@ import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
 import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
-import { voidOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, getRelative, voidOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
 
 
 export type ChatMessageLocation = {
@@ -89,13 +89,18 @@ const LatexRender = ({ latex }: { latex: string }) => {
 	// }
 }
 
-const Codespan = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
+const Codespan = ({ text, className, onClick, tooltip }: { text: string, className?: string, onClick?: () => void, tooltip?: string }) => {
 
 	// TODO compute this once for efficiency. we should use `labels.ts/shorten` to display duplicates properly
 
 	return <code
 		className={`font-mono font-medium rounded-sm bg-void-bg-1 px-1 ${className}`}
 		onClick={onClick}
+		{...tooltip ? {
+			'data-tooltip-id': 'void-tooltip',
+			'data-tooltip-content': tooltip,
+			'data-tooltip-place': 'top',
+		} : {}}
 	>
 		{text}
 	</code>
@@ -115,23 +120,31 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
 	let link: CodespanLocationLink | undefined = undefined
-	if (rawText.endsWith('`')) { // if codespan was completed
 
-		// get link from cache
-		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
+	if (!rawText.endsWith('`')) return null
 
-		if (link === undefined) {
-			// if no link, generate link and add to cache
-			chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
-				.then(link => {
-					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
-					setDidComputeCodespanLink(true) // rerender
-				})
 
-		}
+	// get link from cache
+	link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
+
+	if (link === undefined) {
+		// if no link, generate link and add to cache
+		chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
+			.then(link => {
+				chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
+				setDidComputeCodespanLink(true) // rerender
+			})
 
 	}
 
+	// If it's a file path, shorten it and add tooltip
+	let displayText = link?.displayText || text
+	let tooltip: string | undefined = undefined
+
+	if (link?.uri && isValidUri(displayText)) {
+		tooltip = getRelative(URI.file(displayText), accessor)  // Full path as tooltip
+		displayText = getBasename(displayText)
+	}
 
 	const onClick = () => {
 		if (!link || !link.selection) return;
@@ -141,9 +154,10 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	}
 
 	return <Codespan
-		text={link?.displayText || text}
+		text={displayText}
 		onClick={onClick}
 		className={link ? 'underline hover:brightness-90 transition-all duration-200 cursor-pointer' : ''}
+		tooltip={tooltip || undefined}
 	/>
 }
 

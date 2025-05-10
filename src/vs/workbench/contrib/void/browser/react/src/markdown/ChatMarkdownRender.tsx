@@ -137,11 +137,10 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 	}
 
-	// If it's a file path, shorten it and add tooltip
+	// If it's a file path, shorten it and add tooltip (whether or not it's a link)
 	let displayText = link?.displayText || text
 	let tooltip: string | undefined = undefined
-
-	if (link?.uri && isValidUri(displayText)) {
+	if (isValidUri(displayText)) {
 		tooltip = getRelative(URI.file(displayText), accessor)  // Full path as tooltip
 		displayText = getBasename(displayText)
 	}

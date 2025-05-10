@@ -11,30 +11,27 @@
 
 Void is the open-source Cursor alternative.
 
+Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data.
+
 This repo contains the full sourcecode for Void. If you're new, welcome!
+
+- 🧭 [Website](https://voideditor.com)
 
 - 👋 [Discord](https://discord.gg/RSNjgaugJs)
 
-- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md)
+- 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
 
-- 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
-
-- 📝 [Changelog](https://voideditor.com/changelog)
-
-- 🧭 [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md)
 
 ## Contributing
 
-1. To get started working on Void, see [`HOW_TO_CONTRIBUTE`](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+1. To get started working on Void, check out our Project Board! You can also see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
-2. Feel free to attend a weekly meeting in our Discord channel!
-
-3. We're open to collaborations and suggestions of all types - just reach out.
+2. Feel free to attend a casual weekly meeting in our Discord channel!
 
 
 ## Reference
 
-[Void](https://voideditor.com) is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the codebase, see [`VOID_CODEBASE_GUIDE`](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
+Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the codebase, see [VOID_CODEBASE_GUIDE](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
 
 ## Support
 You can always reach us in our Discord server or contact us via email: hello@voideditor.com.

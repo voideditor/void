@@ -283,6 +283,7 @@ export const ApplyButtonsHTML = ({
 			const uri = getUriBeingApplied(applyBoxId)
 			if (uri) editCodeService.interruptURIStreaming({ uri: uri })
 			notificationService.info(`Void Error: There was a problem running Apply: ${e}.`)
+
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 

@@ -237,18 +237,6 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 }
 
 
-
-
-export type GeminiMessage = {
-	role: 'user' | 'model'; // Gemini uses 'user' and 'model' roles
-	parts: (
-		| { text: string; }
-		| { functionCall: { tool_call: any } }
-		| { functionResponse: { name: ToolName, response: { result: string } } }
-	)[];
-};
-
-
 // --- CHAT ---
 
 const prepareOpenAIOrAnthropicMessages = ({
@@ -457,7 +445,7 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 					}
 					else if (c.type === 'tool_use') {
 						latestToolName = c.name as ToolName
-						return { functionCall: { name: c.name as ToolName, args: c.input } }
+						return { functionCall: { id: c.id, name: c.name as ToolName, args: c.input } }
 					}
 					else return null
 				}).filter(m => !!m)
@@ -475,7 +463,7 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 					}
 					else if (c.type === 'tool_result') {
 						if (!latestToolName) return null
-						return { functionResponse: { name: latestToolName, response: { result: c.content } } }
+						return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
 					}
 					else return null
 				}).filter(m => !!m)

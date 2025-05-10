@@ -10,11 +10,11 @@ import { Ollama } from 'ollama';
 import OpenAI, { ClientOptions } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
-import { GoogleGenerativeAI, Tool as GeminiTool, SchemaType, FunctionDeclaration, FunctionDeclarationSchemaProperty } from '@google/generative-ai';
+import { Tool as GeminiTool, FunctionDeclaration, GoogleGenAI, ThinkingConfig, Schema, Type } from '@google/genai';
 import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
-import { AnthropicLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
@@ -642,24 +642,23 @@ const sendOllamaFIM = ({ messages, onFinalMessage, onError, settingsOfProvider, 
 
 // ---------------- GEMINI NATIVE IMPLEMENTATION ----------------
 
-
-
 const toGeminiFunctionDecl = (toolInfo: InternalToolInfo) => {
 	const { name, description, params } = toolInfo
-	const paramsWithType: { [k: string]: FunctionDeclarationSchemaProperty } = {}
-	for (const key in params) {
-		paramsWithType[key] = { type: SchemaType.STRING, ...params[key] }
-	}
 	return {
 		name,
 		description,
 		parameters: {
-			type: SchemaType.OBJECT,
-			properties: paramsWithType,
+			type: Type.OBJECT,
+			properties: Object.entries(params).reduce((acc, [key, value]) => {
+				acc[key] = {
+					type: Type.STRING,
+					description: value.description
+				};
+				return acc;
+			}, {} as Record<string, Schema>)
 		}
 	} satisfies FunctionDeclaration
 }
-
 
 const geminiTools = (chatMode: ChatMode): GeminiTool[] | null => {
 	const allowedTools = availableTools(chatMode)
@@ -700,27 +699,29 @@ const sendGeminiChat = async ({
 		// reasoningCapabilities,
 	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
-	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
+	// const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
 
 	// reasoning
 	// const { canIOReasoning, openSourceThinkTags, } = reasoningCapabilities || {}
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
-	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
+	// const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
+
+	console.log('reasoning info', JSON.stringify(reasoningInfo))
+
+	const thinkingConfig: ThinkingConfig | undefined = !reasoningInfo?.isReasoningEnabled ? undefined
+		: reasoningInfo.type === 'budget_slider_value' ?
+			{ thinkingBudget: reasoningInfo.reasoningBudget }
+			: undefined
 
 	// tools
-	const potentialTools = chatMode !== null ? geminiTools(chatMode) : null
-	const nativeToolsObj = potentialTools && specialToolFormat === 'gemini-style' ?
-		{ tools: potentialTools } as const
-		: {}
+	const potentialTools = chatMode !== null ? geminiTools(chatMode) : undefined
+	const toolConfig = potentialTools && specialToolFormat === 'gemini-style' ?
+		potentialTools
+		: undefined
 
 	// instance
-	const genAI = new GoogleGenerativeAI(
-		thisConfig.apiKey
-	);
-	const model = genAI.getGenerativeModel({
-		systemInstruction: separateSystemMessage,
-		model: modelName,
-	});
+	const genAI = new GoogleGenAI({ apiKey: thisConfig.apiKey });
+
 
 	// manually parse out tool results if XML
 	if (!specialToolFormat) {
@@ -736,23 +737,30 @@ const sendGeminiChat = async ({
 	let toolName = ''
 	let toolParamsStr = ''
 
-	model.generateContentStream({
-		systemInstruction: separateSystemMessage ?? undefined,
-		contents: messages as any,
-		...includeInPayload,
-		...nativeToolsObj,
+	console.log('TOOL!', toolConfig)
+	console.log('REAS!', thinkingConfig)
+
+
+	genAI.models.generateContentStream({
+		model: modelName,
+		config: {
+			systemInstruction: separateSystemMessage,
+			thinkingConfig: thinkingConfig,
+			tools: toolConfig,
+		},
+		contents: messages as GeminiLLMChatMessage[],
 	})
-		.then(async ({ stream, response }) => {
+		.then(async (stream) => {
 			_setAborter(() => { stream.return(fullTextSoFar); });
 
 			// Process the stream
 			for await (const chunk of stream) {
 				// message
-				const newText = chunk.text() ?? ''
+				const newText = chunk.text ?? ''
 				fullTextSoFar += newText
 
 				// tool call
-				const functionCalls = chunk.functionCalls()
+				const functionCalls = chunk.functionCalls
 				if (functionCalls && functionCalls.length > 0) {
 					const functionCall = functionCalls[0] // Get the first function call
 					toolName = functionCall.name ?? ''

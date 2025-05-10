@@ -255,6 +255,7 @@ export const ApplyButtonsHTML = ({
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
 	const terminalToolService = accessor.get('ITerminalToolService')
+	const notificationService = accessor.get('INotificationService')
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
@@ -296,13 +297,18 @@ export const ApplyButtonsHTML = ({
 			uri: uri,
 			startBehavior: 'reject-conflicts',
 		}) ?? []
-		console.log('setting!!!', newApplyingUri)
 		setApplying(newApplyingUri)
+
+		if (!applyDonePromise) {
+			notificationService.info(`Void Error: We couldn't run Apply here. ${uri === 'current' ? 'This Apply block wants to run on the current file, but you might not have a file open.' : `This Apply block wants to run on ${uri.fsPath}, but it might not exist.`}`)
+		}
 
 		// catch any errors by interrupting the stream
 		applyDonePromise?.catch(e => {
 			const uri = getUriBeingApplied(applyBoxId)
 			if (uri) editCodeService.interruptURIStreaming({ uri: uri })
+			notificationService.info(`Void Error: There was a problem running Apply: ${e}.`)
+
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 

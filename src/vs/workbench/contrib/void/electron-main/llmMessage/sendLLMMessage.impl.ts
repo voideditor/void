@@ -732,6 +732,7 @@ const sendGeminiChat = async ({
 
 	let toolName = ''
 	let toolParamsStr = ''
+	let toolId = ''
 
 
 	genAI.models.generateContentStream({
@@ -758,6 +759,7 @@ const sendGeminiChat = async ({
 					const functionCall = functionCalls[0] // Get the first function call
 					toolName = functionCall.name ?? ''
 					toolParamsStr = JSON.stringify(functionCall.args ?? {})
+					toolId += functionCall.id ?? ''
 				}
 
 				// (do not handle reasoning yet)
@@ -766,7 +768,7 @@ const sendGeminiChat = async ({
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: isAToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' } : undefined,
+					toolCall: isAToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } : undefined,
 				})
 			}
 
@@ -774,7 +776,7 @@ const sendGeminiChat = async ({
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			} else {
-				const toolId = generateUuid() // gemini does not generate tool IDs. Generate one
+				if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
 				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });

@@ -245,8 +245,6 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
-	console.log('include', includeInPayload)
-	console.log('reasoningInfo', reasoningInfo)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
@@ -706,8 +704,6 @@ const sendGeminiChat = async ({
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	// const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
-	console.log('reasoning info', JSON.stringify(reasoningInfo))
-
 	const thinkingConfig: ThinkingConfig | undefined = !reasoningInfo?.isReasoningEnabled ? undefined
 		: reasoningInfo.type === 'budget_slider_value' ?
 			{ thinkingBudget: reasoningInfo.reasoningBudget }
@@ -736,9 +732,6 @@ const sendGeminiChat = async ({
 
 	let toolName = ''
 	let toolParamsStr = ''
-
-	console.log('TOOL!', toolConfig)
-	console.log('REAS!', thinkingConfig)
 
 
 	genAI.models.generateContentStream({

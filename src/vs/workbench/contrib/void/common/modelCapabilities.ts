@@ -63,6 +63,7 @@ export const defaultProviderSettings = {
 	databricks: {
 		token: '',
 		workspace: '',
+		maxTokens: 4096,
 	},
 } as const
 

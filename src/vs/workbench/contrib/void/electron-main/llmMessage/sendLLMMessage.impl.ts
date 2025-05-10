@@ -143,7 +143,6 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	else if (providerName === 'databricks') {
 		const thisConfig = settingsOfProvider[providerName]
 		const baseURL = `https://${thisConfig.workspace}/serving-endpoints`
-		console.log('baseURL', baseURL)
 		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.token, ...commonPayloadOpts })
 	}
 
@@ -252,26 +251,21 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
-	console.log('include', includeInPayload)
-	console.log('reasoningInfo', reasoningInfo)
-	console.log('modelName', modelName)
-	console.log('providerName', providerName)
-	console.log('settingsOfProvider', settingsOfProvider)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
 		{ tools: potentialTools } as const
 		: {}
 
+	const thisConfig = settingsOfProvider[providerName]
+	const maxTokens = thisConfig.maxTokens ?? 4096
 	// instance
 	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
-	console.log('baseUrl', openai.baseURL)
-	console.log('url', openai.buildURL('completions', { model: modelName }))
-	console.log('apiKey', openai.apiKey)
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
 		stream: true,
+		max_tokens: maxTokens,
 		...nativeToolsObj,
 		// max_completion_tokens: maxTokens,
 	}

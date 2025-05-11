@@ -236,6 +236,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		modelName,
 		specialToolFormat,
 		reasoningCapabilities,
+		additionalConfig
 	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
@@ -245,8 +246,11 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
 
+	const additionalOpenAIPayload = additionalConfig || {}
+
 	console.log('include', includeInPayload)
 	console.log('reasoningInfo', reasoningInfo)
+	console.log('additionalOpenAIPayload', additionalOpenAIPayload)
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
 	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
@@ -260,6 +264,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		messages: messages as any,
 		stream: true,
 		...nativeToolsObj,
+		...additionalOpenAIPayload
 		// max_completion_tokens: maxTokens,
 	}
 

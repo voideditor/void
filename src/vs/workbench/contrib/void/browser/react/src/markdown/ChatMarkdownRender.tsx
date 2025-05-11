@@ -120,30 +120,33 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 	const [didComputeCodespanLink, setDidComputeCodespanLink] = useState<boolean>(false)
 
 	let link: CodespanLocationLink | undefined = undefined
-
-	if (!rawText.endsWith('`')) return null
-
-
-	// get link from cache
-	link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
-
-	if (link === undefined) {
-		// if no link, generate link and add to cache
-		chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
-			.then(link => {
-				chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
-				setDidComputeCodespanLink(true) // rerender
-			})
-
-	}
-
-	// If it's a file path, shorten it and add tooltip (whether or not it's a link)
-	let displayText = link?.displayText || text
 	let tooltip: string | undefined = undefined
-	if (isValidUri(displayText)) {
-		tooltip = getRelative(URI.file(displayText), accessor)  // Full path as tooltip
-		displayText = getBasename(displayText)
+	let displayText = text
+
+
+	if (rawText.endsWith('`')) {
+		// get link from cache
+		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
+
+		if (link === undefined) {
+			// if no link, generate link and add to cache
+			chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
+				.then(link => {
+					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
+					setDidComputeCodespanLink(true) // rerender
+				})
+		}
+
+		if (link?.displayText) {
+			displayText = link.displayText
+		}
+
+		if (isValidUri(displayText)) {
+			tooltip = getRelative(URI.file(displayText), accessor)  // Full path as tooltip
+			displayText = getBasename(displayText)
+		}
 	}
+
 
 	const onClick = () => {
 		if (!link) return;

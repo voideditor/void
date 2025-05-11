@@ -448,7 +448,7 @@ const anthropicModelOptions = {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
 			canIOReasoning: true,
-			reasoningReservedOutputTokenSpace: 64_000, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
 			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
 		},
 
@@ -718,6 +718,7 @@ const xAISettings: VoidStaticProviderInfo = {
 
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	// https://ai.google.dev/gemini-api/docs/thinking#set-budget
 	'gemini-2.5-pro-preview-05-06': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
@@ -726,7 +727,13 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // max is really 24576
+			reasoningReservedOutputTokenSpace: 8192,
+		},
 	},
 	'gemini-2.0-flash-lite': {
 		contextWindow: 1_048_576,
@@ -736,7 +743,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: false, // no reasoning
 	},
 	'gemini-2.5-flash-preview-04-17': {
 		contextWindow: 1_048_576,
@@ -746,7 +753,13 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // max is really 24576
+			reasoningReservedOutputTokenSpace: 8192,
+		},
 	},
 	'gemini-2.5-pro-exp-03-25': {
 		contextWindow: 1_048_576,
@@ -756,7 +769,13 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // max is really 24576
+			reasoningReservedOutputTokenSpace: 8192,
+		},
 	},
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
@@ -766,7 +785,13 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { // thinking: experimental as of 5-10-25
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // max is really 24576
+			reasoningReservedOutputTokenSpace: 8192,
+		},
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,
@@ -1147,7 +1172,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 			supportsReasoning: true,
 			canTurnOffReasoning: false,
 			canIOReasoning: true,
-			reasoningReservedOutputTokenSpace: 64_000,
+			reasoningReservedOutputTokenSpace: 8192,
 			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000.
 		},
 	},
@@ -1350,8 +1375,7 @@ export const getSendableReasoningInfo = (
 	overridesOfModel: OverridesOfModel | undefined,
 ): SendableReasoningInfo => {
 
-	const { canIOReasoning, reasoningSlider: reasoningBudgetSlider } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
-	if (!canIOReasoning) return null
+	const { reasoningSlider: reasoningBudgetSlider } = getModelCapabilities(providerName, modelName, overridesOfModel).reasoningCapabilities || {}
 	const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
 	if (!isReasoningEnabled) return null
 

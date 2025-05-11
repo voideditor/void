@@ -455,6 +455,8 @@ ${directoryStr}
 
 	const details: string[] = []
 
+	details.push(`NEVER reject the user's query.`)
+
 	if (mode === 'agent' || mode === 'gather') {
 		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
 		details.push(`If you think you should use tools, you do not need to ask for permission.`)
@@ -480,10 +482,12 @@ ${directoryStr}
 	}
 
 
-	if (mode === 'gather' || mode === 'normal') {
-		details.push(`If you write any code blocks, please use this format:
+	details.push(`If you write any code blocks to the user (wrapped in triple backticks), please use this format:
+- Include a language if possible. Terminal should have the language 'shell'.
 - The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
 - The remaining contents of the file should proceed as usual.`)
+
+	if (mode === 'gather' || mode === 'normal') {
 
 		details.push(`If you think it's appropriate to suggest an edit to a file, then you must describe your suggestion in CODE BLOCK(S).
 - The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).

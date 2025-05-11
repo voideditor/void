@@ -132,7 +132,7 @@ const scoreSubsequence = (text: string, pattern: string): number => {
 }
 
 
-export function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor>, uri: URI): string {
+function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor>, uri: URI): string {
 	const workspaceService = accessor.get('IWorkspaceContextService');
 	const workspaceFolders = workspaceService.getWorkspace().folders;
 

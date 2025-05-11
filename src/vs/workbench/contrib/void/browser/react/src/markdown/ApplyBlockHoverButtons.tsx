@@ -311,7 +311,6 @@ export const ApplyButtonsHTML = ({
 
 
 	const currStreamState = currStreamStateRef.current
-	console.log('currStreamState...', currStreamState)
 
 	if (currStreamState === 'streaming') {
 		return <IconShell1

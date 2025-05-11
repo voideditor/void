@@ -17,6 +17,7 @@ import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
 
+export const EMPTY_MESSAGE = '(empty message)'
 
 
 
@@ -36,7 +37,6 @@ type SimpleLLMMessage = {
 }
 
 
-const EMPTY_MESSAGE = '(empty message)'
 
 const CHARS_PER_TOKEN = 4 // assume abysmal chars per token
 const TRIM_TO_LEN = 120
@@ -237,18 +237,6 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 }
 
 
-
-
-export type GeminiMessage = {
-	role: 'user' | 'model'; // Gemini uses 'user' and 'model' roles
-	parts: (
-		| { text: string; }
-		| { functionCall: { tool_call: any } }
-		| { functionResponse: { name: ToolName, response: { result: string } } }
-	)[];
-};
-
-
 // --- CHAT ---
 
 const prepareOpenAIOrAnthropicMessages = ({
@@ -417,14 +405,24 @@ const prepareOpenAIOrAnthropicMessages = ({
 
 
 	// ================ no empty message ================
-	for (const currMsg of llmMessages) {
+	for (let i = 0; i < llmMessages.length; i += 1) {
+		const currMsg: AnthropicOrOpenAILLMMessage = llmMessages[i]
+		const nextMsg: AnthropicOrOpenAILLMMessage | undefined = llmMessages[i + 1]
+
 		if (currMsg.role === 'tool') continue
 
 		// if content is a string, replace string with empty msg
-		if (typeof currMsg.content === 'string')
+		if (typeof currMsg.content === 'string') {
 			currMsg.content = currMsg.content || EMPTY_MESSAGE
+		}
 		else {
-			// if content is an array, replace any empty text entries with empty msg, and make sure there's at least 1 entry
+			// allowed to be empty if has a tool in it or following it
+			if (currMsg.content.find(c => c.type === 'tool_result' || c.type === 'tool_use')) {
+				continue
+			}
+			if (nextMsg?.role === 'tool') continue
+
+			// replace any empty text entries with empty msg, and make sure there's at least 1 entry
 			for (const c of currMsg.content) {
 				if (c.type === 'text') c.text = c.text || EMPTY_MESSAGE
 			}
@@ -457,7 +455,7 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 					}
 					else if (c.type === 'tool_use') {
 						latestToolName = c.name as ToolName
-						return { functionCall: { name: c.name as ToolName, args: c.input } }
+						return { functionCall: { id: c.id, name: c.name as ToolName, args: c.input } }
 					}
 					else return null
 				}).filter(m => !!m)
@@ -475,7 +473,7 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 					}
 					else if (c.type === 'tool_result') {
 						if (!latestToolName) return null
-						return { functionResponse: { name: latestToolName, response: { result: c.content } } }
+						return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
 					}
 					else return null
 				}).filter(m => !!m)

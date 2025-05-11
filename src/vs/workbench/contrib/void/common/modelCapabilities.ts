@@ -137,7 +137,7 @@ export const defaultModelsOfProvider = {
 	],
 	cohere: [ // https://docs.cohere.com/docs/models
 		'command-a-03-2025',
-	]
+	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
 	microsoftAzure: [],

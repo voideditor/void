@@ -759,7 +759,7 @@ const sendGeminiChat = async ({
 					const functionCall = functionCalls[0] // Get the first function call
 					toolName = functionCall.name ?? ''
 					toolParamsStr = JSON.stringify(functionCall.args ?? {})
-					toolId += functionCall.id ?? ''
+					toolId = functionCall.id ?? ''
 				}
 
 				// (do not handle reasoning yet)

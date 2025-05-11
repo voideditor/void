@@ -117,20 +117,33 @@ registerAction2(class extends Action2 {
 		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
 
 		// if has no selection, close + return
-		if (!selectionRange) {
-			viewsService.closeViewContainer(VOID_VIEW_CONTAINER_ID);
-			return;
-		}
+		// if (!selectionRange) {
+		// 	viewsService.closeViewContainer(VOID_VIEW_CONTAINER_ID);
+		// 	return;
+		// }
 
-		// if has selection, add it
-		editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
-		chatThreadService.addNewStagingSelection({
-			type: 'CodeSelection',
-			uri: model.uri,
-			language: model.getLanguageId(),
-			range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
-			state: { wasAddedAsCurrentFile: false },
-		})
+
+		// add line selection
+		if (selectionRange) {
+			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
+			chatThreadService.addNewStagingSelection({
+				type: 'CodeSelection',
+				uri: model.uri,
+				language: model.getLanguageId(),
+				range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
+				state: { wasAddedAsCurrentFile: false },
+			})
+		}
+		// add file
+		else {
+			chatThreadService.addNewStagingSelection({
+				type: 'File',
+				uri: model.uri,
+				language: model.getLanguageId(),
+				state: { wasAddedAsCurrentFile: false },
+			})
+
+		}
 
 		await chatThreadService.focusCurrentChat()
 

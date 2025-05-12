@@ -89,10 +89,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-
-
-		// Get the views service to check if the sidebar is open
-		// const viewsService = accessor.get(IViewsService)
+		// Get services
 		const commandService = accessor.get(ICommandService)
 		const viewsService = accessor.get(IViewsService)
 		const metricsService = accessor.get(IMetricsService)
@@ -101,31 +98,28 @@ registerAction2(class extends Action2 {
 
 		metricsService.capture('Ctrl+L', {})
 
+		// Capture selection and model BEFORE opening the chat panel
+		const editor = editorService.getActiveCodeEditor()
+		const model = editor?.getModel()
+		if (!model) return
+
+		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
+
+		// Now check if panel is open and open it if needed
 		const wasAlreadyOpen = viewsService.isViewContainerVisible(VOID_VIEW_CONTAINER_ID)
 		if (!wasAlreadyOpen) {
 			await commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
-			return
 		}
 
-
-		// if was already open
-
-		const model = accessor.get(ICodeEditorService).getActiveCodeEditor()?.getModel()
-		if (!model) return
-
-		const editor = editorService.getActiveCodeEditor()
-		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
-
-		// if has no selection, close + return
-		// if (!selectionRange) {
-		// 	viewsService.closeViewContainer(VOID_VIEW_CONTAINER_ID);
-		// 	return;
-		// }
-
-
+		// Add selection to chat (whether it was already open or we just opened it)
 		// add line selection
 		if (selectionRange) {
-			editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
+			editor?.setSelection({
+				startLineNumber: selectionRange.startLineNumber,
+				endLineNumber: selectionRange.endLineNumber,
+				startColumn: 1,
+				endColumn: Number.MAX_SAFE_INTEGER
+			})
 			chatThreadService.addNewStagingSelection({
 				type: 'CodeSelection',
 				uri: model.uri,
@@ -142,12 +136,9 @@ registerAction2(class extends Action2 {
 				language: model.getLanguageId(),
 				state: { wasAddedAsCurrentFile: false },
 			})
-
 		}
 
 		await chatThreadService.focusCurrentChat()
-
-
 	}
 })
 

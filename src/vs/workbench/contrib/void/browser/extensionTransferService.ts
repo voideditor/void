@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { VSBuffer } from '../../../../base/common/buffer.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { env } from '../../../../base/common/process.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -29,6 +30,7 @@ export const IExtensionTransferService = createDecorator<IExtensionTransferServi
 const extensionBlacklist = [
 	// ignore extensions
 	'ms-vscode-remote.remote', // ms-vscode-remote.remote-ssh, ms-vscode-remote.remote-wsl
+	'ms-vscode.remote', // ms-vscode.remote-explorer
 	// ignore other AI copilots that could conflict with Void keybindings
 	'sourcegraph.cody-ai',
 	'continue.continue',
@@ -93,9 +95,29 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 							}
 							const from = extensionFolder.resource
 							const to = URI.joinPath(toParent, extensionFolder.name)
-							await fileService.copy(from, to, true)
+							const toStat = await fileService.resolve(from)
+
+							if (toStat.isDirectory) {
+								await fileService.copy(from, to, true)
+							}
+							else if (toStat.isFile) {
+								if (extensionFolder.name === 'extensions.json') {
+									try {
+										const contentsStr = await fileService.readFile(from)
+										const json: any = JSON.parse(contentsStr.value.toString())
+										const j2 = json.filter((entry: { identifier?: { id?: string } }) =>
+											!extensionBlacklist.find(bItem => entry?.identifier?.id?.includes(bItem))
+										)
+										const jsonStr = JSON.stringify(j2)
+										await fileService.writeFile(to, VSBuffer.fromString(jsonStr))
+									}
+									catch {
+										console.log('Error copying extensions.json, skipping')
+									}
+								}
+							}
 						}
-						// Ensure the destination directory exists
+
 					} else {
 						console.log(`Skipping file that doesn't exist: ${from.toString()}`)
 					}
@@ -113,9 +135,10 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 	}
 
 	async deleteBlacklistExtensions(os: 'mac' | 'windows' | 'linux' | null) {
+		const fileService = this._fileService
 		const extensionsURI = getExtensionsFolder(os)
 		if (!extensionsURI) return
-		const eURI = await this._fileService.resolve(extensionsURI)
+		const eURI = await fileService.resolve(extensionsURI)
 		for (const child of eURI.children ?? []) {
 
 			// if is not blacklisted, continue
@@ -124,8 +147,26 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 			}
 
 			try {
-				console.log('Deleting extension', child.resource.fsPath)
-				await this._fileService.del(child.resource, { recursive: true, useTrash: true })
+				if (child.isDirectory) {
+					console.log('Deleting extension', child.resource.fsPath)
+					await fileService.del(child.resource, { recursive: true, useTrash: true })
+				}
+				else if (child.isFile) {
+					if (child.name === 'extensions.json') {
+						try {
+							const contentsStr = await fileService.readFile(child.resource)
+							const json: any = JSON.parse(contentsStr.value.toString())
+							const j2 = json.filter((entry: { identifier?: { id?: string } }) =>
+								!extensionBlacklist.find(bItem => entry?.identifier?.id?.includes(bItem))
+							)
+							const jsonStr = JSON.stringify(j2)
+							await fileService.writeFile(child.resource, VSBuffer.fromString(jsonStr))
+						}
+						catch {
+							console.log('Error copying extensions.json, skipping')
+						}
+					}
+				}
 			}
 			catch (e) {
 				console.error('Could not delete extension', child.resource.fsPath, e)

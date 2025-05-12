@@ -248,7 +248,6 @@ export const ApplyButtonsHTML = ({
 	codeStr: string,
 	applyBoxId: string,
 	language?: string,
-} & {
 	uri: URI | 'current';
 }) => {
 	const accessor = useAccessor()
@@ -270,16 +269,19 @@ export const ApplyButtonsHTML = ({
 	const onClickSubmit = useCallback(async () => {
 		if (currStreamStateRef.current === 'streaming' || isShellRunning) return
 
-		// For shell scripts, run in terminal instead of applying to file
+		// for shell scripts, run in terminal instead of applying to file
 		if (isShellLanguage) {
 			try {
 				setIsShellRunning(true)
-				// Create a terminal if none exists or use terminal 1
+				// create a terminal if none exists or use terminal 1
 				const terminalIds = terminalToolService.listPersistentTerminalIds()
-				let terminalId = '1';
-				if (!terminalIds.includes(terminalId)) {
+
+				let terminalId: string
+				if (terminalIds.length !== 0)
+					terminalId = terminalIds[0] // use 1st terminal id
+				else
 					terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
-				}
+
 				const { interrupt } = await terminalToolService.runCommand(
 					codeStr,
 					{ type: 'persistent', persistentTerminalId: terminalId }

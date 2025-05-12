@@ -25,7 +25,7 @@ import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../co
 import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { approvalTypeOfToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes, ToolCallParams } from '../../../../common/toolsServiceTypes.js';
-import { CopyButton, EditToolButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
+import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName, toolNames } from '../../../../common/prompt/prompts.js';
@@ -495,12 +495,12 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 	);
 };
 
-const getRelative = (uri: URI, accessor: ReturnType<typeof useAccessor>) => {
+export const getRelative = (uri: URI, accessor: ReturnType<typeof useAccessor>) => {
 	const workspaceContextService = accessor.get('IWorkspaceContextService')
 	let path: string
 	const isInside = workspaceContextService.isInsideWorkspace(uri)
 	if (isInside) {
-		const f = workspaceContextService.getWorkspace().folders.find(f => uri.fsPath.startsWith(f.uri.fsPath))
+		const f = workspaceContextService.getWorkspace().folders.find(f => uri.fsPath?.startsWith(f.uri.fsPath))
 		if (f) { path = uri.fsPath.replace(f.uri.fsPath, '') }
 		else { path = uri.fsPath }
 	}
@@ -928,6 +928,7 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 			uri={params.uri}
 			codeStr={content}
 			toolName={name}
+			threadId={threadId}
 		/>
 
 		// add children
@@ -1650,8 +1651,8 @@ const LintErrorChildren = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
 }
 
 const BottomChildren = ({ children, title }: { children: React.ReactNode, title: string }) => {
-	if (!children) return null;
 	const [isOpen, setIsOpen] = useState(false);
+	if (!children) return null;
 	return (
 		<div className="w-full px-2 mt-0.5">
 			<div
@@ -1676,13 +1677,13 @@ const BottomChildren = ({ children, title }: { children: React.ReactNode, title:
 }
 
 
-const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr, toolName }: { applyBoxId: string, uri: URI, codeStr: string, toolName: 'edit_file' | 'rewrite_file' }) => {
+const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr, toolName, threadId }: { threadId: string, applyBoxId: string, uri: URI, codeStr: string, toolName: 'edit_file' | 'rewrite_file' }) => {
 	const { streamState } = useEditToolStreamState({ applyBoxId, uri })
 	return <div className='flex items-center gap-1'>
-		<StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} />
-		<JumpToFileButton uri={uri} />
+		{/* <StatusIndicatorForApplyButton applyBoxId={applyBoxId} uri={uri} /> */}
+		{/* <JumpToFileButton uri={uri} /> */}
 		{streamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
-		<EditToolButtonsHTML type={toolName} codeStr={codeStr} applyBoxId={applyBoxId} uri={uri} />
+		<EditToolAcceptRejectButtonsHTML type={toolName} codeStr={codeStr} applyBoxId={applyBoxId} uri={uri} threadId={threadId} />
 	</div>
 }
 
@@ -1727,7 +1728,6 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	const commandService = accessor.get('ICommandService')
 	const terminalToolsService = accessor.get('ITerminalToolService')
 	const toolsService = accessor.get('IToolsService')
-	const terminalService = accessor.get('ITerminalService')
 	const isError = false
 	const title = getTitle(toolMessage)
 	const { desc1, desc1Info } = toolNameToDesc(toolMessage.name, toolMessage.params, accessor)
@@ -1754,21 +1754,20 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		const terminal = terminalToolsService.getTemporaryTerminal(toolMessage.params.terminalId);
 		if (!terminal) return;
 
-		terminal.detachFromElement();
-		terminal.attachToElement(container);
+		try {
+			terminal.attachToElement(container);
+			terminal.setVisible(true)
+		} catch {
+		}
 
-		// Listen for size changes
+		// Listen for size changes of the container and keep the terminal layout in sync.
 		const resizeObserver = new ResizeObserver((entries) => {
-			const height = entries[0].borderBoxSize[0].blockSize
-			const width = entries[0].borderBoxSize[0].inlineSize
-			// Layout terminal to fit container dimensions
+			const height = entries[0].borderBoxSize[0].blockSize;
+			const width = entries[0].borderBoxSize[0].inlineSize;
 			if (typeof terminal.layout === 'function') {
-				terminalService.setActiveInstance(terminal)
-				terminal.attachToElement(container);
 				terminal.layout({ width, height });
-
 			}
-		})
+		});
 
 		resizeObserver.observe(container);
 		return () => { terminal.detachFromElement(); resizeObserver?.disconnect(); }
@@ -1790,6 +1789,10 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		if (type === 'run_command') msg = toolsService.stringOfResult['run_command'](toolMessage.params, result)
 		else msg = toolsService.stringOfResult['run_persistent_command'](toolMessage.params, result)
 
+		if (type === 'run_persistent_command') {
+			componentParams.info = persistentTerminalNameOfId(toolMessage.params.persistentTerminalId)
+		}
+
 		componentParams.children = <ToolChildrenWrapper className='whitespace-pre text-nowrap overflow-auto text-sm'>
 			<div className='!select-text cursor-auto'>
 				<BlockCode initValue={`${msg.trim()}`} language='shellscript' />
@@ -1805,13 +1808,14 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 		</BottomChildren>
 	}
 	else if (toolMessage.type === 'running_now') {
-		componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
+		if (type === 'run_command')
+			componentParams.children = <div ref={divRef} className='relative h-[300px] text-sm' />
 	}
 	else if (toolMessage.type === 'rejected' || toolMessage.type === 'tool_request') {
 	}
 
 	return <>
-		<ToolHeaderWrapper {...componentParams} isOpen={toolMessage.type === 'running_now' ? true : undefined} />
+		<ToolHeaderWrapper {...componentParams} isOpen={type === 'run_command' && toolMessage.type === 'running_now' ? true : undefined} />
 	</>
 }
 
@@ -1901,7 +1905,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					</SmallProseWrapper>
 				</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -1956,7 +1960,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 						}
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -2005,7 +2009,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -2060,7 +2064,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -2292,7 +2296,9 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 			const { rawParams, params } = toolMessage
 			const componentParams: ToolHeaderParams = { title, desc1, desc1Info, isError, icon, isRejected, }
 
-			componentParams.info = params.cwd ? `Running in ${getRelative(URI.file(params.cwd), accessor)}` : ''
+			const relativePath = params.cwd ? getRelative(URI.file(params.cwd), accessor) : ''
+			componentParams.info = relativePath ? `Running in ${relativePath}` : undefined
+
 			if (toolMessage.type === 'success') {
 				const { result } = toolMessage
 				const { persistentTerminalId } = result

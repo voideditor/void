@@ -94,7 +94,7 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 			const data = await response.json();
 			const version = data.tag_name;
 
-			const myVersion = `${this._productService.version}.${this._productService.release}`
+			const myVersion = this._productService.version
 			const latestVersion = version
 
 			const isUpToDate = myVersion === latestVersion // only makes sense if response.ok

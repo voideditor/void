@@ -12,7 +12,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { chat_userMessageContent, ToolName, } from '../common/prompt/prompts.js';
-import { getErrorMessage, RawToolCallObj, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
+import { AnthropicReasoning, getErrorMessage, RawToolCallObj, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
@@ -540,7 +540,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const { name, id, rawParams } = lastMsg
 
-		const errorMessage = this.errMsgs.rejected
+		const errorMessage = this.toolErrMsgs.rejected
 		this._updateLatestTool(threadId, { role: 'tool', type: 'rejected', params: params, name: name, content: errorMessage, result: null, id, rawParams })
 		this._setStreamState(threadId, undefined)
 	}
@@ -557,7 +557,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 		// add tool that's running
 		else if (this.streamState[threadId]?.isRunning === 'tool') {
-			const { toolName, toolParams, id, content, rawParams } = this.streamState[threadId].toolInfo
+			const { toolName, toolParams, id, content: content_, rawParams } = this.streamState[threadId].toolInfo
+			const content = content_ || this.toolErrMsgs.interrupted
 			this._updateLatestTool(threadId, { role: 'tool', name: toolName, params: toolParams, id, content, rawParams, type: 'rejected', result: null })
 		}
 		// reject the tool for the user if relevant
@@ -581,8 +582,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-	private readonly errMsgs = {
+	private readonly toolErrMsgs = {
 		rejected: 'Tool call was rejected by the user.',
+		interrupted: 'Tool call was interrupted by the user.',
 		errWhenStringifying: (error: any) => `Tool call succeeded, but there was an error stringifying the output.\n${getErrorMessage(error)}`
 	}
 
@@ -671,7 +673,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		try {
 			toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
 		} catch (error) {
-			const errorMessage = this.errMsgs.errWhenStringifying(error)
+			const errorMessage = this.toolErrMsgs.errWhenStringifying(error)
 			this._updateLatestTool(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, rawParams: opts.unvalidatedToolParams })
 			return {}
 		}
@@ -749,8 +751,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				shouldRetryLLM = false
 				nAttempts += 1
 
-				let resMessageIsDonePromise: (res: { type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }) => void // resolves when user approves this tool use (or if tool doesn't require approval)
-				const messageIsDonePromise = new Promise<{ type: 'llmDone', toolCall?: RawToolCallObj } | { type: 'llmError', error?: { message: string; fullError: Error | null; } } | { type: 'llmAborted' }>((res, rej) => { resMessageIsDonePromise = res })
+				type ResTypes =
+					| { type: 'llmDone', toolCall?: RawToolCallObj, info: { fullText: string, fullReasoning: string, anthropicReasoning: AnthropicReasoning[] | null } }
+					| { type: 'llmError', error?: { message: string; fullError: Error | null; } }
+					| { type: 'llmAborted' }
+
+				let resMessageIsDonePromise: (res: ResTypes) => void // resolves when user approves this tool use (or if tool doesn't require approval)
+				const messageIsDonePromise = new Promise<ResTypes>((res, rej) => { resMessageIsDonePromise = res })
 
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
@@ -765,9 +772,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall ?? null }, interrupt: Promise.resolve(() => { if (llmCancelToken) this._llmMessageService.abort(llmCancelToken) }) })
 					},
 					onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
-						this._addMessageToThread(threadId, { role: 'assistant', displayContent: fullText, reasoning: fullReasoning, anthropicReasoning })
-						resMessageIsDonePromise({ type: 'llmDone', toolCall }) // resolve with tool calls
-
+						resMessageIsDonePromise({ type: 'llmDone', toolCall, info: { fullText, fullReasoning, anthropicReasoning } }) // resolve with tool calls
 					},
 					onError: async (error) => {
 						resMessageIsDonePromise({ type: 'llmError', error: error })
@@ -826,11 +831,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					}
 				}
 
-
-
 				// llm res success
-				const { toolCall } = llmRes
-				this._setStreamState(threadId, { isRunning: 'idle', interrupt: 'not_needed' }) // just decorative, for clarity
+				const { toolCall, info } = llmRes
+
+				this._addMessageToThread(threadId, { role: 'assistant', displayContent: info.fullText, reasoning: info.fullReasoning, anthropicReasoning: info.anthropicReasoning })
+
+				this._setStreamState(threadId, { isRunning: 'idle', interrupt: 'not_needed' }) // just decorative for clarity
 
 				// call tool if there is one
 				if (toolCall) {

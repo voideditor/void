@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
-import { useAccessor, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
 import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
@@ -253,6 +253,7 @@ export const ApplyButtonsHTML = ({
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
+	const notificationService = accessor.get('INotificationService')
 
 	const settingsState = useSettingsState()
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
@@ -271,13 +272,18 @@ export const ApplyButtonsHTML = ({
 			uri: uri,
 			startBehavior: 'reject-conflicts',
 		}) ?? []
-		console.log('setting!!!', newApplyingUri)
 		setApplying(newApplyingUri)
+
+		if (!applyDonePromise) {
+			notificationService.info(`Void Error: We couldn't run Apply here. ${uri === 'current' ? 'This Apply block wants to run on the current file, but you might not have a file open.' : `This Apply block wants to run on ${uri.fsPath}, but it might not exist.`}`)
+		}
 
 		// catch any errors by interrupting the stream
 		applyDonePromise?.catch(e => {
 			const uri = getUriBeingApplied(applyBoxId)
 			if (uri) editCodeService.interruptURIStreaming({ uri: uri })
+			notificationService.info(`Void Error: There was a problem running Apply: ${e}.`)
+
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 
@@ -305,7 +311,6 @@ export const ApplyButtonsHTML = ({
 
 
 	const currStreamState = currStreamStateRef.current
-	console.log('currStreamState...', currStreamState)
 
 	if (currStreamState === 'streaming') {
 		return <IconShell1
@@ -348,17 +353,19 @@ export const ApplyButtonsHTML = ({
 
 
 
-export const EditToolButtonsHTML = ({
+export const EditToolAcceptRejectButtonsHTML = ({
 	codeStr,
 	applyBoxId,
 	uri,
 	type,
+	threadId,
 }: {
 	codeStr: string,
 	applyBoxId: string,
 } & ({
 	uri: URI,
-	type: 'edit_file' | 'rewrite_file'
+	type: 'edit_file' | 'rewrite_file',
+	threadId: string,
 })
 ) => {
 	const accessor = useAccessor()
@@ -368,17 +375,10 @@ export const EditToolButtonsHTML = ({
 	const { streamState } = useEditToolStreamState({ applyBoxId, uri })
 	const settingsState = useSettingsState()
 
-	const isDisabled = !!isFeatureNameDisabled('Chat', settingsState) || !applyBoxId
+	const chatThreadsStreamState = useChatThreadsStreamState(threadId)
+	const isRunning = chatThreadsStreamState?.isRunning
 
-	const onClickSubmit = useCallback(async () => {
-		await editCodeService.callBeforeApplyOrEdit(uri)
-		if (type === 'edit_file') {
-			editCodeService.instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks: codeStr })
-		}
-		else if (type === 'rewrite_file') {
-			editCodeService.instantlyRewriteFile({ uri, newContent: codeStr })
-		}
-	}, [type, editCodeService, codeStr, uri, applyBoxId, metricsService])
+	const isDisabled = !!isFeatureNameDisabled('Chat', settingsState) || !applyBoxId
 
 	const onAccept = useCallback(() => {
 		editCodeService.acceptOrRejectAllDiffAreas({ uri, behavior: 'accept', removeCtrlKs: false })
@@ -392,14 +392,11 @@ export const EditToolButtonsHTML = ({
 
 	if (streamState === 'idle-no-changes') {
 		return null
-		// return <IconShell1
-		// 	Icon={RotateCw}
-		// 	onClick={onClickSubmit}
-		// 	{...tooltipPropsForApplyBlock({ tooltipName: 'Reapply' })}
-		// />
 	}
 
 	if (streamState === 'idle-has-changes') {
+		if (isRunning === 'LLM' || isRunning === 'tool') return null
+
 		return <>
 			<IconShell1
 				Icon={X}

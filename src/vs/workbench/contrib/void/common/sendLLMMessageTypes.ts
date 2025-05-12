@@ -56,13 +56,13 @@ export type GeminiLLMChatMessage = {
 	role: 'model'
 	parts: (
 		| { text: string; }
-		| { functionCall: { name: ToolName, args: object } }
+		| { functionCall: { id: string; name: ToolName, args: Record<string, unknown> } }
 	)[];
 } | {
 	role: 'user';
 	parts: (
 		| { text: string; }
-		| { functionResponse: { name: ToolName, response: { result: string } } }
+		| { functionResponse: { id: string; name: ToolName, response: { output: string } } }
 	)[];
 }
 

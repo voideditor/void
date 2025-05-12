@@ -86,7 +86,7 @@ To build Void from the terminal instead of from inside VSCode, follow the steps 
 
 - Make sure you followed the prerequisite steps above.
 - Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
-    - You can do this easily without touching your base installation with [nvm](https://github.com/nvm-sh/nvm). Simply run `nvm install`, followed by `nvm use` and it will automatically install and use the version specified in `nvmrc`
+    - You can do this easily without touching your base installation with [nvm](https://github.com/nvm-sh/nvm). Simply run `nvm install`, followed by `nvm use` and it will automatically install and use the version specified in `nvmrc`.
 - Make sure that the path to your Void folder does not have any spaces in it.
 - If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
 - If you get an error with React, try running `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.

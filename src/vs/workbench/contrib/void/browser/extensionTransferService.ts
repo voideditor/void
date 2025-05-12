@@ -151,9 +151,9 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 				}
 				else if (child.isFile) {
 					// if is extensions.json
-					console.log('Updating extensions.json', child.resource.fsPath)
 
 					if (child.name === 'extensions.json') {
+						console.log('Updating extensions.json', child.resource.fsPath)
 						try {
 							const contentsStr = await fileService.readFile(child.resource)
 							const json: any = JSON.parse(contentsStr.value.toString())

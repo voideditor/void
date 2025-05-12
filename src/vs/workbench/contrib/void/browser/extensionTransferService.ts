@@ -141,17 +141,18 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 		const eURI = await fileService.resolve(extensionsURI)
 		for (const child of eURI.children ?? []) {
 
-			// if is not blacklisted, continue
-			if (!extensionBlacklist.find(bItem => child.resource.path.includes(bItem))) {
-				continue
-			}
 
 			try {
 				if (child.isDirectory) {
-					console.log('Deleting extension', child.resource.fsPath)
-					await fileService.del(child.resource, { recursive: true, useTrash: true })
+					// if is blacklisted
+					if (extensionBlacklist.find(bItem => child.resource.path.includes(bItem))) {
+
+						console.log('Deleting extension', child.resource.fsPath)
+						await fileService.del(child.resource, { recursive: true, useTrash: true })
+					}
 				}
 				else if (child.isFile) {
+					// if is extensions.json
 					if (child.name === 'extensions.json') {
 						try {
 							const contentsStr = await fileService.readFile(child.resource)

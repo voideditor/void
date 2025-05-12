@@ -42,6 +42,9 @@ const extensionBlacklist = [
 ];
 
 
+const isBlacklisted = (fsPath: string | undefined) => {
+	return extensionBlacklist.find(bItem => fsPath?.includes(bItem))
+}
 
 class ExtensionTransferService extends Disposable implements IExtensionTransferService {
 	_serviceBrand: undefined;
@@ -89,25 +92,21 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 							await fileService.createFolder(toParent)
 						}
 						for (const extensionFolder of stat.children ?? []) {
-							if (extensionBlacklist.find(bItem => extensionFolder.resource.path.includes(bItem))) {
-								console.log('Skipping...', extensionFolder.resource.path)
-								continue
-							}
 							const from = extensionFolder.resource
 							const to = URI.joinPath(toParent, extensionFolder.name)
 							const toStat = await fileService.resolve(from)
 
 							if (toStat.isDirectory) {
-								await fileService.copy(from, to, true)
+								if (!isBlacklisted(extensionFolder.resource.fsPath)) {
+									await fileService.copy(from, to, true)
+								}
 							}
 							else if (toStat.isFile) {
 								if (extensionFolder.name === 'extensions.json') {
 									try {
 										const contentsStr = await fileService.readFile(from)
 										const json: any = JSON.parse(contentsStr.value.toString())
-										const j2 = json.filter((entry: { identifier?: { id?: string } }) =>
-											!extensionBlacklist.find(bItem => entry?.identifier?.id?.includes(bItem))
-										)
+										const j2 = json.filter((entry: { identifier?: { id?: string } }) => !isBlacklisted(entry?.identifier?.id))
 										const jsonStr = JSON.stringify(j2)
 										await fileService.writeFile(to, VSBuffer.fromString(jsonStr))
 									}
@@ -141,24 +140,24 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 		const eURI = await fileService.resolve(extensionsURI)
 		for (const child of eURI.children ?? []) {
 
-			// if is not blacklisted, continue
-			if (!extensionBlacklist.find(bItem => child.resource.path.includes(bItem))) {
-				continue
-			}
 
 			try {
 				if (child.isDirectory) {
-					console.log('Deleting extension', child.resource.fsPath)
-					await fileService.del(child.resource, { recursive: true, useTrash: true })
+					// if is blacklisted
+					if (isBlacklisted(child.resource.fsPath)) {
+						console.log('Deleting extension', child.resource.fsPath)
+						await fileService.del(child.resource, { recursive: true, useTrash: true })
+					}
 				}
 				else if (child.isFile) {
+					// if is extensions.json
+
 					if (child.name === 'extensions.json') {
+						console.log('Updating extensions.json', child.resource.fsPath)
 						try {
 							const contentsStr = await fileService.readFile(child.resource)
 							const json: any = JSON.parse(contentsStr.value.toString())
-							const j2 = json.filter((entry: { identifier?: { id?: string } }) =>
-								!extensionBlacklist.find(bItem => entry?.identifier?.id?.includes(bItem))
-							)
+							const j2 = json.filter((entry: { identifier?: { id?: string } }) => !isBlacklisted(entry?.identifier?.id))
 							const jsonStr = JSON.stringify(j2)
 							await fileService.writeFile(child.resource, VSBuffer.fromString(jsonStr))
 						}

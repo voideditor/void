@@ -495,12 +495,12 @@ const ScrollToBottomContainer = ({ children, className, style, scrollContainerRe
 	);
 };
 
-const getRelative = (uri: URI, accessor: ReturnType<typeof useAccessor>) => {
+export const getRelative = (uri: URI, accessor: ReturnType<typeof useAccessor>) => {
 	const workspaceContextService = accessor.get('IWorkspaceContextService')
 	let path: string
 	const isInside = workspaceContextService.isInsideWorkspace(uri)
 	if (isInside) {
-		const f = workspaceContextService.getWorkspace().folders.find(f => uri.fsPath.startsWith(f.uri.fsPath))
+		const f = workspaceContextService.getWorkspace().folders.find(f => uri.fsPath?.startsWith(f.uri.fsPath))
 		if (f) { path = uri.fsPath.replace(f.uri.fsPath, '') }
 		else { path = uri.fsPath }
 	}
@@ -1651,8 +1651,8 @@ const LintErrorChildren = ({ lintErrors }: { lintErrors: LintErrorItem[] }) => {
 }
 
 const BottomChildren = ({ children, title }: { children: React.ReactNode, title: string }) => {
-	if (!children) return null;
 	const [isOpen, setIsOpen] = useState(false);
+	if (!children) return null;
 	return (
 		<div className="w-full px-2 mt-0.5">
 			<div
@@ -1905,7 +1905,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 					</SmallProseWrapper>
 				</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -1960,7 +1960,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 						}
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -2009,7 +2009,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>
@@ -2064,7 +2064,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 
 					</ToolChildrenWrapper>
 			}
-			else {
+			else if (toolMessage.type === 'tool_error') {
 				const { result } = toolMessage
 				componentParams.bottomChildren = <BottomChildren title='Error'>
 					<CodeChildren>

@@ -343,7 +343,6 @@ export const ApplyButtonsHTML = ({
 
 
 	const currStreamState = currStreamStateRef.current
-	console.log('currStreamState...', currStreamState)
 
 	if (isShellRunning) {
 		return (

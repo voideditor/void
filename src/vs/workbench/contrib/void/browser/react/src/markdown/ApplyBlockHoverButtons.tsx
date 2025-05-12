@@ -264,25 +264,30 @@ export const ApplyButtonsHTML = ({
 
 	const isShellLanguage = language === 'bash' || language === 'shellscript'
 
+	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
+	const interruptToolRef = useRef<(() => void) | null>(null)
+
 	const onClickSubmit = useCallback(async () => {
-		if (currStreamStateRef.current === 'streaming') return
+		if (currStreamStateRef.current === 'streaming' || isShellRunning) return
 
 		// For shell scripts, run in terminal instead of applying to file
 		if (isShellLanguage) {
 			try {
+				setIsShellRunning(true)
 				// Create a terminal if none exists or use terminal 1
 				const terminalIds = terminalToolService.listPersistentTerminalIds()
 				let terminalId = '1';
 				if (!terminalIds.includes(terminalId)) {
 					terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
 				}
-				await terminalToolService.runCommand(
+				const { interrupt } = await terminalToolService.runCommand(
 					codeStr,
 					{ type: 'persistent', persistentTerminalId: terminalId }
 				);
-				await terminalToolService.focusPersistentTerminal(terminalId)
+				interruptToolRef.current = interrupt
 				metricsService.capture('Execute Shell', { length: codeStr.length })
 			} catch (e) {
+				setIsShellRunning(false)
 				console.error('Failed to execute in terminal:', e)
 			}
 			return;
@@ -337,6 +342,19 @@ export const ApplyButtonsHTML = ({
 
 	const currStreamState = currStreamStateRef.current
 	console.log('currStreamState...', currStreamState)
+
+	if (isShellRunning) {
+		return (
+			<IconShell1
+				Icon={X}
+				onClick={() => {
+					interruptToolRef.current?.();
+					setIsShellRunning(false);
+				}}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
+			/>
+		);
+	}
 
 	if (currStreamState === 'streaming') {
 		return <IconShell1

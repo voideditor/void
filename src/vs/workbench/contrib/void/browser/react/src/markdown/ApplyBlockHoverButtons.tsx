@@ -239,6 +239,21 @@ export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId:
 }
 
 
+const terminalLanguages = new Set([
+	'bash',
+	'shellscript',
+	'shell',
+	'powershell',
+	'bat',
+	'zsh',
+	'sh',
+	'fish',
+	'nushell',
+	'ksh',
+	'xonsh',
+	'elvish',
+])
+
 export const ApplyButtonsHTML = ({
 	codeStr,
 	applyBoxId,
@@ -261,7 +276,7 @@ export const ApplyButtonsHTML = ({
 
 	const { currStreamStateRef, setApplying } = useApplyStreamState({ applyBoxId })
 
-	const isShellLanguage = language === 'bash' || language === 'shellscript'
+	const isShellLanguage = !!language && terminalLanguages.has(language)
 
 	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
 	const interruptToolRef = useRef<(() => void) | null>(null)

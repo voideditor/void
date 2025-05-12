@@ -273,14 +273,7 @@ export const ApplyButtonsHTML = ({
 		if (isShellLanguage) {
 			try {
 				setIsShellRunning(true)
-				// create a terminal if none exists or use terminal 1
-				const terminalIds = terminalToolService.listPersistentTerminalIds()
-
-				let terminalId: string
-				if (terminalIds.length !== 0)
-					terminalId = terminalIds[0] // use 1st terminal id
-				else
-					terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
+				const terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
 
 				const { interrupt } = await terminalToolService.runCommand(
 					codeStr,

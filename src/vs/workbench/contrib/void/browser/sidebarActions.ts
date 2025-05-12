@@ -98,20 +98,20 @@ registerAction2(class extends Action2 {
 
 		metricsService.capture('Ctrl+L', {})
 
-		// Capture selection and model BEFORE opening the chat panel
+		// capture selection and model before opening the chat panel
 		const editor = editorService.getActiveCodeEditor()
 		const model = editor?.getModel()
 		if (!model) return
 
 		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
 
-		// Now check if panel is open and open it if needed
+		// open panel
 		const wasAlreadyOpen = viewsService.isViewContainerVisible(VOID_VIEW_CONTAINER_ID)
 		if (!wasAlreadyOpen) {
 			await commandService.executeCommand(VOID_OPEN_SIDEBAR_ACTION_ID)
 		}
 
-		// Add selection to chat (whether it was already open or we just opened it)
+		// Add selection to chat
 		// add line selection
 		if (selectionRange) {
 			editor?.setSelection({

@@ -129,6 +129,7 @@ export const defaultModelsOfProvider = {
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
 		'mistral-large-latest',
+		'mistral-medium-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
 	],
@@ -878,6 +879,15 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		cost: { input: 2.00, output: 6.00 },
 		supportsFIM: false,
 		downloadable: { sizeGb: 73 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'mistral-medium-latest': { // https://openrouter.ai/mistralai/mistral-medium-3
+		contextWindow: 131_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.40, output: 2.00 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},

@@ -58,6 +58,9 @@ import './voidOnboardingService.js'
 // register misc service
 import './miscWokrbenchContrib.js'
 
+// register source control management
+import './voidSCM.js'
+
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 
 // llmMessage

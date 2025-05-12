@@ -110,6 +110,7 @@ export const modelFilterOfFeatureName: {
 	'Chat': { filter: o => true, emptyMessage: null, },
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
+	'SCM': { filter: o => true, emptyMessage: null, },
 }
 
 
@@ -207,9 +208,9 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 const defaultState = () => {
 	const d: VoidSettingsState = {
 		settingsOfProvider: deepClone(defaultSettingsOfProvider),
-		modelSelectionOfFeature: { 'Chat': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null },
+		modelSelectionOfFeature: { 'Chat': null, 'Ctrl+K': null, 'Autocomplete': null, 'Apply': null, 'SCM': null },
 		globalSettings: deepClone(defaultGlobalSettings),
-		optionsOfModelSelection: { 'Chat': {}, 'Ctrl+K': {}, 'Autocomplete': {}, 'Apply': {} },
+		optionsOfModelSelection: { 'Chat': {}, 'Ctrl+K': {}, 'Autocomplete': {}, 'Apply': {}, 'SCM': {} },
 		overridesOfModel: deepClone(defaultOverridesOfModel),
 		_modelOptions: [], // computed later
 	}
@@ -272,6 +273,12 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 			// autoapprove is now an obj not a boolean (1.2.5)
 			if (typeof readS.globalSettings.autoApprove === 'boolean') readS.globalSettings.autoApprove = {}
+
+			// 1.3.5 add source control feature
+			if (readS.modelSelectionOfFeature && !readS.modelSelectionOfFeature['SCM']) {
+				readS.modelSelectionOfFeature['SCM'] = deepClone(readS.modelSelectionOfFeature['Chat'])
+				readS.optionsOfModelSelection['SCM'] = deepClone(readS.optionsOfModelSelection['Chat'])
+			}
 		}
 		catch (e) {
 			readS = defaultState()

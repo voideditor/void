@@ -71,7 +71,7 @@ const onFinalMessage = (repo: ISCMRepository) => (params: { fullText: string }) 
 }
 
 const sendLLMMessage = (messages: LLMChatMessage[], separateSystemMessage: string, modelOptions: ModelOptions, repo: ISCMRepository, llmMessageService: ILLMMessageService) => {
-	//TODO VoidSCM - Experiment with messages to get better results
+	//TODO VoidSCM - Experiment with LLM messages to get better results. The results now seem decent. But it hasn't been tested much and could probably be improved.
 	llmMessageService.sendLLMMessage({
 		messagesType: 'chatMessages',
 		messages,
@@ -107,7 +107,7 @@ class CommitMessagePromptActionService extends Action2 {
 		})
 	}
 
-	//TODO VoidSCM - handle loading state, debouncing, errors, and cancellations
+	//TODO VoidSCM - handle loading state, errors, aborting, and debouncing (possibly not needed)
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const scmService = accessor.get(ISCMService)
 		const mainProcessService = accessor.get(IMainProcessService)

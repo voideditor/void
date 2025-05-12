@@ -142,7 +142,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'databricks') {
 		const thisConfig = settingsOfProvider[providerName]
-		const baseURL = `https://${thisConfig.workspace}/serving-endpoints`
+		const baseURL = `${thisConfig.workspace}/serving-endpoints`
 		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.token, ...commonPayloadOpts })
 	}
 

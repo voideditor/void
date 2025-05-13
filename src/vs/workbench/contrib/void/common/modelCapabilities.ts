@@ -60,6 +60,9 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
+	copilot: {
+		apiKey: '',
+	},
 } as const
 
 
@@ -137,6 +140,9 @@ export const defaultModelsOfProvider = {
 	googleVertex: [],
 	microsoftAzure: [],
 	liteLLM: [],
+	copilot: [
+		'copilot-4-turbo', // Example model name
+	  ],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -927,6 +933,24 @@ const mistralSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => { return null },
 }
 
+// ---------------- COPILOT ----------------
+
+const copilotModelOptions = {
+	'copilot-4-turbo': {
+	  contextWindow: 128_000, // Example value
+	  reservedOutputTokenSpace: 4_096,
+	  cost: { input: 0.0, output: 0.0 },
+	  supportsFIM: false,
+	  downloadable: { sizeGb: 0 },
+	  supportsSystemMessage: 'system-role',
+	  reasoningCapabilities: false,
+	},
+  } as const satisfies { [s: string]: VoidStaticModelInfo }
+
+  const copilotSettings: VoidStaticProviderInfo = {
+	modelOptions: copilotModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+  }
 
 // ---------------- GROQ ----------------
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
@@ -1286,6 +1310,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
 	mistral: mistralSettings,
+	copilot: copilotSettings,
 
 	liteLLM: liteLLMSettings,
 	lmStudio: lmStudioSettings,

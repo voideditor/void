@@ -277,6 +277,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			terminal.dispose()
 			if (!isPersistent)
 				delete this.temporaryTerminalInstanceOfId[params.terminalId]
+			else
+				delete this.persistentTerminalInstanceOfId[params.persistentTerminalId]
 		}
 
 		const waitForResult = async () => {

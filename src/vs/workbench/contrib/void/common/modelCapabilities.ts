@@ -154,6 +154,8 @@ export type VoidStaticModelInfo = { // not stateful
 	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // typically you should use 'openai-style'. null means "can't call tools by default", and asks the LLM to output XML in agent mode
 	supportsFIM: boolean; // whether the model was specifically designed for autocomplete or "FIM" ("fill-in-middle" format)
 
+	additionalOpenAIPayload?: { [key: string]: string } // additional info for openAI requests
+
 	// reasoning options
 	reasoningCapabilities: false | {
 		readonly supportsReasoning: true; // for clarity, this must be true if anything below is specified
@@ -187,7 +189,13 @@ export type VoidStaticModelInfo = { // not stateful
 
 
 export type ModelOverrides = Pick<VoidStaticModelInfo,
-	'contextWindow' | 'reservedOutputTokenSpace' | 'specialToolFormat' | 'supportsSystemMessage' | 'supportsFIM' | 'reasoningCapabilities'
+	| 'contextWindow'
+	| 'reservedOutputTokenSpace'
+	| 'specialToolFormat'
+	| 'supportsSystemMessage'
+	| 'supportsFIM'
+	| 'reasoningCapabilities'
+	| 'additionalOpenAIPayload'
 >
 
 

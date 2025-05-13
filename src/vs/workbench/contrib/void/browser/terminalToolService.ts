@@ -22,7 +22,12 @@ export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
 
 	listPersistentTerminalIds(): string[];
-	runCommand(command: string, opts: { type: 'persistent', persistentTerminalId: string } | { type: 'ephemeral', cwd: string | null, terminalId: string }): Promise<{ interrupt: () => void; resPromise: Promise<{ result: string, resolveReason: TerminalResolveReason }> }>;
+	runCommand(command: string, opts:
+		| { type: 'persistent', persistentTerminalId: string }
+		| { type: 'temporary', cwd: string | null, terminalId: string }
+		// | { type: 'apply', terminalId: string }
+	): Promise<{ interrupt: () => void; resPromise: Promise<{ result: string, resolveReason: TerminalResolveReason }> }>;
+
 	focusPersistentTerminal(terminalId: string): Promise<void>
 	persistentTerminalExists(terminalId: string): boolean
 

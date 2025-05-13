@@ -47,7 +47,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		const mcpExists = await this.configFileExists();
 		if (!mcpExists) {
 			console.log('MCP Config file does not exist. Creating...');
-			await this.createMCPConfigFile();
+			await this._createMCPConfigFile();
 		} else {
 			console.log('MCP Config file already exists.');
 		}
@@ -76,7 +76,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		}
 	}
 
-	async createMCPConfigFile(): Promise<void> {
+	private async _createMCPConfigFile(): Promise<void> {
 		const mcpConfigUri = await this.getMCPConfigPath();
 
 		// Create the directory if it doesn't exist

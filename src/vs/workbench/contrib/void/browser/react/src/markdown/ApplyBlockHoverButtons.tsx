@@ -239,17 +239,94 @@ export const StatusIndicatorForApplyButton = ({ applyBoxId, uri }: { applyBoxId:
 }
 
 
-export const ApplyButtonsHTML = ({
+const terminalLanguages = new Set([
+	'bash',
+	'shellscript',
+	'shell',
+	'powershell',
+	'bat',
+	'zsh',
+	'sh',
+	'fish',
+	'nushell',
+	'ksh',
+	'xonsh',
+	'elvish',
+])
+
+const ApplyButtonsForTerminal = ({
 	codeStr,
 	applyBoxId,
 	uri,
+	language,
 }: {
 	codeStr: string,
 	applyBoxId: string,
-} & ({
+	language?: string,
 	uri: URI | 'current';
-})
-) => {
+}) => {
+	const accessor = useAccessor()
+	const metricsService = accessor.get('IMetricsService')
+	const terminalToolService = accessor.get('ITerminalToolService')
+
+	const settingsState = useSettingsState()
+
+	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
+	const interruptToolRef = useRef<(() => void) | null>(null)
+	const isDisabled = isShellRunning
+
+	const onClickSubmit = useCallback(async () => {
+		if (isShellRunning) return
+		try {
+			setIsShellRunning(true)
+			const terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
+			const { interrupt } = await terminalToolService.runCommand(
+				codeStr,
+				{ type: 'persistent', persistentTerminalId: terminalId }
+			);
+			interruptToolRef.current = interrupt
+			metricsService.capture('Execute Shell', { length: codeStr.length })
+		} catch (e) {
+			setIsShellRunning(false)
+			console.error('Failed to execute in terminal:', e)
+		}
+	}, [codeStr, uri, applyBoxId, metricsService, terminalToolService, isShellRunning])
+
+	if (isShellRunning) {
+		return (
+			<IconShell1
+				Icon={X}
+				onClick={() => {
+					interruptToolRef.current?.();
+					setIsShellRunning(false);
+				}}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
+			/>
+		);
+	}
+	if (isDisabled) {
+		return null
+	}
+	return <IconShell1
+		Icon={Play}
+		onClick={onClickSubmit}
+		{...tooltipPropsForApplyBlock({ tooltipName: 'Apply' })}
+	/>
+}
+
+
+
+const ApplyButtonsForEdit = ({
+	codeStr,
+	applyBoxId,
+	uri,
+	language,
+}: {
+	codeStr: string,
+	applyBoxId: string,
+	language?: string,
+	uri: URI | 'current';
+}) => {
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
@@ -259,7 +336,6 @@ export const ApplyButtonsHTML = ({
 	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
 	const { currStreamStateRef, setApplying } = useApplyStreamState({ applyBoxId })
-
 
 	const onClickSubmit = useCallback(async () => {
 		if (currStreamStateRef.current === 'streaming') return
@@ -287,7 +363,7 @@ export const ApplyButtonsHTML = ({
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 
-	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService])
+	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService, notificationService])
 
 
 	const onClickStop = useCallback(() => {
@@ -309,9 +385,7 @@ export const ApplyButtonsHTML = ({
 		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri: uri, behavior: 'reject', removeCtrlKs: false })
 	}, [uri, applyBoxId, editCodeService])
 
-
 	const currStreamState = currStreamStateRef.current
-
 	if (currStreamState === 'streaming') {
 		return <IconShell1
 			Icon={Square}
@@ -319,12 +393,9 @@ export const ApplyButtonsHTML = ({
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
 		/>
 	}
-
 	if (isDisabled) {
 		return null
 	}
-
-
 	if (currStreamState === 'idle-no-changes') {
 		return <IconShell1
 			Icon={Play}
@@ -332,7 +403,6 @@ export const ApplyButtonsHTML = ({
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Apply' })}
 		/>
 	}
-
 	if (currStreamState === 'idle-has-changes') {
 		return <Fragment>
 			<IconShell1
@@ -346,6 +416,27 @@ export const ApplyButtonsHTML = ({
 				{...tooltipPropsForApplyBlock({ tooltipName: 'Keep' })}
 			/>
 		</Fragment>
+	}
+}
+
+
+
+
+
+export const ApplyButtonsHTML = (params: {
+	codeStr: string,
+	applyBoxId: string,
+	language?: string,
+	uri: URI | 'current';
+}) => {
+	const { language } = params
+	const isShellLanguage = !!language && terminalLanguages.has(language)
+
+	if (isShellLanguage) {
+		return <ApplyButtonsForTerminal {...params} />
+	}
+	else {
+		return <ApplyButtonsForEdit {...params} />
 	}
 }
 
@@ -456,7 +547,7 @@ export const BlockCodeApplyWrapper = ({
 			<div className={`${canApply ? '' : 'hidden'} flex items-center gap-1`}>
 				<JumpToFileButton uri={uri} />
 				{currStreamState === 'idle-no-changes' && <CopyButton codeStr={codeStr} toolTipName='Copy' />}
-				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} />
+				<ApplyButtonsHTML uri={uri} applyBoxId={applyBoxId} codeStr={codeStr} language={language} />
 			</div>
 		</div>
 

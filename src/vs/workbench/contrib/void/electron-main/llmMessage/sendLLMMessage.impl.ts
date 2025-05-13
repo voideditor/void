@@ -147,7 +147,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 
 const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, overridesOfModel }: SendFIMParams_Internal) => {
 
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
+	const {
+		modelName,
+		supportsFIM,
+		additionalOpenAIPayload,
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
+
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -156,7 +161,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 		return
 	}
 
-	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload: additionalOpenAIPayload })
 	openai.completions
 		.create({
 			model: modelName,
@@ -236,6 +241,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		modelName,
 		specialToolFormat,
 		reasoningCapabilities,
+		additionalOpenAIPayload,
 	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
@@ -243,7 +249,11 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	// reasoning
 	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {}
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
-	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
+
+	const includeInPayload = {
+		...providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo),
+		...additionalOpenAIPayload
+	}
 
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
@@ -258,6 +268,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		messages: messages as any,
 		stream: true,
 		...nativeToolsObj,
+		...additionalOpenAIPayload
 		// max_completion_tokens: maxTokens,
 	}
 

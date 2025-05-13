@@ -481,7 +481,6 @@ ${directoryStr}
 		details.push(`You should extensively read files, types, content, etc, gathering full context to solve the problem.`)
 	}
 
-
 	details.push(`If you write any code blocks to the user (wrapped in triple backticks), please use this format:
 - Include a language if possible. Terminal should have the language 'shell'.
 - The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).

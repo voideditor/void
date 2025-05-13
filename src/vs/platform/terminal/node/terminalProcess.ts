@@ -170,7 +170,7 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			cols,
 			rows,
 			useConpty,
-			...(useConptyDll ? { useConptyDll } : {}) as IPtyForkOptions,
+			useConptyDll,
 			// This option will force conpty to not redraw the whole viewport on launch
 			conptyInheritCursor: useConpty && !!shellLaunchConfig.initialText
 		};
@@ -392,7 +392,7 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			return;
 		}
 		// Don't throttle when using conpty.dll as it seems to have been fixed in later versions
-		if ((this._ptyOptions as any).useConptyDll) {
+		if (this._ptyOptions.useConptyDll) {
 			return;
 		}
 		// Use a loop to ensure multiple calls in a single interval space out

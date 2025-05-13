@@ -270,10 +270,10 @@ const ApplyButtonsForTerminal = ({
 	const terminalToolService = accessor.get('ITerminalToolService')
 
 	const settingsState = useSettingsState()
-	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
 
 	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
 	const interruptToolRef = useRef<(() => void) | null>(null)
+	const isDisabled = isShellRunning
 
 	const onClickSubmit = useCallback(async () => {
 		if (isShellRunning) return

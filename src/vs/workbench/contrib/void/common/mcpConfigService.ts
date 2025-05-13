@@ -11,6 +11,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { join } from '../../../../base/common/path.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
+import { VSBuffer } from '../../../../base/common/buffer.js';
 
 export interface IMCPConfigService {
 	readonly _serviceBrand: undefined;
@@ -25,6 +26,11 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 	_serviceBrand: undefined;
 
 	private readonly MCP_CONFIG_FILE_NAME = 'mcp.json';
+	private readonly MCP_CONFIG_SAMPLE = {
+		mcpServers: [],
+	}
+	private readonly MCP_CONFIG_SAMPLE_STRING = JSON.stringify(this.MCP_CONFIG_SAMPLE, null, 2);
+
 	constructor(
 		@IFileService private readonly fileService: IFileService,
 		@IPathService private readonly pathService: IPathService,
@@ -38,8 +44,14 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	private async _initialize() {
 		// Check logs
-		const doesMCPExist = await this.configFileExists();
-		console.log('MCP Config File Exists:', doesMCPExist);
+		const mcpExists = await this.configFileExists();
+		if (!mcpExists) {
+			console.log('MCP Config file does not exist. Creating...');
+			await this.createMCPConfigFile();
+		} else {
+			console.log('MCP Config file already exists.');
+		}
+
 	}
 
 	async getMCPConfigPath(): Promise<URI> {
@@ -62,6 +74,18 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 			// File doesn't exist or can't be accessed
 			return false;
 		}
+	}
+
+	async createMCPConfigFile(): Promise<void> {
+		const mcpConfigUri = await this.getMCPConfigPath();
+
+		// Create the directory if it doesn't exist
+		await this.fileService.createFile(mcpConfigUri.with({ path: mcpConfigUri.path }));
+
+		const buffer = VSBuffer.fromString(this.MCP_CONFIG_SAMPLE_STRING);
+
+		// Create the MCP config file with default content
+		await this.fileService.writeFile(mcpConfigUri, buffer);
 	}
 }
 

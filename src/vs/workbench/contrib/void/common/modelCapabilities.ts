@@ -791,13 +791,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: { // thinking: experimental as of 5-10-25
-			supportsReasoning: true,
-			canTurnOffReasoning: true,
-			canIOReasoning: false,
-			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // max is really 24576
-			reasoningReservedOutputTokenSpace: 8192,
-		},
+		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
 		contextWindow: 1_048_576,

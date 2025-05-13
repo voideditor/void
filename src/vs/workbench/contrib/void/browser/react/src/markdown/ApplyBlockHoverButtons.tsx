@@ -254,7 +254,69 @@ const terminalLanguages = new Set([
 	'elvish',
 ])
 
-export const ApplyButtonsHTML = ({
+const ApplyButtonsForTerminal = ({
+	codeStr,
+	applyBoxId,
+	uri,
+	language,
+}: {
+	codeStr: string,
+	applyBoxId: string,
+	language?: string,
+	uri: URI | 'current';
+}) => {
+	const accessor = useAccessor()
+	const metricsService = accessor.get('IMetricsService')
+	const terminalToolService = accessor.get('ITerminalToolService')
+
+	const settingsState = useSettingsState()
+	const isDisabled = !!isFeatureNameDisabled('Apply', settingsState) || !applyBoxId
+
+	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
+	const interruptToolRef = useRef<(() => void) | null>(null)
+
+	const onClickSubmit = useCallback(async () => {
+		if (isShellRunning) return
+		try {
+			setIsShellRunning(true)
+			const terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
+			const { interrupt } = await terminalToolService.runCommand(
+				codeStr,
+				{ type: 'persistent', persistentTerminalId: terminalId }
+			);
+			interruptToolRef.current = interrupt
+			metricsService.capture('Execute Shell', { length: codeStr.length })
+		} catch (e) {
+			setIsShellRunning(false)
+			console.error('Failed to execute in terminal:', e)
+		}
+	}, [codeStr, uri, applyBoxId, metricsService, terminalToolService, isShellRunning])
+
+	if (isShellRunning) {
+		return (
+			<IconShell1
+				Icon={X}
+				onClick={() => {
+					interruptToolRef.current?.();
+					setIsShellRunning(false);
+				}}
+				{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
+			/>
+		);
+	}
+	if (isDisabled) {
+		return null
+	}
+	return <IconShell1
+		Icon={Play}
+		onClick={onClickSubmit}
+		{...tooltipPropsForApplyBlock({ tooltipName: 'Apply' })}
+	/>
+}
+
+
+
+const ApplyButtonsForEdit = ({
 	codeStr,
 	applyBoxId,
 	uri,
@@ -268,7 +330,6 @@ export const ApplyButtonsHTML = ({
 	const accessor = useAccessor()
 	const editCodeService = accessor.get('IEditCodeService')
 	const metricsService = accessor.get('IMetricsService')
-	const terminalToolService = accessor.get('ITerminalToolService')
 	const notificationService = accessor.get('INotificationService')
 
 	const settingsState = useSettingsState()
@@ -276,34 +337,9 @@ export const ApplyButtonsHTML = ({
 
 	const { currStreamStateRef, setApplying } = useApplyStreamState({ applyBoxId })
 
-	const isShellLanguage = !!language && terminalLanguages.has(language)
-
-	const [isShellRunning, setIsShellRunning] = useState<boolean>(false)
-	const interruptToolRef = useRef<(() => void) | null>(null)
-
 	const onClickSubmit = useCallback(async () => {
-		if (currStreamStateRef.current === 'streaming' || isShellRunning) return
+		if (currStreamStateRef.current === 'streaming') return
 
-		// for shell scripts, run in terminal instead of applying to file
-		if (isShellLanguage) {
-			try {
-				setIsShellRunning(true)
-				const terminalId = await terminalToolService.createPersistentTerminal({ cwd: null })
-
-				const { interrupt } = await terminalToolService.runCommand(
-					codeStr,
-					{ type: 'persistent', persistentTerminalId: terminalId }
-				);
-				interruptToolRef.current = interrupt
-				metricsService.capture('Execute Shell', { length: codeStr.length })
-			} catch (e) {
-				setIsShellRunning(false)
-				console.error('Failed to execute in terminal:', e)
-			}
-			return;
-		}
-
-		// Normal file apply logic for non-shell languages
 		await editCodeService.callBeforeApplyOrEdit(uri)
 
 		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying({
@@ -327,7 +363,7 @@ export const ApplyButtonsHTML = ({
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
 
-	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService, isShellLanguage, terminalToolService])
+	}, [setApplying, currStreamStateRef, editCodeService, codeStr, uri, applyBoxId, metricsService, notificationService])
 
 
 	const onClickStop = useCallback(() => {
@@ -349,22 +385,7 @@ export const ApplyButtonsHTML = ({
 		if (uri) editCodeService.acceptOrRejectAllDiffAreas({ uri: uri, behavior: 'reject', removeCtrlKs: false })
 	}, [uri, applyBoxId, editCodeService])
 
-
 	const currStreamState = currStreamStateRef.current
-
-	if (isShellRunning) {
-		return (
-			<IconShell1
-				Icon={X}
-				onClick={() => {
-					interruptToolRef.current?.();
-					setIsShellRunning(false);
-				}}
-				{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
-			/>
-		);
-	}
-
 	if (currStreamState === 'streaming') {
 		return <IconShell1
 			Icon={Square}
@@ -372,12 +393,9 @@ export const ApplyButtonsHTML = ({
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Stop' })}
 		/>
 	}
-
 	if (isDisabled) {
 		return null
 	}
-
-
 	if (currStreamState === 'idle-no-changes') {
 		return <IconShell1
 			Icon={Play}
@@ -385,7 +403,6 @@ export const ApplyButtonsHTML = ({
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Apply' })}
 		/>
 	}
-
 	if (currStreamState === 'idle-has-changes') {
 		return <Fragment>
 			<IconShell1
@@ -399,6 +416,27 @@ export const ApplyButtonsHTML = ({
 				{...tooltipPropsForApplyBlock({ tooltipName: 'Keep' })}
 			/>
 		</Fragment>
+	}
+}
+
+
+
+
+
+export const ApplyButtonsHTML = (params: {
+	codeStr: string,
+	applyBoxId: string,
+	language?: string,
+	uri: URI | 'current';
+}) => {
+	const { language } = params
+	const isShellLanguage = !!language && terminalLanguages.has(language)
+
+	if (isShellLanguage) {
+		return <ApplyButtonsForTerminal {...params} />
+	}
+	else {
+		return <ApplyButtonsForEdit {...params} />
 	}
 }
 

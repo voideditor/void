@@ -605,12 +605,14 @@ export const chat_userMessageContent = async (
 	},
 ) => {
 
-	const selnsStrs = await Promise.all((currSelns ?? []).map(async (s) =>
-		messageOfSelection(s, {
-			...opts,
-			folderOpts: { maxChildren: 100, maxCharsPerFile: 100_000, }
-		})
-	))
+	const selnsStrs = await Promise.all(
+		(currSelns ?? []).map(async (s) =>
+			messageOfSelection(s, {
+				...opts,
+				folderOpts: { maxChildren: 100, maxCharsPerFile: 100_000, }
+			})
+		)
+	)
 
 
 	let str = ''

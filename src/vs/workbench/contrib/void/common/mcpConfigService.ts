@@ -82,9 +82,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		// Create the directory if it doesn't exist
 		await this.fileService.createFile(mcpConfigUri.with({ path: mcpConfigUri.path }));
 
-		const buffer = VSBuffer.fromString(this.MCP_CONFIG_SAMPLE_STRING);
-
 		// Create the MCP config file with default content
+		const buffer = VSBuffer.fromString(this.MCP_CONFIG_SAMPLE_STRING);
 		await this.fileService.writeFile(mcpConfigUri, buffer);
 	}
 }

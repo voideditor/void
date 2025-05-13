@@ -24,6 +24,7 @@ export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigSe
 class MCPConfigService extends Disposable implements IMCPConfigService {
 	_serviceBrand: undefined;
 
+	private readonly MCP_CONFIG_FILE_NAME = 'mcp.json';
 	constructor(
 		@IFileService private readonly fileService: IFileService,
 		@IPathService private readonly pathService: IPathService,
@@ -46,7 +47,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		const appName = this.productService.dataFolderName
 
 		const userHome = await this.pathService.userHome();
-		const mcpConfigPath = join(userHome.path, appName, 'mcp.json');
+		const mcpConfigPath = join(userHome.path, appName, this.MCP_CONFIG_FILE_NAME);
 		return URI.file(mcpConfigPath);
 	}
 

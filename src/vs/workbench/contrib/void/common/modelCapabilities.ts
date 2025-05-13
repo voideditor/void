@@ -154,7 +154,7 @@ export type VoidStaticModelInfo = { // not stateful
 	specialToolFormat?: 'openai-style' | 'anthropic-style' | 'gemini-style', // typically you should use 'openai-style'. null means "can't call tools by default", and asks the LLM to output XML in agent mode
 	supportsFIM: boolean; // whether the model was specifically designed for autocomplete or "FIM" ("fill-in-middle" format)
 
-	additionalOpenAIPayload?: { [key: string]: string } // additional info for openAI requests
+	additionalOpenAIPayload?: { [key: string]: string } // additional payload in the message body for requests that are openai-compatible (ollama, vllm, openai, openrouter, etc)
 
 	// reasoning options
 	reasoningCapabilities: false | {

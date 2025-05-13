@@ -1,4 +1,3 @@
-
 /*--------------------------------------------------------------------------------------
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
@@ -103,6 +102,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'microsoftAzure') {
 		return { title: 'Microsoft Azure OpenAI', }
 	}
+	else if (providerName === 'databricks') {
+		return { title: 'Databricks', }
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -112,8 +114,8 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'anthropic') return 'Get your [API Key here](https://console.anthropic.com/settings/keys).'
 	if (providerName === 'openAI') return 'Get your [API Key here](https://platform.openai.com/api-keys).'
 	if (providerName === 'deepseek') return 'Get your [API Key here](https://platform.deepseek.com/api_keys).'
-	if (providerName === 'openRouter') return 'Get your [API Key here](https://openrouter.ai/settings/keys). Read about [rate limits here](https://openrouter.ai/docs/api-reference/limits).'
-	if (providerName === 'gemini') return 'Get your [API Key here](https://aistudio.google.com/apikey). Read about [rate limits here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).'
+	if (providerName === 'openRouter') return 'Get your [API Key here](https://openrouter.ai/settings/keys).'
+	if (providerName === 'gemini') return 'Get your [API Key here](https://aistudio.google.com/apikey).'
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
@@ -124,6 +126,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
+	if (providerName === 'databricks') return 'Get your [API Key here](https://docs.databricks.com/aws/en/dev-tools/auth/pat).'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -151,7 +154,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 											providerName === 'mistral' ? 'api-key...' :
 												providerName === 'googleVertex' ? 'AIzaSy...' :
 													providerName === 'microsoftAzure' ? 'key-...' :
-														'',
+														providerName === 'databricks' ? 'dapi...' :
+															'',
 
 			isPasswordField: true,
 		}
@@ -164,8 +168,9 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
 							providerName === 'googleVertex' ? 'baseURL' :
 								providerName === 'microsoftAzure' ? 'baseURL' :
-									providerName === 'liteLLM' ? 'baseURL' :
-										'(never)',
+									providerName === 'databricks' ? 'baseURL' :
+										providerName === 'liteLLM' ? 'baseURL' :
+											'(never)',
 
 			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
 				: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
@@ -180,11 +185,31 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	else if (settingName === 'headersJSON') {
 		return { title: 'Custom Headers', placeholder: '{ "X-Request-Id": "..." }' }
 	}
+	else if (settingName === 'maxTokens') {
+		return { title: 'Max Tokens', placeholder: '4096' }
+	}
+
 	else if (settingName === 'region') {
 		// vertex only
 		return {
 			title: 'Region',
 			placeholder: providerName === 'googleVertex' ? defaultProviderSettings.googleVertex.region
+				: ''
+		}
+	}
+	else if (settingName === 'workspace') {
+		// databricks only
+		return {
+			title: 'Workspace',
+			placeholder: providerName === 'databricks' ? defaultProviderSettings.databricks.workspace
+				: ''
+		}
+	}
+	else if (settingName === 'token') {
+		// databricks only
+		return {
+			title: 'Token',
+			placeholder: providerName === 'databricks' ? defaultProviderSettings.databricks.token
 				: ''
 		}
 	}
@@ -235,6 +260,9 @@ const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	project: undefined,
 	azureApiVersion: undefined,
 	headersJSON: undefined,
+	token: undefined, // databricks
+	workspace: undefined, // databricks
+	maxTokens: undefined,
 }
 
 
@@ -338,6 +366,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.microsoftAzure,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.microsoftAzure),
+		_didFillInProviderSettings: undefined,
+	},
+	databricks: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.databricks,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.databricks),
 		_didFillInProviderSettings: undefined,
 	},
 }

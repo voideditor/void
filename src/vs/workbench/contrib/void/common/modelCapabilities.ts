@@ -60,6 +60,11 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
+	databricks: {
+		token: '',
+		workspace: '',
+		maxTokens: 4096,
+	},
 } as const
 
 
@@ -137,6 +142,10 @@ export const defaultModelsOfProvider = {
 	googleVertex: [],
 	microsoftAzure: [],
 	liteLLM: [],
+	databricks: ['databricks-claude-3.7-sonnet',
+		'databricks-llama-4-maverick',
+		'databricks-meta-llama-3-3-70b-instruct'
+	], // autodetected
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1000,6 +1009,13 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => { return null }
 }
 
+// ---------------- DATABRICKS ----------------
+const databricksModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+const databricksSettings: VoidStaticProviderInfo = {
+	modelOptions: databricksModelOptions,
+	modelOptionsFallback: (modelName) => { return null }
+}
 
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
@@ -1290,6 +1306,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
+	databricks: databricksSettings,
 } as const
 
 

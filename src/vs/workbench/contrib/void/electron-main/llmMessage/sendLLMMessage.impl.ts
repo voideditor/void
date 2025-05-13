@@ -140,6 +140,11 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'databricks') {
+		const thisConfig = settingsOfProvider[providerName]
+		const baseURL = `${thisConfig.workspace}/serving-endpoints`
+		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.token, ...commonPayloadOpts })
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -157,6 +162,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 	}
 
 	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+
 	openai.completions
 		.create({
 			model: modelName,
@@ -251,12 +257,15 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		{ tools: potentialTools } as const
 		: {}
 
+	const thisConfig = settingsOfProvider[providerName]
+	const maxTokens = thisConfig.maxTokens ?? 4096
 	// instance
 	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
 		stream: true,
+		max_tokens: maxTokens,
 		...nativeToolsObj,
 		// max_completion_tokens: maxTokens,
 	}
@@ -283,7 +292,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	let toolName = ''
 	let toolId = ''
 	let toolParamsStr = ''
-
+	console.log(options)
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
@@ -885,6 +894,11 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	microsoftAzure: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	databricks: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,

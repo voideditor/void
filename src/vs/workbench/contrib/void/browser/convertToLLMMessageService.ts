@@ -418,6 +418,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 		else {
 			// allowed to be empty if has a tool in it or following it
 			if (currMsg.content.find(c => c.type === 'tool_result' || c.type === 'tool_use')) {
+				currMsg.content = currMsg.content.filter(c => !(c.type === 'text' && !c.text)) as any
 				continue
 			}
 			if (nextMsg?.role === 'tool') continue

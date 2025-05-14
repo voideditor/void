@@ -2856,16 +2856,13 @@ export const SidebarChat = () => {
 
 	// resolve mount info
 	const isResolved = chatThreadsState.allThreads[threadId]?.state.mountedInfo?.mountedIsResolvedRef.current
-	
 	useEffect(() => {
 		if (isResolved) return
 		chatThreadsState.allThreads[threadId]?.state.mountedInfo?._whenMountedResolver?.({
 			textAreaRef: textAreaRef,
 			scrollToBottom: () => scrollToBottom(scrollContainerRef),
 		})
-		
-		// Trigger a window resize event to ensure proper layout calculations
-		window.dispatchEvent(new Event('resize'))
+
 	}, [chatThreadsState, threadId, textAreaRef, scrollContainerRef, isResolved])
 
 

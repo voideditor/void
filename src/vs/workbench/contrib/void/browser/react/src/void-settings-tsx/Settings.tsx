@@ -17,7 +17,7 @@ import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
 import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
 import Severity from '../../../../../../../base/common/severity.js'
-import { getModelCapabilities, ModelOverrides } from '../../../../common/modelCapabilities.js';
+import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
@@ -185,6 +185,11 @@ const ConfirmButton = ({ children, onConfirm, className }: { children: React.Rea
 };
 
 // ---------------- Simplified Model Settings Dialog ------------------
+
+// keys of ModelOverrides we allow the user to override
+
+
+
 // This new dialog replaces the verbose UI with a single JSON override box.
 const SimpleModelSettingsDialog = ({
 	isOpen,
@@ -208,39 +213,26 @@ const SimpleModelSettingsDialog = ({
 	const currentOverrides = settingsState.overridesOfModel?.[providerName]?.[modelName] ?? undefined;
 	const { recognizedModelName, isUnrecognizedModel } = defaultModelCapabilities
 
-	// keys of ModelOverrides we allow the user to override
-	const allowedKeys: (string & (keyof ModelOverrides))[] = [
-		'contextWindow',
-		'reservedOutputTokenSpace',
-		'supportsSystemMessage',
-		'specialToolFormat',
-		'supportsFIM',
-		'reasoningCapabilities',
-	];
-
 	// Create the placeholder with the default values for allowed keys
 	const partialDefaults: Partial<ModelOverrides> = {};
-	for (const k of allowedKeys) { if (defaultModelCapabilities[k]) partialDefaults[k] = defaultModelCapabilities[k] as any; }
+	for (const k of modelOverrideKeys) { if (defaultModelCapabilities[k]) partialDefaults[k] = defaultModelCapabilities[k] as any; }
 	const placeholder = JSON.stringify(partialDefaults, null, 2);
 
 	const [overrideEnabled, setOverrideEnabled] = useState<boolean>(() => !!currentOverrides);
-	const [jsonText, setJsonText] = useState<string>(() => currentOverrides ? JSON.stringify(currentOverrides, null, 2) : placeholder);
 
-	const [readOnlyHeight, setReadOnlyHeight] = useState<number | undefined>(undefined);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 
 	// reset when dialog toggles
 	useEffect(() => {
 		if (!isOpen) return;
 		const cur = settingsState.overridesOfModel?.[providerName]?.[modelName];
 		setOverrideEnabled(!!cur);
-		// If there are overrides, show them; otherwise use default values
-		setJsonText(cur ? JSON.stringify(cur, null, 2) : placeholder);
 		setErrorMsg(null);
 	}, [isOpen, providerName, modelName, settingsState.overridesOfModel, placeholder]);
 
 	const onSave = async () => {
-
 		// if disabled override, reset overrides
 		if (!overrideEnabled) {
 			await settingsStateService.setOverridesOfModel(providerName, modelName, undefined);
@@ -251,9 +243,10 @@ const SimpleModelSettingsDialog = ({
 		// enabled overrides
 		// parse json
 		let parsedInput: Record<string, unknown>
-		if (jsonText.trim()) {
+
+		if (textAreaRef.current?.value) {
 			try {
-				parsedInput = JSON.parse(jsonText);
+				parsedInput = JSON.parse(textAreaRef.current.value);
 			} catch (e) {
 				setErrorMsg('Invalid JSON');
 				return;
@@ -265,10 +258,10 @@ const SimpleModelSettingsDialog = ({
 
 		// only keep allowed keys
 		const cleaned: Partial<ModelOverrides> = {};
-		for (const k of allowedKeys) {
+		for (const k of modelOverrideKeys) {
 			if (!(k in parsedInput)) continue
 			const isEmpty = parsedInput[k] === '' || parsedInput[k] === null || parsedInput[k] === undefined;
-			if (!isEmpty && (k in partialDefaults)) {
+			if (!isEmpty) {
 				cleaned[k] = parsedInput[k] as any;
 			}
 		}
@@ -333,10 +326,11 @@ const SimpleModelSettingsDialog = ({
 				</div>}
 
 				<textarea
+					key={overrideEnabled + ''}
+					ref={textAreaRef}
 					className={`w-full min-h-[200px] p-2 rounded-sm border border-void-border-2 bg-void-bg-2 resize-none font-mono text-sm ${!overrideEnabled ? 'text-void-fg-3' : ''}`}
-					value={overrideEnabled ? jsonText : placeholder}
+					defaultValue={overrideEnabled && currentOverrides ? JSON.stringify(currentOverrides, null, 2) : placeholder}
 					placeholder={placeholder}
-					onChange={overrideEnabled ? (e) => setJsonText(e.target.value) : undefined}
 					readOnly={!overrideEnabled}
 				/>
 				{errorMsg && (

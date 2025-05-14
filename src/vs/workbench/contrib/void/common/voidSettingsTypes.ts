@@ -434,6 +434,7 @@ export type GlobalSettings = {
 	showInlineSuggestions: boolean;
 	includeToolLintErrors: boolean;
 	isOnboardingComplete: boolean;
+	customRootCertificates: string[]; // Paths to custom root certificates
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -447,6 +448,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	showInlineSuggestions: true,
 	includeToolLintErrors: true,
 	isOnboardingComplete: false,
+	customRootCertificates: [],
 }
 
 export type GlobalSettingName = keyof GlobalSettings

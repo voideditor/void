@@ -21,6 +21,7 @@ import { IThemeService } from '../../../../../../../platform/theme/common/themeS
 import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
+import { IVoidCertificateService } from '../../../../common/voidCertificateService.js';
 import { IExtensionTransferService } from '../../../../../../../workbench/contrib/void/browser/extensionTransferService.js'
 
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
@@ -185,6 +186,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IEditCodeService: accessor.get(IEditCodeService),
 		IChatThreadService: accessor.get(IChatThreadService),
+		IVoidCertificateService: accessor.get(IVoidCertificateService),
 
 		IInstantiationService: accessor.get(IInstantiationService),
 		ICodeEditorService: accessor.get(ICodeEditorService),

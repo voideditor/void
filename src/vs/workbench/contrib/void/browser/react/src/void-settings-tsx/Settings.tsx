@@ -904,6 +904,127 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 
 // full settings
 
+// Certificate Manager Component
+const CertificateManager = () => {
+    const accessor = useAccessor();
+    const voidSettingsService = accessor.get('IVoidSettingsService');
+    const certificateService = accessor.get('IVoidCertificateService');
+    const nativeHostService = accessor.get('INativeHostService');
+    const notificationService = accessor.get('INotificationService');
+    const settingsState = useSettingsState();
+
+    const [certificatePath, setCertificatePath] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    // Get the list of certificates from state as URIs
+    const certificates: URI[] = useMemo(() => {
+        return (settingsState.globalSettings.customRootCertificates || []).map(path => URI.parse(path));
+    }, [settingsState.globalSettings.customRootCertificates]);
+
+    const handleAddCertificate = async () => {
+        if (certificatePath) {
+            setIsVerifying(true);
+            try {
+                const certificateUri = URI.file(certificatePath);
+
+                // Check if certificate already exists
+                if (certificates.some(cert => cert.toString() === certificateUri.toString())) {
+                    notificationService.info('Certificate already added');
+                    return;
+                }
+
+                // Verify certificate is valid
+                const isValid = await certificateService.verifyCertificatePath(certificateUri);
+                if (!isValid) {
+                    notificationService.error(`The certificate file could not be read or is not a valid certificate.`);
+                    return;
+                }
+
+                // Add certificate
+                await certificateService.addCustomCertificate(certificateUri);
+                setCertificatePath('');
+                notificationService.info(`Certificate added successfully`);
+            } catch (error) {
+                notificationService.error(`Failed to add certificate: ${error}`);
+            } finally {
+                setIsVerifying(false);
+            }
+        }
+    };
+
+    const handleRemoveCertificate = async (certificateUri: URI) => {
+        try {
+            await certificateService.removeCustomCertificate(certificateUri);
+            notificationService.info(`Certificate removed`);
+        } catch (error) {
+            notificationService.error(`Failed to remove certificate: ${error}`);
+        }
+    };
+
+    const handleBrowse = async () => {
+        try {
+            const result = await nativeHostService.showOpenDialog({
+                properties: ['openFile'], // Use properties array instead of canSelectFiles, canSelectFolders, canSelectMany
+                filters: [
+                    { name: 'Certificates', extensions: ['pem', 'crt', 'cert', 'cer'] }
+                ],
+                title: 'Select Root Certificate'
+            });
+
+            if (result && result.filePaths && result.filePaths.length > 0) {
+                setCertificatePath(result.filePaths[0]);
+            }
+        } catch (error) {
+            notificationService.error(`Failed to browse for certificate: ${error}`);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+                <VoidSimpleInputBox
+                    value={certificatePath}
+                    onChangeValue={setCertificatePath}
+                    placeholder="Path to certificate (.pem, .crt, .cert, .cer)"
+                    compact={true}
+                    className="flex-grow"
+                />
+                <VoidButtonBgDarken onClick={handleBrowse} className="px-3 py-1">
+                    Browse
+                </VoidButtonBgDarken>
+                <AddButton
+                    disabled={!certificatePath || isVerifying}
+                    onClick={handleAddCertificate}
+                    text={isVerifying ? <span className="flex items-center gap-1">Verifying <Loader2 className="size-3 animate-spin" /></span> : "Add"}
+                />
+            </div>
+
+            {certificates.length > 0 ? (
+                <div className="mt-2">
+                    <h4 className="text-void-fg-3 text-sm mb-1">Added Certificates:</h4>
+                    <div className="flex flex-col gap-1">
+                        {certificates.map((certUri, index) => (
+                            <div key={certUri.toString()} className="flex justify-between items-center py-1 px-2 bg-void-bg-2 rounded">
+                                <span className="text-sm truncate max-w-md" title={certUri.fsPath}>{certUri.fsPath}</span>
+                                <button
+                                    onClick={() => handleRemoveCertificate(certUri)}
+                                    className="text-void-fg-3 hover:text-void-fg-1"
+                                >
+                                    <X className="size-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="text-void-fg-3 text-sm italic mt-1">
+                    No custom certificates added yet
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const Settings = () => {
 	const isDark = useIsDark()
 	const accessor = useAccessor()
@@ -1164,6 +1285,26 @@ export const Settings = () => {
 
 
 				{/* General section (formerly GeneralTab) */}
+				{/* Network Settings with Root Certificates */}
+				<div className='mt-12'>
+					<ErrorBoundary>
+						<h2 className='text-3xl mb-2'>Network Settings</h2>
+						<h4 className='text-void-fg-3 mb-4'>{`Configure network and certificate settings for API requests.`}</h4>
+
+						<div className='mb-4'>
+							<h3 className='text-base mb-2'>Root Certificates</h3>
+							<div className='text-sm italic text-void-fg-3 mb-2'>
+								<p>Add custom root certificates for HTTPS requests to fix certificate validation errors like "unable to get local issuer certificate".</p>
+								<p className="mt-1">This is useful when using a corporate proxy, gateway, or working behind a firewall that performs SSL inspection.</p>
+							</div>
+
+							<div className='max-w-xl'>
+								<CertificateManager />
+							</div>
+						</div>
+					</ErrorBoundary>
+				</div>
+
 				<div className='mt-12'>
 					<ErrorBoundary>
 						<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>

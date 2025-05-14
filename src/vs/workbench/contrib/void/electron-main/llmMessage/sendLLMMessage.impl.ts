@@ -115,7 +115,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
 		const thisConfig = settingsOfProvider[providerName]
-		const baseURL = `https://${thisConfig.project}.services.ai.azure.com/api/models/chat/completions??api-version=${thisConfig.azureApiVersion}`
+		const baseURL = `https://${thisConfig.project}.services.ai.azure.com/api/models/chat/completions?api-version=${thisConfig.azureApiVersion}`
 		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 

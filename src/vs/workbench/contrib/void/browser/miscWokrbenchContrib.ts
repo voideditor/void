@@ -8,6 +8,8 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { IExtensionTransferService } from './extensionTransferService.js';
 import { os } from '../common/helpers/systemInfo.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
+import { timeout } from '../../../../base/common/async.js';
+import { getActiveWindow } from '../../../../base/browser/dom.js';
 
 // Onboarding contribution that mounts the component at startup
 export class MiscWorkbenchContribs extends Disposable implements IWorkbenchContribution {
@@ -30,6 +32,16 @@ export class MiscWorkbenchContribs extends Disposable implements IWorkbenchContr
 			this.storageService.store(deleteExtensionsStorageId, 'true', StorageScope.APPLICATION, StorageTarget.MACHINE)
 			this.extensionTransferService.deleteBlacklistExtensions(os)
 		}
+
+
+		// after some time, trigger a resize event for the blank screen error
+		timeout(5_000).then(() => {
+			// Get the active window reference for multi-window support
+			const targetWindow = getActiveWindow();
+			// Trigger a window resize event to ensure proper layout calculations
+			targetWindow.dispatchEvent(new Event('resize'))
+
+		})
 
 	}
 }

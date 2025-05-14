@@ -2605,7 +2605,7 @@ const CommandBarInChat = () => {
 
 
 	// !select-text cursor-auto
-	const fileDetailsContent = <div className="px-2 gap-1 w-full">
+	const fileDetailsContent = <div className="px-2 gap-1 w-full overflow-y-auto">
 		{sortedCommandBarURIs.map((uri, i) => {
 			const basename = getBasename(uri.fsPath)
 
@@ -2862,6 +2862,7 @@ export const SidebarChat = () => {
 			textAreaRef: textAreaRef,
 			scrollToBottom: () => scrollToBottom(scrollContainerRef),
 		})
+
 	}, [chatThreadsState, threadId, textAreaRef, scrollContainerRef, isResolved])
 
 

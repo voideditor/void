@@ -7,7 +7,7 @@
 /* eslint-disable */
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
-import OpenAI, { ClientOptions } from 'openai';
+import OpenAI, { ClientOptions, AzureOpenAI } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 import { Tool as GeminiTool, FunctionDeclaration, GoogleGenAI, ThinkingConfig, Schema, Type } from '@google/genai';
@@ -114,9 +114,9 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
+		//  https://github.com/openai/openai-node?tab=readme-ov-file#microsoft-azure-openai
 		const thisConfig = settingsOfProvider[providerName]
-		const baseURL = `https://${thisConfig.project}.services.ai.azure.com/api/models/chat/completions?api-version=${thisConfig.azureApiVersion}`
-		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return new AzureOpenAI({ apiKey: thisConfig.apiKey, apiVersion: thisConfig.azureApiVersion, project: thisConfig.project, ...commonPayloadOpts })
 	}
 
 	else if (providerName === 'deepseek') {

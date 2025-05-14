@@ -84,8 +84,8 @@ export const defaultModelsOfProvider = {
 		'claude-3-opus-latest',
 	],
 	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
-		'grok-2-latest',
-		'grok-3-latest',
+		'grok-2',
+		'grok-3',
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
 		'gemini-2.5-pro-exp-03-25',
@@ -188,14 +188,20 @@ export type VoidStaticModelInfo = { // not stateful
 // if you change the above type, remember to update the Settings link
 
 
-export type ModelOverrides = Pick<VoidStaticModelInfo,
-	| 'contextWindow'
-	| 'reservedOutputTokenSpace'
-	| 'specialToolFormat'
-	| 'supportsSystemMessage'
-	| 'supportsFIM'
-	| 'reasoningCapabilities'
-	| 'additionalOpenAIPayload'
+
+export const modelOverrideKeys = [
+	'contextWindow',
+	'reservedOutputTokenSpace',
+	'supportsSystemMessage',
+	'specialToolFormat',
+	'supportsFIM',
+	'reasoningCapabilities',
+	'additionalOpenAIPayload'
+] as const
+
+export type ModelOverrides = Pick<
+	VoidStaticModelInfo,
+	(typeof modelOverrideKeys)[number]
 >
 
 
@@ -386,7 +392,8 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')
 	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-3-7-sonnet-20250219')
 
-	if (lower.includes('grok')) return toFallback(xAIModelOptions, 'grok-2')
+	if (lower.includes('grok2') || lower.includes('grok2')) return toFallback(xAIModelOptions, 'grok-2')
+	if (lower.includes('grok')) return toFallback(xAIModelOptions, 'grok-3')
 
 	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekR1')
 	if (lower.includes('deepseek') && lower.includes('v2')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekCoderV2')
@@ -630,6 +637,16 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 
+// https://platform.openai.com/docs/guides/reasoning?api-mode=chat
+const openAICompatIncludeInPayloadReasoning = (reasoningInfo: SendableReasoningInfo) => {
+	if (!reasoningInfo?.isReasoningEnabled) return null
+	if (reasoningInfo.type === 'effort_slider_value') {
+		return { reasoning_effort: reasoningInfo.reasoningEffort }
+	}
+	return null
+
+}
+
 const openAISettings: VoidStaticProviderInfo = {
 	modelOptions: openAIModelOptions,
 	modelOptionsFallback: (modelName) => {
@@ -642,17 +659,7 @@ const openAISettings: VoidStaticProviderInfo = {
 		return null
 	},
 	providerReasoningIOSettings: {
-		input: {
-			// https://platform.openai.com/docs/guides/reasoning?api-mode=chat
-			includeInPayload: (reasoningInfo) => {
-				if (!reasoningInfo?.isReasoningEnabled) return null
-
-				if (reasoningInfo.type === 'effort_slider_value') {
-					return { reasoning_effort: reasoningInfo.reasoningEffort }
-				}
-				return null
-			}
-		},
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
 	},
 }
 
@@ -667,6 +674,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'grok-3': {
@@ -676,6 +684,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'grok-3-fast': {
@@ -685,6 +694,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	// only mini supports thinking
@@ -695,6 +705,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
 	},
 	'grok-3-mini-fast': {
@@ -704,6 +715,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -714,11 +726,15 @@ const xAISettings: VoidStaticProviderInfo = {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof xAIModelOptions | null = null
 		if (lower.includes('grok-2')) fallbackName = 'grok-2'
+		if (lower.includes('grok-3')) fallbackName = 'grok-3'
+		if (lower.includes('grok')) fallbackName = 'grok-3'
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	},
 	// same implementation as openai
-	providerReasoningIOSettings: openAISettings.providerReasoningIOSettings,
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
 }
 
 
@@ -837,7 +853,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 
 const geminiSettings: VoidStaticProviderInfo = {
 	modelOptions: geminiModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
+	modelOptionsFallback: (modelName) => { return null },
 }
 
 
@@ -863,11 +879,12 @@ const deepseekModelOptions = {
 
 const deepseekSettings: VoidStaticProviderInfo = {
 	modelOptions: deepseekModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
 	providerReasoningIOSettings: {
 		// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
 		output: { nameOfFieldInDelta: 'reasoning_content' },
 	},
-	modelOptionsFallback: (modelName) => { return null }
 }
 
 
@@ -925,6 +942,9 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 const mistralSettings: VoidStaticProviderInfo = {
 	modelOptions: mistralModelOptions,
 	modelOptionsFallback: (modelName) => { return null },
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
 }
 
 
@@ -968,11 +988,13 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 const groqSettings: VoidStaticProviderInfo = {
+	modelOptions: groqModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
 	providerReasoningIOSettings: {
+		// Must be set to either parsed or hidden when using tool calling https://console.groq.com/docs/reasoning
 		input: {
 			includeInPayload: (reasoningInfo) => {
 				if (!reasoningInfo?.isReasoningEnabled) return null
-
 				if (reasoningInfo.type === 'budget_slider_value') {
 					return { reasoning_format: 'parsed' }
 				}
@@ -980,9 +1002,7 @@ const groqSettings: VoidStaticProviderInfo = {
 			}
 		},
 		output: { nameOfFieldInDelta: 'reasoning' },
-	}, // Must be set to either parsed or hidden when using tool calling https://console.groq.com/docs/reasoning
-	modelOptions: groqModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
+	},
 }
 
 
@@ -991,7 +1011,10 @@ const googleVertexModelOptions = {
 } as const satisfies Record<string, VoidStaticModelInfo>
 const googleVertexSettings: VoidStaticProviderInfo = {
 	modelOptions: googleVertexModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
+	modelOptionsFallback: (modelName) => { return null },
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
 }
 
 // ---------------- MICROSOFT AZURE ----------------
@@ -999,7 +1022,10 @@ const microsoftAzureModelOptions = {
 } as const satisfies Record<string, VoidStaticModelInfo>
 const microsoftAzureSettings: VoidStaticProviderInfo = {
 	modelOptions: microsoftAzureModelOptions,
-	modelOptionsFallback: (modelName) => { return null }
+	modelOptionsFallback: (modelName) => { return null },
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
 }
 
 
@@ -1075,35 +1101,50 @@ export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq',
 
 
 const vLLMSettings: VoidStaticProviderInfo = {
-	// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
-	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' }, },
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
-	modelOptions: {}, // TODO
+	modelOptions: {},
+	providerReasoningIOSettings: {
+		// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.vllm.ai/en/stable/features/reasoning_outputs.html#streaming-chat-completions
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { nameOfFieldInDelta: 'reasoning_content' },
+	},
 }
 
 const lmStudioSettings: VoidStaticProviderInfo = {
-	providerReasoningIOSettings: { output: { needsManualParse: true }, },
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' }, contextWindow: 4_096 }),
-	modelOptions: {}, // TODO
+	modelOptions: {},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
+	},
 }
 
 const ollamaSettings: VoidStaticProviderInfo = {
-	// reasoning: we need to filter out reasoning <think> tags manually
-	providerReasoningIOSettings: { output: { needsManualParse: true }, },
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: ollamaModelOptions,
+	providerReasoningIOSettings: {
+		// reasoning: we need to filter out reasoning <think> tags manually
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
+	},
 }
 
 const openaiCompatible: VoidStaticProviderInfo = {
-	// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName),
 	modelOptions: {},
+	providerReasoningIOSettings: {
+		// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
 }
 
 const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/docs/reasoning_content
-	providerReasoningIOSettings: { output: { nameOfFieldInDelta: 'reasoning_content' } },
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
-	modelOptions: {}, // TODO
+	modelOptions: {},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { nameOfFieldInDelta: 'reasoning_content' },
+	},
 }
 
 
@@ -1228,8 +1269,18 @@ const openRouterModelOptions_assumingOpenAICompat = {
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 const openRouterSettings: VoidStaticProviderInfo = {
-	// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
+	modelOptions: openRouterModelOptions_assumingOpenAICompat,
+	// TODO!!! send a query to openrouter to get the price, etc.
+	modelOptionsFallback: (modelName) => {
+		const res = extensiveModelOptionsFallback(modelName)
+		// openRouter does not support gemini-style, use openai-style instead
+		if (res?.specialToolFormat === 'gemini-style') {
+			res.specialToolFormat = 'openai-style'
+		}
+		return res
+	},
 	providerReasoningIOSettings: {
+		// reasoning: OAICompat + response.choices[0].delta.reasoning : payload should have {include_reasoning: true} https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
 		input: {
 			// https://openrouter.ai/docs/use-cases/reasoning-tokens
 			includeInPayload: (reasoningInfo) => {
@@ -1252,16 +1303,6 @@ const openRouterSettings: VoidStaticProviderInfo = {
 			}
 		},
 		output: { nameOfFieldInDelta: 'reasoning' },
-	},
-	modelOptions: openRouterModelOptions_assumingOpenAICompat,
-	// TODO!!! send a query to openrouter to get the price, etc.
-	modelOptionsFallback: (modelName) => {
-		const res = extensiveModelOptionsFallback(modelName)
-		// openRouter does not support gemini-style, use openai-style instead
-		if (res?.specialToolFormat === 'gemini-style') {
-			res.specialToolFormat = 'openai-style'
-		}
-		return res
 	},
 }
 

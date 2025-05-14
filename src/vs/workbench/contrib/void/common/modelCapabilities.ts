@@ -188,14 +188,20 @@ export type VoidStaticModelInfo = { // not stateful
 // if you change the above type, remember to update the Settings link
 
 
-export type ModelOverrides = Pick<VoidStaticModelInfo,
-	| 'contextWindow'
-	| 'reservedOutputTokenSpace'
-	| 'specialToolFormat'
-	| 'supportsSystemMessage'
-	| 'supportsFIM'
-	| 'reasoningCapabilities'
-	| 'additionalOpenAIPayload'
+
+export const modelOverrideKeys = [
+	'contextWindow',
+	'reservedOutputTokenSpace',
+	'supportsSystemMessage',
+	'specialToolFormat',
+	'supportsFIM',
+	'reasoningCapabilities',
+	'additionalOpenAIPayload'
+] as const
+
+export type ModelOverrides = Pick<
+	VoidStaticModelInfo,
+	(typeof modelOverrideKeys)[number]
 >
 
 

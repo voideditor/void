@@ -2605,7 +2605,7 @@ const CommandBarInChat = () => {
 
 
 	// !select-text cursor-auto
-	const fileDetailsContent = <div className="px-2 gap-1 w-full">
+	const fileDetailsContent = <div className="px-2 gap-1 w-full overflow-y-auto">
 		{sortedCommandBarURIs.map((uri, i) => {
 			const basename = getBasename(uri.fsPath)
 
@@ -2856,12 +2856,16 @@ export const SidebarChat = () => {
 
 	// resolve mount info
 	const isResolved = chatThreadsState.allThreads[threadId]?.state.mountedInfo?.mountedIsResolvedRef.current
+	
 	useEffect(() => {
 		if (isResolved) return
 		chatThreadsState.allThreads[threadId]?.state.mountedInfo?._whenMountedResolver?.({
 			textAreaRef: textAreaRef,
 			scrollToBottom: () => scrollToBottom(scrollContainerRef),
 		})
+		
+		// Trigger a window resize event to ensure proper layout calculations
+		window.dispatchEvent(new Event('resize'))
 	}, [chatThreadsState, threadId, textAreaRef, scrollContainerRef, isResolved])
 
 

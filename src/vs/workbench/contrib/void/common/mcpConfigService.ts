@@ -4,20 +4,19 @@
  *--------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
+import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { join } from '../../../../base/common/path.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 
 export interface IMCPConfigService {
 	readonly _serviceBrand: undefined;
-
-	// _getMCPConfigPath(): Promise<URI>;
-	// _configFileExists(): Promise<boolean>;
+	openMCPConfigFile(): Promise<void>;
 }
 
 export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
@@ -27,31 +26,55 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	private readonly MCP_CONFIG_FILE_NAME = 'mcp.json';
 	private readonly MCP_CONFIG_SAMPLE = {
-		mcpServers: [],
+		mcpServers: {},
 	}
 	private readonly MCP_CONFIG_SAMPLE_STRING = JSON.stringify(this.MCP_CONFIG_SAMPLE, null, 2);
+	private mcpFileWatcher: IDisposable | null = null;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
 		@IPathService private readonly pathService: IPathService,
-		@IProductService private readonly productService: IProductService
+		@IProductService private readonly productService: IProductService,
+		@IEditorService private readonly editorService: IEditorService,
 	) {
 		super();
 		this._initialize();
 	}
 
+	// This method is called when the service is disposed
+	override dispose(): void {
+		// Custom cleanup logic goes here
+		console.log('MCPConfigService is being disposed');
+
+		// Call _removeMCPConfigFileWatch to clean up file watchers
+		this._removeMCPConfigFileWatch().catch(err => {
+			console.error('Error removing MCP config file watch:', err);
+		});
+
+		// Always call the parent class dispose method to ensure proper cleanup
+		super.dispose();
+	}
+
 
 
 	private async _initialize() {
-		// Check logs
-		const mcpExists = await this._configFileExists();
-		if (!mcpExists) {
-			console.log('MCP Config file does not exist. Creating...');
-			await this._createMCPConfigFile();
-		} else {
-			console.log('MCP Config file already exists.');
-		}
+		try {
+			// Get the MCP config file path
+			const mcpConfigUri = await this._getMCPConfigPath();
 
+			// Check if the file exists
+			if (!this._configFileExists(mcpConfigUri)) {
+				// Create the file if it doesn't exist
+				await this._createMCPConfigFile(mcpConfigUri);
+				console.log('MCP Config file created:', mcpConfigUri.toString());
+			}
+
+			// Add a watcher to the MCP config file
+			await this._setMCPConfigFileWatch();
+
+		} catch (error) {
+			console.error('Error initializing MCPConfigService:', error);
+		}
 	}
 
 	private async _getMCPConfigPath(): Promise<URI> {
@@ -63,10 +86,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		return URI.file(mcpConfigPath);
 	}
 
-	private async _configFileExists(): Promise<boolean> {
+	private async _configFileExists(mcpConfigUri: URI): Promise<boolean> {
 		try {
-			const mcpConfigUri = await this._getMCPConfigPath();
-
 			// Try to get file stats - if it succeeds, the file exists
 			await this.fileService.stat(mcpConfigUri);
 			return true;
@@ -76,8 +97,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		}
 	}
 
-	private async _createMCPConfigFile(): Promise<void> {
-		const mcpConfigUri = await this._getMCPConfigPath();
+	private async _createMCPConfigFile(mcpConfigUri: URI): Promise<void> {
 
 		// Create the directory if it doesn't exist
 		await this.fileService.createFile(mcpConfigUri.with({ path: mcpConfigUri.path }));
@@ -85,6 +105,64 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		// Create the MCP config file with default content
 		const buffer = VSBuffer.fromString(this.MCP_CONFIG_SAMPLE_STRING);
 		await this.fileService.writeFile(mcpConfigUri, buffer);
+	}
+
+	private async _parseMCPConfigFile(): Promise<any> {
+		const mcpConfigUri = await this._getMCPConfigPath();
+
+		try {
+			const fileContent = await this.fileService.readFile(mcpConfigUri);
+			const contentString = fileContent.value.toString();
+			return JSON.parse(contentString);
+		} catch (error) {
+			console.error('Error reading or parsing MCP config file:', error);
+			return null;
+		}
+	}
+
+	private async _setMCPConfigFileWatch(): Promise<void> {
+		const mcpConfigUri = await this._getMCPConfigPath();
+
+		// Watch the file for changes
+		this.mcpFileWatcher = this.fileService.watch(mcpConfigUri);
+
+		// Listen for changes
+		this._register(this.fileService.onDidFilesChange(e => {
+			// Handle file changes
+			if (e.contains(mcpConfigUri)) {
+				console.log('MCP Config file changed:', JSON.stringify(e, null, 2));
+				this._parseMCPConfigFile();
+			}
+		}));
+	}
+
+	private async _removeMCPConfigFileWatch(): Promise<void> {
+		if (this.mcpFileWatcher) {
+			this.mcpFileWatcher.dispose();
+			this.mcpFileWatcher = null;
+		}
+	}
+
+	public async openMCPConfigFile(): Promise<void> {
+		try {
+			// Get the MCP config file path
+			const mcpConfigUri = await this._getMCPConfigPath();
+
+			// Check if the file exists
+			if (!this._configFileExists(mcpConfigUri)) {
+				// Create the file if it doesn't exist
+				await this._createMCPConfigFile(mcpConfigUri);
+				console.log('MCP Config file created:', mcpConfigUri.toString());
+			}
+
+			// Open the MCP config file in the editor
+			await this.editorService.openEditor({
+				resource: mcpConfigUri,
+			});
+
+		} catch (error) {
+			console.error('Error opening MCP config file:', error);
+		}
 	}
 }
 

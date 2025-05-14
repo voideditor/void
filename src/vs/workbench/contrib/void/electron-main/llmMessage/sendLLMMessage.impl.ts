@@ -114,6 +114,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
+		//  https://github.com/openai/openai-node?tab=readme-ov-file#microsoft-azure-openai
 		const thisConfig = settingsOfProvider[providerName]
 		return new AzureOpenAI({ apiKey: thisConfig.apiKey, apiVersion: thisConfig.azureApiVersion, project: thisConfig.project, ...commonPayloadOpts })
 	}

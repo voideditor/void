@@ -63,7 +63,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 			const mcpConfigUri = await this._getMCPConfigPath();
 
 			// Check if the file exists
-			if (!this._configFileExists(mcpConfigUri)) {
+			const fileExists = await this._configFileExists(mcpConfigUri);
+			if (!fileExists) {
 				// Create the file if it doesn't exist
 				await this._createMCPConfigFile(mcpConfigUri);
 				console.log('MCP Config file created:', mcpConfigUri.toString());
@@ -148,16 +149,13 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 			// Get the MCP config file path
 			const mcpConfigUri = await this._getMCPConfigPath();
 
-			// Check if the file exists
-			if (!this._configFileExists(mcpConfigUri)) {
-				// Create the file if it doesn't exist
-				await this._createMCPConfigFile(mcpConfigUri);
-				console.log('MCP Config file created:', mcpConfigUri.toString());
-			}
-
 			// Open the MCP config file in the editor
 			await this.editorService.openEditor({
 				resource: mcpConfigUri,
+				options: {
+					pinned: true,
+					revealIfOpened: true,
+				}
 			});
 
 		} catch (error) {

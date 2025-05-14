@@ -721,6 +721,7 @@ const xAISettings: VoidStaticProviderInfo = {
 		let fallbackName: keyof typeof xAIModelOptions | null = null
 		if (lower.includes('grok-2')) fallbackName = 'grok-2'
 		if (lower.includes('grok-3')) fallbackName = 'grok-3'
+		if (lower.includes('grok')) fallbackName = 'grok-3'
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	},

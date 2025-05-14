@@ -914,6 +914,7 @@ export const Settings = () => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
+	const mcpConfigService = accessor.get('IMCPConfigService')
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
 		let dataStr: string
@@ -1247,6 +1248,26 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					</h4>
 					<ErrorBoundary>
 						<AIInstructionsBox />
+					</ErrorBoundary>
+				</div>
+
+				<div className='mt-12 max-w-[600px]'>
+					<div className='flex items-center justify-between mb-2'>
+						<h2 className={`text-3xl`}>MCP</h2>
+						<VoidButtonBgDarken className='px-4 py-1' onClick={async () => { await mcpConfigService.openMCPConfigFile() }}>
+							Add MCP Server
+						</VoidButtonBgDarken>
+					</div>
+					<h4 className={`text-void-fg-3 mb-4`}>
+						<ChatMarkdownRender inPTag={true} string={`
+Configure Model Context Protocol servers to connect your AI models with external data sources and tools.
+Edit your MCP configuration file to add or modify server connections.
+								`} chatMessageLocation={undefined} />
+					</h4>
+					<ErrorBoundary>
+						<div>
+							{/* TODO: Add MCP server list with a live button */}
+						</div>
 					</ErrorBoundary>
 				</div>
 			</div>

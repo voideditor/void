@@ -73,7 +73,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
-    "@azure/identity": "^4.9.1",
     "@c4312/eventsource-umd": "^3.0.5",
     "@floating-ui/react": "^0.27.8",
     "@google/genai": "^0.13.0",

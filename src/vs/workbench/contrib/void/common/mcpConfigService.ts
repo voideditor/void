@@ -16,8 +16,8 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 export interface IMCPConfigService {
 	readonly _serviceBrand: undefined;
 
-	getMCPConfigPath(): Promise<URI>;
-	// configFileExists(): Promise<boolean>;
+	// _getMCPConfigPath(): Promise<URI>;
+	// _configFileExists(): Promise<boolean>;
 }
 
 export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
@@ -44,7 +44,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	private async _initialize() {
 		// Check logs
-		const mcpExists = await this.configFileExists();
+		const mcpExists = await this._configFileExists();
 		if (!mcpExists) {
 			console.log('MCP Config file does not exist. Creating...');
 			await this._createMCPConfigFile();
@@ -54,7 +54,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	}
 
-	async getMCPConfigPath(): Promise<URI> {
+	private async _getMCPConfigPath(): Promise<URI> {
 		// Get the appropriate directory based on dev mode
 		const appName = this.productService.dataFolderName
 
@@ -63,9 +63,9 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		return URI.file(mcpConfigPath);
 	}
 
-	async configFileExists(): Promise<boolean> {
+	private async _configFileExists(): Promise<boolean> {
 		try {
-			const mcpConfigUri = await this.getMCPConfigPath();
+			const mcpConfigUri = await this._getMCPConfigPath();
 
 			// Try to get file stats - if it succeeds, the file exists
 			await this.fileService.stat(mcpConfigUri);
@@ -77,7 +77,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 	}
 
 	private async _createMCPConfigFile(): Promise<void> {
-		const mcpConfigUri = await this.getMCPConfigPath();
+		const mcpConfigUri = await this._getMCPConfigPath();
 
 		// Create the directory if it doesn't exist
 		await this.fileService.createFile(mcpConfigUri.with({ path: mcpConfigUri.path }));

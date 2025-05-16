@@ -17,10 +17,13 @@ import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel, MCPServerErrorModel, EventMCPServerSetupOnError, MCPServerObject } from './mcpServiceTypes.js';
 import { Event } from '../../../../base/common/event.js';
+import { InternalToolInfo } from './prompt/prompts.js';
 
 export interface IMCPConfigService {
 	readonly _serviceBrand: undefined;
 	openMCPConfigFile(): Promise<void>;
+	getMCPServers(): MCPServers;
+	getAllToolsFormatted(): InternalToolInfo[];
 }
 
 export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
@@ -211,6 +214,32 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		// Call the getMCPServers method in the main process
 		return this.mcpServers;
 	}
+
+	public getAllToolsFormatted(): InternalToolInfo[] {
+		const allTools = Object.values(this.mcpServers).flatMap(server => {
+			return server.tools.map(tool => {
+				// Convert JsonSchema to the expected format
+				const convertedParams: { [paramName: string]: { description: string } } = {};
+
+				// Assuming tool.inputSchema has a 'properties' field that contains parameter definitions
+				if (tool.inputSchema && tool.inputSchema.properties) {
+					Object.entries(tool.inputSchema.properties).forEach(([paramName, paramSchema]: [string, any]) => {
+						convertedParams[paramName] = {
+							description: paramSchema.description || ''
+						};
+					});
+				}
+
+				return {
+					description: tool.description || '',
+					params: convertedParams,
+					name: tool.name,
+				};
+			});
+		});
+		return allTools;
+	}
+
 }
 
 registerSingleton(IMCPConfigService, MCPConfigService, InstantiationType.Delayed);

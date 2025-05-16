@@ -15,7 +15,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel } from './mcpServiceTypes.js';
+import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel, MCPServerErrorModel, EventMCPServerSetupOnError, MCPServerObject } from './mcpServiceTypes.js';
 import { Event } from '../../../../base/common/event.js';
 
 export interface IMCPConfigService {
@@ -50,17 +50,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		// Register the service with the instantiation service
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
 		// Register listeners for the channel
-		this._register((this.channel.listen('onSuccess_serverSetup') satisfies Event<EventMCPServerSetupOnSuccess<MCPServerSuccessModel> & { serverName: string }>)(e => {
-			// Handle successful server setup
-			const { model } = e;
-			const { serverName, isLive, isOn, tools } = model;
-			this.mcpServers[serverName] = {
-				isLive,
-				isOn,
-				tools
-			}
-			console.log('MCP Server setup successful:', serverName, JSON.stringify(model, null, 2));
-		}));
+		this._register((this.channel.listen('onSuccess_serverSetup') satisfies Event<EventMCPServerSetupOnSuccess<MCPServerSuccessModel> & { serverName: string }>)(e => this._onServerEvent(e, 'success')));
+		this._register((this.channel.listen('onError_serverSetup') satisfies Event<EventMCPServerSetupOnError<MCPServerErrorModel> & { serverName: string }>)(e => this._onServerEvent(e, 'error')));
 		// Initialize the service
 		this._initialize();
 	}
@@ -112,6 +103,19 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		} catch (error) {
 			console.error('Error initializing MCPConfigService:', error);
 		}
+	}
+
+	private async _onServerEvent(e: EventMCPServerSetupOnSuccess<MCPServerSuccessModel> | EventMCPServerSetupOnError<MCPServerErrorModel>, eventType: 'success' | 'error') {
+		const { model } = e;
+		const { serverName, isLive, isOn, tools, error } = model;
+		const serverObject: MCPServerObject = {
+			isLive,
+			isOn,
+			tools,
+			error: eventType === 'error' ? error : undefined,
+		};
+		this.mcpServers[serverName] = serverObject;
+		console.log(`MCP Server Setup ${eventType}:`, serverName, error);
 	}
 
 	private async _getMCPConfigPath(): Promise<URI> {

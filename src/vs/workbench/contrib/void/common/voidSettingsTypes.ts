@@ -103,6 +103,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'microsoftAzure') {
 		return { title: 'Microsoft Azure OpenAI', }
 	}
+	else if (providerName === 'copilot') {
+		return { title: 'GitHub Copilot', }
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -124,6 +127,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
+	if (providerName === 'copilot') return 'Requires GitHub Copilot subscription. Get your [API Key here](https://github.com/settings/copilot).'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -151,6 +155,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 											providerName === 'mistral' ? 'api-key...' :
 												providerName === 'googleVertex' ? 'AIzaSy...' :
 													providerName === 'microsoftAzure' ? 'key-...' :
+													providerName === 'copilot' ? 'key...' :
 														'',
 
 			isPasswordField: true,
@@ -338,6 +343,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.microsoftAzure,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.microsoftAzure),
+		_didFillInProviderSettings: undefined,
+	},
+	copilot: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.copilot,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.copilot),
 		_didFillInProviderSettings: undefined,
 	},
 }

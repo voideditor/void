@@ -143,6 +143,14 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'copilot') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({
+		  baseURL: 'https://api.githubcopilot.com/v1',
+		  apiKey: thisConfig.apiKey,
+		  ...commonPayloadOpts
+		})
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -853,6 +861,11 @@ export const sendLLMMessageToProviderImplementation = {
 	mistral: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: (params) => sendMistralFIM(params),
+		list: null,
+	},
+	copilot: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
 		list: null,
 	},
 	ollama: {

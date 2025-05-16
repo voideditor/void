@@ -1,0 +1,160 @@
+/**
+ * mcp-response-types.ts
+ * --------------------------------------------------
+ * **Pure** TypeScript interfaces (no external imports)
+ * describing the JSON-RPC response shapes for:
+ *
+ *   1. tools/list      -> ToolsListResponse
+ *   2. prompts/list    -> PromptsListResponse
+ *   3. tools/call      -> ToolCallResponse
+ *
+ * They are distilled directly from the official MCP
+ * 2025‑03‑26 specification:
+ *   • Tools list response examples
+ *   • Prompts list response examples
+ *   • Tool call response examples
+ *
+ * Use them to get full IntelliSense when working with
+ * @modelcontextprotocol/inspector‑cli responses.
+ */
+
+/* -------------------------------------------------- */
+/* Core JSON‑RPC envelope                              */
+/* -------------------------------------------------- */
+
+export interface JsonRpcSuccess<T> {
+	/** JSON‑RPC version – always '2.0' */
+	jsonrpc: '2.0';
+	/** Request identifier echoed back by the server */
+	id: string | number | null;
+	/** The successful result payload */
+	result: T;
+}
+
+/* -------------------------------------------------- */
+/* Utility: pagination                                 */
+/* -------------------------------------------------- */
+
+export interface Paginated {
+	/** Opaque cursor for fetching the next page */
+	nextCursor?: string;
+}
+
+/* -------------------------------------------------- */
+/* 1. tools/list                                       */
+/* -------------------------------------------------- */
+
+/** Minimal JSON‑Schema placeholder – adapt if you need stricter typing */
+export type JsonSchema = Record<string, unknown>;
+
+export interface Tool {
+	/** Unique tool identifier */
+	name: string;
+	/** Human‑readable description */
+	description?: string;
+	/** JSON schema describing expected arguments */
+	inputSchema?: JsonSchema;
+	/** Free‑form annotations describing behaviour, security, etc. */
+	annotations?: Record<string, unknown>;
+}
+
+export interface ToolsListResult extends Paginated {
+	tools: Tool[];
+}
+
+export type ToolsListResponse = JsonRpcSuccess<ToolsListResult>;
+
+/* -------------------------------------------------- */
+/* 2. prompts/list                                     */
+/* -------------------------------------------------- */
+
+export interface PromptArgument {
+	name: string;
+	description?: string;
+	/** Whether the argument is required */
+	required?: boolean;
+}
+
+export interface Prompt {
+	name: string;
+	description?: string;
+	arguments?: PromptArgument[];
+}
+
+export interface PromptsListResult extends Paginated {
+	prompts: Prompt[];
+}
+
+export type PromptsListResponse = JsonRpcSuccess<PromptsListResult>;
+
+/* -------------------------------------------------- */
+/* 3. tools/call                                       */
+/* -------------------------------------------------- */
+
+/** Additional resource structure that can be embedded in tool results */
+export interface Resource {
+	uri: string;
+	mimeType: string;
+	/** Either plain‑text or base64‑encoded binary data */
+	text?: string;
+	data?: string;
+}
+
+/** Individual content items returned by a tool */
+export type ToolContent =
+	| { type: 'text'; text: string }
+	| { type: 'image'; data: string; mimeType: string }
+	| { type: 'audio'; data: string; mimeType: string }
+	| { type: 'resource'; resource: Resource };
+
+export interface ToolCallResult {
+	/** List of content parts (text, images, resources, etc.) */
+	content: ToolContent[];
+	/** True if the tool itself encountered a domain‑level error */
+	isError?: boolean;
+}
+
+export type ToolCallResponse = JsonRpcSuccess<ToolCallResult>;
+
+// Interface for mcpConfigObjects
+export interface MCPServerConfig {
+	// Command-based server properties
+	command?: string;
+	args?: string[];
+	env?: Record<string, string>;
+
+	// URL-based server properties
+	url?: URL;
+	headers?: Record<string, string>;
+}
+
+export interface MCPConfig {
+	mcpServers: Record<string, MCPServerConfig>;
+}
+
+// Interface for mcpServerObjects in browser
+export interface MCPServerObject {
+	// Command-based server properties
+	tools: Tool[],
+	isLive: boolean,
+	isOn: boolean,
+	error?: string,
+}
+
+export interface MCPServers {
+	[serverName: string]: MCPServerObject;
+}
+
+// Create separate types for success and error cases
+export type MCPServerSuccessModel = MCPServerObject;
+export type MCPServerErrorModel = Omit<MCPServerObject, 'error'> & { error: string };
+
+export type MCPServerSetupParams<serverResponse> = {
+	serverName: string;
+	onSuccess: (param: { model: MCPServerSuccessModel & { serverName: string } }) => void;
+	onError: (param: { model: MCPServerErrorModel & { serverName: string } }) => void;
+}
+
+// Listener event types
+export type EventMCPServerSetupOnSuccess<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onSuccess']>[0]
+export type EventMCPServerSetupOnError<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onError']>[0]

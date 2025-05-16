@@ -13,6 +13,10 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { join } from '../../../../base/common/path.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
+import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
+import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel } from './mcpServiceTypes.js';
+import { Event } from '../../../../base/common/event.js';
 
 export interface IMCPConfigService {
 	readonly _serviceBrand: undefined;
@@ -30,19 +34,39 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 	}
 	private readonly MCP_CONFIG_SAMPLE_STRING = JSON.stringify(this.MCP_CONFIG_SAMPLE, null, 2);
 	private mcpFileWatcher: IDisposable | null = null;
+	private readonly channel: IChannel // MCPChannel
+
+	// list of MCP servers pulled from mcpChannel
+	private mcpServers: MCPServers = {}
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
 		@IPathService private readonly pathService: IPathService,
 		@IProductService private readonly productService: IProductService,
 		@IEditorService private readonly editorService: IEditorService,
+		@IMainProcessService private readonly mainProcessService: IMainProcessService,
 	) {
 		super();
+		// Register the service with the instantiation service
+		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
+		// Register listeners for the channel
+		this._register((this.channel.listen('onSuccess_serverSetup') satisfies Event<EventMCPServerSetupOnSuccess<MCPServerSuccessModel> & { serverName: string }>)(e => {
+			// Handle successful server setup
+			const { model } = e;
+			const { serverName, isLive, isOn, tools } = model;
+			this.mcpServers[serverName] = {
+				isLive,
+				isOn,
+				tools
+			}
+			console.log('MCP Server setup successful:', serverName, JSON.stringify(model, null, 2));
+		}));
+		// Initialize the service
 		this._initialize();
 	}
 
 	// This method is called when the service is disposed
-	override dispose(): void {
+	override async dispose(): Promise<void> {
 		// Custom cleanup logic goes here
 		console.log('MCPConfigService is being disposed');
 
@@ -50,6 +74,9 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		this._removeMCPConfigFileWatch().catch(err => {
 			console.error('Error removing MCP config file watch:', err);
 		});
+
+		// Close all servers in electron main process
+		await this.channel.call('closeAllServers')
 
 		// Always call the parent class dispose method to ensure proper cleanup
 		super.dispose();
@@ -69,6 +96,15 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 				await this._createMCPConfigFile(mcpConfigUri);
 				console.log('MCP Config file created:', mcpConfigUri.toString());
 			}
+
+			// Parse the MCP config file
+			const mcpConfig = await this._parseMCPConfigFile();
+			if (mcpConfig) {
+				// Process the MCP config file
+				console.log('MCP Config file parsed:', JSON.stringify(mcpConfig, null, 2));
+				this.channel.call('setupServers', mcpConfig)
+			}
+
 
 			// Add a watcher to the MCP config file
 			await this._setMCPConfigFileWatch();
@@ -108,7 +144,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		await this.fileService.writeFile(mcpConfigUri, buffer);
 	}
 
-	private async _parseMCPConfigFile(): Promise<any> {
+	private async _parseMCPConfigFile(): Promise<MCPConfig | null> {
 		const mcpConfigUri = await this._getMCPConfigPath();
 
 		try {
@@ -128,11 +164,15 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		this.mcpFileWatcher = this.fileService.watch(mcpConfigUri);
 
 		// Listen for changes
-		this._register(this.fileService.onDidFilesChange(e => {
+		this._register(this.fileService.onDidFilesChange(async e => {
 			// Handle file changes
 			if (e.contains(mcpConfigUri)) {
 				console.log('MCP Config file changed:', JSON.stringify(e, null, 2));
-				this._parseMCPConfigFile();
+				const mcpConfig = await this._parseMCPConfigFile();
+				if (mcpConfig && mcpConfig.mcpServers) {
+					// Call the setupServers method in the main process
+					this.channel.call('setupServers', mcpConfig)
+				}
 			}
 		}));
 	}
@@ -161,6 +201,11 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		} catch (error) {
 			console.error('Error opening MCP config file:', error);
 		}
+	}
+
+	public getMCPServers(): MCPServers {
+		// Call the getMCPServers method in the main process
+		return this.mcpServers;
 	}
 }
 

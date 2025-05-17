@@ -134,6 +134,14 @@ export interface MCPConfig {
 	mcpServers: Record<string, MCPServerConfig>;
 }
 
+export interface MCPConfigParseError {
+	// Error message
+	response: {
+		event: 'config-error';
+		error: string | null;
+	}
+}
+
 // SERVER EVENT TYPES ------------------------------------------
 
 export interface MCPServerObject {

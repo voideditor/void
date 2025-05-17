@@ -1,5 +1,5 @@
 import { VoidSwitch } from '../util/inputs.js';
-import { MCPServerEventParam, MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
+import { MCPConfigParseError, MCPServerEventParam, MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
 import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -102,6 +102,7 @@ const MCPServersList = () => {
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
 	const [mcpServers, setMCPServers] = useState<MCPServers>({});
+	const [mcpConfigError, setMCPConfigError] = useState<string | null>(null);
 
 	// Get all servers from MCPConfigService
 	useEffect(() => {
@@ -114,35 +115,13 @@ const MCPServersList = () => {
 			setMCPServers(servers);
 		}
 
-		const handleListeners = (e: MCPServerEventParam) => {
-			if (e.response.event === 'add' || e.response.event === 'update' || e.response.event === 'loading') {
-				// Handle the add event
-				const { name, newServer } = e.response;
-				setMCPServers(prevServers => ({
-					...prevServers,
-					[name]: newServer
-				}));
-				return;
-			}
-			if (e.response.event === 'delete') {
-				// Handle the delete event
-				const { name, prevServer } = e.response;
-				setMCPServers(prevServers => {
-					const newServers = { ...prevServers };
-					delete newServers[name];
-					return newServers;
-				});
-				return;
-			}
-			throw new Error('Event not handled');
-		}
-
 		// Set up listeners for server events
 		const disposables: IDisposable[] = []
 		disposables.push(mcpService.onDidAddServer(handleListeners));
 		disposables.push(mcpService.onDidDeleteServer(handleListeners));
 		disposables.push(mcpService.onDidUpdateServer(handleListeners));
 		disposables.push(mcpService.onLoadingServers(handleListeners));
+		disposables.push(mcpService.onConfigParsingError(handleListeners));
 
 		// Clean up subscription when component unmounts
 		return () => {
@@ -152,14 +131,48 @@ const MCPServersList = () => {
 
 	}, [mcpService]);
 
+	const handleListeners = (e: MCPServerEventParam | MCPConfigParseError) => {
+		if (e.response.event === 'config-error') {
+			// Handle the config error event
+			const { error } = e.response;
+			setMCPConfigError(error);
+			return;
+		}
+		if (e.response.event === 'add' || e.response.event === 'update' || e.response.event === 'loading') {
+			// Handle the add event
+			const { name, newServer } = e.response;
+			setMCPServers(prevServers => ({
+				...prevServers,
+				[name]: newServer
+			}));
+			return;
+		}
+		if (e.response.event === 'delete') {
+			// Handle the delete event
+			const { name, prevServer } = e.response;
+			setMCPServers(prevServers => {
+				const newServers = { ...prevServers };
+				delete newServers[name];
+				return newServers;
+			});
+			return;
+		}
+		throw new Error('Event not handled');
+	}
+
 	return (
 		<div className="text-white rounded-md py-4">
 		<div>
-			{Object.entries(mcpServers).map(([name, server]) => (
+			{!mcpConfigError && Object.entries(mcpServers).map(([name, server]) => (
 			<div className="py-2" key={name}>
 				<MCPServer name={name} server={server} />
 			</div>
 			))}
+			{mcpConfigError && (
+			<div className="text-red-500 text-sm font-medium">
+				{mcpConfigError}
+			</div>
+			)}
 		</div>
 		</div>
 	);

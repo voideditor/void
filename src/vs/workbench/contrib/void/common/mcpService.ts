@@ -15,7 +15,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam } from './mcpServiceTypes.js';
+import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam, MCPConfigParseError } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 
@@ -28,6 +28,7 @@ export interface IMCPService {
 	onDidUpdateServer: Event<MCPServerEventUpdateParam>;
 	onDidDeleteServer: Event<MCPServerEventDeleteParam>;
 	onLoadingServers: Event<MCPServerEventLoadingParam>;
+	onConfigParsingError: Event<MCPConfigParseError>;
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -51,10 +52,12 @@ class MCPService extends Disposable implements IMCPService {
 	private readonly _onDidUpdateServer = new Emitter<MCPServerEventUpdateParam>();
 	private readonly _onDidDeleteServer = new Emitter<MCPServerEventDeleteParam>();
 	private readonly _onLoadingServers = new Emitter<MCPServerEventLoadingParam>();
+	private readonly _onConfigParsingError = new Emitter<MCPConfigParseError>();
 	public readonly onDidAddServer = this._onDidAddServer.event;
 	public readonly onDidUpdateServer = this._onDidUpdateServer.event;
 	public readonly onDidDeleteServer = this._onDidDeleteServer.event;
 	public readonly onLoadingServers = this._onLoadingServers.event;
+	public readonly onConfigParsingError = this._onConfigParsingError.event;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -110,12 +113,9 @@ class MCPService extends Disposable implements IMCPService {
 			// Parse the MCP config file
 			const mcpConfig = await this._parseMCPConfigFile();
 
-			if (mcpConfig) {
-				// Create the initial server list
-				// await this._createInitialServerList(mcpConfig);
+			if (mcpConfig && mcpConfig.mcpServers) {
 
 				// Setup the server list
-				console.log('MCP Config file parsed:', JSON.stringify(mcpConfig, null, 2));
 				this.channel.call('setupServers', mcpConfig)
 			}
 
@@ -170,14 +170,35 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	private async _parseMCPConfigFile(): Promise<MCPConfig | null> {
+		// Remove any previous config parsing error
+		// This isn't super intuitive, but it works
+		this._onConfigParsingError.fire({
+			response: {
+				event: 'config-error',
+				error: null
+			}
+		});
+
+		// Process config file
 		const mcpConfigUri = await this._getMCPConfigPath();
 
 		try {
 			const fileContent = await this.fileService.readFile(mcpConfigUri);
 			const contentString = fileContent.value.toString();
-			return JSON.parse(contentString);
+			const configJson = JSON.parse(contentString);
+			if (!configJson.mcpServers) {
+				throw new Error('Invalid MCP config file: missing mcpServers property');
+			}
+			return configJson as MCPConfig;
 		} catch (error) {
-			console.error('Error reading or parsing MCP config file:', error);
+			const fullError = `Error parsing MCP config file: ${error}`;
+			console.error(fullError);
+			this._onConfigParsingError.fire({
+				response: {
+					event: 'config-error',
+					error: fullError
+				}
+			});
 			return null;
 		}
 	}
@@ -194,7 +215,6 @@ class MCPService extends Disposable implements IMCPService {
 			if (e.contains(mcpConfigUri)) {
 				const mcpConfig = await this._parseMCPConfigFile();
 				if (mcpConfig && mcpConfig.mcpServers) {
-
 					// Call the setupServers method in the main process
 					this.channel.call('setupServers', mcpConfig)
 				}

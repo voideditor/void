@@ -1,7 +1,8 @@
 import { VoidSwitch } from '../util/inputs.js';
-import { MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
-import { use, useEffect, useState } from 'react';
+import { MCPServerEventParam, MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
+import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
+import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
 export interface Tool {
   /** Unique tool identifier */
@@ -97,59 +98,71 @@ const MCPServer = ({ name, server }: MCPServerProps) => {
 
 // Main component that renders the list of servers
 const MCPServersList = () => {
-  // Dummy data for two servers
-
 
 	const accessor = useAccessor();
-	const mcpConfigService = accessor.get('IMCPConfigService');
+	const mcpService = accessor.get('IMCPService');
 	const [mcpServers, setMCPServers] = useState<MCPServers>({});
 
 	// Get all servers from MCPConfigService
 	useEffect(() => {
+		console.log('RUNNING MCPServersList EFFECT');
 		// Initial fetch
-		const servers = mcpConfigService.getMCPServers();
+		const servers = mcpService.getMCPServers();
 		if (servers) {
 			// Do something with the servers
 			console.log('MCP Servers:', servers);
 			setMCPServers(servers);
 		}
 
-		// Subscribe to changes
-		const disposable = mcpConfigService.onDidChangeMCPServers((response) => {
-			const {serverName, serverObject} = response;
-
-			// Update the server object in the state
-			setMCPServers(prevServers => ({
-				...prevServers,  // Spread all previous servers
-				[serverName]: serverObject  // Override or add the new server
-			  }));
-		});
-
-		// Subscribe to config file changes
-		const disposableConfig = mcpConfigService.onDidUpdateConfigFile((response) => {
-			const {mcpServers} = response;
-			if (mcpServers) {
-				// Reset all servers to "loading" state
-				console.log('MCP Servers:', mcpServers);
-				setMCPServers(mcpServers);
+		const handleListeners = (e: MCPServerEventParam) => {
+			if (e.response.event === 'add' || e.response.event === 'update' || e.response.event === 'loading') {
+				// Handle the add event
+				const { name, newServer } = e.response;
+				setMCPServers(prevServers => ({
+					...prevServers,
+					[name]: newServer
+				}));
+				return;
 			}
-		});
+			if (e.response.event === 'delete') {
+				// Handle the delete event
+				const { name, prevServer } = e.response;
+				setMCPServers(prevServers => {
+					const newServers = { ...prevServers };
+					delete newServers[name];
+					return newServers;
+				});
+				return;
+			}
+			throw new Error('Event not handled');
+		}
+
+		// Set up listeners for server events
+		const disposables: IDisposable[] = []
+		disposables.push(mcpService.onDidAddServer(handleListeners));
+		disposables.push(mcpService.onDidDeleteServer(handleListeners));
+		disposables.push(mcpService.onDidUpdateServer(handleListeners));
+		disposables.push(mcpService.onLoadingServers(handleListeners));
 
 		// Clean up subscription when component unmounts
-		return () => disposable.dispose();
-	}, [mcpConfigService]);
+		return () => {
+			console.log('Cleaning up subscriptions');
+			disposables.forEach(disposable => disposable.dispose());
+		};
 
-  return (
-    <div className="text-white rounded-md py-4">
-      <div>
-        {Object.entries(mcpServers).map(([name, server]) => (
-          <div className="py-2" key={name}>
-			<MCPServer name={name} server={server} />
-		  </div>
-        ))}
-      </div>
-    </div>
-  );
+	}, [mcpService]);
+
+	return (
+		<div className="text-white rounded-md py-4">
+		<div>
+			{Object.entries(mcpServers).map(([name, server]) => (
+			<div className="py-2" key={name}>
+				<MCPServer name={name} server={server} />
+			</div>
+			))}
+		</div>
+		</div>
+	);
 };
 
 export default MCPServersList;

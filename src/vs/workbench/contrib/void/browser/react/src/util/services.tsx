@@ -51,6 +51,7 @@ import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
 import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
+import { IMCPConfigService } from '../../../../common/mcpConfigService.js';
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -215,6 +216,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ITerminalService: accessor.get(ITerminalService),
 		IExtensionManagementService: accessor.get(IExtensionManagementService),
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
+		IMCPConfigService: accessor.get(IMCPConfigService),
 
 	} as const
 	return reactAccessor

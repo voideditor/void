@@ -147,7 +147,7 @@ export interface MCPConfigParseError {
 export interface MCPServerObject {
 	// Command-based server properties
 	tools: Tool[],
-	status: 'loading' | 'error' | 'success',
+	status: 'loading' | 'error' | 'success' | 'offline',
 	isOn: boolean,
 	command?: string,
 	error?: string,

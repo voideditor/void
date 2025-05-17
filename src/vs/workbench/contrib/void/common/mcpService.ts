@@ -24,6 +24,7 @@ export interface IMCPService {
 	openMCPConfigFile(): Promise<void>;
 	getMCPServers(): MCPServers;
 	getAllToolsFormatted(): InternalToolInfo[];
+	toggleServer(serverName: string, isOn: boolean): Promise<void>;
 	onDidAddServer: Event<MCPServerEventAddParam>;
 	onDidUpdateServer: Event<MCPServerEventUpdateParam>;
 	onDidDeleteServer: Event<MCPServerEventDeleteParam>;
@@ -215,7 +216,7 @@ class MCPService extends Disposable implements IMCPService {
 			if (e.contains(mcpConfigUri)) {
 				const mcpConfig = await this._parseMCPConfigFile();
 				if (mcpConfig && mcpConfig.mcpServers) {
-					// Call the setupServers method in the main process
+					// Set up the server list
 					this.channel.call('setupServers', mcpConfig)
 				}
 			}
@@ -278,6 +279,10 @@ class MCPService extends Disposable implements IMCPService {
 			});
 		});
 		return allTools;
+	}
+
+	public async toggleServer(serverName: string, isOn: boolean): Promise<void> {
+		this.channel.call('toggleServer', { serverName, isOn })
 	}
 
 	// utility functions

@@ -3,6 +3,7 @@ import { MCPConfigParseError, MCPServerEventParam, MCPServerObject, MCPServers }
 import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { off } from 'process';
 
 export interface Tool {
   /** Unique tool identifier */
@@ -33,11 +34,29 @@ interface MCPServerProps {
 // MCP Server component
 const MCPServer = ({ name, server }: MCPServerProps) => {
 
+	const accessor = useAccessor();
+	const mcpService = accessor.get('IMCPService');
+
+	const handleChangeEvent = (e: boolean) => {
+		// Handle the change event
+		mcpService.toggleServer(name, e);
+	}
+
+	// Needs to be raw CSS because
+	// Tailwind won't compile the colors
+	// dynamically
+	const serverStatusColorStyles = {
+		success: { backgroundColor: '#10B981' }, // green-500 equivalent
+		error: { backgroundColor: '#EF4444' },   // red-500 equivalent
+		loading: { backgroundColor: '#F59E0B' }, // yellow-500 equivalent
+		offline: { backgroundColor: '#6B7280' }  // gray-500 equivalent
+	  };
+
 	return (
 		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
 		<div className="flex items-center mx-4">
 			{/* Status indicator */}
-			<div className={`w-2 h-2 rounded-full mr-2 ${server.status === 'success' ? 'bg-green-500' : server.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
+			<div className={`w-2 h-2 rounded-full mr-2`} style={serverStatusColorStyles[server.status]}></div>
 
 			{/* Server name */}
 			<div className="text-sm font-medium mr-2">{name}</div>
@@ -47,9 +66,7 @@ const MCPServer = ({ name, server }: MCPServerProps) => {
 				<VoidSwitch
 					value={server.isOn}
 					disabled={server.status === 'error'}
-					onChange={() => {
-					server.isOn = !server.isOn;
-					}}
+					onChange={handleChangeEvent}
 				/>
 			</div>
 		</div>
@@ -57,7 +74,7 @@ const MCPServer = ({ name, server }: MCPServerProps) => {
 		{/* Tools section */}
 		<div className="mt-1 mx-4">
 			<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
-			{server.tools.length > 0 ? (
+			{server.isOn && server.tools.length > 0 ? (
 				server.tools.map((tool) => (
 				<span
 					key={tool.name}
@@ -74,7 +91,7 @@ const MCPServer = ({ name, server }: MCPServerProps) => {
 		</div>
 
 		{/* Command display */}
-		{server.command && (
+		{server.isOn && server.command && (
 			<div className="mt-2 mx-4">
 			<div className="text-xs text-gray-400">Command:</div>
 				<CommandDisplay command={server.command} />

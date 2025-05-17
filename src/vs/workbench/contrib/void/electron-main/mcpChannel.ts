@@ -77,7 +77,7 @@ export class MCPChannel implements IServerChannel {
 				await this._callCloseAllServers()
 			}
 			else if (command === 'toggleServer') {
-				// TODO: HANDLE THIS
+				await this._handleToggleServer(params.serverName, params.isOn)
 			}
 			else if (command === 'callTool') {
 				// TODO: HANDLE THIS
@@ -179,6 +179,7 @@ export class MCPChannel implements IServerChannel {
 			const deletePromises: Promise<MCPDeleteResponse>[] = deletedServers.map(async (serverName) => {
 				const prevServer = this.clients[serverName]?.formattedServer;
 				await this._callCloseServer(serverName)
+				this._callRemoveServer(serverName)
 				return {
 					event: 'delete',
 					prevServer,
@@ -292,6 +293,7 @@ export class MCPChannel implements IServerChannel {
 	private async _callCloseAllServers() {
 		for (const serverName in this.clients) {
 			await this._callCloseServer(serverName)
+			this._callRemoveServer(serverName)
 		}
 		console.log('Closed all MCP servers');
 	}
@@ -302,21 +304,64 @@ export class MCPChannel implements IServerChannel {
 			if (client) {
 				await client.close()
 			}
-			delete this.clients[serverName]
 			console.log(`Closed MCP server ${serverName}`);
+		}
+	}
+
+	private _callRemoveServer(serverName: string) {
+		if (this.clients[serverName]) {
+			delete this.clients[serverName]
+			console.log(`Removed MCP server ${serverName}`);
+		}
+	}
+
+	private async _handleToggleServer(serverName: string, isOn: boolean) {
+		const prevServer = this.clients[serverName]?.formattedServer
+		if (isOn) {
+			// Handle turning on the server
+			this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, isOn))
+			const formattedServer = await this._callSetupServer(this.clients[serverName].mcpConfig, serverName)
+			this.mcpEmitters.serverEvent.update.fire({
+				response: {
+					event: 'update',
+					name: serverName,
+					newServer: formattedServer,
+					prevServer: prevServer,
+				}
+			})
+		} else {
+			// Handle turning off the server
+			this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, isOn))
+			this._callCloseServer(serverName)
+			this.mcpEmitters.serverEvent.update.fire({
+				response: {
+					event: 'update',
+					name: serverName,
+					newServer: {
+						status: 'offline',
+						isOn,
+						tools: [],
+						command: '',
+						// Explicitly set error to undefined
+						// to reset the error state
+						error: undefined,
+					},
+					prevServer: prevServer,
+				}
+			})
 		}
 	}
 
 	// Util functions
 
-	private _getLoadingServerObject(serverName: string): MCPServerEventLoadingParam {
+	private _getLoadingServerObject(serverName: string, isOn = true): MCPServerEventLoadingParam {
 		return {
 			response: {
 				event: 'loading',
 				name: serverName,
 				newServer: {
 					status: 'loading',
-					isOn: false,
+					isOn,
 					tools: [],
 					command: '',
 				}

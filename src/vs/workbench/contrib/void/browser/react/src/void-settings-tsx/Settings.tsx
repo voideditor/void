@@ -19,6 +19,7 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
+import MCPServersList from './MCPServersList.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -1259,9 +1260,7 @@ Edit your MCP configuration file to add or modify server connections.
 								`} chatMessageLocation={undefined} />
 					</h4>
 					<ErrorBoundary>
-						<div>
-							{/* TODO: Add MCP server list with a live button */}
-						</div>
+						<MCPServersList />
 					</ErrorBoundary>
 				</div>
 			</div>

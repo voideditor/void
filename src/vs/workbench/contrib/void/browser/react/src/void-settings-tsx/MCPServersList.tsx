@@ -1,4 +1,4 @@
-import { VoidSwitch, VoidToggleBgDarken } from '../util/inputs.js';
+import { VoidSwitch } from '../util/inputs.js';
 import { MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
 import { use, useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';

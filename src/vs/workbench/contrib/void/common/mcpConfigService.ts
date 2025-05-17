@@ -16,7 +16,7 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel, MCPServerErrorModel, EventMCPServerSetupOnError, MCPServerObject } from './mcpServiceTypes.js';
-import { Event } from '../../../../base/common/event.js';
+import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 
 export interface IMCPConfigService {
@@ -24,6 +24,12 @@ export interface IMCPConfigService {
 	openMCPConfigFile(): Promise<void>;
 	getMCPServers(): MCPServers;
 	getAllToolsFormatted(): InternalToolInfo[];
+	onDidChangeMCPServers: Event<MCPServerEmitterReturns>;
+}
+
+interface MCPServerEmitterReturns {
+	serverName: string;
+	serverObject: MCPServerObject;
 }
 
 export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
@@ -41,6 +47,10 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	// list of MCP servers pulled from mcpChannel
 	private mcpServers: MCPServers = {}
+
+	// Emitters for client
+	private readonly _onDidChangeMCPServers = new Emitter<MCPServerEmitterReturns>();
+	public readonly onDidChangeMCPServers = this._onDidChangeMCPServers.event;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -93,8 +103,12 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 			// Parse the MCP config file
 			const mcpConfig = await this._parseMCPConfigFile();
+
 			if (mcpConfig) {
-				// Process the MCP config file
+				// Create the initial server list
+				await this._createInitialServerList(mcpConfig);
+
+				// Setup the server list
 				console.log('MCP Config file parsed:', JSON.stringify(mcpConfig, null, 2));
 				this.channel.call('setupServers', mcpConfig)
 			}
@@ -108,17 +122,44 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		}
 	}
 
+	private async _createInitialServerList(mcpConfig: MCPConfig) {
+		// Create a list of servers from the MCP config
+		if (mcpConfig && mcpConfig.mcpServers) {
+
+			const formattedServers: MCPServers = {};
+			for (const serverName in mcpConfig.mcpServers) {
+				const serverConfig = mcpConfig.mcpServers[serverName];
+				if (serverConfig) {
+					const fullCommand = serverConfig.command || serverConfig.args?.join(' ') || undefined;
+					const serverObject: MCPServerObject = {
+						status: 'loading',
+						isOn: false,
+						tools: [],
+						command: fullCommand
+					};
+					formattedServers[serverName] = serverObject;
+				}
+			}
+		} else {
+			this.mcpServers = {};
+		}
+	}
+
 	private async _onServerEvent(e: EventMCPServerSetupOnSuccess<MCPServerSuccessModel> | EventMCPServerSetupOnError<MCPServerErrorModel>, eventType: 'success' | 'error') {
 		const { model } = e;
-		const { serverName, isLive, isOn, tools, error } = model;
+		const { serverName, status, isOn, tools, error, command } = model;
 		const serverObject: MCPServerObject = {
-			isLive,
+			status,
 			isOn,
 			tools,
+			command,
 			error: eventType === 'error' ? error : undefined,
 		};
 		this.mcpServers[serverName] = serverObject;
 		console.log(`MCP Server Setup ${eventType}:`, serverName, error);
+
+		// Fire the event to notify listeners
+		this._onDidChangeMCPServers.fire({ serverName, serverObject });
 	}
 
 	private async _getMCPConfigPath(): Promise<URI> {
@@ -177,6 +218,9 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 				console.log('MCP Config file changed:', JSON.stringify(e, null, 2));
 				const mcpConfig = await this._parseMCPConfigFile();
 				if (mcpConfig && mcpConfig.mcpServers) {
+					// Create the initial server list
+					await this._createInitialServerList(mcpConfig);
+
 					// Call the setupServers method in the main process
 					this.channel.call('setupServers', mcpConfig)
 				}

@@ -15,31 +15,24 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServers, MCPConfig, EventMCPServerSetupOnSuccess, MCPServerSuccessModel, MCPServerErrorModel, EventMCPServerSetupOnError, MCPServerObject } from './mcpServiceTypes.js';
+import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 
-export interface IMCPConfigService {
+export interface IMCPService {
 	readonly _serviceBrand: undefined;
 	openMCPConfigFile(): Promise<void>;
 	getMCPServers(): MCPServers;
 	getAllToolsFormatted(): InternalToolInfo[];
-	onDidChangeMCPServers: Event<MCPServerEmitterReturns>;
-	onDidUpdateConfigFile: Event<MCPConfigFileUpdateReturns>;
+	onDidAddServer: Event<MCPServerEventAddParam>;
+	onDidUpdateServer: Event<MCPServerEventUpdateParam>;
+	onDidDeleteServer: Event<MCPServerEventDeleteParam>;
+	onLoadingServers: Event<MCPServerEventLoadingParam>;
 }
 
-interface MCPServerEmitterReturns {
-	serverName: string;
-	serverObject: MCPServerObject;
-}
+export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
 
-interface MCPConfigFileUpdateReturns {
-	mcpServers: MCPServers;
-}
-
-export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
-
-class MCPConfigService extends Disposable implements IMCPConfigService {
+class MCPService extends Disposable implements IMCPService {
 	_serviceBrand: undefined;
 
 	private readonly MCP_CONFIG_FILE_NAME = 'mcp.json';
@@ -53,11 +46,15 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 	// list of MCP servers pulled from mcpChannel
 	private mcpServers: MCPServers = {}
 
-	// Emitters for client
-	private readonly _onDidChangeMCPServers = new Emitter<MCPServerEmitterReturns>();
-	private readonly _onDidUpdateConfigFile = new Emitter<MCPConfigFileUpdateReturns>();
-	public readonly onDidChangeMCPServers = this._onDidChangeMCPServers.event;
-	public readonly onDidUpdateConfigFile = this._onDidUpdateConfigFile.event;
+	// Emitters for server events
+	private readonly _onDidAddServer = new Emitter<MCPServerEventAddParam>();
+	private readonly _onDidUpdateServer = new Emitter<MCPServerEventUpdateParam>();
+	private readonly _onDidDeleteServer = new Emitter<MCPServerEventDeleteParam>();
+	private readonly _onLoadingServers = new Emitter<MCPServerEventLoadingParam>();
+	public readonly onDidAddServer = this._onDidAddServer.event;
+	public readonly onDidUpdateServer = this._onDidUpdateServer.event;
+	public readonly onDidDeleteServer = this._onDidDeleteServer.event;
+	public readonly onLoadingServers = this._onLoadingServers.event;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -70,8 +67,10 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		// Register the service with the instantiation service
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
 		// Register listeners for the channel
-		this._register((this.channel.listen('onSuccess_serverSetup') satisfies Event<EventMCPServerSetupOnSuccess<MCPServerSuccessModel> & { serverName: string }>)(e => this._onServerEvent(e, 'success')));
-		this._register((this.channel.listen('onError_serverSetup') satisfies Event<EventMCPServerSetupOnError<MCPServerErrorModel> & { serverName: string }>)(e => this._onServerEvent(e, 'error')));
+		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventAddParam>)(e => this._onServerEvent(e)));
+		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventUpdateParam>)(e => this._onServerEvent(e)));
+		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventDeleteParam>)(e => this._onServerEvent(e)));
+		this._register((this.channel.listen('onLoading_server') satisfies Event<MCPServerEventLoadingParam>)(e => this._onServerEvent(e)));
 		// Initialize the service
 		this._initialize();
 	}
@@ -79,7 +78,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 	// This method is called when the service is disposed
 	override async dispose(): Promise<void> {
 		// Custom cleanup logic goes here
-		console.log('MCPConfigService is being disposed');
+		console.log('MCPService is being disposed');
 
 		// Call _removeMCPConfigFileWatch to clean up file watchers
 		this._removeMCPConfigFileWatch().catch(err => {
@@ -113,7 +112,7 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 			if (mcpConfig) {
 				// Create the initial server list
-				await this._createInitialServerList(mcpConfig);
+				// await this._createInitialServerList(mcpConfig);
 
 				// Setup the server list
 				console.log('MCP Config file parsed:', JSON.stringify(mcpConfig, null, 2));
@@ -125,71 +124,38 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 			await this._setMCPConfigFileWatch();
 
 		} catch (error) {
-			console.error('Error initializing MCPConfigService:', error);
+			console.error('Error initializing MCPService:', error);
 		}
 	}
 
-	private async _createInitialServerList(mcpConfig: MCPConfig) {
-		// Create a list of servers from the MCP config
-		if (mcpConfig && mcpConfig.mcpServers) {
+	private async _onServerEvent(e: MCPServerEventParam) {
 
-			const formattedServers: MCPServers = {};
-			for (const serverName in mcpConfig.mcpServers) {
-				const serverConfig = mcpConfig.mcpServers[serverName];
-				if (serverConfig) {
-					const fullCommand = serverConfig.command || serverConfig.args?.join(' ') || undefined;
-					const serverObject: MCPServerObject = {
-						status: 'loading',
-						isOn: false,
-						tools: [],
-						command: fullCommand
-					};
-					formattedServers[serverName] = serverObject;
-				}
-			}
-			// Fire the event to notify listeners
-			this._onDidUpdateConfigFile.fire({ mcpServers: formattedServers });
-		} else {
-			this.mcpServers = {};
-			// Fire the event to notify listeners
-			this._onDidUpdateConfigFile.fire({ mcpServers: {} });
+		if (e.response.event === 'add') {
+			// Add to the mcpServers list
+			this.mcpServers[e.response.name] = e.response.newServer;
+			// Fire the event to notify browser
+			this._onDidAddServer.fire(e as MCPServerEventAddParam);
 		}
-	}
 
-	private async _onServerEvent(e: EventMCPServerSetupOnSuccess<MCPServerSuccessModel> | EventMCPServerSetupOnError<MCPServerErrorModel>, eventType: 'success' | 'error') {
-		const { model } = e;
-		const { serverName, status, isOn, tools, error, command } = model;
-		const serverObject: MCPServerObject = {
-			status,
-			isOn,
-			tools,
-			command,
-			error: eventType === 'error' ? error : undefined,
-		};
-		this.mcpServers[serverName] = serverObject;
-		console.log(`MCP Server Setup ${eventType}:`, serverName, error);
+		if (e.response.event === 'update') {
+			// Update the mcpServers list
+			this.mcpServers[e.response.name] = e.response.newServer;
+			// Fire the event to notify browser
+			this._onDidUpdateServer.fire(e as MCPServerEventUpdateParam);
+		}
 
-		// Fire the event to notify listeners
-		this._onDidChangeMCPServers.fire({ serverName, serverObject });
-	}
+		if (e.response.event === 'delete') {
+			// Remove from the mcpServers list
+			delete this.mcpServers[e.response.name];
+			// Fire the event to notify browser
+			this._onDidDeleteServer.fire(e as MCPServerEventDeleteParam);
+		}
 
-	private async _getMCPConfigPath(): Promise<URI> {
-		// Get the appropriate directory based on dev mode
-		const appName = this.productService.dataFolderName
-
-		const userHome = await this.pathService.userHome();
-		const mcpConfigPath = join(userHome.path, appName, this.MCP_CONFIG_FILE_NAME);
-		return URI.file(mcpConfigPath);
-	}
-
-	private async _configFileExists(mcpConfigUri: URI): Promise<boolean> {
-		try {
-			// Try to get file stats - if it succeeds, the file exists
-			await this.fileService.stat(mcpConfigUri);
-			return true;
-		} catch (error) {
-			// File doesn't exist or can't be accessed
-			return false;
+		if (e.response.event === 'loading') {
+			// Update the mcpServers list
+			this.mcpServers[e.response.name] = e.response.newServer;
+			// Fire the event to notify browser
+			this._onLoadingServers.fire(e as MCPServerEventLoadingParam);
 		}
 	}
 
@@ -226,11 +192,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		this._register(this.fileService.onDidFilesChange(async e => {
 			// Handle file changes
 			if (e.contains(mcpConfigUri)) {
-				console.log('MCP Config file changed:', JSON.stringify(e, null, 2));
 				const mcpConfig = await this._parseMCPConfigFile();
 				if (mcpConfig && mcpConfig.mcpServers) {
-					// Create the initial server list
-					await this._createInitialServerList(mcpConfig);
 
 					// Call the setupServers method in the main process
 					this.channel.call('setupServers', mcpConfig)
@@ -245,6 +208,8 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 			this.mcpFileWatcher = null;
 		}
 	}
+
+	// Client-side functions
 
 	public async openMCPConfigFile(): Promise<void> {
 		try {
@@ -295,6 +260,27 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 		return allTools;
 	}
 
+	// utility functions
+
+	private async _getMCPConfigPath(): Promise<URI> {
+		// Get the appropriate directory based on dev mode
+		const appName = this.productService.dataFolderName
+
+		const userHome = await this.pathService.userHome();
+		const mcpConfigPath = join(userHome.path, appName, this.MCP_CONFIG_FILE_NAME);
+		return URI.file(mcpConfigPath);
+	}
+
+	private async _configFileExists(mcpConfigUri: URI): Promise<boolean> {
+		try {
+			// Try to get file stats - if it succeeds, the file exists
+			await this.fileService.stat(mcpConfigUri);
+			return true;
+		} catch (error) {
+			// File doesn't exist or can't be accessed
+			return false;
+		}
+	}
 }
 
-registerSingleton(IMCPConfigService, MCPConfigService, InstantiationType.Delayed);
+registerSingleton(IMCPService, MCPService, InstantiationType.Eager);

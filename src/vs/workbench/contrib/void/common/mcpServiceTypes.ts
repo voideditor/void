@@ -136,8 +136,9 @@ export interface MCPConfig {
 export interface MCPServerObject {
 	// Command-based server properties
 	tools: Tool[],
-	isLive: boolean,
+	status: 'loading' | 'error' | 'success',
 	isOn: boolean,
+	command?: string,
 	error?: string,
 }
 

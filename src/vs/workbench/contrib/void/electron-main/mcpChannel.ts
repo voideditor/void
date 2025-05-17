@@ -127,6 +127,7 @@ export class MCPChannel implements IServerChannel {
 			if (isUpdated) {
 				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName))
 			}
+			return isUpdated
 		})
 		const deletedServers = Object.keys(prevServers).filter((serverName) => {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)

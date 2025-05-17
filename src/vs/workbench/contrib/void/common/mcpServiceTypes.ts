@@ -18,6 +18,7 @@
  * @modelcontextprotocol/inspector‑cli responses.
  */
 
+
 /* -------------------------------------------------- */
 /* Core JSON‑RPC envelope                              */
 /* -------------------------------------------------- */
@@ -116,7 +117,8 @@ export interface ToolCallResult {
 
 export type ToolCallResponse = JsonRpcSuccess<ToolCallResult>;
 
-// Interface for mcpConfigObjects
+// MCP SERVER CONFIG FILE TYPES -----------------------------
+
 export interface MCPServerConfig {
 	// Command-based server properties
 	command?: string;
@@ -132,7 +134,8 @@ export interface MCPConfig {
 	mcpServers: Record<string, MCPServerConfig>;
 }
 
-// Interface for mcpServerObjects in browser
+// SERVER EVENT TYPES ------------------------------------------
+
 export interface MCPServerObject {
 	// Command-based server properties
 	tools: Tool[],
@@ -150,6 +153,7 @@ export interface MCPServers {
 export type MCPServerSuccessModel = MCPServerObject;
 export type MCPServerErrorModel = Omit<MCPServerObject, 'error'> & { error: string };
 
+
 export type MCPServerSetupParams<serverResponse> = {
 	serverName: string;
 	onSuccess: (param: { model: MCPServerSuccessModel & { serverName: string } }) => void;
@@ -159,3 +163,54 @@ export type MCPServerSetupParams<serverResponse> = {
 // Listener event types
 export type EventMCPServerSetupOnSuccess<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onSuccess']>[0]
 export type EventMCPServerSetupOnError<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onError']>[0]
+
+type MCPServerEventType = 'add' | 'update' | 'delete' | 'loading';
+
+export type MCPServerModel = MCPServerSuccessModel | MCPServerErrorModel;
+
+interface MCPServerResponseBase {
+	name: string;
+	event: MCPServerEventType;
+	newServer?: MCPServerModel;
+	prevServer?: MCPServerModel;
+}
+
+type EventTypeConstraints = {
+	'add': {
+		prevServer?: never;
+		newServer: MCPServerModel;
+	};
+	'update': {
+		prevServer: MCPServerModel;
+		newServer: MCPServerModel;
+	};
+	'delete': {
+		newServer?: never;
+		prevServer: MCPServerModel;
+	};
+	'loading': {
+		prevServer?: never;
+		newServer: MCPServerModel;
+	}
+}
+
+type MCPEventResponse<T extends MCPServerEventType> = Omit<MCPServerResponseBase, 'event' | keyof EventTypeConstraints> & EventTypeConstraints[T] & { event: T };
+
+// Response types
+export type MCPAddResponse = MCPEventResponse<'add'>;
+export type MCPUpdateResponse = MCPEventResponse<'update'>;
+export type MCPDeleteResponse = MCPEventResponse<'delete'>;
+export type MCPLoadingResponse = MCPEventResponse<'loading'>;
+
+export type MCPServerResponse = MCPAddResponse | MCPUpdateResponse | MCPDeleteResponse | MCPLoadingResponse;
+
+// Event parameter types
+export type MCPServerEventAddParam = { response: MCPAddResponse };
+export type MCPServerEventUpdateParam = { response: MCPUpdateResponse };
+export type MCPServerEventDeleteParam = { response: MCPDeleteResponse };
+export type MCPServerEventLoadingParam = { response: MCPLoadingResponse };
+
+// Event Param union type
+export type MCPServerEventParam = MCPServerEventAddParam | MCPServerEventUpdateParam | MCPServerEventDeleteParam | MCPServerEventLoadingParam;
+
+

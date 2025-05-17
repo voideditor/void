@@ -381,7 +381,7 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 			recognizedModelName,
 			modelName,
 			...opts,
-			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
+			supportsSystemMessage: opts.supportsSystemMessage ?? false,
 			cost: { input: 0, output: 0 },
 			downloadable: false,
 			...fallbackKnownValues

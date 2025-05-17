@@ -125,6 +125,16 @@ const MCPServersList = () => {
 			  }));
 		});
 
+		// Subscribe to config file changes
+		const disposableConfig = mcpConfigService.onDidUpdateConfigFile((response) => {
+			const {mcpServers} = response;
+			if (mcpServers) {
+				// Reset all servers to "loading" state
+				console.log('MCP Servers:', mcpServers);
+				setMCPServers(mcpServers);
+			}
+		});
+
 		// Clean up subscription when component unmounts
 		return () => disposable.dispose();
 	}, [mcpConfigService]);

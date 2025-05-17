@@ -25,11 +25,16 @@ export interface IMCPConfigService {
 	getMCPServers(): MCPServers;
 	getAllToolsFormatted(): InternalToolInfo[];
 	onDidChangeMCPServers: Event<MCPServerEmitterReturns>;
+	onDidUpdateConfigFile: Event<MCPConfigFileUpdateReturns>;
 }
 
 interface MCPServerEmitterReturns {
 	serverName: string;
 	serverObject: MCPServerObject;
+}
+
+interface MCPConfigFileUpdateReturns {
+	mcpServers: MCPServers;
 }
 
 export const IMCPConfigService = createDecorator<IMCPConfigService>('mcpConfigService');
@@ -50,7 +55,9 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 
 	// Emitters for client
 	private readonly _onDidChangeMCPServers = new Emitter<MCPServerEmitterReturns>();
+	private readonly _onDidUpdateConfigFile = new Emitter<MCPConfigFileUpdateReturns>();
 	public readonly onDidChangeMCPServers = this._onDidChangeMCPServers.event;
+	public readonly onDidUpdateConfigFile = this._onDidUpdateConfigFile.event;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -140,8 +147,12 @@ class MCPConfigService extends Disposable implements IMCPConfigService {
 					formattedServers[serverName] = serverObject;
 				}
 			}
+			// Fire the event to notify listeners
+			this._onDidUpdateConfigFile.fire({ mcpServers: formattedServers });
 		} else {
 			this.mcpServers = {};
+			// Fire the event to notify listeners
+			this._onDidUpdateConfigFile.fire({ mcpServers: {} });
 		}
 	}
 

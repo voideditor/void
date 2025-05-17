@@ -122,13 +122,19 @@ export class MCPChannel implements IServerChannel {
 					// TODO: handle sending back the error
 					const typedErr = err as Error
 					console.log('Error Message: ', typedErr.message)
+
+					// Get the full command string for display
+					const fullCommand = `${server.command} ${server.args?.join(' ') || ''}`
+					console.log('Full Command: ', fullCommand)
+
 					this.mcpEmitters.serverSetup.error.fire({
 						model: {
 							serverName,
-							isLive: false,
+							status: 'error',
 							isOn: false,
 							tools: [],
 							error: typedErr.message,
+							command: fullCommand,
 						}
 					})
 					// and then move on to the next server
@@ -178,12 +184,17 @@ export class MCPChannel implements IServerChannel {
 
 			const { tools } = await client.listTools()
 
+			// Create a full command string for display
+			const fullCommand = `${server.command} ${server.args?.join(' ') || ''}`
+			console.log('Full Command: ', fullCommand)
+
 			this.mcpEmitters.serverSetup.success.fire({
 				model: {
 					serverName,
-					isLive: true,
+					status: 'success',
 					isOn: true,
 					tools: tools,
+					command: fullCommand,
 				}
 			})
 		} else {

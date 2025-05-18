@@ -18,6 +18,8 @@ import { IMainProcessService } from '../../../../platform/ipc/common/mainProcess
 import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam, MCPConfigParseError } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
+import { IVoidSettingsService } from './voidSettingsService.js';
+import { MCPServerStates } from './voidSettingsTypes.js';
 
 export interface IMCPService {
 	readonly _serviceBrand: undefined;
@@ -66,6 +68,7 @@ class MCPService extends Disposable implements IMCPService {
 		@IProductService private readonly productService: IProductService,
 		@IEditorService private readonly editorService: IEditorService,
 		@IMainProcessService private readonly mainProcessService: IMainProcessService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
 		super();
 		// Register the service with the instantiation service
@@ -111,13 +114,17 @@ class MCPService extends Disposable implements IMCPService {
 				console.log('MCP Config file created:', mcpConfigUri.toString());
 			}
 
+			// Wait for VoidSettingsService to initialize before proceeding
+			await this.voidSettingsService.waitForInitState;
+
 			// Parse the MCP config file
 			const mcpConfig = await this._parseMCPConfigFile();
 
 			if (mcpConfig && mcpConfig.mcpServers) {
+				const updatedServerStates = await this._handleServerStateChange(mcpConfig);
 
 				// Setup the server list
-				this.channel.call('setupServers', mcpConfig)
+				this.channel.call('setupServers', { mcpConfig, serverStates: updatedServerStates })
 			}
 
 
@@ -216,8 +223,10 @@ class MCPService extends Disposable implements IMCPService {
 			if (e.contains(mcpConfigUri)) {
 				const mcpConfig = await this._parseMCPConfigFile();
 				if (mcpConfig && mcpConfig.mcpServers) {
+					const updatedServerStates = await this._handleServerStateChange(mcpConfig);
+
 					// Set up the server list
-					this.channel.call('setupServers', mcpConfig)
+					this.channel.call('setupServers', { mcpConfig, serverStates: updatedServerStates })
 				}
 			}
 		}));
@@ -283,6 +292,8 @@ class MCPService extends Disposable implements IMCPService {
 
 	public async toggleServer(serverName: string, isOn: boolean): Promise<void> {
 		this.channel.call('toggleServer', { serverName, isOn })
+		// Update the server state in the local mcpServers list
+		await this.voidSettingsService.updateMCPServerState(serverName, isOn);
 	}
 
 	// utility functions
@@ -305,6 +316,37 @@ class MCPService extends Disposable implements IMCPService {
 			// File doesn't exist or can't be accessed
 			return false;
 		}
+	}
+
+	// Handle server state changes
+	private async _handleServerStateChange(mcpConfig: MCPConfig): Promise<MCPServerStates> {
+		// Get the server states from Void Settings Service
+		const savedServerStates = this.voidSettingsService.state.mcpServerStates;
+
+		// Parse the MCP config file for servers
+		const availableServers = Object.keys(mcpConfig.mcpServers);
+
+		// Handle added servers
+		const addedServers = availableServers.filter(serverName => !savedServerStates[serverName]);
+		const addedServersObject = addedServers.reduce((acc, serverName) => {
+			acc[serverName] = { isOn: true };
+			return acc;
+		}, {} as MCPServerStates);
+		await this.voidSettingsService.addMCPServers(addedServersObject);
+
+		// Handle removed servers
+		const removedServers = Object.keys(savedServerStates).filter(serverName => availableServers.indexOf(serverName) === -1);
+		await this.voidSettingsService.removeMCPServers(removedServers);
+
+		// Compile the updated server list as MCPServerStates
+		const updatedServers = Object.keys(savedServerStates).reduce((acc, serverName) => {
+			if (availableServers.includes(serverName)) {
+				acc[serverName] = savedServerStates[serverName];
+			}
+			return acc;
+		}, {} as MCPServerStates);
+
+		return updatedServers;
 	}
 }
 

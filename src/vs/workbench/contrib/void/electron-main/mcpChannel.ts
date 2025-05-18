@@ -16,6 +16,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { MCPConfig, MCPServerConfig, MCPServerErrorModel, MCPAddResponse, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPUpdateResponse, MCPServerModel, MCPDeleteResponse, MCPServerEventLoadingParam } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { equals } from '../../../../base/common/objects.js';
+import { MCPServerStates } from '../common/voidSettingsTypes.js';
 
 export class MCPChannel implements IServerChannel {
 
@@ -93,7 +94,9 @@ export class MCPChannel implements IServerChannel {
 
 	// call functions
 
-	private async _callSetupServers(mcpConfig: MCPConfig) {
+	private async _callSetupServers(params: { mcpConfig: MCPConfig, serverStates: MCPServerStates }) {
+
+		const { mcpConfig, serverStates } = params
 
 		// Get all prevServers
 		const prevServers = { ...this.clients }
@@ -117,7 +120,7 @@ export class MCPChannel implements IServerChannel {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
 			const isAdded = !prevMCPConfig && newMCPConfig
 			if (isAdded) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName))
+				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
 			}
 			return isAdded
 		})
@@ -125,7 +128,7 @@ export class MCPChannel implements IServerChannel {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
 			const isUpdated = prevMCPConfig && newMCPConfig && !equals(prevMCPConfig, newMCPConfig)
 			if (isUpdated) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName))
+				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
 			}
 			return isUpdated
 		})
@@ -133,7 +136,7 @@ export class MCPChannel implements IServerChannel {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
 			const isDeleted = prevMCPConfig && !newMCPConfig
 			if (isDeleted) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName))
+				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
 			}
 			return isDeleted
 		})
@@ -147,7 +150,7 @@ export class MCPChannel implements IServerChannel {
 		if (addedServers.length > 0) {
 			// Handle added servers
 			const addPromises: Promise<MCPAddResponse>[] = addedServers.map(async (serverName) => {
-				const addedServer = await this._safeSetupServer(mcpServers[serverName], serverName)
+				const addedServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
 				return {
 					event: 'add',
 					newServer: addedServer,
@@ -162,7 +165,7 @@ export class MCPChannel implements IServerChannel {
 			// Handle updated servers
 			const updatePromises: Promise<MCPUpdateResponse>[] = updatedServers.map(async (serverName) => {
 				const prevServer = this.clients[serverName]?.formattedServer;
-				const newServer = await this._safeSetupServer(mcpServers[serverName], serverName)
+				const newServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
 				return {
 					prevServer,
 					newServer: newServer,
@@ -191,7 +194,7 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private async _callSetupServer(server: MCPServerConfig, serverName: string) {
+	private async _callSetupServer(server: MCPServerConfig, serverName: string, isOn = true) {
 
 		const clientConfig = this.getClientConfig(serverName)
 		const client = new Client(clientConfig)
@@ -206,8 +209,8 @@ export class MCPChannel implements IServerChannel {
 				console.log(`Connected via HTTP to ${serverName}`);
 				const { tools } = await client.listTools()
 				formattedServer = {
-					status: 'success',
-					isOn: true,
+					status: isOn ? 'success' : 'offline',
+					isOn,
 					tools: tools,
 					command: server.url.toString(),
 				}
@@ -217,8 +220,8 @@ export class MCPChannel implements IServerChannel {
 				await client.connect(transport);
 				console.log(`Connected via SSE to ${serverName}`);
 				formattedServer = {
-					status: 'success',
-					isOn: true,
+					status: isOn ? 'success' : 'offline',
+					isOn,
 					tools: [],
 					command: server.url.toString(),
 				}
@@ -244,8 +247,8 @@ export class MCPChannel implements IServerChannel {
 
 			// Format server object
 			formattedServer = {
-				status: 'success',
-				isOn: true,
+				status: isOn ? 'success' : 'offline',
+				isOn,
 				tools: tools,
 				command: fullCommand,
 			}
@@ -260,9 +263,9 @@ export class MCPChannel implements IServerChannel {
 	}
 
 	// Helper function to safely setup a server
-	private async _safeSetupServer(serverConfig: MCPServerConfig, serverName: string) {
+	private async _safeSetupServer(serverConfig: MCPServerConfig, serverName: string, isOn = true) {
 		try {
-			return await this._callSetupServer(serverConfig, serverName)
+			return await this._callSetupServer(serverConfig, serverName, isOn)
 		} catch (err) {
 			const typedErr = err as Error
 			console.error(`❌ Failed to connect to server "${serverName}":`, err)
@@ -299,11 +302,14 @@ export class MCPChannel implements IServerChannel {
 	}
 
 	private async _callCloseServer(serverName: string) {
-		if (this.clients[serverName]) {
-			const { client } = this.clients[serverName]
+		const server = this.clients[serverName]
+		if (server) {
+			const { client } = server
 			if (client) {
 				await client.close()
 			}
+			// Remove the client from the clients object
+			delete this.clients[serverName].client
 			console.log(`Closed MCP server ${serverName}`);
 		}
 	}

@@ -19,6 +19,16 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
+// ─────────────────────────────────────────────
+//  Sidebar navigation helpers
+// ─────────────────────────────────────────────
+type SectionKey =
+  | 'models'
+  | 'localProviders'
+  | 'providers'
+  | 'featureOptions'
+  | 'general'
+  | 'all';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -906,6 +916,19 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 
 export const Settings = () => {
 	const isDark = useIsDark()
+  // ─── sidebar nav ──────────────────────────
+  const [selectedSection, setSelectedSection] =
+    useState<SectionKey>('models');
+
+  const navItems: { key: SectionKey; label: string }[] = [
+    { key: 'models',         label: 'Models' },
+    { key: 'localProviders', label: 'Local Providers' },
+    { key: 'providers',      label: 'Providers' },
+    { key: 'featureOptions', label: 'Feature Options' },
+    { key: 'general',        label: 'General' },
+    { key: 'all',            label: 'All Settings' },
+  ];
+    const show = (key: SectionKey) => selectedSection === 'all' || selectedSection === key;
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 	const environmentService = accessor.get('IEnvironmentService')
@@ -979,10 +1002,44 @@ export const Settings = () => {
 	}
 
 
-	return <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-		<div className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
+	return (
+  <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
+    <div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto">
+      {/* ──────────────  SIDEBAR  ────────────── */}
 
-			<div className='max-w-xl mx-auto'>
+<aside className="md:w-1/4 w-full p-6 shrink-0 overflow-y-auto">
+  {/* vertical tab list */}
+  <div className="flex flex-col gap-2">
+    {navItems.map(({ key, label }) => (
+      <button
+        key={key}
+               onClick={() => {
+          if (key === 'all') {
+          setSelectedSection('all');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            setSelectedSection(key);
+          }
+        }}
+        className={`
+          py-2 px-4 rounded-md text-left transition-all duration-200
+          ${selectedSection === key
+            ? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
+            : 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'}
+        `}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</aside>
+
+      {/* ───────────── MAIN PANE ───────────── */}
+      <main className="flex-1 overflow-y-auto p-6 select-none">
+
+
+
+			<div className='max-w-3xl'>
 
 				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
 
@@ -997,13 +1054,19 @@ export const Settings = () => {
 
 				{/* Models section (formerly FeaturesTab) */}
 				<ErrorBoundary>
+{show('models') && (
+<>
 					<h2 className={`text-3xl mb-2`}>Models</h2>
 					<ModelDump />
 					<div className='w-full h-[1px] my-4' />
 					<AutoDetectLocalModelsToggle />
 					<RefreshableModels />
+    </>
+  )}
 				</ErrorBoundary>
-
+{show('localProviders') && (
+  <ErrorBoundary>
+    <>
 
 				<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
 				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
@@ -1012,18 +1075,26 @@ export const Settings = () => {
 					<OllamaSetupInstructions sayWeAutoDetect={true} />
 				</div>
 
-				<ErrorBoundary>
-					<VoidProviderSettings providerNames={localProviderNames} />
-				</ErrorBoundary>
 
+					<VoidProviderSettings providerNames={localProviderNames} />
+				    </>
+  </ErrorBoundary>
+)}
+{show('providers') && (
+  <ErrorBoundary>
+    <>
 				<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
 				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-				<ErrorBoundary>
+
 					<VoidProviderSettings providerNames={nonlocalProviderNames} />
-				</ErrorBoundary>
+				    </>
+  </ErrorBoundary>
+)}
 
 
-
+{show('featureOptions') && (
+  <ErrorBoundary>
+    <>
 				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 
 				<div className='flex flex-col gap-y-8 my-4'>
@@ -1108,7 +1179,6 @@ export const Settings = () => {
 
 
 
-
 					{/* Tools Section */}
 					<div>
 						<h4 className={`text-base`}>Tools</h4>
@@ -1161,7 +1231,13 @@ export const Settings = () => {
 						</div>
 					</div>
 				</div>
+				    </>
+  </ErrorBoundary>
+)}
 
+
+{show('general') && (
+  <>
 
 				{/* General section (formerly GeneralTab) */}
 				<div className='mt-12'>
@@ -1248,9 +1324,13 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					<ErrorBoundary>
 						<AIInstructionsBox />
 					</ErrorBoundary>
-				</div>
 			</div>
-		</div>
-	</div>
-}
+  </>
+)}
 
+  </div>
+</main>
+</div>
+</div>
+);
+}

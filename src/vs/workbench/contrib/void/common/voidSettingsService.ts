@@ -13,7 +13,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { IMetricsService } from './metricsService.js';
 import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPServerStates } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -43,6 +43,7 @@ export type VoidSettingsState = {
 	readonly optionsOfModelSelection: OptionsOfModelSelection;
 	readonly overridesOfModel: OverridesOfModel;
 	readonly globalSettings: GlobalSettings;
+	readonly mcpServerStates: MCPServerStates;
 
 	readonly _modelOptions: ModelOption[] // computed based on the two above items
 }
@@ -62,6 +63,7 @@ export interface IVoidSettingsService {
 	setModelSelectionOfFeature: SetModelSelectionOfFeatureFn;
 	setOptionsOfModelSelection: SetOptionsOfModelSelection;
 	setGlobalSetting: SetGlobalSettingFn;
+	setMCPServerStates: (newStates: MCPServerStates) => Promise<void>;
 
 	// setting to undefined CLEARS it, unlike others:
 	setOverridesOfModel(providerName: ProviderName, modelName: string, overrides: Partial<ModelOverrides> | undefined): Promise<void>;
@@ -73,6 +75,9 @@ export interface IVoidSettingsService {
 	toggleModelHidden(providerName: ProviderName, modelName: string): void;
 	addModel(providerName: ProviderName, modelName: string): void;
 	deleteModel(providerName: ProviderName, modelName: string): boolean;
+	addMCPServers(newMCPStates: MCPServerStates): Promise<void>;
+	removeMCPServers(serverNames: string[]): Promise<void>;
+	updateMCPServerState(serverName: string, newIsOn: boolean): Promise<void>;
 }
 
 
@@ -212,6 +217,7 @@ const defaultState = () => {
 		optionsOfModelSelection: { 'Chat': {}, 'Ctrl+K': {}, 'Autocomplete': {}, 'Apply': {} },
 		overridesOfModel: deepClone(defaultOverridesOfModel),
 		_modelOptions: [], // computed later
+		mcpServerStates: {},
 	}
 	return d
 }
@@ -361,6 +367,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		const newGlobalSettings = this.state.globalSettings
 		const newOverridesOfModel = this.state.overridesOfModel
+		const newMCPServerStates = this.state.mcpServerStates
 
 		const newState = {
 			modelSelectionOfFeature: newModelSelectionOfFeature,
@@ -368,6 +375,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			settingsOfProvider: newSettingsOfProvider,
 			globalSettings: newGlobalSettings,
 			overridesOfModel: newOverridesOfModel,
+			mcpServerStates: newMCPServerStates,
 		}
 
 		this.state = _validatedModelState(newState)
@@ -486,6 +494,21 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			this._metricsService.capture('Autodetect Models', { providerName, newModels: newModels, ...logging })
 		}
 	}
+
+	setMCPServerStates = async (newStates: MCPServerStates) => {
+		const newState: VoidSettingsState = {
+			...this.state,
+			mcpServerStates: {
+				...this.state.mcpServerStates,
+				...newStates
+			}
+		};
+		this.state = _validatedModelState(newState);
+		await this._storeState();
+		// this._onDidChangeState.fire();
+		this._metricsService.capture('Set MCP Server States', { newStates });
+	}
+
 	toggleModelHidden(providerName: ProviderName, modelName: string) {
 
 
@@ -529,6 +552,45 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this._metricsService.capture('Delete Model', { providerName, modelName })
 
 		return true
+	}
+
+	// MCP Server State
+
+	addMCPServers = async (newMCPStates: MCPServerStates) => {
+		const { mcpServerStates } = this.state
+		const newMCPServerStates = {
+			...mcpServerStates,
+			...newMCPStates,
+		}
+		await this.setMCPServerStates(newMCPServerStates)
+		this._metricsService.capture('Add MCP Server', { servers: Object.keys(newMCPStates).join(', ') });
+	}
+
+	removeMCPServers = async (serverNames: string[]) => {
+		const { mcpServerStates } = this.state
+		const newMCPServerStates = {
+			...mcpServerStates,
+		}
+		serverNames.forEach(serverName => {
+			if (serverName in newMCPServerStates) {
+				delete newMCPServerStates[serverName]
+			}
+		})
+		await this.setMCPServerStates(newMCPServerStates)
+		this._metricsService.capture('Remove MCP Server', { servers: serverNames.join(', ') });
+	}
+
+	updateMCPServerState = async (serverName: string, newIsOn: boolean) => {
+		const { mcpServerStates } = this.state
+		if (!(serverName in mcpServerStates)) return // if not in list, do nothing
+		const newMCPServerStates = {
+			...mcpServerStates,
+			[serverName]: {
+				isOn: newIsOn,
+			},
+		}
+		await this.setMCPServerStates(newMCPServerStates)
+		this._metricsService.capture('Update MCP Server State', { serverName, newIsOn });
 	}
 
 }

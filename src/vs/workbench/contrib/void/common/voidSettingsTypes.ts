@@ -491,3 +491,13 @@ export type OverridesOfModel = {
 const overridesOfModel = {} as OverridesOfModel
 for (const providerName of providerNames) { overridesOfModel[providerName] = {} }
 export const defaultOverridesOfModel = overridesOfModel
+
+
+
+export interface MCPServerStates {
+	[serverName: string]: MCPServerState;
+}
+
+export interface MCPServerState {
+	isOn: boolean;
+}

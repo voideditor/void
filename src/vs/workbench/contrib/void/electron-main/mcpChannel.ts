@@ -387,17 +387,19 @@ export class MCPChannel implements IServerChannel {
 			}
 		}
 
-		if (returnValue.type === 'audio') {
-			// handle audio response
-		}
+		// if (returnValue.type === 'audio') {
+		// 	// handle audio response
+		// }
 
-		if (returnValue.type === 'image') {
-			// handle image response
-		}
+		// if (returnValue.type === 'image') {
+		// 	// handle image response
+		// }
 
-		if (returnValue.type === 'resource') {
-			// handle resource response
-		}
+		// if (returnValue.type === 'resource') {
+		// 	// handle resource response
+		// }
+
+		throw new Error(`Tool call error: We don\'t support ${returnValue.type} tool response yet for server ${serverName} and tool ${toolName}`)
 	}
 
 	// tool call error wrapper

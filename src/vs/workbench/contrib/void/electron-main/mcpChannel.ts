@@ -17,6 +17,7 @@ import { MCPConfig, MCPServerConfig, MCPServerErrorModel, MCPAddResponse, MCPSer
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { equals } from '../../../../base/common/objects.js';
 import { MCPServerStates } from '../common/voidSettingsTypes.js';
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 export class MCPChannel implements IServerChannel {
 
@@ -64,6 +65,8 @@ export class MCPChannel implements IServerChannel {
 		else if (event === 'onDelete_server') return this.mcpEmitters.serverEvent.delete.event;
 		else if (event === 'onLoading_server') return this.mcpEmitters.serverEvent.loading.event;
 
+		// tool call events
+
 		// handle unknown events
 		else throw new Error(`Event not found: ${event}`);
 	}
@@ -81,7 +84,7 @@ export class MCPChannel implements IServerChannel {
 				await this._handleToggleServer(params.serverName, params.isOn)
 			}
 			else if (command === 'callTool') {
-				// TODO: HANDLE THIS
+				await this._safeCallTool(params.serverName, params.toolName, params.params)
 			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
@@ -92,7 +95,7 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	// call functions
+	// server functions
 
 	private async _callSetupServers(params: { mcpConfig: MCPConfig, serverStates: MCPServerStates }) {
 
@@ -262,7 +265,8 @@ export class MCPChannel implements IServerChannel {
 		return formattedServer;
 	}
 
-	// Helper function to safely setup a server
+	// Error wrapper around _callSetupServer
+	// to handle errors and return a formatted error object
 	private async _safeSetupServer(serverConfig: MCPServerConfig, serverName: string, isOn = true) {
 		try {
 			return await this._callSetupServer(serverConfig, serverName, isOn)
@@ -358,7 +362,58 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	// Util functions
+	// tool call functions
+
+	private async _callTool(serverName: string, toolName: string, params: any) {
+		const server = this.clients[serverName]
+		if (!server) throw new Error(`Server ${serverName} not found`)
+		const { client } = server
+		if (!client) throw new Error(`Client for server ${serverName} not found`)
+
+		// Call the tool with the provided parameters
+		const response = await client.callTool({
+			name: toolName,
+			arguments: params
+		})
+		const { content } = response as CallToolResult
+		const returnValue = content[0]
+
+		if (returnValue.type === 'text') {
+			// handle text response
+
+			if (response.isError) {
+				throw new Error(`Tool call error: ${response.content}`)
+				// handle error
+			}
+		}
+
+		if (returnValue.type === 'audio') {
+			// handle audio response
+		}
+
+		if (returnValue.type === 'image') {
+			// handle image response
+		}
+
+		if (returnValue.type === 'resource') {
+			// handle resource response
+		}
+	}
+
+	// tool call error wrapper
+	private async _safeCallTool(serverName: string, toolName: string, params: any) {
+		try {
+			const response = await this._callTool(serverName, toolName, params)
+			return response
+		}
+		catch (err) {
+			const typedErr = err as Error
+			console.error(`❌ Failed to call tool "${toolName}" on server "${serverName}":`, err)
+			return typedErr.message
+		}
+	}
+
+	// util functions
 
 	private _getLoadingServerObject(serverName: string, isOn = true): MCPServerEventLoadingParam {
 		return {

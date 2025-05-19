@@ -221,4 +221,53 @@ export type MCPServerEventLoadingParam = { response: MCPLoadingResponse };
 // Event Param union type
 export type MCPServerEventParam = MCPServerEventAddParam | MCPServerEventUpdateParam | MCPServerEventDeleteParam | MCPServerEventLoadingParam;
 
+// TOOL CALL EVENT TYPES ------------------------------------------
 
+type MCPToolResponseType = 'text' | 'image' | 'audio' | 'resource' | 'error';
+
+type ResponseImageTypes = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp' | 'image/svg+xml' | 'image/bmp' | 'image/tiff' | 'image/vnd.microsoft.icon';
+
+interface ImageData {
+	data: string;
+	mimeType: ResponseImageTypes;
+}
+
+interface MCPToolResponseBase {
+	toolName: string;
+	event: MCPToolResponseType;
+	text?: string;
+	image?: ImageData;
+}
+
+type MCPToolResponseConstraints = {
+	'text': {
+		image?: never;
+		text: string;
+	};
+	'error': {
+		image?: never;
+		text: string;
+	};
+	'image': {
+		text?: never;
+		image: ImageData;
+	};
+	'audio': {
+		text?: never;
+		image?: never;
+	};
+	'resource': {
+		text?: never;
+		image?: never;
+	}
+}
+
+type MCPToolEventResponse<T extends MCPToolResponseType> = Omit<MCPToolResponseBase, 'event' | keyof MCPToolResponseConstraints> & MCPToolResponseConstraints[T] & { event: T };
+
+// Response types
+export type MCPToolTextResponse = MCPToolEventResponse<'text'>;
+export type MCPToolErrorResponse = MCPToolEventResponse<'error'>;
+export type MCPToolImageResponse = MCPToolEventResponse<'image'>;
+export type MCPToolAudioResponse = MCPToolEventResponse<'audio'>;
+export type MCPToolResourceResponse = MCPToolEventResponse<'resource'>;
+export type MCPGenericToolResponse = MCPToolTextResponse | MCPToolErrorResponse | MCPToolImageResponse | MCPToolAudioResponse | MCPToolResourceResponse;

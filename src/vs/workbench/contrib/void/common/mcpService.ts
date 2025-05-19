@@ -15,7 +15,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam, MCPConfigParseError } from './mcpServiceTypes.js';
+import { MCPServers, MCPConfig, MCPServerEventParam, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPServerEventLoadingParam, MCPConfigParseError, MCPGenericToolResponse, MCPToolCallParams } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
@@ -347,6 +347,11 @@ class MCPService extends Disposable implements IMCPService {
 		}, {} as MCPServerStates);
 
 		return updatedServers;
+	}
+
+	public async callMCPTool(toolData: MCPToolCallParams): Promise<MCPGenericToolResponse> {
+		const response = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
+		return response;
 	}
 }
 

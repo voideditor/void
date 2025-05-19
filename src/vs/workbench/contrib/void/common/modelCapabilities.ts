@@ -374,23 +374,18 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 	const lower = modelName.toLowerCase()
 
 	const toFallback = <T extends { [s: string]: Omit<VoidStaticModelInfo, 'cost' | 'downloadable'> },>(obj: T, recognizedModelName: string & keyof T)
-		: VoidStaticModelInfo & { modelName: string, recognizedModelName: string, roleMode: 'system' | 'developer' | false } => {
+		: VoidStaticModelInfo & { modelName: string, recognizedModelName: string } => {
 
-		const opts = obj[recognizedModelName];
-
-		const roleMode =
-			recognizedModelName === 'system' || recognizedModelName === 'gemini'
-				? 'system'
-				: recognizedModelName === 'developer'
-					? 'developer'
-					: false;
+		const opts = obj[recognizedModelName]
+		const supportsSystemMessage = opts.supportsSystemMessage === 'separated'
+			? 'system-role'
+			: opts.supportsSystemMessage
 
 		return {
 			recognizedModelName,
 			modelName,
 			...opts,
-			supportsSystemMessage: roleMode !== false,
-			roleMode,
+			supportsSystemMessage: supportsSystemMessage,
 			cost: { input: 0, output: 0 },
 			downloadable: false,
 			...fallbackKnownValues

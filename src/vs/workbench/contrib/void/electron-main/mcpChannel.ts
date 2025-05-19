@@ -13,7 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfig, MCPServerConfig, MCPServerErrorModel, MCPAddResponse, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPUpdateResponse, MCPServerModel, MCPDeleteResponse, MCPServerEventLoadingParam } from '../common/mcpServiceTypes.js';
+import { MCPConfig, MCPServerConfig, MCPServerErrorModel, MCPAddResponse, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPUpdateResponse, MCPServerModel, MCPDeleteResponse, MCPServerEventLoadingParam, MCPGenericToolResponse, MCPToolErrorResponse } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { equals } from '../../../../base/common/objects.js';
 import { MCPServerStates } from '../common/voidSettingsTypes.js';
@@ -84,7 +84,9 @@ export class MCPChannel implements IServerChannel {
 				await this._handleToggleServer(params.serverName, params.isOn)
 			}
 			else if (command === 'callTool') {
-				await this._safeCallTool(params.serverName, params.toolName, params.params)
+				const response = await this._safeCallTool(params.serverName, params.toolName, params.params)
+				// return tool call value directly
+				return response
 			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
@@ -364,7 +366,7 @@ export class MCPChannel implements IServerChannel {
 
 	// tool call functions
 
-	private async _callTool(serverName: string, toolName: string, params: any) {
+	private async _callTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
 		const server = this.clients[serverName]
 		if (!server) throw new Error(`Server ${serverName} not found`)
 		const { client } = server
@@ -385,6 +387,14 @@ export class MCPChannel implements IServerChannel {
 				throw new Error(`Tool call error: ${response.content}`)
 				// handle error
 			}
+
+			// handle success
+			return {
+				event: 'text',
+				text: returnValue.text,
+				toolName,
+				serverName,
+			}
 		}
 
 		// if (returnValue.type === 'audio') {
@@ -399,19 +409,23 @@ export class MCPChannel implements IServerChannel {
 		// 	// handle resource response
 		// }
 
-		throw new Error(`Tool call error: We don\'t support ${returnValue.type} tool response yet for server ${serverName} and tool ${toolName}`)
+		throw new Error(`Tool call error: We don\'t support ${returnValue.type} tool response yet for tool ${toolName} on server ${serverName}`)
 	}
 
 	// tool call error wrapper
-	private async _safeCallTool(serverName: string, toolName: string, params: any) {
+	private async _safeCallTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
 		try {
 			const response = await this._callTool(serverName, toolName, params)
 			return response
-		}
-		catch (err) {
-			const typedErr = err as Error
-			console.error(`❌ Failed to call tool "${toolName}" on server "${serverName}":`, err)
-			return typedErr.message
+		} catch (err) {
+			const fullErrorMessage = `❌ Failed to call tool "${toolName}" on server "${serverName}": ${typeof err === 'string' ? err : JSON.stringify(err, null, 2)}`
+			const errorResponse: MCPToolErrorResponse = {
+				event: 'error',
+				text: fullErrorMessage,
+				toolName,
+				serverName,
+			}
+			return errorResponse
 		}
 	}
 

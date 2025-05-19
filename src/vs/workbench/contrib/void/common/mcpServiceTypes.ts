@@ -234,6 +234,7 @@ interface ImageData {
 
 interface MCPToolResponseBase {
 	toolName: string;
+	serverName?: string;
 	event: MCPToolResponseType;
 	text?: string;
 	image?: ImageData;

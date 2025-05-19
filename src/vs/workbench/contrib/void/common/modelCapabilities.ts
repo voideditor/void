@@ -377,16 +377,21 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 		: VoidStaticModelInfo & { modelName: string, recognizedModelName: string } => {
 
 		const opts = obj[recognizedModelName]
+		const supportsSystemMessage = opts.supportsSystemMessage === 'separated'
+			? 'system-role'
+			: opts.supportsSystemMessage
+
 		return {
 			recognizedModelName,
 			modelName,
 			...opts,
-			supportsSystemMessage: opts.supportsSystemMessage ? 'system-role' : false,
+			supportsSystemMessage: supportsSystemMessage,
 			cost: { input: 0, output: 0 },
 			downloadable: false,
 			...fallbackKnownValues
-		}
+		};
 	}
+
 	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro-exp-03-25')
 
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')

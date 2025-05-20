@@ -32,9 +32,24 @@ export interface IMCPService {
 	onDidDeleteServer: Event<MCPServerEventDeleteParam>;
 	onLoadingServers: Event<MCPServerEventLoadingParam>;
 	onConfigParsingError: Event<MCPConfigParseError>;
+	getMCPToolFns(): {
+		callTool: MCPCallTool;
+		resultToString: MCPToolResultToString
+	};
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
+
+export interface MCPCallTool {
+	[toolName: string]: (params: any) => Promise<{
+		result: any | Promise<any>,
+		interruptTool?: () => void
+	}>;
+}
+
+export interface MCPToolResultToString {
+	[toolName: string]: (params: any, result: any) => string;
+}
 
 class MCPService extends Disposable implements IMCPService {
 	_serviceBrand: undefined;
@@ -266,8 +281,9 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	public getAllToolsFormatted(): InternalToolInfo[] {
-		const allTools = Object.values(this.mcpServers).flatMap(server => {
-			return server.tools.map(tool => {
+		const allTools = Object.keys(this.mcpServers).flatMap(serverName => {
+			const server = this.mcpServers[serverName];
+			return server.tools.map((tool) => {
 				// Convert JsonSchema to the expected format
 				const convertedParams: { [paramName: string]: { description: string } } = {};
 
@@ -284,6 +300,7 @@ class MCPService extends Disposable implements IMCPService {
 					description: tool.description || '',
 					params: convertedParams,
 					name: tool.name,
+					serverName,
 				};
 			});
 		});
@@ -352,6 +369,50 @@ class MCPService extends Disposable implements IMCPService {
 	public async callMCPTool(toolData: MCPToolCallParams): Promise<MCPGenericToolResponse> {
 		const response = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
 		return response;
+	}
+
+	public getMCPToolFns(): { callTool: MCPCallTool; resultToString: MCPToolResultToString } {
+		const tools = this.getAllToolsFormatted();
+		const toolFns: MCPCallTool = {};
+		const toolResultToStringFns: MCPToolResultToString = {};
+
+		tools.forEach((tool) => {
+			const name = tool.name;
+			const serverName = tool.mcpServerName;
+
+			// Define the tool call function
+			const toolFn = async (params: {
+				serverName: string,
+				toolName: string,
+				args: any
+			}) => {
+				const { serverName, toolName, args } = params;
+				const response = await this.callMCPTool({
+					serverName,
+					toolName,
+					params: args,
+				});
+				return {
+					result: response,
+				};
+			};
+
+			// Define the result-to-string function
+			const resultToStringFn = (params: any, result: MCPGenericToolResponse): string => {
+				if (result.event === 'error' || result.event === 'text') {
+					return result.text;
+				}
+				throw new Error(`MCP Server ${serverName} and Tool ${name} returned an unexpected result: ${JSON.stringify(result)}`);
+			};
+
+			toolFns[name] = toolFn;
+			toolResultToStringFns[name] = resultToStringFn;
+		});
+
+		return {
+			callTool: toolFns,
+			resultToString: toolResultToStringFns
+		};
 	}
 }
 

@@ -557,7 +557,7 @@ export class ToolsService implements IToolsService {
 			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal "${params.persistentTerminalId}".`;
 			},
-			// All MCP server call tool functions
+			// All MCP server result to string functions
 			...this.mcpService.getMCPToolFns().resultToString,
 		}
 

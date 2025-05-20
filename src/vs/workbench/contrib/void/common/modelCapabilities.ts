@@ -122,6 +122,13 @@ export const defaultModelsOfProvider = {
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
+		'gemma2-9b-it',
+		'llama3-70b-8192',
+		'whisper-large-v3',
+		'whisper-large-v3-turbo',
+		'deepseek-r1-distill-llama-70b',
+		'qwen-qwq-32b',
+		'mistral-saba-24b',
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)

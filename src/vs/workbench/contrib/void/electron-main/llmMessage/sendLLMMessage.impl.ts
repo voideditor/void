@@ -140,6 +140,10 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'klusterAI') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: "https://api.kluster.ai/v1", apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -876,6 +880,11 @@ export const sendLLMMessageToProviderImplementation = {
 	groq: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
+		list: null,
+	},
+	klusterAI: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
 		list: null,
 	},
 

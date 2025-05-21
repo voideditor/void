@@ -1255,9 +1255,8 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					</div>
 					<h4 className={`text-void-fg-3 mb-4`}>
 						<ChatMarkdownRender inPTag={true} string={`
-Configure Model Context Protocol servers to connect your AI models with external data sources and tools.
-Edit your MCP configuration file to add or modify server connections.
-								`} chatMessageLocation={undefined} />
+Use Model Context Protocol to provide Agent mode with more tools.
+							`} chatMessageLocation={undefined} />
 					</h4>
 					<ErrorBoundary>
 						<MCPServersList />

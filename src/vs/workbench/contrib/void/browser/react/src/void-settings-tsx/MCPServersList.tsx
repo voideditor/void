@@ -3,7 +3,6 @@ import { MCPConfigParseError, MCPServerEventParam, MCPServerObject, MCPServers }
 import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { off } from 'process';
 
 export interface Tool {
   /** Unique tool identifier */
@@ -42,21 +41,18 @@ const MCPServer = ({ name, server }: MCPServerProps) => {
 		mcpService.toggleServer(name, e);
 	}
 
-	// Needs to be raw CSS because
-	// Tailwind won't compile the colors
-	// dynamically
-	const serverStatusColorStyles = {
-		success: { backgroundColor: '#10B981' }, // green-500 equivalent
-		error: { backgroundColor: '#EF4444' },   // red-500 equivalent
-		loading: { backgroundColor: '#F59E0B' }, // yellow-500 equivalent
-		offline: { backgroundColor: '#6B7280' }  // gray-500 equivalent
-	  };
-
-	return (
+return (
 		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
 		<div className="flex items-center mx-4">
 			{/* Status indicator */}
-			<div className={`w-2 h-2 rounded-full mr-2`} style={serverStatusColorStyles[server.status]}></div>
+			<div className={`w-2 h-2 rounded-full mr-2
+					${server.status === 'success' ? 'green-500'
+						:server.status === 'error' ? 'red-500'
+						:server.status === 'loading' ? 'yellow-500'
+						:server.status === 'offline' ? 'gray-500'
+					:''}
+
+				  `}></div>
 
 			{/* Server name */}
 			<div className="text-sm font-medium mr-2">{name}</div>

@@ -165,7 +165,7 @@ export type EventMCPServerSetupOnError = Parameters<MCPServerSetupParams['onErro
 export type MCPServerModel = MCPServerSuccessModel | MCPServerErrorModel;
 
 
-export type MCPEventType = {
+export type MCPServerEventType = {
 	type: 'add';
 	name: string;
 	prevServer?: undefined;
@@ -188,13 +188,13 @@ export type MCPEventType = {
 }
 
 // Response types
-export type MCPAddResponse = { response: MCPEventType & { type: 'add' } }
-export type MCPUpdateResponse = { response: MCPEventType & { type: 'update' } }
-export type MCPDeleteResponse = { response: MCPEventType & { type: 'delete' } }
-// export type MCPLoadingResponse = { response: MCPEventType & { type: 'loading' } }
+export type MCPAddServerResponse = { response: MCPServerEventType & { type: 'add' } }
+export type MCPUpdateServerResponse = { response: MCPServerEventType & { type: 'update' } }
+export type MCPDeleteServerResponse = { response: MCPServerEventType & { type: 'delete' } }
+// export type MCPLoadingChangeResponse = { response: MCPEventType & { type: 'loading' } }
 
 
-export type MCPEventResponse = { response: MCPEventType }
+export type MCPServerEventResponse = { response: MCPServerEventType }
 
 export interface MCPConfigFileParseErrorResponse {
 	response: {

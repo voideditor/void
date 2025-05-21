@@ -13,7 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPServerModel, MCPAddResponse, MCPUpdateResponse, MCPDeleteResponse } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPServerModel, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { equals } from '../../../../base/common/objects.js';
 import { MCPServerStateOfName } from '../common/voidSettingsTypes.js';
@@ -52,10 +52,12 @@ export class MCPChannel implements IServerChannel {
 	// mcp emitters
 	private readonly mcpEmitters = {
 		serverEvent: {
-			onAdd: new Emitter<MCPAddResponse>(),
-			onUpdate: new Emitter<MCPUpdateResponse>(),
-			onDelete: new Emitter<MCPDeleteResponse>(),
-			// onChangeLoading: new Emitter<MCPLoadingResponse>(),
+			onAdd: new Emitter<MCPAddServerResponse>(),
+			onUpdate: new Emitter<MCPUpdateServerResponse>(),
+			onDelete: new Emitter<MCPDeleteServerResponse>(),
+			// onResult: new Emitter<>(),
+			// onError: new Emitter<>(),
+			// onChangeLoading: new Emitter<MCPLoadingResponse>(), // really onStart
 		}
 		// toolCall: {
 		// 	success: new Emitter<void>(),
@@ -63,9 +65,9 @@ export class MCPChannel implements IServerChannel {
 		// },
 	} satisfies {
 		serverEvent: {
-			onAdd: Emitter<MCPAddResponse>,
-			onUpdate: Emitter<MCPUpdateResponse>,
-			onDelete: Emitter<MCPDeleteResponse>,
+			onAdd: Emitter<MCPAddServerResponse>,
+			onUpdate: Emitter<MCPUpdateServerResponse>,
+			onDelete: Emitter<MCPDeleteServerResponse>,
 			// onChangeLoading: Emitter<MCPLoadingResponse>,
 		}
 	}
@@ -90,11 +92,11 @@ export class MCPChannel implements IServerChannel {
 	// browser uses this to call (see this.channel.call() in mcpConfigService.ts for all usages)
 	async call(_: unknown, command: string, params: any): Promise<any> {
 		try {
-			if (command === 'setupServers') {
-				await this._setupServers(params)
+			if (command === 'refreshMCPServers') {
+				await this._refreshMCPServers(params)
 			}
-			else if (command === 'closeAllServers') {
-				await this._closeAllServers()
+			else if (command === 'closeAllMCPServers') {
+				await this._closeAllMCPServers()
 			}
 			else if (command === 'toggleServer') {
 				await this._toggleServer(params.serverName, params.isOn)
@@ -114,7 +116,7 @@ export class MCPChannel implements IServerChannel {
 
 	// call functions
 
-	private async _setupServers(params: { mcpConfig: MCPConfigFileType, serverStates: MCPServerStateOfName }) {
+	private async _refreshMCPServers(params: { mcpConfig: MCPConfigFileType, serverStates: MCPServerStateOfName }) {
 
 		const { mcpConfig, serverStates } = params
 
@@ -313,7 +315,7 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private async _closeAllServers() {
+	private async _closeAllMCPServers() {
 		for (const serverName in this.clients) {
 			await this._closeServer(serverName)
 			this._removeServer(serverName)

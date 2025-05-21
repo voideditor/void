@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
+import { MCPServerState, RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
@@ -79,6 +79,8 @@ const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => 
 const commandBarURIStateListeners: Set<(uri: URI) => void> = new Set();
 const activeURIListeners: Set<(uri: URI | null) => void> = new Set();
 
+const mcpListeners: Set<() => void> = new Set()
+
 
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
@@ -96,9 +98,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		editCodeService: accessor.get(IEditCodeService),
 		voidCommandBarService: accessor.get(IVoidCommandBarService),
 		modelService: accessor.get(IModelService),
+		mcpService: accessor.get(IMCPService),
 	}
 
-	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService } = stateServices
+	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService } = stateServices
 
 
 
@@ -165,6 +168,11 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
+	disposables.push(
+		mcpService.onDidChangeState(() => {
+			mcpListeners.forEach(l => l())
+		})
+	)
 
 
 	return disposables
@@ -377,4 +385,17 @@ export const useActiveURI = () => {
 }
 
 
+
+
+export const useMCPServiceState = () => {
+	const accessor = useAccessor()
+	const mcpService = accessor.get('IMCPService')
+	const [s, ss] = useState(mcpService.state)
+	useEffect(() => {
+		const listener = () => { ss(mcpService.state) }
+		mcpListeners.add(listener);
+		return () => { mcpListeners.delete(listener) };
+	}, []);
+	return s
+}
 

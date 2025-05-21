@@ -1,7 +1,7 @@
 import { VoidSwitch } from '../util/inputs.js';
-import { MCPConfigFileParseErrorResponse, MCPEventType, MCPEventResponse, MCPServerObject, MCPServerOfName } from '../../../../common/mcpServiceTypes.js';
+import { MCPConfigFileParseErrorResponse, MCPServerEventType, MCPServerEventResponse, MCPServerObject, MCPServerOfName } from '../../../../common/mcpServiceTypes.js';
 import { useEffect, useState } from 'react';
-import { useAccessor } from '../util/services.js';
+import { useAccessor, useMCPServiceState } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
 // Command display component
@@ -96,80 +96,49 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 // Main component that renders the list of servers
 const MCPServersList = () => {
 
-	const accessor = useAccessor();
-	const mcpService = accessor.get('IMCPService');
-	const [mcpServers, setMCPServers] = useState<MCPServerOfName>({});
-	const [mcpConfigError, setMCPConfigError] = useState<string | null>(null);
+	const mcpServiceState = useMCPServiceState()
 
-	// Get all servers from MCPConfigService
-	useEffect(() => {
-		console.log('RUNNING MCPServersList EFFECT');
-		// Initial fetch
-		const servers = mcpService.getMCPServerOfName();
-		if (servers) {
-			// Do something with the servers
-			console.log('MCP Servers:', servers);
-			setMCPServers(servers);
-		}
+	// const handleListeners = (e: MCPServerEventResponse | MCPConfigFileParseErrorResponse) => {
+	// 	if (e.response.type === 'config-file-error') {
+	// 		// Handle the config error event
+	// 		const { error } = e.response;
+	// 		setMCPConfigError(error);
+	// 		return;
+	// 	}
+	// 	if (e.response.type === 'add' || e.response.type === 'update' || e.response.type === 'loading') {
+	// 		// Handle the add event
+	// 		const { name, newServer } = e.response;
+	// 		setMCPServers(prevServers => ({
+	// 			...prevServers,
+	// 			[name]: newServer
+	// 		}));
+	// 		return;
+	// 	}
+	// 	if (e.response.type === 'delete') {
+	// 		// Handle the delete event
+	// 		const { name, prevServer } = e.response;
+	// 		setMCPServers(prevServers => {
+	// 			const newServers = { ...prevServers };
+	// 			delete newServers[name];
+	// 			return newServers;
+	// 		});
+	// 		return;
+	// 	}
+	// 	throw new Error('Event not handled');
+	// }
 
-		// Set up listeners for server events
-		const disposables: IDisposable[] = []
-
-		disposables.push(mcpService.onDidAddServer(handleListeners));
-		disposables.push(mcpService.onDidDeleteServer(handleListeners));
-		disposables.push(mcpService.onDidUpdateServer(handleListeners));
-
-		// disposables.push(mcpService.onLoadingServers(handleListeners));
-		disposables.push(mcpService.onConfigParsingError(handleListeners));
-
-		// Clean up subscription when component unmounts
-		return () => {
-			console.log('Cleaning up subscriptions');
-			disposables.forEach(disposable => disposable.dispose());
-		};
-
-	}, [mcpService]);
-
-	const handleListeners = (e: MCPEventResponse | MCPConfigFileParseErrorResponse) => {
-		if (e.response.type === 'config-file-error') {
-			// Handle the config error event
-			const { error } = e.response;
-			setMCPConfigError(error);
-			return;
-		}
-		if (e.response.type === 'add' || e.response.type === 'update' || e.response.type === 'loading') {
-			// Handle the add event
-			const { name, newServer } = e.response;
-			setMCPServers(prevServers => ({
-				...prevServers,
-				[name]: newServer
-			}));
-			return;
-		}
-		if (e.response.type === 'delete') {
-			// Handle the delete event
-			const { name, prevServer } = e.response;
-			setMCPServers(prevServers => {
-				const newServers = { ...prevServers };
-				delete newServers[name];
-				return newServers;
-			});
-			return;
-		}
-		throw new Error('Event not handled');
-	}
 
 	return (
 		<div className="text-white rounded-md py-4">
 			<div>
-				{!mcpConfigError && Object.entries(mcpServers).map(([name, server]) => (
+				{!mcpServiceState.error && Object.entries(mcpServiceState.mcpServerOfName).map(([name, server]) => (
 					<div className="py-2" key={name}>
 						<MCPServer name={name} server={server} />
 					</div>
 				))}
-				{mcpConfigError && (
+				{mcpServiceState.error && (
 					<div className="text-red-500 text-sm font-medium">
-						{mcpConfigError}
+						{mcpServiceState.error}
 					</div>
 				)}
 			</div>

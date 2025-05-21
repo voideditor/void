@@ -1,5 +1,5 @@
 import { VoidSwitch } from '../util/inputs.js';
-import { MCPConfigParseError, MCPServerEventParam, MCPServerObject, MCPServers } from '../../../../common/mcpServiceTypes.js';
+import { MCPConfigFileParseErrorResponse, MCPEventType, MCPEventResponse, MCPServerObject, MCPServerOfName } from '../../../../common/mcpServiceTypes.js';
 import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
@@ -98,14 +98,14 @@ const MCPServersList = () => {
 
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
-	const [mcpServers, setMCPServers] = useState<MCPServers>({});
+	const [mcpServers, setMCPServers] = useState<MCPServerOfName>({});
 	const [mcpConfigError, setMCPConfigError] = useState<string | null>(null);
 
 	// Get all servers from MCPConfigService
 	useEffect(() => {
 		console.log('RUNNING MCPServersList EFFECT');
 		// Initial fetch
-		const servers = mcpService.getMCPServers();
+		const servers = mcpService.getMCPServerOfName();
 		if (servers) {
 			// Do something with the servers
 			console.log('MCP Servers:', servers);
@@ -114,10 +114,12 @@ const MCPServersList = () => {
 
 		// Set up listeners for server events
 		const disposables: IDisposable[] = []
+
 		disposables.push(mcpService.onDidAddServer(handleListeners));
 		disposables.push(mcpService.onDidDeleteServer(handleListeners));
 		disposables.push(mcpService.onDidUpdateServer(handleListeners));
-		disposables.push(mcpService.onLoadingServers(handleListeners));
+
+		// disposables.push(mcpService.onLoadingServers(handleListeners));
 		disposables.push(mcpService.onConfigParsingError(handleListeners));
 
 		// Clean up subscription when component unmounts
@@ -128,14 +130,14 @@ const MCPServersList = () => {
 
 	}, [mcpService]);
 
-	const handleListeners = (e: MCPServerEventParam | MCPConfigParseError) => {
-		if (e.response.event === 'config-error') {
+	const handleListeners = (e: MCPEventResponse | MCPConfigFileParseErrorResponse) => {
+		if (e.response.type === 'config-file-error') {
 			// Handle the config error event
 			const { error } = e.response;
 			setMCPConfigError(error);
 			return;
 		}
-		if (e.response.event === 'add' || e.response.event === 'update' || e.response.event === 'loading') {
+		if (e.response.type === 'add' || e.response.type === 'update' || e.response.type === 'loading') {
 			// Handle the add event
 			const { name, newServer } = e.response;
 			setMCPServers(prevServers => ({
@@ -144,7 +146,7 @@ const MCPServersList = () => {
 			}));
 			return;
 		}
-		if (e.response.event === 'delete') {
+		if (e.response.type === 'delete') {
 			// Handle the delete event
 			const { name, prevServer } = e.response;
 			setMCPServers(prevServers => {

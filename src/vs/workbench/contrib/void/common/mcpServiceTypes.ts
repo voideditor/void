@@ -23,103 +23,100 @@
 /* Core JSON‑RPC envelope                              */
 /* -------------------------------------------------- */
 
-export interface JsonRpcSuccess<T> {
-	/** JSON‑RPC version – always '2.0' */
-	jsonrpc: '2.0';
-	/** Request identifier echoed back by the server */
-	id: string | number | null;
-	/** The successful result payload */
-	result: T;
-}
+// export interface JsonRpcSuccess<T> {
+// 	/** JSON‑RPC version – always '2.0' */
+// 	jsonrpc: '2.0';
+// 	/** Request identifier echoed back by the server */
+// 	id: string | number | null;
+// 	/** The successful result payload */
+// 	result: T;
+// }
 
 /* -------------------------------------------------- */
 /* Utility: pagination                                 */
 /* -------------------------------------------------- */
 
-export interface Paginated {
-	/** Opaque cursor for fetching the next page */
-	nextCursor?: string;
-}
+// export interface Paginated {
+// 	/** Opaque cursor for fetching the next page */
+// 	nextCursor?: string;
+// }
 
 /* -------------------------------------------------- */
 /* 1. tools/list                                       */
 /* -------------------------------------------------- */
 
-/** Minimal JSON‑Schema placeholder – adapt if you need stricter typing */
-export type JsonSchema = Record<string, unknown>;
-
-export interface Tool {
+export interface MCPTool {
 	/** Unique tool identifier */
 	name: string;
 	/** Human‑readable description */
 	description?: string;
 	/** JSON schema describing expected arguments */
-	inputSchema?: JsonSchema;
+	inputSchema?: Record<string, unknown>;
 	/** Free‑form annotations describing behaviour, security, etc. */
 	annotations?: Record<string, unknown>;
 }
 
-export interface ToolsListResult extends Paginated {
-	tools: Tool[];
-}
+// export interface ToolsListResult extends Paginated {
+// 	tools: MCPTool[];
+// }
 
-export type ToolsListResponse = JsonRpcSuccess<ToolsListResult>;
+// export type ToolsListResponse = JsonRpcSuccess<ToolsListResult>;
 
 /* -------------------------------------------------- */
 /* 2. prompts/list                                     */
 /* -------------------------------------------------- */
 
-export interface PromptArgument {
-	name: string;
-	description?: string;
-	/** Whether the argument is required */
-	required?: boolean;
-}
+// export interface PromptArgument {
+// 	name: string;
+// 	description?: string;
+// 	/** Whether the argument is required */
+// 	required?: boolean;
+// }
 
-export interface Prompt {
-	name: string;
-	description?: string;
-	arguments?: PromptArgument[];
-}
+// export interface Prompt {
+// 	name: string;
+// 	description?: string;
+// 	arguments?: PromptArgument[];
+// }
 
-export interface PromptsListResult extends Paginated {
-	prompts: Prompt[];
-}
+// export interface PromptsListResult extends Paginated {
+// 	prompts: Prompt[];
+// }
 
-export type PromptsListResponse = JsonRpcSuccess<PromptsListResult>;
+// export type PromptsListResponse = JsonRpcSuccess<PromptsListResult>;
 
 /* -------------------------------------------------- */
 /* 3. tools/call                                       */
 /* -------------------------------------------------- */
 
 /** Additional resource structure that can be embedded in tool results */
-export interface Resource {
-	uri: string;
-	mimeType: string;
-	/** Either plain‑text or base64‑encoded binary data */
-	text?: string;
-	data?: string;
-}
+// export interface Resource {
+// 	uri: string;
+// 	mimeType: string;
+// 	/** Either plain‑text or base64‑encoded binary data */
+// 	text?: string;
+// 	data?: string;
+// }
 
 /** Individual content items returned by a tool */
-export type ToolContent =
-	| { type: 'text'; text: string }
-	| { type: 'image'; data: string; mimeType: string }
-	| { type: 'audio'; data: string; mimeType: string }
-	| { type: 'resource'; resource: Resource };
+// export type ToolContent =
+// 	| { type: 'text'; text: string }
+// 	| { type: 'image'; data: string; mimeType: string }
+// 	| { type: 'audio'; data: string; mimeType: string }
+// 	| { type: 'resource'; resource: Resource };
 
-export interface ToolCallResult {
-	/** List of content parts (text, images, resources, etc.) */
-	content: ToolContent[];
-	/** True if the tool itself encountered a domain‑level error */
-	isError?: boolean;
-}
+// export interface ToolCallResult {
+// 	/** List of content parts (text, images, resources, etc.) */
+// 	content: ToolContent[];
+// 	/** True if the tool itself encountered a domain‑level error */
+// 	isError?: boolean;
+// }
 
-export type ToolCallResponse = JsonRpcSuccess<ToolCallResult>;
+// export type ToolCallResponse = JsonRpcSuccess<ToolCallResult>;
 
 // MCP SERVER CONFIG FILE TYPES -----------------------------
 
-export interface MCPServerConfig {
+export interface MCPConfigFileServerType {
 	// Command-based server properties
 	command?: string;
 	args?: string[];
@@ -130,30 +127,23 @@ export interface MCPServerConfig {
 	headers?: Record<string, string>;
 }
 
-export interface MCPConfig {
-	mcpServers: Record<string, MCPServerConfig>;
+export interface MCPConfigFileType {
+	mcpServers: Record<string, MCPConfigFileServerType>;
 }
 
-export interface MCPConfigParseError {
-	// Error message
-	response: {
-		event: 'config-error';
-		error: string | null;
-	}
-}
 
 // SERVER EVENT TYPES ------------------------------------------
 
 export interface MCPServerObject {
 	// Command-based server properties
-	tools: Tool[],
+	tools: MCPTool[],
 	status: 'loading' | 'error' | 'success' | 'offline',
 	isOn: boolean,
 	command?: string,
 	error?: string,
 }
 
-export interface MCPServers {
+export interface MCPServerOfName {
 	[serverName: string]: MCPServerObject;
 }
 
@@ -162,63 +152,67 @@ export type MCPServerSuccessModel = MCPServerObject;
 export type MCPServerErrorModel = Omit<MCPServerObject, 'error'> & { error: string };
 
 
-export type MCPServerSetupParams<serverResponse> = {
+export type MCPServerSetupParams = {
 	serverName: string;
 	onSuccess: (param: { model: MCPServerSuccessModel & { serverName: string } }) => void;
 	onError: (param: { model: MCPServerErrorModel & { serverName: string } }) => void;
 }
 
 // Listener event types
-export type EventMCPServerSetupOnSuccess<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onSuccess']>[0]
-export type EventMCPServerSetupOnError<serverResponse> = Parameters<MCPServerSetupParams<serverResponse>['onError']>[0]
-
-type MCPServerEventType = 'add' | 'update' | 'delete' | 'loading';
+export type EventMCPServerSetupOnSuccess = Parameters<MCPServerSetupParams['onSuccess']>[0]
+export type EventMCPServerSetupOnError = Parameters<MCPServerSetupParams['onError']>[0]
 
 export type MCPServerModel = MCPServerSuccessModel | MCPServerErrorModel;
 
-interface MCPServerResponseBase {
+
+export type MCPEventType = {
+	type: 'add';
 	name: string;
-	event: MCPServerEventType;
-	newServer?: MCPServerModel;
-	prevServer?: MCPServerModel;
+	prevServer?: undefined;
+	newServer: MCPServerModel;
+} | {
+	type: 'update';
+	name: string;
+	prevServer: MCPServerModel;
+	newServer: MCPServerModel;
+} | {
+	type: 'delete';
+	name: string;
+	newServer?: undefined;
+	prevServer: MCPServerModel;
+} | {
+	type: 'loading';
+	name: string;
+	prevServer?: undefined;
+	newServer: MCPServerModel;
 }
 
-type EventTypeConstraints = {
-	'add': {
-		prevServer?: never;
-		newServer: MCPServerModel;
-	};
-	'update': {
-		prevServer: MCPServerModel;
-		newServer: MCPServerModel;
-	};
-	'delete': {
-		newServer?: never;
-		prevServer: MCPServerModel;
-	};
-	'loading': {
-		prevServer?: never;
-		newServer: MCPServerModel;
+// Response types
+export type MCPAddResponse = { response: MCPEventType & { type: 'add' } }
+export type MCPUpdateResponse = { response: MCPEventType & { type: 'update' } }
+export type MCPDeleteResponse = { response: MCPEventType & { type: 'delete' } }
+// export type MCPLoadingResponse = { response: MCPEventType & { type: 'loading' } }
+
+
+export type MCPEventResponse = { response: MCPEventType }
+
+export interface MCPConfigFileParseErrorResponse {
+	response: {
+		type: 'config-file-error';
+		error: string | null;
 	}
 }
 
-type MCPEventResponse<T extends MCPServerEventType> = Omit<MCPServerResponseBase, 'event' | keyof EventTypeConstraints> & EventTypeConstraints[T] & { event: T };
 
-// Response types
-export type MCPAddResponse = MCPEventResponse<'add'>;
-export type MCPUpdateResponse = MCPEventResponse<'update'>;
-export type MCPDeleteResponse = MCPEventResponse<'delete'>;
-export type MCPLoadingResponse = MCPEventResponse<'loading'>;
-
-export type MCPServerResponse = MCPAddResponse | MCPUpdateResponse | MCPDeleteResponse | MCPLoadingResponse;
+// export type MCPServerResponse = MCPAddResponse | MCPUpdateResponse | MCPDeleteResponse | MCPLoadingResponse;
 
 // Event parameter types
-export type MCPServerEventAddParam = { response: MCPAddResponse };
-export type MCPServerEventUpdateParam = { response: MCPUpdateResponse };
-export type MCPServerEventDeleteParam = { response: MCPDeleteResponse };
-export type MCPServerEventLoadingParam = { response: MCPLoadingResponse };
+// export type MCPServerEventAddParam = { response: MCPAddResponse };
+// export type MCPServerEventUpdateParam = { response: MCPUpdateResponse };
+// export type MCPServerEventDeleteParam = { response: MCPDeleteResponse };
+// export type MCPServerEventLoadingParam = { response: MCPLoadingResponse };
 
 // Event Param union type
-export type MCPServerEventParam = MCPServerEventAddParam | MCPServerEventUpdateParam | MCPServerEventDeleteParam | MCPServerEventLoadingParam;
+// export type MCPServerEventParam = MCPServerEventAddParam | MCPServerEventUpdateParam | MCPServerEventDeleteParam | MCPServerEventLoadingParam;
 
 

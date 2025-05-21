@@ -13,41 +13,60 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfig, MCPServerConfig, MCPServerErrorModel, MCPAddResponse, MCPServerEventAddParam, MCPServerEventUpdateParam, MCPServerEventDeleteParam, MCPUpdateResponse, MCPServerModel, MCPDeleteResponse, MCPServerEventLoadingParam } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPServerModel, MCPAddResponse, MCPUpdateResponse, MCPDeleteResponse } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { equals } from '../../../../base/common/objects.js';
-import { MCPServerStates } from '../common/voidSettingsTypes.js';
+import { MCPServerStateOfName } from '../common/voidSettingsTypes.js';
+
+
+
+// const getLoadingServerObject = (serverName: string, isOn: boolean | undefined) => {
+// 	return {
+// 		response: {
+// 			event: 'loading',
+// 			name: serverName,
+// 			newServer: {
+// 				status: 'loading',
+// 				isOn,
+// 				tools: [],
+// 				command: '',
+// 			}
+// 		}
+// 	} as const
+// }
+
+const getClientConfig = (serverName: string) => {
+	return {
+		name: `${serverName}-client`,
+		version: '0.1.0',
+		// debug: true,
+	}
+}
+
 
 export class MCPChannel implements IServerChannel {
 
 	// connected clients
-	private clients: { [clientId: string]: { client?: Client, mcpConfig: MCPServerConfig, formattedServer: MCPServerModel } } = {}
-	private getClientConfig(serverName: string) {
-		return {
-			name: `${serverName}-client`,
-			version: '0.1.0',
-			// debug: true,
-		}
-	}
+	private clients: { [clientId: string]: { client?: Client, mcpConfig: MCPConfigFileServerType, formattedServer: MCPServerModel } } = {}
 
 	// mcp emitters
 	private readonly mcpEmitters = {
 		serverEvent: {
-			add: new Emitter<MCPServerEventAddParam>(),
-			update: new Emitter<MCPServerEventUpdateParam>(),
-			delete: new Emitter<MCPServerEventDeleteParam>(),
-			loading: new Emitter<MCPServerEventLoadingParam>(),
+			onAdd: new Emitter<MCPAddResponse>(),
+			onUpdate: new Emitter<MCPUpdateResponse>(),
+			onDelete: new Emitter<MCPDeleteResponse>(),
+			// onChangeLoading: new Emitter<MCPLoadingResponse>(),
 		}
 		// toolCall: {
 		// 	success: new Emitter<void>(),
 		// 	error: new Emitter<void>(),
 		// },
 	} satisfies {
-		[event in 'serverEvent']: {
-			add: Emitter<MCPServerEventAddParam>,
-			update: Emitter<MCPServerEventUpdateParam>,
-			delete: Emitter<MCPServerEventDeleteParam>,
-			loading: Emitter<MCPServerEventLoadingParam>,
+		serverEvent: {
+			onAdd: Emitter<MCPAddResponse>,
+			onUpdate: Emitter<MCPUpdateResponse>,
+			onDelete: Emitter<MCPDeleteResponse>,
+			// onChangeLoading: Emitter<MCPLoadingResponse>,
 		}
 	}
 
@@ -59,10 +78,10 @@ export class MCPChannel implements IServerChannel {
 	listen(_: unknown, event: string): Event<any> {
 
 		// server events
-		if (event === 'onAdd_server') return this.mcpEmitters.serverEvent.add.event;
-		else if (event === 'onUpdate_server') return this.mcpEmitters.serverEvent.update.event;
-		else if (event === 'onDelete_server') return this.mcpEmitters.serverEvent.delete.event;
-		else if (event === 'onLoading_server') return this.mcpEmitters.serverEvent.loading.event;
+		if (event === 'onAdd_server') return this.mcpEmitters.serverEvent.onAdd.event;
+		else if (event === 'onUpdate_server') return this.mcpEmitters.serverEvent.onUpdate.event;
+		else if (event === 'onDelete_server') return this.mcpEmitters.serverEvent.onDelete.event;
+		// else if (event === 'onLoading_server') return this.mcpEmitters.serverEvent.onChangeLoading.event;
 
 		// handle unknown events
 		else throw new Error(`Event not found: ${event}`);
@@ -72,29 +91,30 @@ export class MCPChannel implements IServerChannel {
 	async call(_: unknown, command: string, params: any): Promise<any> {
 		try {
 			if (command === 'setupServers') {
-				await this._callSetupServers(params)
+				await this._setupServers(params)
 			}
 			else if (command === 'closeAllServers') {
-				await this._callCloseAllServers()
+				await this._closeAllServers()
 			}
 			else if (command === 'toggleServer') {
-				await this._handleToggleServer(params.serverName, params.isOn)
+				await this._toggleServer(params.serverName, params.isOn)
 			}
-			else if (command === 'callTool') {
-				// TODO: HANDLE THIS
-			}
+			// TODO!!! is this still needed?
+			// else if (command === 'callTool') {
+			// 	// TODO: HANDLE THIS
+			// }
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
 			}
 		}
 		catch (e) {
-			console.log('mcp channel: Call Error:', e)
+			console.error('mcp channel: Call Error:', e)
 		}
 	}
 
 	// call functions
 
-	private async _callSetupServers(params: { mcpConfig: MCPConfig, serverStates: MCPServerStates }) {
+	private async _setupServers(params: { mcpConfig: MCPConfigFileType, serverStates: MCPServerStateOfName }) {
 
 		const { mcpConfig, serverStates } = params
 
@@ -118,27 +138,27 @@ export class MCPChannel implements IServerChannel {
 		// Divide the server based on event
 		const addedServers = serverNames.filter((serverName) => {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
-			const isAdded = !prevMCPConfig && newMCPConfig
-			if (isAdded) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
-			}
-			return isAdded
+			const isNew = !prevMCPConfig && newMCPConfig
+			// if (isAdded) {
+			// 	this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
+			// }
+			return isNew
 		})
 		const updatedServers = serverNames.filter((serverName) => {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
-			const isUpdated = prevMCPConfig && newMCPConfig && !equals(prevMCPConfig, newMCPConfig)
-			if (isUpdated) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
-			}
-			return isUpdated
+			const isNew = prevMCPConfig && newMCPConfig && !equals(prevMCPConfig, newMCPConfig)
+			// if (isUpdated) {
+			// 	this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
+			// }
+			return isNew
 		})
 		const deletedServers = Object.keys(prevServers).filter((serverName) => {
 			const { prevMCPConfig, newMCPConfig } = getPrevAndNewServerConfig(serverName)
-			const isDeleted = prevMCPConfig && !newMCPConfig
-			if (isDeleted) {
-				this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
-			}
-			return isDeleted
+			const isNew = prevMCPConfig && !newMCPConfig
+			// if (isDeleted) {
+			// 	this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, serverStates[serverName]?.isOn))
+			// }
+			return isNew
 		})
 
 		// Check if no changes were made
@@ -148,55 +168,55 @@ export class MCPChannel implements IServerChannel {
 		}
 
 		if (addedServers.length > 0) {
-			// Handle added servers
-			const addPromises: Promise<MCPAddResponse>[] = addedServers.map(async (serverName) => {
+			// emit added servers
+			const addPromises = addedServers.map(async (serverName) => {
 				const addedServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
 				return {
-					event: 'add',
+					type: 'add',
 					newServer: addedServer,
 					name: serverName,
-				} as MCPAddResponse
+				} as const
 			});
 			const formattedAddedResponses = await Promise.all(addPromises);
-			formattedAddedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.add.fire({ response: formattedResponse })));
+			formattedAddedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.onAdd.fire({ response: formattedResponse })));
 		}
 
 		if (updatedServers.length > 0) {
-			// Handle updated servers
-			const updatePromises: Promise<MCPUpdateResponse>[] = updatedServers.map(async (serverName) => {
+			// emit updated servers
+			const updatePromises = updatedServers.map(async (serverName) => {
 				const prevServer = this.clients[serverName]?.formattedServer;
 				const newServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
 				return {
+					type: 'update',
 					prevServer,
 					newServer: newServer,
-					event: 'update',
 					name: serverName,
-				} as MCPUpdateResponse
+				} as const
 			});
 			const formattedUpdatedResponses = await Promise.all(updatePromises);
-			formattedUpdatedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.update.fire({ response: formattedResponse })));
+			formattedUpdatedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.onUpdate.fire({ response: formattedResponse })));
 		}
 
 		if (deletedServers.length > 0) {
-			// Handle deleted servers
-			const deletePromises: Promise<MCPDeleteResponse>[] = deletedServers.map(async (serverName) => {
+			// emit deleted servers
+			const deletePromises = deletedServers.map(async (serverName) => {
 				const prevServer = this.clients[serverName]?.formattedServer;
-				await this._callCloseServer(serverName)
-				this._callRemoveServer(serverName)
+				await this._closeServer(serverName)
+				this._removeServer(serverName)
 				return {
-					event: 'delete',
+					type: 'delete',
 					prevServer,
 					name: serverName,
-				} as MCPDeleteResponse
+				} as const
 			});
 			const formattedDeletedResponses = await Promise.all(deletePromises);
-			formattedDeletedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.delete.fire({ response: formattedResponse })));
+			formattedDeletedResponses.forEach((formattedResponse) => (this.mcpEmitters.serverEvent.onDelete.fire({ response: formattedResponse })));
 		}
 	}
 
-	private async _callSetupServer(server: MCPServerConfig, serverName: string, isOn = true) {
+	private async _callSetupServer(server: MCPConfigFileServerType, serverName: string, isOn = true) {
 
-		const clientConfig = this.getClientConfig(serverName)
+		const clientConfig = getClientConfig(serverName)
 		const client = new Client(clientConfig)
 		let transport: Transport;
 		let formattedServer: MCPServerModel;
@@ -263,7 +283,7 @@ export class MCPChannel implements IServerChannel {
 	}
 
 	// Helper function to safely setup a server
-	private async _safeSetupServer(serverConfig: MCPServerConfig, serverName: string, isOn = true) {
+	private async _safeSetupServer(serverConfig: MCPConfigFileServerType, serverName: string, isOn = true) {
 		try {
 			return await this._callSetupServer(serverConfig, serverName, isOn)
 		} catch (err) {
@@ -293,15 +313,15 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private async _callCloseAllServers() {
+	private async _closeAllServers() {
 		for (const serverName in this.clients) {
-			await this._callCloseServer(serverName)
-			this._callRemoveServer(serverName)
+			await this._closeServer(serverName)
+			this._removeServer(serverName)
 		}
 		console.log('Closed all MCP servers');
 	}
 
-	private async _callCloseServer(serverName: string) {
+	private async _closeServer(serverName: string) {
 		const server = this.clients[serverName]
 		if (server) {
 			const { client } = server
@@ -314,22 +334,22 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private _callRemoveServer(serverName: string) {
+	private _removeServer(serverName: string) {
 		if (this.clients[serverName]) {
 			delete this.clients[serverName]
 			console.log(`Removed MCP server ${serverName}`);
 		}
 	}
 
-	private async _handleToggleServer(serverName: string, isOn: boolean) {
+	private async _toggleServer(serverName: string, isOn: boolean) {
 		const prevServer = this.clients[serverName]?.formattedServer
 		if (isOn) {
 			// Handle turning on the server
-			this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, isOn))
+			// this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, isOn))
 			const formattedServer = await this._callSetupServer(this.clients[serverName].mcpConfig, serverName)
-			this.mcpEmitters.serverEvent.update.fire({
+			this.mcpEmitters.serverEvent.onUpdate.fire({
 				response: {
-					event: 'update',
+					type: 'update',
 					name: serverName,
 					newServer: formattedServer,
 					prevServer: prevServer,
@@ -337,11 +357,11 @@ export class MCPChannel implements IServerChannel {
 			})
 		} else {
 			// Handle turning off the server
-			this.mcpEmitters.serverEvent.loading.fire(this._getLoadingServerObject(serverName, isOn))
-			this._callCloseServer(serverName)
-			this.mcpEmitters.serverEvent.update.fire({
+			// this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, isOn))
+			this._closeServer(serverName)
+			this.mcpEmitters.serverEvent.onUpdate.fire({
 				response: {
-					event: 'update',
+					type: 'update',
 					name: serverName,
 					newServer: {
 						status: 'offline',
@@ -358,21 +378,6 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	// Util functions
-
-	private _getLoadingServerObject(serverName: string, isOn = true): MCPServerEventLoadingParam {
-		return {
-			response: {
-				event: 'loading',
-				name: serverName,
-				newServer: {
-					status: 'loading',
-					isOn,
-					tools: [],
-					command: '',
-				}
-			}
-		}
-	}
 }
+
 

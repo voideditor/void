@@ -1249,7 +1249,7 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 				<div className='mt-12 max-w-[600px]'>
 					<div className='flex items-center justify-between mb-2'>
 						<h2 className={`text-3xl`}>MCP</h2>
-						<VoidButtonBgDarken className='px-4 py-1' onClick={async () => { await mcpService.openMCPConfigFile() }}>
+						<VoidButtonBgDarken className='px-4 py-1' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
 							Add MCP Server
 						</VoidButtonBgDarken>
 					</div>

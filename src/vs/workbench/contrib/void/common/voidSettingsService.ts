@@ -13,7 +13,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { IMetricsService } from './metricsService.js';
 import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPServerStateOfName } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPServerStateOfName, MCPServerState } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -76,9 +76,9 @@ export interface IVoidSettingsService {
 	addModel(providerName: ProviderName, modelName: string): void;
 	deleteModel(providerName: ProviderName, modelName: string): boolean;
 
-	addMCPServers(newMCPStates: MCPServerStateOfName): Promise<void>;
-	removeMCPServers(serverNames: string[]): Promise<void>;
-	setMCPServerState(serverName: string, newIsOn: boolean): Promise<void>;
+	addMCPServerStateOfName(serverStateOfName: MCPServerStateOfName): Promise<void>;
+	removeMCPServerStateNames(serverNames: string[]): Promise<void>;
+	setMCPServerState(serverName: string, state: MCPServerState): Promise<void>;
 }
 
 
@@ -541,7 +541,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 	// MCP Server State
-	private _setMCPServerStates = async (newStates: MCPServerStateOfName) => {
+	private _setMCPServerStateOfName = async (newStates: MCPServerStateOfName) => {
 		const newState: VoidSettingsState = {
 			...this.state,
 			mcpServerStateOfName: {
@@ -555,17 +555,17 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		this._metricsService.capture('Set MCP Server States', { newStates });
 	}
 
-	addMCPServers = async (newMCPStates: MCPServerStateOfName) => {
+	addMCPServerStateOfName = async (newMCPStates: MCPServerStateOfName) => {
 		const { mcpServerStateOfName: mcpServerStates } = this.state
 		const newMCPServerStates = {
 			...mcpServerStates,
 			...newMCPStates,
 		}
-		await this._setMCPServerStates(newMCPServerStates)
+		await this._setMCPServerStateOfName(newMCPServerStates)
 		this._metricsService.capture('Add MCP Server', { servers: Object.keys(newMCPStates).join(', ') });
 	}
 
-	removeMCPServers = async (serverNames: string[]) => {
+	removeMCPServerStateNames = async (serverNames: string[]) => {
 		const { mcpServerStateOfName: mcpServerStates } = this.state
 		const newMCPServerStates = {
 			...mcpServerStates,
@@ -575,21 +575,19 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				delete newMCPServerStates[serverName]
 			}
 		})
-		await this._setMCPServerStates(newMCPServerStates)
+		await this._setMCPServerStateOfName(newMCPServerStates)
 		this._metricsService.capture('Remove MCP Server', { servers: serverNames.join(', ') });
 	}
 
-	setMCPServerState = async (serverName: string, newIsOn: boolean) => {
+	setMCPServerState = async (serverName: string, state: MCPServerState) => {
 		const { mcpServerStateOfName: mcpServerStates } = this.state
 		if (!(serverName in mcpServerStates)) return // if not in list, do nothing
 		const newMCPServerStates = {
 			...mcpServerStates,
-			[serverName]: {
-				isOn: newIsOn,
-			},
+			[serverName]: state,
 		}
-		await this._setMCPServerStates(newMCPServerStates)
-		this._metricsService.capture('Update MCP Server State', { serverName, newIsOn });
+		await this._setMCPServerStateOfName(newMCPServerStates)
+		this._metricsService.capture('Update MCP Server State', { serverName, state });
 	}
 
 }

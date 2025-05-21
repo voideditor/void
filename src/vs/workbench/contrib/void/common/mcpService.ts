@@ -25,6 +25,7 @@ import { MCPServerStateOfName } from './voidSettingsTypes.js';
 type MCPState = {
 	mcpServerOfName: MCPServerOfName,
 	error: string | undefined,
+	isLoading: boolean, // TODO!!!!!!
 }
 
 export interface IMCPService {
@@ -55,7 +56,8 @@ class MCPService extends Disposable implements IMCPService {
 	// list of MCP servers pulled from mcpChannel
 	state: MCPState = {
 		mcpServerOfName: {},
-		error: undefined
+		error: undefined,
+		isLoading: false,
 	}
 
 	// Emitters for server events

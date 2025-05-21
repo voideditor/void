@@ -20,8 +20,21 @@ import { resolveNLSConfiguration } from './vs/base/node/nls.js';
 import { getUNCHost, addUNCHostToAllowlist } from './vs/base/node/unc.js';
 import { INLSConfiguration } from './vs/nls.js';
 import { NativeParsedArgs } from './vs/platform/environment/common/argv.js';
+import type { Database as SqliteDBType } from '@vscode/sqlite3';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const tempStorage = "temp_global"
+
+const SQLITE_KEYS_TO_TRANSFER: string[] = [
+	'void-deleted-blacklist-2',
+	'void.app.machineId',
+	'void.app.oldMachineId',
+	'void.app.userMachineId',
+	'void.chatThreadStorageII',
+	'void.settingsServiceStorageII',
+	'workbench.view.void.state.hidden'
+];
 
 perf.mark('code/didStartMain');
 
@@ -187,6 +200,62 @@ app.once('ready', function () {
 
 async function onReady() {
 	perf.mark('code/mainAppReady');
+
+	const stagingBaseDirectory = path.join(userDataPath, tempStorage);
+	const stagedGlobalStoragePath = path.join(stagingBaseDirectory, "globalStorage");
+
+	const targetUserDirectory = path.join(userDataPath, "User");
+	const targetGlobalStoragePath = path.join(targetUserDirectory, "globalStorage");
+
+	const originalStateDbPath = path.join(userDataPath, "User", "globalStorage", "state.vscdb");
+	const tempStateDbInStagingPath = path.join(stagedGlobalStoragePath, "state.vscdb");
+
+	try {
+		if (fs.existsSync(stagedGlobalStoragePath)) {
+
+			if (fs.existsSync(originalStateDbPath) && fs.existsSync(tempStateDbInStagingPath)) {
+				console.log(`[Profile Transfer] Attempting to transfer SQLite keys from ${originalStateDbPath} to ${tempStateDbInStagingPath}.`);
+				await transferSQLiteKeys(originalStateDbPath, tempStateDbInStagingPath, SQLITE_KEYS_TO_TRANSFER);
+			} else {
+				if (!fs.existsSync(originalStateDbPath)) {
+					console.log(`[Profile Transfer] Original state.vscdb not found at ${originalStateDbPath}, skipping SQLite key transfer.`);
+				}
+				if (!fs.existsSync(tempStateDbInStagingPath)) {
+					console.log(`[Profile Transfer] Staged state.vscdb not found at ${tempStateDbInStagingPath}, skipping SQLite key transfer.`);
+				}
+			}
+			console.log(`[Profile Transfer] Found staged globalStorage at: ${stagedGlobalStoragePath}. Attempting to transfer.`);
+
+			if (!fs.existsSync(targetUserDirectory)) {
+				console.log(`[Profile Transfer] Target User directory does not exist. Creating: ${targetUserDirectory}`);
+				fs.mkdirSync(targetUserDirectory, { recursive: true });
+			}
+
+			if (fs.existsSync(targetGlobalStoragePath)) {
+				console.log(`[Profile Transfer] Existing globalStorage found at target. Deleting: ${targetGlobalStoragePath}`);
+				fs.rmSync(targetGlobalStoragePath, { recursive: true, force: true });
+				console.log(`[Profile Transfer] Existing target globalStorage deleted.`);
+			}
+
+			console.log(`[Profile Transfer] Copying from ${stagedGlobalStoragePath} to ${targetGlobalStoragePath}`);
+			copyRecursiveSync(stagedGlobalStoragePath, targetGlobalStoragePath);
+			console.log(`[Profile Transfer] globalStorage copied successfully.`);
+
+			console.log(`[Profile Transfer] Deleting staged globalStorage: ${stagedGlobalStoragePath}`);
+			fs.rmSync(stagedGlobalStoragePath, { recursive: true, force: true });
+			console.log(`[Profile Transfer] Staged globalStorage deleted.`);
+
+			// If 'temp' directory is now empty, you could remove it too
+			if (fs.readdirSync(stagingBaseDirectory).length === 0) {
+				console.log(`[Profile Transfer] Staging base directory '${stagingBaseDirectory}' is empty. Deleting.`);
+				fs.rmdirSync(stagingBaseDirectory);
+			}
+		} else {
+			console.log(`[Profile Transfer] No staged globalStorage found at ${stagedGlobalStoragePath}. Proceeding with normal startup.`);
+		}
+	} catch (transferError) {
+		console.error(`[Profile Transfer] Error during profile transfer process:`, transferError);
+	}
 
 	try {
 		const [, nlsConfig] = await Promise.all([
@@ -712,6 +781,137 @@ function getUserDefinedLocale(argvConfig: IArgvConfig): string | undefined {
 	}
 
 	return typeof argvConfig?.locale === 'string' ? argvConfig.locale.toLowerCase() : undefined;
+}
+
+// Helper function to recursively copy a directory and paste it to a location
+function copyRecursiveSync(src: string, dest: string) {
+	const exists = fs.existsSync(src);
+	const stats = exists && fs.statSync(src);
+	const isDirectory = exists && stats && stats.isDirectory();
+
+	if (isDirectory) {
+		// If the destination directory doesn't exist, create it
+		if (!fs.existsSync(dest)) {
+			fs.mkdirSync(dest, { recursive: true });
+		}
+		// Read the contents of the source directory
+		fs.readdirSync(src).forEach(function (childItemName) {
+			// Recursively call copyRecursiveSync for each item in the directory
+			copyRecursiveSync(
+				path.join(src, childItemName),
+				path.join(dest, childItemName)
+			);
+		});
+	} else if (exists) {
+		// If it's a file and it exists, copy it
+		// Ensure the destination directory for the file exists
+		const destDir = path.dirname(dest);
+		if (!fs.existsSync(destDir)) {
+			fs.mkdirSync(destDir, { recursive: true });
+		}
+		fs.copyFileSync(src, dest);
+	} else {
+		// If the source path doesn't exist, log a warning and skip
+		console.warn(`[Profile Transfer - copyRecursiveSync] Source path does not exist, skipping copy: ${src}`);
+	}
+}
+
+interface VSCodeSqlite3Module {
+	Database: new (filename: string, mode?: number, callback?: (err: Error | null) => void) => SqliteDBType;
+	OPEN_READONLY: number;
+	OPEN_READWRITE: number;
+	OPEN_CREATE: number; // Typically needed if the DB might not exist or table needs creation
+	// Add other constants if used (e.g., OPEN_CREATE)
+}
+
+/**
+ * Transfers specified keys from an original SQLite database to a temporary SQLite database.
+ * @param originalDbPath Path to the original state.vscdb.
+ * @param tempDbPath Path to the temporary state.vscdb (in temp_storage/globalStorage).
+ * @param keys The array of keys to transfer.
+ */
+async function transferSQLiteKeys(originalDbPath: string, tempDbPath: string, keys: string[]): Promise<void> {
+	console.log(`[Profile Transfer - SQLite] Initiating key transfer. Original: ${originalDbPath}, Temporary: ${tempDbPath}`);
+
+	if (!fs.existsSync(originalDbPath)) {
+		console.warn(`[Profile Transfer - SQLite] Original database not found at ${originalDbPath}. Skipping key transfer.`);
+		return;
+	}
+	if (!fs.existsSync(tempDbPath)) {
+		console.warn(`[Profile Transfer - SQLite] Temporary database not found at ${tempDbPath}. Skipping key transfer.`);
+		return;
+	}
+
+	let sqlite: VSCodeSqlite3Module;
+	try {
+		// Dynamically import @vscode/sqlite3
+		const sqliteModule = await import('@vscode/sqlite3');
+		// Handle cases where the module might be under a 'default' export
+		sqlite = (sqliteModule.default || sqliteModule) as VSCodeSqlite3Module;
+
+		if (!sqlite || !sqlite.Database) {
+			console.error('[Profile Transfer - SQLite] Failed to load Database constructor from @vscode/sqlite3. Skipping key transfer.');
+			return;
+		}
+	} catch (e: any) {
+		console.error('[Profile Transfer - SQLite] Failed to import @vscode/sqlite3. Skipping key transfer.', e.message || e);
+		return;
+	}
+
+	let originalDB: SqliteDBType | null = null;
+	let tempDB: SqliteDBType | null = null;
+
+	// Promisify SQLite operations
+	const getAsync = (db: SqliteDBType, sql: string, params: any[] = []): Promise<{ value: any } | undefined> =>
+		new Promise((resolve, reject) => {
+			db.get(sql, params, (err: Error | null, row: { value: any } | undefined) => {
+				if (err) reject(err);
+				else resolve(row);
+			});
+		});
+
+	const runAsync = (db: SqliteDBType, sql: string, params: any[] = []): Promise<void> =>
+		new Promise((resolve, reject) => {
+			db.run(sql, params, function (this: any, err: Error | null) { // Use function for `this` if needed
+				if (err) reject(err);
+				else resolve();
+			});
+		});
+
+	try {
+		originalDB = new sqlite.Database(originalDbPath, sqlite.OPEN_READONLY);
+		tempDB = new sqlite.Database(tempDbPath, sqlite.OPEN_READWRITE | sqlite.OPEN_CREATE); // Ensure DB can be created/written
+
+		console.log(`[Profile Transfer - SQLite] Databases opened. Transferring ${keys.length} specified keys.`);
+
+		for (const key of keys) {
+			const row = await getAsync(originalDB, 'SELECT value FROM ItemTable WHERE key = ?', [key]);
+
+			if (row && typeof row.value !== 'undefined') {
+				// Assuming ItemTable exists. If not, it might need to be created.
+				// For simplicity, this code assumes ItemTable (key TEXT PRIMARY KEY, value BLOB) schema.
+				await runAsync(tempDB, 'INSERT OR REPLACE INTO ItemTable (key, value) VALUES (?, ?)', [key, row.value]);
+				console.log(`[Profile Transfer - SQLite] Transferred key: ${key}`);
+			} else {
+				console.log(`[Profile Transfer - SQLite] Key '${key}' not found or value is undefined in original DB.`);
+			}
+		}
+		console.log('[Profile Transfer - SQLite] Key transfer completed successfully.');
+
+	} catch (error: any) {
+		console.error('[Profile Transfer - SQLite] Error during SQLite key transfer:', error.message || error);
+	} finally {
+		if (originalDB) {
+			originalDB.close((err: Error | null) => {
+				if (err) console.error('[Profile Transfer - SQLite] Error closing original DB:', err.message);
+			});
+		}
+		if (tempDB) {
+			tempDB.close((err: Error | null) => {
+				if (err) console.error('[Profile Transfer - SQLite] Error closing temporary DB:', err.message);
+			});
+		}
+	}
 }
 
 //#endregion

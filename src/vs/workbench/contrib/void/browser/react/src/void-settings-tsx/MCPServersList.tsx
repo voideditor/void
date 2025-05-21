@@ -4,17 +4,6 @@ import { useEffect, useState } from 'react';
 import { useAccessor } from '../util/services.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 
-export interface Tool {
-  /** Unique tool identifier */
-  name: string;
-  /** Human‑readable description */
-  description?: string;
-  /** JSON schema describing expected arguments */
-  inputSchema?: any;
-  /** Free‑form annotations describing behaviour, security, etc. */
-  annotations?: Record<string, unknown>;
-}
-
 // Command display component
 const CommandDisplay = ({ command }: {command: string}) => {
   return (
@@ -25,13 +14,8 @@ const CommandDisplay = ({ command }: {command: string}) => {
 };
 
 
-interface MCPServerProps {
-  name: string;
-  server: MCPServerObject;
-}
-
 // MCP Server component
-const MCPServer = ({ name, server }: MCPServerProps) => {
+const MCPServer = ({ name, server }: {name: string, server: MCPServerObject}) => {
 
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');

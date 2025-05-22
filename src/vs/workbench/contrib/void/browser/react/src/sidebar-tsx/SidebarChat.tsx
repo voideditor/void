@@ -1419,7 +1419,6 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 
 	// non-built-in title
 	if (!builtinToolNames.includes(t.name as BuiltinToolName)) {
-
 		// descriptor of Running or Ran etc
 		const descriptor =
 			t.type === 'success' ? 'Ran'
@@ -1429,9 +1428,7 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 							: t.type === 'invalid_params' ? 'Canceled'
 								: t.type === 'tool_error' ? 'Canceled'
 									: 'Ran'
-
-		const title = `${descriptor} ${t.name}`
-
+		const title = `${descriptor} MCP`
 		if (t.type === 'running_now' || t.type === 'tool_request')
 			return loadingTitleWrapper(title)
 		return title
@@ -1869,7 +1866,7 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const { rawParams, params } = toolMessage
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected, }
 
-	componentParams.info = `${toolMessage.mcpServerName} MCP server`
+	componentParams.info = `MCP server "${toolMessage.mcpServerName}"`
 
 	if (toolMessage.type === 'success' || toolMessage.type === 'tool_request') {
 		const { result } = toolMessage
@@ -1877,9 +1874,9 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 			<SmallProseWrapper>
 				<ChatMarkdownRender
 					string={`
-\`\`\`\n${JSON.stringify(result, null, 2)}\n\`\`\`
-## (Parameters:)
-\`\`\`\n${JSON.stringify(params, null, 2)}\n\`\`\`
+\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\`
+## Inputs:
+\`\`\`json\n${JSON.stringify(params, null, 2)}\n\`\`\`
 `}
 					chatMessageLocation={undefined}
 					isApplyEnabled={false}

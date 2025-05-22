@@ -34,7 +34,7 @@ export interface IMCPService {
 	readonly state: MCPServiceState; // NOT persisted
 	onDidChangeState: Event<void>;
 
-	getCurrentMCPToolNames(): InternalToolInfo[];
+	getMCPTools(): Record<string, InternalToolInfo>;
 
 	// TOOL_TODO!!!! implement getMCPTools here, which gets merged with builtins in prompts.ts. Should generally be the same shape as voidTools in prompts.ts.
 
@@ -179,30 +179,45 @@ class MCPService extends Disposable implements IMCPService {
 		}
 	}
 
-	public getCurrentMCPToolNames(): InternalToolInfo[] {
-		const allTools = Object.entries(this.state.mcpServerOfName).flatMap(([serverName, server]) => {
-			return server.tools?.map(tool => {
-				// Convert JsonSchema to the expected format
-				const convertedParams: { [paramName: string]: { description: string } } = {};
+	public getMCPTools(): Record<string, InternalToolInfo> {
+		const allTools: Record<string, InternalToolInfo> = {};
+		for (const serverName in this.state.mcpServerOfName) {
+			const server = this.state.mcpServerOfName[serverName];
+			if (server.tools) {
+				server.tools.forEach(tool => {
+					allTools[tool.name] = {
+						description: tool.description || '',
+						params: this._transformInputSchemaToParams(tool.inputSchema),
+						name: tool.name,
+						mcpServerName: serverName,
+					};
+				});
+			}
+		}
+		return allTools
+	}
 
-				// Assuming tool.inputSchema has a 'properties' field that contains parameter definitions
-				if (tool.inputSchema && tool.inputSchema.properties) {
-					Object.entries(tool.inputSchema.properties).forEach(([paramName, paramSchema]: [string, any]) => {
-						convertedParams[paramName] = {
-							description: paramSchema.description || ''
-						};
-					});
-				}
+	private _transformInputSchemaToParams(inputSchema?: Record<string, any>): { [paramName: string]: { description: string } } {
 
-				return {
-					description: tool.description || '',
-					params: convertedParams,
-					name: tool.name,
-					serverName,
-				};
-			});
-		}).filter(s => s !== undefined)
-		return allTools;
+		// Check if inputSchema is valid
+		if (!inputSchema || !inputSchema.properties) return {};
+
+		const params: { [paramName: string]: { description: string } } = {};
+		Object.keys(inputSchema.properties).forEach(paramName => {
+			const propertyValues = inputSchema.properties[paramName];
+
+			// Check if propertyValues is not an object
+			if (typeof propertyValues !== 'object') {
+				console.warn(`Invalid property value for ${paramName}: expected object, got ${typeof propertyValues}`);
+				return; // in forEach the return is equivalent to continue
+			}
+
+			// Add the parameter to the params object
+			params[paramName] = {
+				description: JSON.stringify(propertyValues.description || '', null, 2) || '',
+			}
+		});
+		return params;
 	}
 
 	private async _getMCPConfigFilePath(): Promise<URI> {
@@ -295,7 +310,7 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	// public getMCPToolFns(): MCPToolResultType {
-	// 	const tools = this.getCurrentMCPToolNames();
+	// 	const tools = this.getMCPTools();
 	// 	const toolFns: MCPToolResultType = {};
 
 	// 	tools.forEach((tool) => {

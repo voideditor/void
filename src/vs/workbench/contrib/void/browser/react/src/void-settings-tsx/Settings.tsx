@@ -984,7 +984,9 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 const MCPServersList = () => {
 	const mcpServiceState = useMCPServiceState()
 	const accessor = useAccessor();
-	const mcpService = accessor.get('IMCPService');
+
+	const userSpecifiedMCPServerNames = mcpServiceState.userSpecifiedMCPServerNames
+	// TODO tell the user what servers they've specified (might be different from those found)
 
 
 	let content: React.ReactNode

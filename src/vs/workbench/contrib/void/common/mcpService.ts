@@ -25,21 +25,22 @@ type MCPState = {
 	mcpServerOfName: MCPServerOfName,
 	error: string | undefined,
 	isLoading: boolean, // TODO!!!!!!
+	userSpecifiedMCPServerNames: string[],
 }
 
 export interface IMCPService {
 	readonly _serviceBrand: undefined;
 	revealMCPConfigFile(): Promise<void>;
 	toggleMCPServer(serverName: string, isOn: boolean): Promise<void>;
+
+	readonly state: MCPState; // NOT persisted
+	onDidChangeState: Event<void>;
+
+	getCurrentMCPToolNames(): InternalToolInfo[];
 	getMCPToolFns(): {
 		callTool: MCPCallTool;
 		resultToString: MCPToolResultToString
 	};
-
-	readonly state: MCPState;
-	onDidChangeState: Event<void>;
-
-	getCurrentMCPToolNames(): InternalToolInfo[];
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -78,6 +79,7 @@ class MCPService extends Disposable implements IMCPService {
 		mcpServerOfName: {},
 		error: undefined,
 		isLoading: false,
+		userSpecifiedMCPServerNames: [],
 	}
 
 	// Emitters for server events
@@ -154,6 +156,20 @@ class MCPService extends Disposable implements IMCPService {
 		}
 		this._onDidChangeState.fire();
 	}
+	private readonly _setUserSpecifiedServerNames = async (names: string[]) => {
+		this.state = {
+			...this.state,
+			userSpecifiedMCPServerNames: names,
+		}
+		this._onDidChangeState.fire();
+	}
+	// private readonly _setIsLoading = async (isLoading: boolean) => {
+	// 	this.state = {
+	// 		...this.state,
+	// 		isLoading: isLoading,
+	// 	}
+	// 	this._onDidChangeState.fire();
+	// }
 
 
 
@@ -272,6 +288,8 @@ class MCPService extends Disposable implements IMCPService {
 		const mcpConfigFile = await this._parseMCPConfigFile();
 		if (!mcpConfigFile) { console.log(`Not setting state: MCP config file not found`); return }
 		if (!mcpConfigFile?.mcpServers) { console.log(`Not setting state: MCP config file did not have an 'mcpServers' field`); return }
+
+		this._setUserSpecifiedServerNames(Object.keys(mcpConfigFile.mcpServers))
 
 		const currMCPStateOfName = this.voidSettingsService.state.mcpServerStateOfName;
 		const availableServers = Object.keys(mcpConfigFile.mcpServers);

@@ -24,7 +24,7 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { approvalTypeOfToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes, ToolCallParams } from '../../../../common/toolsServiceTypes.js';
+import { approvalTypeOfToolName, BuiltinToolCallParams, LintErrorItem, ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js';
 import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
@@ -1420,7 +1420,7 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 }
 
 
-const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName] | undefined, accessor: ReturnType<typeof useAccessor>): {
+const toolNameToDesc = (toolName: ToolName, _toolParams: BuiltinToolCallParams[ToolName] | undefined, accessor: ReturnType<typeof useAccessor>): {
 	desc1: React.ReactNode,
 	desc1Info?: string,
 } => {
@@ -1431,95 +1431,95 @@ const toolNameToDesc = (toolName: ToolName, _toolParams: ToolCallParams[ToolName
 
 	const x = {
 		'read_file': () => {
-			const toolParams = _toolParams as ToolCallParams['read_file']
+			const toolParams = _toolParams as BuiltinToolCallParams['read_file']
 			return {
 				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			};
 		},
 		'ls_dir': () => {
-			const toolParams = _toolParams as ToolCallParams['ls_dir']
+			const toolParams = _toolParams as BuiltinToolCallParams['ls_dir']
 			return {
 				desc1: getFolderName(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			};
 		},
 		'search_pathnames_only': () => {
-			const toolParams = _toolParams as ToolCallParams['search_pathnames_only']
+			const toolParams = _toolParams as BuiltinToolCallParams['search_pathnames_only']
 			return {
 				desc1: `"${toolParams.query}"`,
 			}
 		},
 		'search_for_files': () => {
-			const toolParams = _toolParams as ToolCallParams['search_for_files']
+			const toolParams = _toolParams as BuiltinToolCallParams['search_for_files']
 			return {
 				desc1: `"${toolParams.query}"`,
 			}
 		},
 		'search_in_file': () => {
-			const toolParams = _toolParams as ToolCallParams['search_in_file'];
+			const toolParams = _toolParams as BuiltinToolCallParams['search_in_file'];
 			return {
 				desc1: `"${toolParams.query}"`,
 				desc1Info: getRelative(toolParams.uri, accessor),
 			};
 		},
 		'create_file_or_folder': () => {
-			const toolParams = _toolParams as ToolCallParams['create_file_or_folder']
+			const toolParams = _toolParams as BuiltinToolCallParams['create_file_or_folder']
 			return {
 				desc1: toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) ?? '/' : getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
 		'delete_file_or_folder': () => {
-			const toolParams = _toolParams as ToolCallParams['delete_file_or_folder']
+			const toolParams = _toolParams as BuiltinToolCallParams['delete_file_or_folder']
 			return {
 				desc1: toolParams.isFolder ? getFolderName(toolParams.uri.fsPath) ?? '/' : getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
 		'rewrite_file': () => {
-			const toolParams = _toolParams as ToolCallParams['rewrite_file']
+			const toolParams = _toolParams as BuiltinToolCallParams['rewrite_file']
 			return {
 				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
 		'edit_file': () => {
-			const toolParams = _toolParams as ToolCallParams['edit_file']
+			const toolParams = _toolParams as BuiltinToolCallParams['edit_file']
 			return {
 				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
 		'run_command': () => {
-			const toolParams = _toolParams as ToolCallParams['run_command']
+			const toolParams = _toolParams as BuiltinToolCallParams['run_command']
 			return {
 				desc1: `"${toolParams.command}"`,
 			}
 		},
 		'run_persistent_command': () => {
-			const toolParams = _toolParams as ToolCallParams['run_persistent_command']
+			const toolParams = _toolParams as BuiltinToolCallParams['run_persistent_command']
 			return {
 				desc1: `"${toolParams.command}"`,
 			}
 		},
 		'open_persistent_terminal': () => {
-			const toolParams = _toolParams as ToolCallParams['open_persistent_terminal']
+			const toolParams = _toolParams as BuiltinToolCallParams['open_persistent_terminal']
 			return { desc1: '' }
 		},
 		'kill_persistent_terminal': () => {
-			const toolParams = _toolParams as ToolCallParams['kill_persistent_terminal']
+			const toolParams = _toolParams as BuiltinToolCallParams['kill_persistent_terminal']
 			return { desc1: toolParams.persistentTerminalId }
 		},
 		'get_dir_tree': () => {
-			const toolParams = _toolParams as ToolCallParams['get_dir_tree']
+			const toolParams = _toolParams as BuiltinToolCallParams['get_dir_tree']
 			return {
 				desc1: getFolderName(toolParams.uri.fsPath) ?? '/',
 				desc1Info: getRelative(toolParams.uri, accessor),
 			}
 		},
 		'read_lint_errors': () => {
-			const toolParams = _toolParams as ToolCallParams['read_lint_errors']
+			const toolParams = _toolParams as BuiltinToolCallParams['read_lint_errors']
 			return {
 				desc1: getBasename(toolParams.uri.fsPath),
 				desc1Info: getRelative(toolParams.uri, accessor),

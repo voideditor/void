@@ -36,8 +36,12 @@ export interface IMCPService {
 
 	getCurrentMCPToolNames(): InternalToolInfo[];
 
-	// TODO!!!!!!!!!  getMCPToolDescriptors (the equivalent of tools in prompts.ts)
+	// TOOL_TODO!!!! implement getMCPTools here, which gets merged with builtins in prompts
 
+	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: MCPGenericToolResponse }>;
+
+
+	// this is outdated:
 	// getMCPToolFns(): MCPCallToolOfToolName;
 }
 
@@ -50,12 +54,12 @@ const MCP_CONFIG_SAMPLE = { mcpServers: {} }
 const MCP_CONFIG_SAMPLE_STRING = JSON.stringify(MCP_CONFIG_SAMPLE, null, 2);
 
 
-export interface MCPCallToolOfToolName {
-	[toolName: string]: (params: any) => Promise<{
-		result: any | Promise<any>,
-		interruptTool?: () => void
-	}>;
-}
+// export interface MCPCallToolOfToolName {
+// 	[toolName: string]: (params: any) => Promise<{
+// 		result: any | Promise<any>,
+// 		interruptTool?: () => void
+// 	}>;
+// }
 
 
 class MCPService extends Disposable implements IMCPService {

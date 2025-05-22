@@ -33,7 +33,7 @@ export type VoidStatefulModelInfo = { // <-- STATEFUL
 	modelName: string,
 	type: 'default' | 'autodetected' | 'custom';
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
-}  // TODO!!! eventually we'd want to let the user change supportsFIM, etc on the model themselves
+}
 
 
 

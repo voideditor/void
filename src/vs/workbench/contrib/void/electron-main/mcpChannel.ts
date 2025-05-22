@@ -13,7 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, MCPGenericToolResponse, MCPToolErrorResponse, MCPServerEventResponse } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, MCPGenericToolResponse, MCPToolErrorResponse, MCPServerEventResponse, MCPToolCallParams } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MCPUserStateOfName } from '../common/voidSettingsTypes.js';
@@ -96,7 +96,8 @@ export class MCPChannel implements IServerChannel {
 				await this._toggleMCPServer(params.serverName, params.isOn)
 			}
 			else if (command === 'callTool') {
-				const response = await this._safeCallTool(params.serverName, params.toolName, params.params)
+				const p: MCPToolCallParams = params
+				const response = await this._safeCallTool(p.serverName, p.toolName, p.params)
 				return response
 			}
 			else {

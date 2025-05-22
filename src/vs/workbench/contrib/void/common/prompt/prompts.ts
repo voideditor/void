@@ -362,6 +362,12 @@ export const isAToolName = (toolName: string): toolName is ToolName => {
 }
 
 export const availableTools = (chatMode: ChatMode) => {
+
+	// TOOL_TODO!!!!
+	// merge MCP tools with these builtin tools
+
+
+
 	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
 		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !(toolName in approvalTypeOfToolName))
 			: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]

@@ -217,6 +217,8 @@ const openAITools = (chatMode: ChatMode) => {
 	return openAITools
 }
 
+
+// convert LLM tool call to our tool format
 const rawToolCallObjOf = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
 	if (!isAToolName(name)) return null
 	const rawParams: RawToolParamsObj = {}

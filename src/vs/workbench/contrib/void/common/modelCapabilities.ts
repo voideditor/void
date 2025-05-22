@@ -1270,7 +1270,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 
 const openRouterSettings: VoidStaticProviderInfo = {
 	modelOptions: openRouterModelOptions_assumingOpenAICompat,
-	// TODO!!! send a query to openrouter to get the price, etc.
 	modelOptionsFallback: (modelName) => {
 		const res = extensiveModelOptionsFallback(modelName)
 		// openRouter does not support gemini-style, use openai-style instead

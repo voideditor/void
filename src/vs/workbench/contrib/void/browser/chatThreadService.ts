@@ -11,12 +11,12 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent, ToolName, } from '../common/prompt/prompts.js';
+import { chat_userMessageContent } from '../common/prompt/prompts.js';
 import { AnthropicReasoning, getErrorMessage, RawToolCallObj, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { approvalTypeOfToolName, BuiltinToolCallParams, BuiltinToolResultType } from '../common/toolsServiceTypes.js';
+import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, isABuiltinToolName, ToolCallParams, ToolName, ToolResult } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -37,6 +37,8 @@ import { deepClone } from '../../../../base/common/objects.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
+import { IMCPService } from '../common/mcpService.js';
+import { RawMCPToolCall } from '../common/mcpServiceTypes.js';
 
 
 // related to retrying when LLM message has error
@@ -181,7 +183,7 @@ export type ThreadStreamState = {
 		llmInfo?: undefined;
 		toolInfo: {
 			toolName: ToolName;
-			toolParams: BuiltinToolCallParams[ToolName];
+			toolParams: ToolCallParams<ToolName>;
 			id: string;
 			content: string;
 			rawParams: RawToolParamsObj;
@@ -323,6 +325,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IDirectoryStrService private readonly _directoryStringService: IDirectoryStrService,
 		@IFileService private readonly _fileService: IFileService,
+		@IMCPService private readonly _mcpService: IMCPService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -532,7 +535,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const lastMsg = thread.messages[thread.messages.length - 1]
 
-		let params: BuiltinToolCallParams[ToolName]
+		let params: ToolCallParams<ToolName>
 		if (lastMsg.role === 'tool' && lastMsg.type !== 'invalid_params') {
 			params = lastMsg.params
 		}
@@ -597,20 +600,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		threadId: string,
 		toolName: ToolName,
 		toolId: string,
-		opts: { preapproved: true, unvalidatedToolParams: RawToolParamsObj, validatedParams: BuiltinToolCallParams[ToolName] } | { preapproved: false, unvalidatedToolParams: RawToolParamsObj },
+		opts: { preapproved: true, unvalidatedToolParams: RawToolParamsObj, validatedParams: ToolCallParams<ToolName> } | { preapproved: false, unvalidatedToolParams: RawToolParamsObj },
 	): Promise<{ awaitingUserApproval?: boolean, interrupted?: boolean }> => {
 
 		// compute these below
-		let toolParams: BuiltinToolCallParams[ToolName]
-		let toolResult: Awaited<BuiltinToolResultType[typeof toolName]>
+		let toolParams: ToolCallParams<ToolName>
+		let toolResult: ToolResult<ToolName>
 		let toolResultStr: string
+
+		// Check if it's a built-in tool
+		const isBuiltInTool = isABuiltinToolName(toolName)
+
 
 		if (!opts.preapproved) { // skip this if pre-approved
 			// 1. validate tool params
 			try {
-				const params = this._toolsService.validateParams[toolName](opts.unvalidatedToolParams)
-				toolParams = params
-			} catch (error) {
+				if (isBuiltInTool) {
+					const params = this._toolsService.validateParams[toolName](opts.unvalidatedToolParams)
+					toolParams = params
+				}
+				else {
+					toolParams = opts.unvalidatedToolParams
+				}
+			}
+			catch (error) {
 				const errorMessage = getErrorMessage(error)
 				this._addMessageToThread(threadId, { role: 'tool', type: 'invalid_params', rawParams: opts.unvalidatedToolParams, result: null, name: toolName, content: errorMessage, id: toolId, })
 				return {}
@@ -621,8 +634,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
-
-			const approvalType = approvalTypeOfToolName[toolName]
+			const approvalType = isBuiltInTool ? approvalTypeOfBuiltinToolName[toolName] : 'mcp-tools'
 			if (approvalType) {
 				const autoApprove = this._settingsService.state.globalSettings.autoApprove[approvalType]
 				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
@@ -638,30 +650,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-		// TOOL_TODO!!!!!!!!! call the builtin versus the MCP tool here (finish filling in the comment below and replace it out with the tool call and stringify functions further below)
-		// const isBuiltInTool = (toolNames as string[]).includes(toolName)
-		// const callToolFn = (toolName: string, toolParams: BuiltinToolCallParams[ToolName]) => {
-		// 	if (isBuiltInTool) {
-
-
-		// 	}
-		// 	else {
-
-		// 	}
-
-		// }
-
-		// const stringifyToolFn = (toolName: string, toolResult: Awaited<BuiltinToolResultType[ToolName]>) => {
-		// 	if (isBuiltInTool) {
-
-
-		// 	}
-		// 	else {
-		// 		if (result.event === 'error' || result.event === 'text') {
-		// 			return result.text;
-		// 		}
-		// 	}
-		// }
 
 
 
@@ -679,11 +667,26 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// set stream state
 			this._setStreamState(threadId, { isRunning: 'tool', interrupt: interruptorPromise, toolInfo: { toolName, toolParams, id: toolId, content: 'interrupted...', rawParams: opts.unvalidatedToolParams } })
 
-			const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
-			const interruptor = () => { interrupted = true; interruptTool?.() }
-			resolveInterruptor(interruptor)
+			if (isBuiltInTool) {
+				const { result, interruptTool } = await this._toolsService.callTool[toolName](toolParams as any)
+				const interruptor = () => { interrupted = true; interruptTool?.() }
+				resolveInterruptor(interruptor)
 
-			toolResult = await result
+				toolResult = await result
+			}
+			else {
+				const mcpTools = this._mcpService.getMCPTools()
+				const mcpTool = mcpTools[toolName]
+				if (!mcpTool) { throw new Error(`MCP tool ${toolName} not found`) }
+
+				resolveInterruptor(() => { })
+
+				toolResult = (await this._mcpService.callMCPTool({
+					serverName: mcpTool.mcpServerName ?? 'unknown_mcp_server',
+					toolName: toolName,
+					params: toolParams
+				})).result
+			}
 
 			if (interrupted) { return { interrupted: true } } // the tool result is added where we interrupt, not here
 		}
@@ -698,7 +701,26 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		// 4. stringify the result to give to the LLM
 		try {
-			toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+			if (isBuiltInTool) {
+				toolResultStr = this._toolsService.stringOfResult[toolName](toolParams as any, toolResult as any)
+			}
+			// For MCP tools, handle the result based on its type
+			else {
+				const toolResult_ = toolResult as RawMCPToolCall
+				if (toolResult_.event === 'text') {
+					toolResultStr = toolResult_.text
+				} else if (toolResult_.event === 'error') {
+					toolResultStr = `Error: ${toolResult_.text}`
+				} else if (toolResult_.event === 'image') {
+					toolResultStr = `[Image: ${toolResult_.image.mimeType}]`
+				} else if (toolResult_.event === 'audio') {
+					toolResultStr = `[Audio content]`
+				} else if (toolResult_.event === 'resource') {
+					toolResultStr = `[Resource content]`
+				} else {
+					toolResultStr = JSON.stringify(toolResult)
+				}
+			}
 		} catch (error) {
 			const errorMessage = this.toolErrMsgs.errWhenStringifying(error)
 			this._updateLatestTool(threadId, { role: 'tool', type: 'tool_error', params: toolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, rawParams: opts.unvalidatedToolParams })

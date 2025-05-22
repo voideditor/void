@@ -1,5 +1,7 @@
 import { URI } from '../../../../base/common/uri.js'
-import { ToolName } from './prompt/prompts.js';
+import { RawMCPToolCall } from './mcpServiceTypes.js';
+import { builtinTools } from './prompt/prompts.js';
+import { RawToolParamsObj } from './sendLLMMessageTypes.js';
 
 
 
@@ -16,7 +18,7 @@ export type ShallowDirectoryItem = {
 }
 
 
-export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'terminal' }> = {
+export const approvalTypeOfBuiltinToolName: Partial<{ [T in BuiltinToolName]?: 'edits' | 'terminal' | 'mcp-tools' }> = {
 	'create_file_or_folder': 'edits',
 	'delete_file_or_folder': 'edits',
 	'rewrite_file': 'edits',
@@ -28,13 +30,16 @@ export const approvalTypeOfToolName: Partial<{ [T in ToolName]?: 'edits' | 'term
 }
 
 
+export type ToolApprovalType = NonNullable<(typeof approvalTypeOfBuiltinToolName)[keyof typeof approvalTypeOfBuiltinToolName]>;
 
-// {{add: define new type for approval types}}
-export type ToolApprovalType = NonNullable<(typeof approvalTypeOfToolName)[keyof typeof approvalTypeOfToolName]>;
 
-export const toolApprovalTypes = new Set<ToolApprovalType>(
-	Object.values(approvalTypeOfToolName).filter((v): v is ToolApprovalType => v !== undefined)
-)
+export const toolApprovalTypes = new Set<ToolApprovalType>([
+	...Object.values(approvalTypeOfBuiltinToolName),
+	'mcp-tools',
+])
+
+
+
 
 // PARAMS OF TOOL CALL
 export type BuiltinToolCallParams = {
@@ -78,3 +83,25 @@ export type BuiltinToolResultType = {
 	'kill_persistent_terminal': {},
 }
 
+
+export type ToolCallParams<T extends BuiltinToolName | (string & {})> = T extends BuiltinToolName ? BuiltinToolCallParams[T] : RawToolParamsObj
+export type ToolResult<T extends BuiltinToolName | (string & {})> = T extends BuiltinToolName ? BuiltinToolResultType[T] : RawMCPToolCall
+
+
+export type BuiltinToolName = keyof BuiltinToolResultType
+export const builtinToolNames = Object.keys(builtinTools) as BuiltinToolName[]
+
+type BuiltinToolParamNameOfTool<T extends BuiltinToolName> = keyof (typeof builtinTools)[T]['params']
+export type BuiltinToolParamName = { [T in BuiltinToolName]: BuiltinToolParamNameOfTool<T> }[BuiltinToolName]
+
+const toolNamesSet = new Set<string>(builtinToolNames)
+
+export const isABuiltinToolName = (toolName: string): toolName is BuiltinToolName => {
+	const isAToolName = toolNamesSet.has(toolName)
+	return isAToolName
+}
+
+
+
+export type ToolName = BuiltinToolName | (string & {})
+export type ToolParamName<T extends ToolName> = T extends BuiltinToolName ? BuiltinToolParamNameOfTool<T> : string

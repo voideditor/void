@@ -9,7 +9,7 @@ import { IDirectoryStrService } from '../directoryStrService.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
-import { approvalTypeOfToolName, BuiltinToolCallParams, BuiltinToolResultType } from '../toolsServiceTypes.js';
+import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, BuiltinToolName, BuiltinToolResultType, ToolName } from '../toolsServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
 // Triple backtick wrapper used throughout the prompts for code blocks
@@ -184,7 +184,7 @@ export type SnakeCaseKeys<T extends Record<string, any>> = {
 
 
 // export const voidTools = {
-export const voidTools
+export const builtinTools
 	: {
 		[T in keyof BuiltinToolCallParams]: {
 			name: string;
@@ -348,32 +348,21 @@ export const voidTools
 	} satisfies { [T in keyof BuiltinToolResultType]: InternalToolInfo }
 
 
-export type ToolName = keyof BuiltinToolResultType
-export const toolNames = Object.keys(voidTools) as ToolName[]
-
-type ToolParamNameOfTool<T extends ToolName> = keyof (typeof voidTools)[T]['params']
-export type ToolParamName = { [T in ToolName]: ToolParamNameOfTool<T> }[ToolName]
-
-const toolNamesSet = new Set<string>(toolNames)
-
-export const isAToolName = (toolName: string): toolName is ToolName => {
-	const isAToolName = toolNamesSet.has(toolName)
-	return isAToolName
-}
 
 export const availableTools = (chatMode: ChatMode) => {
 
 	// TOOL_TODO!!!!
 	// merge MCP tools with these builtin tools
+	// Note: This requires refactoring the messaging architecture to pass MCP tools from the renderer process
+	// to the electron-main process through the IPC channel. For now, MCP tools are handled separately
+	// in the chatThreadService where both built-in and MCP tools are called appropriately.
 
-
-
-	const toolNames: ToolName[] | undefined = chatMode === 'normal' ? undefined
-		: chatMode === 'gather' ? (Object.keys(voidTools) as ToolName[]).filter(toolName => !(toolName in approvalTypeOfToolName))
-			: chatMode === 'agent' ? Object.keys(voidTools) as ToolName[]
+	const toolNames: BuiltinToolName[] | undefined = chatMode === 'normal' ? undefined
+		: chatMode === 'gather' ? (Object.keys(builtinTools) as BuiltinToolName[]).filter(toolName => !(toolName in approvalTypeOfBuiltinToolName))
+			: chatMode === 'agent' ? Object.keys(builtinTools) as BuiltinToolName[]
 				: undefined
 
-	const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => voidTools[toolName])
+	const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => builtinTools[toolName])
 	return tools
 }
 
@@ -390,7 +379,7 @@ const toolCallDefinitionsXMLString = (tools: InternalToolInfo[]) => {
 }
 
 export const reParsedToolXMLString = (toolName: ToolName, toolParams: RawToolParamsObj) => {
-	const params = Object.keys(toolParams).map(paramName => `<${paramName}>${toolParams[paramName as ToolParamName]}</${paramName}>`).join('\n')
+	const params = Object.keys(toolParams).map(paramName => `<${paramName}>${toolParams[paramName]}</${paramName}>`).join('\n')
 	return `\
     <${toolName}>${!params ? '' : `\n${params}`}
     </${toolName}>`

@@ -14,7 +14,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServerOfName, MCPConfigFileJSON, MCPServer, MCPToolCallParams, MCPGenericToolResponse, MCPServerEventResponse } from './mcpServiceTypes.js';
+import { MCPServerOfName, MCPConfigFileJSON, MCPServer, MCPToolCallParams, RawMCPToolCall, MCPServerEventResponse } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
@@ -36,9 +36,7 @@ export interface IMCPService {
 
 	getMCPTools(): Record<string, InternalToolInfo>;
 
-	// TOOL_TODO!!!! implement getMCPTools here, which gets merged with builtins in prompts.ts. Should generally be the same shape as voidTools in prompts.ts.
-
-	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: MCPGenericToolResponse }>;
+	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }>;
 
 
 	// this is outdated:
@@ -304,8 +302,8 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 
-	public async callMCPTool(toolData: MCPToolCallParams): Promise<{ result: MCPGenericToolResponse }> {
-		const result = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
+	public async callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }> {
+		const result = await this.channel.call<RawMCPToolCall>('callTool', toolData);
 		return { result };
 	}
 

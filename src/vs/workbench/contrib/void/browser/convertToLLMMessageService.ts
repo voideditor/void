@@ -7,7 +7,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
-import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
+import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
@@ -16,6 +16,7 @@ import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
+import { ToolName } from '../common/toolsServiceTypes.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
 
@@ -455,8 +456,8 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 						return { text: c.text }
 					}
 					else if (c.type === 'tool_use') {
-						latestToolName = c.name as ToolName
-						return { functionCall: { id: c.id, name: c.name as ToolName, args: c.input } }
+						latestToolName = c.name
+						return { functionCall: { id: c.id, name: c.name, args: c.input } }
 					}
 					else return null
 				}).filter(m => !!m)

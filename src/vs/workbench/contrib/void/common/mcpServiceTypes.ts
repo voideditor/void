@@ -227,7 +227,7 @@ export type MCPToolErrorResponse = MCPToolEventResponse<'error'>;
 export type MCPToolImageResponse = MCPToolEventResponse<'image'>;
 export type MCPToolAudioResponse = MCPToolEventResponse<'audio'>;
 export type MCPToolResourceResponse = MCPToolEventResponse<'resource'>;
-export type MCPGenericToolResponse = MCPToolTextResponse | MCPToolErrorResponse | MCPToolImageResponse | MCPToolAudioResponse | MCPToolResourceResponse;
+export type RawMCPToolCall = MCPToolTextResponse | MCPToolErrorResponse | MCPToolImageResponse | MCPToolAudioResponse | MCPToolResourceResponse;
 
 export interface MCPToolCallParams {
 	serverName: string;

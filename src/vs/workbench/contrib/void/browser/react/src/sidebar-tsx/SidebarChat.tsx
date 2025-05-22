@@ -13,7 +13,7 @@ import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markd
 import { URI } from '../../../../../../../base/common/uri.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
-import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch } from '../util/inputs.js';
+import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch, VoidDiffEditor } from '../util/inputs.js';
 import { ModelDropdown, } from '../void-settings-tsx/ModelDropdown.js';
 import { PastThreadsList } from './SidebarThreadSelector.js';
 import { VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
@@ -24,16 +24,17 @@ import { WarningBox } from '../void-settings-tsx/WarningBox.js';
 import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
 import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
-import { approvalTypeOfToolName, BuiltinToolCallParams, LintErrorItem, ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js';
+import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, BuiltinToolName, builtinToolNames, isABuiltinToolName, ToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js';
 import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
-import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME, ToolName, toolNames } from '../../../../common/prompt/prompts.js';
+import { MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
+
 
 
 export const IconX = ({ size, className = '', ...props }: { size: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
@@ -907,11 +908,14 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 	const desc1OnClick = () => voidOpenFileFn(params.uri, accessor)
 	const componentParams: ToolHeaderParams = { title, desc1, desc1OnClick, desc1Info, isError, icon, isRejected, }
 
+
+	const editToolType = toolMessage.name === 'edit_file' ? 'diff' : 'rewrite'
 	if (toolMessage.type === 'running_now' || toolMessage.type === 'tool_request') {
 		componentParams.children = <ToolChildrenWrapper className='bg-void-bg-3'>
 			<EditToolChildren
 				uri={params.uri}
 				code={content}
+				type={editToolType}
 			/>
 		</ToolChildrenWrapper>
 		// JumpToFileButton removed in favor of FileLinkText
@@ -936,6 +940,7 @@ const EditTool = ({ toolMessage, threadId, messageIdx, content }: Parameters<Res
 			<EditToolChildren
 				uri={params.uri}
 				code={content}
+				type={editToolType}
 			/>
 		</ToolChildrenWrapper>
 
@@ -1388,7 +1393,7 @@ const loadingTitleWrapper = (item: React.ReactNode): React.ReactNode => {
 	</span>
 }
 
-const titleOfToolName = {
+const titleOfBuiltinToolName = {
 	'read_file': { done: 'Read file', proposed: 'Read file', running: loadingTitleWrapper('Reading file') },
 	'ls_dir': { done: 'Inspected folder', proposed: 'Inspect folder', running: loadingTitleWrapper('Inspecting folder') },
 	'get_dir_tree': { done: 'Inspected folder tree', proposed: 'Inspect folder tree', running: loadingTitleWrapper('Inspecting folder tree') },
@@ -1406,21 +1411,21 @@ const titleOfToolName = {
 
 	'read_lint_errors': { done: `Read lint errors`, proposed: 'Read lint errors', running: loadingTitleWrapper('Reading lint errors') },
 	'search_in_file': { done: 'Searched in file', proposed: 'Search in file', running: loadingTitleWrapper('Searching in file') },
-} as const satisfies Record<ToolName, { done: any, proposed: any, running: any }>
+} as const satisfies Record<BuiltinToolName, { done: any, proposed: any, running: any }>
 
 
 const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type'>): React.ReactNode => {
 	const t = toolMessage
-	if (!toolNames.includes(t.name as ToolName)) return t.name // good measure
+	if (!builtinToolNames.includes(t.name as BuiltinToolName)) return t.name // good measure
 
-	const toolName = t.name as ToolName
-	if (t.type === 'success') return titleOfToolName[toolName].done
-	if (t.type === 'running_now') return titleOfToolName[toolName].running
-	return titleOfToolName[toolName].proposed
+	const toolName = t.name as BuiltinToolName
+	if (t.type === 'success') return titleOfBuiltinToolName[toolName].done
+	if (t.type === 'running_now') return titleOfBuiltinToolName[toolName].running
+	return titleOfBuiltinToolName[toolName].proposed
 }
 
 
-const toolNameToDesc = (toolName: ToolName, _toolParams: BuiltinToolCallParams[ToolName] | undefined, accessor: ReturnType<typeof useAccessor>): {
+const toolNameToDesc = (toolName: BuiltinToolName, _toolParams: BuiltinToolCallParams[BuiltinToolName] | undefined, accessor: ReturnType<typeof useAccessor>): {
 	desc1: React.ReactNode,
 	desc1Info?: string,
 } => {
@@ -1590,7 +1595,7 @@ const ToolRequestAcceptRejectButtons = ({ toolName }: { toolName: ToolName }) =>
 		</button>
 	)
 
-	const approvalType = approvalTypeOfToolName[toolName]
+	const approvalType = isABuiltinToolName(toolName) ? approvalTypeOfBuiltinToolName[toolName] : 'mcp-tools'
 	const approvalToggle = approvalType ? <div key={approvalType} className="flex items-center ml-2 gap-x-1">
 		<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc='Auto-approve' />
 	</div> : null
@@ -1604,7 +1609,7 @@ const ToolRequestAcceptRejectButtons = ({ toolName }: { toolName: ToolName }) =>
 
 export const ToolChildrenWrapper = ({ children, className }: { children: React.ReactNode, className?: string }) => {
 	return <div className={`${className ? className : ''} cursor-default select-none`}>
-		<div className='px-2 min-w-full'>
+		<div className='px-2 min-w-full overflow-hidden'>
 			{children}
 		</div>
 	</div>
@@ -1633,12 +1638,18 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 
 
 
-const EditToolChildren = ({ uri, code }: { uri: URI | undefined, code: string }) => {
+const EditToolChildren = ({ uri, code, type }: { uri: URI | undefined, code: string, type: 'diff' | 'rewrite' }) => {
+
+	const content = type === 'diff' ?
+		<VoidDiffEditor uri={uri} searchReplaceBlocks={code} />
+		: <ChatMarkdownRender string={`\`\`\`\n${code}\n\`\`\``} codeURI={uri} chatMessageLocation={undefined} />
+
 	return <div className='!select-text cursor-auto'>
 		<SmallProseWrapper>
-			<ChatMarkdownRender string={code} codeURI={uri} chatMessageLocation={undefined} />
+			{content}
 		</SmallProseWrapper>
 	</div>
+
 }
 
 
@@ -1819,9 +1830,57 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 	</>
 }
 
+type WrapperProps<T extends ToolName> = { toolMessage: Exclude<ToolMessage<T>, { type: 'invalid_params' }>, messageIdx: number, threadId: string }
+const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
+	const accessor = useAccessor()
+	const commandService = accessor.get('ICommandService')
 
-type ResultWrapper<T extends ToolName> = (props: { toolMessage: Exclude<ToolMessage<T>, { type: 'invalid_params' }>, messageIdx: number, threadId: string }) => React.ReactNode
-const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>, } } = {
+	const title = getTitle(toolMessage)
+	const desc1 = toolMessage.name
+	const icon = null
+
+	if (toolMessage.type === 'tool_request') return null // do not show past requests
+	if (toolMessage.type === 'running_now') return null // do not show running
+
+	const isError = false
+	const isRejected = toolMessage.type === 'rejected'
+	const { rawParams, params } = toolMessage
+	const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected, }
+
+	if (toolMessage.type === 'success') {
+		const { result } = toolMessage
+		componentParams.children = <ToolChildrenWrapper>
+			<SmallProseWrapper>
+				<ChatMarkdownRender
+					string={`
+## Parameters
+\`\`\`\n${JSON.stringify(params, null, 2)}\n\`\`\`
+## Result
+\`\`\`\n${JSON.stringify(result, null, 2)}\n\`\`\`
+`}
+					chatMessageLocation={undefined}
+					isApplyEnabled={false}
+					isLinkDetectionEnabled={true}
+				/>
+			</SmallProseWrapper>
+		</ToolChildrenWrapper>
+	}
+	else if (toolMessage.type === 'tool_error') {
+		const { result } = toolMessage
+		componentParams.bottomChildren = <BottomChildren title='Error'>
+			<CodeChildren>
+				{result}
+			</CodeChildren>
+		</BottomChildren>
+	}
+
+	return <ToolHeaderWrapper {...componentParams} />
+
+}
+
+type ResultWrapper<T extends ToolName> = (props: WrapperProps<T>) => React.ReactNode
+
+const builtinToolNameToComponent: { [T in BuiltinToolName]: { resultWrapper: ResultWrapper<T>, } } = {
 	'read_file': {
 		resultWrapper: ({ toolMessage }) => {
 			const accessor = useAccessor()
@@ -2257,12 +2316,12 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 	},
 	'rewrite_file': {
 		resultWrapper: (params) => {
-			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.newContent}${'\n```'}`} />
+			return <EditTool {...params} content={params.toolMessage.params.newContent} />
 		}
 	},
 	'edit_file': {
 		resultWrapper: (params) => {
-			return <EditTool {...params} content={`${'```\n'}${params.toolMessage.params.searchReplaceBlocks}${'\n```'}`} />
+			return <EditTool {...params} content={params.toolMessage.params.searchReplaceBlocks} />
 		}
 	},
 
@@ -2446,7 +2505,11 @@ const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, me
 			</div>
 		}
 
-		const ToolResultWrapper = toolNameToComponent[chatMessage.name]?.resultWrapper as ResultWrapper<ToolName>
+		const toolName = chatMessage.name
+		const isBuiltInTool = isABuiltinToolName(toolName)
+		const ToolResultWrapper = isBuiltInTool ? builtinToolNameToComponent[toolName]?.resultWrapper as ResultWrapper<ToolName>
+			: MCPToolWrapper as ResultWrapper<ToolName>
+
 		if (ToolResultWrapper)
 			return <>
 				<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
@@ -2746,12 +2809,13 @@ const CommandBarInChat = () => {
 
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
+	if (!isABuiltinToolName( toolCallSoFar.name))  return null
 
 	const accessor = useAccessor()
 
 	const uri = toolCallSoFar.rawParams.uri ? URI.file(toolCallSoFar.rawParams.uri) : undefined
 
-	const title = titleOfToolName[toolCallSoFar.name].proposed
+	const title = titleOfBuiltinToolName[toolCallSoFar.name].proposed
 
 	const uriDone = toolCallSoFar.doneParams.includes('uri')
 	const desc1 = <span className='flex items-center'>
@@ -2772,11 +2836,10 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 		<EditToolChildren
 			uri={uri}
 			code={toolCallSoFar.rawParams.search_replace_blocks ?? toolCallSoFar.rawParams.new_content ?? ''}
+			type={'rewrite'} // as it streams, show in rewrite format, don't make a diff editor
 		/>
 		<IconLoading />
 	</ToolHeaderWrapper>
-
-
 
 }
 

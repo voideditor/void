@@ -13,7 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, MCPGenericToolResponse, MCPToolErrorResponse, MCPServerEventResponse, MCPToolCallParams } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, RawMCPToolCall, MCPToolErrorResponse, MCPServerEventResponse, MCPToolCallParams } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MCPUserStateOfName } from '../common/voidSettingsTypes.js';
@@ -294,7 +294,7 @@ export class MCPChannel implements IServerChannel {
 
 	// tool call functions
 
-	private async _callTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
+	private async _callTool(serverName: string, toolName: string, params: any): Promise<RawMCPToolCall> {
 		const server = this.infoOfClientId[serverName]
 		if (!server) throw new Error(`Server ${serverName} not found`)
 		const { _client: client } = server
@@ -341,7 +341,7 @@ export class MCPChannel implements IServerChannel {
 	}
 
 	// tool call error wrapper
-	private async _safeCallTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
+	private async _safeCallTool(serverName: string, toolName: string, params: any): Promise<RawMCPToolCall> {
 		try {
 			const response = await this._callTool(serverName, toolName, params)
 			return response

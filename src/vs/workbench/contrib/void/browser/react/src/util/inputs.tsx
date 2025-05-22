@@ -20,6 +20,11 @@ import { URI } from '../../../../../../../base/common/uri.js';
 import { getBasename, getFolderName } from '../sidebar-tsx/SidebarChat.js';
 import { ChevronRight, File, Folder, FolderClosed, LucideProps } from 'lucide-react';
 import { StagingSelectionItem } from '../../../../common/chatThreadServiceTypes.js';
+import { DiffEditorWidget } from '../../../../../../../editor/browser/widget/diffEditor/diffEditorWidget.js';
+import { extractSearchReplaceBlocks } from '../../../../common/helpers/extractCodeFromResult.js';
+import { IAccessibilitySignalService } from '../../../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
+import { IEditorProgressService } from '../../../../../../../platform/progress/common/progress.js';
+import { detectLanguage } from '../../../../common/helpers/languageHelpers.js';
 
 
 // type guard
@@ -951,11 +956,11 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
-		ctor={InputBox}
 		className='
 			bg-void-bg-1
 			@@void-force-child-placeholder-void-fg-1
 		'
+		ctor={InputBox}
 		propsFn={useCallback((container) => [
 			container,
 			contextViewProvider,
@@ -991,8 +996,7 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 				inputBoxRef.current = instance;
 
 			return disposables
-		}, [onChangeText, onCreateInstance, inputBoxRef])
-		}
+		}, [onChangeText, onCreateInstance, inputBoxRef])}
 	/>
 };
 
@@ -1839,5 +1843,94 @@ export const VoidButtonBgDarken = ({ children, disabled, onClick, className }: {
 
 // 	return <div ref={containerRef} className="w-full" />;
 // };
+
+/**
+ * ToolDiffEditor mounts a native VSCode DiffEditorWidget to show a diff between original and modified code blocks.
+ * Props:
+ *   - uri: URI of the file (for language detection, etc)
+ *   - searchReplaceBlocks: string in search/replace format (from LLM)
+ *   - language?: string (optional, fallback to 'plaintext')
+ */
+export const VoidDiffEditor = ({ uri, searchReplaceBlocks, language }: { uri?: any, searchReplaceBlocks: string, language?: string }) => {
+	const accessor = useAccessor();
+	const modelService = accessor.get('IModelService');
+	const instantiationService = accessor.get('IInstantiationService');
+	const languageService = accessor.get('ILanguageService');
+	const contextKeyService = accessor.get('IContextKeyService');
+	const codeEditorService = accessor.get('ICodeEditorService');
+
+	// Extract the first block (if present)
+	const blocks = extractSearchReplaceBlocks(searchReplaceBlocks);
+	const block = blocks[0] || { orig: '', final: '' };
+
+	// Use detectLanguage for language detection if not provided
+	let lang = language;
+	if (!lang) {
+		lang = detectLanguage(languageService, { uri: uri ?? null, fileContents: block.orig });
+	}
+
+	// Use ILanguageSelection for model creation
+	const languageSelection = useMemo(() => languageService.createById(lang!), [lang, languageService]);
+
+	// Create models for original and modified
+	const originalModel = useMemo(() =>
+		modelService.createModel(block.orig, languageSelection),
+		[block.orig, languageSelection, modelService]
+	);
+	const modifiedModel = useMemo(() =>
+		modelService.createModel(block.final, languageSelection),
+		[block.final, languageSelection, modelService]
+	);
+
+	// Clean up models on unmount
+	useEffect(() => {
+		return () => {
+			originalModel.dispose();
+			modifiedModel.dispose();
+		};
+	}, [originalModel, modifiedModel]);
+
+	// Imperatively mount the DiffEditorWidget
+	const divRef = useRef<HTMLDivElement | null>(null);
+	const editorRef = useRef<any>(null);
+
+	useEffect(() => {
+		if (!divRef.current) return;
+		// Create the diff editor instance
+		const editor = instantiationService.createInstance(
+			DiffEditorWidget,
+			divRef.current,
+			{
+				automaticLayout: true,
+				readOnly: true,
+				renderSideBySide: true,
+				minimap: { enabled: false },
+				lineNumbers: 'off',
+				scrollbar: { vertical: 'auto', horizontal: 'auto', verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+				hover: { enabled: false },
+				folding: false,
+				selectionHighlight: false,
+				renderLineHighlight: 'none',
+				overviewRulerLanes: 0,
+				hideCursorInOverviewRuler: true,
+				overviewRulerBorder: false,
+				glyphMargin: false,
+				stickyScroll: { enabled: false },
+			},
+			{ originalEditor: { isSimpleWidget: true }, modifiedEditor: { isSimpleWidget: true } }
+		);
+		editor.setModel({ original: originalModel, modified: modifiedModel });
+		editor.layout();
+		editorRef.current = editor;
+		return () => {
+			editor.dispose();
+			editorRef.current = null;
+		};
+	}, [originalModel, modifiedModel, instantiationService]);
+
+	return (
+		<div className="w-full h-[300px] bg-void-bg-3 rounded" ref={divRef} />
+	);
+};
 
 

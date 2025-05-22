@@ -265,7 +265,7 @@ class MCPService extends Disposable implements IMCPService {
 
 		// set isOn to any new servers in the config
 		const addedUserStateOfName: MCPUserStateOfName = {}
-		for (const name in addedServerNames) { addedUserStateOfName[name] = { isOn: true } }
+		for (const name of addedServerNames) { addedUserStateOfName[name] = { isOn: true } }
 		await this.voidSettingsService.addMCPUserStateOfNames(addedUserStateOfName);
 
 		// delete isOn for any servers that no longer show up in the config

@@ -78,6 +78,8 @@ export const defaultModelsOfProvider = {
 		// 'gpt-4o-mini',
 	],
 	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models
+		'claude-opus-4-0',
+		'claude-sonnet-4-0',
 		'claude-3-7-sonnet-latest',
 		'claude-3-5-sonnet-latest',
 		'claude-3-5-haiku-latest',
@@ -106,6 +108,8 @@ export const defaultModelsOfProvider = {
 
 	openRouter: [ // https://openrouter.ai/models
 		// 'anthropic/claude-3.7-sonnet:thinking',
+		'anthropic/claude-opus-4',
+		'anthropic/claude-sonnet-4',
 		'qwen/qwen3-235b-a22b',
 		'anthropic/claude-3.7-sonnet',
 		'anthropic/claude-3.5-sonnet',
@@ -480,6 +484,40 @@ const anthropicModelOptions = {
 		},
 
 	},
+	'claude-opus-4-20250514': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 15.00, cache_read: 1.50, cache_write: 18.75, output: 30.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: true,
+			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
+		},
+
+	},
+	'claude-sonnet-4-20250514': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 6.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: true,
+			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
+		},
+
+	},
 	'claude-3-5-sonnet-20241022': {
 		contextWindow: 200_000,
 		reservedOutputTokenSpace: 8_192,
@@ -538,6 +576,10 @@ const anthropicSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof anthropicModelOptions | null = null
+		if (lower.includes('claude-4-opus') || lower.includes('claude-opus-4')) fallbackName = 'claude-opus-4-20250514'
+		if (lower.includes('claude-4-sonnet') || lower.includes('claude-sonnet-4')) fallbackName = 'claude-sonnet-4-20250514'
+
+
 		if (lower.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
 		if (lower.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
 		if (lower.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
@@ -1244,6 +1286,24 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		reservedOutputTokenSpace: null,
 		cost: { input: 0.8, output: 2.4 },
 		downloadable: false,
+	},
+	'anthropic/claude-opus-4': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 15.00, output: 75.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'anthropic/claude-sonnet-4': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 15.00, output: 75.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
 	},
 	'anthropic/claude-3.7-sonnet:thinking': {
 		contextWindow: 200_000,

@@ -152,35 +152,11 @@ export interface MCPServerOfName {
 }
 
 export type MCPServerEvent = {
-	type: 'add';
 	name: string;
-	prevServer?: undefined;
-	newServer: MCPServer;
-} | {
-	type: 'update';
-	name: string;
-	prevServer: MCPServer;
-	newServer: MCPServer;
-} | {
-	type: 'delete';
-	name: string;
-	newServer?: undefined;
-	prevServer: MCPServer;
-} | {
-	type: 'loading';
-	name: string;
-	prevServer?: undefined;
-	newServer: MCPServer;
+	prevServer?: MCPServer;
+	newServer?: MCPServer;
 }
-
-// Response types
 export type MCPServerEventResponse = { response: MCPServerEvent }
-
-export type MCPAddServerResponse = { response: MCPServerEvent & { type: 'add' } }
-export type MCPUpdateServerResponse = { response: MCPServerEvent & { type: 'update' } }
-export type MCPDeleteServerResponse = { response: MCPServerEvent & { type: 'delete' } }
-
-
 
 export interface MCPConfigFileParseErrorResponse {
 	response: {

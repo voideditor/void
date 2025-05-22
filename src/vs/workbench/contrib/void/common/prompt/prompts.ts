@@ -9,7 +9,7 @@ import { IDirectoryStrService } from '../directoryStrService.js';
 import { StagingSelectionItem } from '../chatThreadServiceTypes.js';
 import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
-import { approvalTypeOfToolName, ToolCallParams, ToolResultType } from '../toolsServiceTypes.js';
+import { approvalTypeOfToolName, BuiltinToolCallParams, BuiltinToolResultType } from '../toolsServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
 
 // Triple backtick wrapper used throughout the prompts for code blocks
@@ -186,11 +186,11 @@ export type SnakeCaseKeys<T extends Record<string, any>> = {
 // export const voidTools = {
 export const voidTools
 	: {
-		[T in keyof ToolCallParams]: {
+		[T in keyof BuiltinToolCallParams]: {
 			name: string;
 			description: string;
 			// more params can be generated than exist here, but these params must be a subset of them
-			params: Partial<{ [paramName in keyof SnakeCaseKeys<ToolCallParams[T]>]: { description: string } }>
+			params: Partial<{ [paramName in keyof SnakeCaseKeys<BuiltinToolCallParams[T]>]: { description: string } }>
 		}
 	}
 	= {
@@ -345,10 +345,10 @@ export const voidTools
 		// go_to_definition
 		// go_to_usages
 
-	} satisfies { [T in keyof ToolResultType]: InternalToolInfo }
+	} satisfies { [T in keyof BuiltinToolResultType]: InternalToolInfo }
 
 
-export type ToolName = keyof ToolResultType
+export type ToolName = keyof BuiltinToolResultType
 export const toolNames = Object.keys(voidTools) as ToolName[]
 
 type ToolParamNameOfTool<T extends ToolName> = keyof (typeof voidTools)[T]['params']

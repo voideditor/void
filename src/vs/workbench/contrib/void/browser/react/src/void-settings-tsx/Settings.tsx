@@ -905,11 +905,6 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
 
-	const handleChangeEvent = (e: boolean) => {
-		// Handle the change event
-		mcpService.toggleMCPServer(name, e);
-	}
-
 	const voidSettings = useSettingsState()
 	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
 
@@ -934,7 +929,7 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 					<VoidSwitch
 						value={isOn ?? false}
 						disabled={server.status === 'error'}
-						onChange={handleChangeEvent}
+						onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
 					/>
 				</div>
 			</div>

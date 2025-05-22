@@ -37,7 +37,7 @@ export const toolApprovalTypes = new Set<ToolApprovalType>(
 )
 
 // PARAMS OF TOOL CALL
-export type ToolCallParams = {
+export type BuiltinToolCallParams = {
 	'read_file': { uri: URI, startLine: number | null, endLine: number | null, pageNumber: number },
 	'ls_dir': { uri: URI, pageNumber: number },
 	'get_dir_tree': { uri: URI },
@@ -58,7 +58,7 @@ export type ToolCallParams = {
 }
 
 // RESULT OF TOOL CALL
-export type ToolResultType = {
+export type BuiltinToolResultType = {
 	'read_file': { fileContents: string, totalFileLen: number, totalNumLines: number, hasNextPage: boolean },
 	'ls_dir': { children: ShallowDirectoryItem[] | null, hasNextPage: boolean, hasPrevPage: boolean, itemsRemaining: number },
 	'get_dir_tree': { str: string, },

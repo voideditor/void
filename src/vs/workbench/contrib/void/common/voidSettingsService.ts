@@ -580,10 +580,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	}
 
 	setMCPServerState = async (serverName: string, state: MCPUserState) => {
-		const { mcpUserStateOfName: mcpServerStates } = this.state
-		if (!(serverName in mcpServerStates)) return // if not in list, do nothing
+		const { mcpUserStateOfName } = this.state
 		const newMCPServerStates = {
-			...mcpServerStates,
+			...mcpUserStateOfName,
 			[serverName]: state,
 		}
 		await this._setMCPUserStateOfName(newMCPServerStates)

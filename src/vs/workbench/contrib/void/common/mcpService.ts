@@ -14,7 +14,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServerOfName, MCPConfigFileJSON, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPServer, MCPToolCallParams, MCPGenericToolResponse } from './mcpServiceTypes.js';
+import { MCPServerOfName, MCPConfigFileJSON, MCPServer, MCPToolCallParams, MCPGenericToolResponse, MCPServerEventResponse } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
@@ -29,16 +29,16 @@ type MCPServiceState = {
 export interface IMCPService {
 	readonly _serviceBrand: undefined;
 	revealMCPConfigFile(): Promise<void>;
-	toggleMCPServer(serverName: string, isOn: boolean): Promise<void>;
+	toggleServerIsOn(serverName: string, isOn: boolean): Promise<void>;
 
 	readonly state: MCPServiceState; // NOT persisted
 	onDidChangeState: Event<void>;
 
 	getCurrentMCPToolNames(): InternalToolInfo[];
-	getMCPToolFns(): {
-		callTool: MCPCallTool;
-		resultToString: MCPToolResultToString
-	};
+
+	// TODO!!!!!!!!!  getMCPToolDescriptors (the equivalent of tools in prompts.ts)
+
+	// getMCPToolFns(): MCPCallToolOfToolName;
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -50,20 +50,12 @@ const MCP_CONFIG_SAMPLE = { mcpServers: {} }
 const MCP_CONFIG_SAMPLE_STRING = JSON.stringify(MCP_CONFIG_SAMPLE, null, 2);
 
 
-export interface MCPCallTool {
+export interface MCPCallToolOfToolName {
 	[toolName: string]: (params: any) => Promise<{
 		result: any | Promise<any>,
 		interruptTool?: () => void
 	}>;
 }
-
-export interface MCPToolResultToString {
-	[toolName: string]: (params: any, result: any) => string;
-}
-
-
-
-
 
 
 class MCPService extends Disposable implements IMCPService {
@@ -96,9 +88,9 @@ class MCPService extends Disposable implements IMCPService {
 		super();
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
 
-		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPAddServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
-		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPUpdateServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
-		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPDeleteServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
 
 		this._initialize();
 	}
@@ -205,9 +197,9 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	// toggle MCP server and update isOn in void settings
-	public async toggleMCPServer(serverName: string, isOn: boolean): Promise<void> {
-		this.channel.call('toggleMCPServer', { serverName, isOn })
+	public async toggleServerIsOn(serverName: string, isOn: boolean): Promise<void> {
 		await this.voidSettingsService.setMCPServerState(serverName, { isOn });
+		this.channel.call('toggleMCPServer', { serverName, isOn })
 	}
 
 	// utility functions
@@ -272,66 +264,55 @@ class MCPService extends Disposable implements IMCPService {
 		await this.voidSettingsService.removeMCPUserStateOfNames(removedServerNames);
 
 		// set all servers to loading
-		const mcpConfigOfName = newConfigFileJSON.mcpServers
-		for (const serverName in mcpConfigOfName) {
+		for (const serverName in newConfigFileJSON.mcpServers) {
 			if (serverName in this.state.mcpServerOfName) continue
 			this._setMCPServerState(serverName, {
 				status: 'loading',
 				tools: [],
 			})
 		}
+		const updatedServerNames = Object.keys(newConfigFileJSON.mcpServers).filter(serverName => !addedServerNames.includes(serverName) && !removedServerNames.includes(serverName))
 
-		this.channel.call('refreshMCPServers', { mcpConfigFileJSON: newConfigFileJSON, userStateOfName: this.voidSettingsService.state.mcpUserStateOfName })
+		this.channel.call('refreshMCPServers', {
+			mcpConfigFileJSON: newConfigFileJSON,
+			addedServerNames,
+			removedServerNames,
+			updatedServerNames,
+			userStateOfName: this.voidSettingsService.state.mcpUserStateOfName,
+		})
 	}
 
-	public async callMCPTool(toolData: MCPToolCallParams): Promise<MCPGenericToolResponse> {
-		const response = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
-		return response;
+
+	public async callMCPTool(toolData: MCPToolCallParams): Promise<{ result: MCPGenericToolResponse }> {
+		const result = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
+		return { result };
 	}
 
-	public getMCPToolFns(): { callTool: MCPCallTool; resultToString: MCPToolResultToString } {
-		const tools = this.getCurrentMCPToolNames();
-		const toolFns: MCPCallTool = {};
-		const toolResultToStringFns: MCPToolResultToString = {};
+	// public getMCPToolFns(): MCPToolResultType {
+	// 	const tools = this.getCurrentMCPToolNames();
+	// 	const toolFns: MCPToolResultType = {};
 
-		tools.forEach((tool) => {
-			const name = tool.name;
-			const serverName = tool.mcpServerName;
+	// 	tools.forEach((tool) => {
+	// 		const name = tool.name;
+	// 		// Define the tool call function
+	// 		const toolFn = async (params: {
+	// 			serverName: string,
+	// 			toolName: string,
+	// 			args: any
+	// 		}) => {
+	// 			const { serverName, toolName, args } = params;
+	// 			const response = await this.callMCPTool({
+	// 				serverName,
+	// 				toolName,
+	// 				params: args,
+	// 			});
+	// 			return { result: response }
+	// 		};
+	// 		toolFns[name] = toolFn;
+	// 	});
 
-			// Define the tool call function
-			const toolFn = async (params: {
-				serverName: string,
-				toolName: string,
-				args: any
-			}) => {
-				const { serverName, toolName, args } = params;
-				const response = await this.callMCPTool({
-					serverName,
-					toolName,
-					params: args,
-				});
-				return {
-					result: response,
-				};
-			};
-
-			// Define the result-to-string function
-			const resultToStringFn = (params: any, result: MCPGenericToolResponse): string => {
-				if (result.event === 'error' || result.event === 'text') {
-					return result.text;
-				}
-				throw new Error(`MCP Server ${serverName} and Tool ${name} returned an unexpected result: ${JSON.stringify(result)}`);
-			};
-
-			toolFns[name] = toolFn;
-			toolResultToStringFns[name] = resultToStringFn;
-		});
-
-		return {
-			callTool: toolFns,
-			resultToString: toolResultToStringFns
-		};
-	}
+	// 	return toolFns
+	// }
 }
 
 registerSingleton(IMCPService, MCPService, InstantiationType.Eager);

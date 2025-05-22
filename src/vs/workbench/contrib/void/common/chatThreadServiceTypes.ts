@@ -7,7 +7,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
 import { ToolName } from './prompt/prompts.js';
 import { AnthropicReasoning, RawToolParamsObj } from './sendLLMMessageTypes.js';
-import { ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { BuiltinToolCallParams, BuiltinToolResultType } from './toolsServiceTypes.js';
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
@@ -18,13 +18,13 @@ export type ToolMessage<T extends ToolName> = {
 		// in order of events:
 		| { type: 'invalid_params', result: null, name: T, }
 
-		| { type: 'tool_request', result: null, name: T, params: ToolCallParams[T], }  // params were validated, awaiting user
+		| { type: 'tool_request', result: null, name: T, params: BuiltinToolCallParams[T], }  // params were validated, awaiting user
 
-		| { type: 'running_now', result: null, name: T, params: ToolCallParams[T], }
+		| { type: 'running_now', result: null, name: T, params: BuiltinToolCallParams[T], }
 
-		| { type: 'tool_error', result: string, name: T, params: ToolCallParams[T], } // error when tool was running
-		| { type: 'success', result: Awaited<ToolResultType[T]>, name: T, params: ToolCallParams[T], }
-		| { type: 'rejected', result: null, name: T, params: ToolCallParams[T] }
+		| { type: 'tool_error', result: string, name: T, params: BuiltinToolCallParams[T], } // error when tool was running
+		| { type: 'success', result: Awaited<BuiltinToolResultType[T]>, name: T, params: BuiltinToolCallParams[T], }
+		| { type: 'rejected', result: null, name: T, params: BuiltinToolCallParams[T] }
 	) // user rejected
 
 export type DecorativeCanceledTool = {

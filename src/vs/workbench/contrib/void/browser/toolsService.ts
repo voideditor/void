@@ -8,7 +8,7 @@ import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
-import { LintErrorItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
+import { LintErrorItem, BuiltinToolCallParams, BuiltinToolResultType } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
@@ -19,22 +19,12 @@ import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME, ToolName } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
-import { IMCPService, MCPCallTool, MCPToolResultToString } from '../common/mcpService.js'
 
 
 // tool use for AI
-
-
-
-
-type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => ToolCallParams[T] }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T] | Promise<ToolResultType[T]>, interruptTool?: () => void }> }
-type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
-
-// Interfaces that accept both internal tools and MCP tools
-export type ToolHandler = CallTool & MCPCallTool;
-export type ToolResultToStringHandler = ToolResultToString & MCPToolResultToString
-
+type ValidateBuiltinParams = { [T in ToolName]: (p: RawToolParamsObj) => BuiltinToolCallParams[T] }
+type CallBuiltinTool = { [T in ToolName]: (p: BuiltinToolCallParams[T]) => Promise<{ result: BuiltinToolResultType[T] | Promise<BuiltinToolResultType[T]>, interruptTool?: () => void }> }
+type BuiltinToolResultToString = { [T in ToolName]: (p: BuiltinToolCallParams[T], result: Awaited<BuiltinToolResultType[T]>) => string }
 
 
 const isFalsy = (u: unknown) => {
@@ -115,9 +105,9 @@ const checkIfIsFolder = (uriStr: string) => {
 
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
-	validateParams: ValidateParams;
-	callTool: ToolHandler;
-	stringOfResult: ToolResultToStringHandler;
+	validateParams: ValidateBuiltinParams;
+	callTool: CallBuiltinTool;
+	stringOfResult: BuiltinToolResultToString;
 }
 
 export const IToolsService = createDecorator<IToolsService>('ToolsService');
@@ -126,9 +116,9 @@ export class ToolsService implements IToolsService {
 
 	readonly _serviceBrand: undefined;
 
-	public validateParams: ValidateParams;
-	public callTool: ToolHandler;
-	public stringOfResult: ToolResultToStringHandler;
+	public validateParams: ValidateBuiltinParams;
+	public callTool: CallBuiltinTool;
+	public stringOfResult: BuiltinToolResultToString;
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -142,7 +132,6 @@ export class ToolsService implements IToolsService {
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
-		@IMCPService private readonly mcpService: IMCPService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -452,8 +441,6 @@ export class ToolsService implements IToolsService {
 				await this.terminalToolService.killPersistentTerminal(persistentTerminalId)
 				return { result: {} }
 			},
-			// Returns MCP server call tool functions
-			...this.mcpService.getMCPToolFns().callTool,
 		}
 
 
@@ -557,8 +544,6 @@ export class ToolsService implements IToolsService {
 			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal "${params.persistentTerminalId}".`;
 			},
-			// All MCP server result to string functions
-			...this.mcpService.getMCPToolFns().resultToString,
 		}
 
 

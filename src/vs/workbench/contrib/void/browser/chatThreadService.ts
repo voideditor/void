@@ -16,7 +16,7 @@ import { AnthropicReasoning, getErrorMessage, RawToolCallObj, RawToolParamsObj }
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { approvalTypeOfToolName, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js';
+import { approvalTypeOfToolName, BuiltinToolCallParams, BuiltinToolResultType } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -181,7 +181,7 @@ export type ThreadStreamState = {
 		llmInfo?: undefined;
 		toolInfo: {
 			toolName: ToolName;
-			toolParams: ToolCallParams[ToolName];
+			toolParams: BuiltinToolCallParams[ToolName];
 			id: string;
 			content: string;
 			rawParams: RawToolParamsObj;
@@ -532,7 +532,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 		const lastMsg = thread.messages[thread.messages.length - 1]
 
-		let params: ToolCallParams[ToolName]
+		let params: BuiltinToolCallParams[ToolName]
 		if (lastMsg.role === 'tool' && lastMsg.type !== 'invalid_params') {
 			params = lastMsg.params
 		}
@@ -597,12 +597,12 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		threadId: string,
 		toolName: ToolName,
 		toolId: string,
-		opts: { preapproved: true, unvalidatedToolParams: RawToolParamsObj, validatedParams: ToolCallParams[ToolName] } | { preapproved: false, unvalidatedToolParams: RawToolParamsObj },
+		opts: { preapproved: true, unvalidatedToolParams: RawToolParamsObj, validatedParams: BuiltinToolCallParams[ToolName] } | { preapproved: false, unvalidatedToolParams: RawToolParamsObj },
 	): Promise<{ awaitingUserApproval?: boolean, interrupted?: boolean }> => {
 
 		// compute these below
-		let toolParams: ToolCallParams[ToolName]
-		let toolResult: Awaited<ToolResultType[typeof toolName]>
+		let toolParams: BuiltinToolCallParams[ToolName]
+		let toolResult: Awaited<BuiltinToolResultType[typeof toolName]>
 		let toolResultStr: string
 
 		if (!opts.preapproved) { // skip this if pre-approved
@@ -616,8 +616,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				return {}
 			}
 			// once validated, add checkpoint for edit
-			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['edit_file']).uri }) }
-			if (toolName === 'rewrite_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as ToolCallParams['rewrite_file']).uri }) }
+			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as BuiltinToolCallParams['edit_file']).uri }) }
+			if (toolName === 'rewrite_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as BuiltinToolCallParams['rewrite_file']).uri }) }
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
@@ -635,6 +635,33 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		else {
 			toolParams = opts.validatedParams
 		}
+
+
+
+		// TODO!!!!!!!!!
+		// const isBuiltInTool = (toolNames as string[]).includes(toolName)
+		// const callToolFn = (toolName: string, toolParams: BuiltinToolCallParams[ToolName]) => {
+		// 	if (isBuiltInTool) {
+
+
+		// 	}
+		// 	else {
+
+		// 	}
+
+		// }
+
+		// const stringifyToolFn = (toolName: string, toolResult: Awaited<BuiltinToolResultType[ToolName]>) => {
+		// 	if (isBuiltInTool) {
+
+
+		// 	}
+		// 	else {
+		// 		if (result.event === 'error' || result.event === 'text') {
+		// 			return result.text;
+		// 		}
+		// 	}
+		// }
 
 
 
@@ -1300,7 +1327,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			}
 			// URIs of files that have been read
 			else if (m.role === 'tool' && m.type === 'success' && m.name === 'read_file') {
-				const params = m.params as ToolCallParams['read_file']
+				const params = m.params as BuiltinToolCallParams['read_file']
 				addURI(params.uri)
 			}
 		}

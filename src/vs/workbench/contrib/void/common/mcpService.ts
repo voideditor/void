@@ -92,9 +92,14 @@ class MCPService extends Disposable implements IMCPService {
 		super();
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
 
-		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
-		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
-		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+
+		const onEvent = (e: MCPServerEventResponse) => {
+			console.log('GOT EVENT', e)
+			this._setMCPServerState(e.response.name, e.response.newServer)
+		}
+		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(onEvent));
+		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventResponse>)(onEvent));
+		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 
 		this._initialize();
 	}

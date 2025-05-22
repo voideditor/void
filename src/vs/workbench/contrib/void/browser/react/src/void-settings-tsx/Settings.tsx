@@ -925,9 +925,10 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 				<div className="text-sm font-medium mr-2">{name}</div>
 
 				{/* Power toggle switch */}
-				<div className="ml-auto">
+				<div className="ml-auto mb-2">
 					<VoidSwitch
 						value={isOn ?? false}
+						size='sm'
 						disabled={server.status === 'error'}
 						onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
 					/>
@@ -964,16 +965,7 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 			)}
 
 			{/* Error message if present */}
-			{server.error && (
-				<div className="mt-2 ml-4 text-red-500 flex items-center">
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-						<circle cx="12" cy="12" r="10"></circle>
-						<line x1="12" y1="8" x2="12" y2="12"></line>
-						<line x1="12" y1="16" x2="12.01" y2="16"></line>
-					</svg>
-					{server.error}
-				</div>
-			)}
+			{server.error && (<WarningBox className='ml-4' text={server.error} />)}
 		</div>
 	);
 };

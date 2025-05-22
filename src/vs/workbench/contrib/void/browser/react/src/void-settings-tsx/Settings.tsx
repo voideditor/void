@@ -901,7 +901,7 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 // full settings
 
 // MCP Server component
-const MCPServer = ({ name, server }: { name: string, server: MCPServer }) => {
+const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer }) => {
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
 
@@ -1003,7 +1003,7 @@ const MCPServersList = () => {
 		else {
 			content = entries.map(([name, server]) => (
 				<div className="py-2" key={name}>
-					<MCPServer name={name} server={server} />
+					<MCPServerComponent name={name} server={server} />
 				</div>
 			))
 		}

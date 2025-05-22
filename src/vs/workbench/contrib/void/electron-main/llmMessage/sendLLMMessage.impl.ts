@@ -18,7 +18,7 @@ import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMe
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
-import { availableTools, InternalToolInfo, builtinTools, isABuiltinToolName } from '../../common/prompt/prompts.js';
+import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
 import { BuiltinToolParamName } from '../../common/toolsServiceTypes.js';
 
@@ -221,21 +221,26 @@ const openAITools = (chatMode: ChatMode | null, mcpTools: InternalToolInfo[] | u
 
 
 // convert LLM tool call to our tool format
-const rawToolCallObjOf = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
-	if (!isABuiltinToolName(name)) return null
-	const rawParams: RawToolParamsObj = {}
+const rawToolCallObjOfParamsStr = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
 	let input: unknown
-	try {
-		input = JSON.parse(toolParamsStr)
-	}
-	catch (e) {
-		return null
-	}
+	try { input = JSON.parse(toolParamsStr) }
+	catch (e) { return null }
+
 	if (input === null) return null
 	if (typeof input !== 'object') return null
-	for (const paramName in builtinTools[name].params) {
-		rawParams[paramName as BuiltinToolParamName] = (input as any)[paramName]
-	}
+
+	const rawParams: RawToolParamsObj = input
+	return { id, name, rawParams, doneParams: Object.keys(rawParams) as BuiltinToolParamName[], isDone: true }
+}
+
+
+const rawToolCallObjOfAnthropicParams = (toolBlock: Anthropic.Messages.ToolUseBlock): RawToolCallObj | null => {
+	const { id, name, input } = toolBlock
+
+	if (input === null) return null
+	if (typeof input !== 'object') return null
+
+	const rawParams: RawToolParamsObj = input
 	return { id, name, rawParams, doneParams: Object.keys(rawParams) as BuiltinToolParamName[], isDone: true }
 }
 
@@ -339,7 +344,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: isABuiltinToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } : undefined,
+					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 
 			}
@@ -348,7 +353,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
-				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId)
+				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
@@ -425,17 +430,7 @@ const anthropicTools = (chatMode: ChatMode | null, mcpTools: InternalToolInfo[] 
 	return anthropicTools
 }
 
-const anthropicToolToRawToolCallObj = (toolBlock: Anthropic.Messages.ToolUseBlock): RawToolCallObj | null => {
-	const { id, name, input } = toolBlock
-	if (!isABuiltinToolName(name)) return null
-	const rawParams: RawToolParamsObj = {}
-	if (input === null) return null
-	if (typeof input !== 'object') return null
-	for (const paramName in builtinTools[name].params) {
-		rawParams[paramName as BuiltinToolParamName] = (input as any)[paramName]
-	}
-	return { id, name, rawParams, doneParams: Object.keys(rawParams) as BuiltinToolParamName[], isDone: true }
-}
+
 
 // ------------ ANTHROPIC ------------
 const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName: modelName_, _setAborter, separateSystemMessage, chatMode, mcpTools }: SendChatParams_Internal) => {
@@ -496,7 +491,7 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 		onText({
 			fullText,
 			fullReasoning,
-			toolCall: isABuiltinToolName(fullToolName) ? { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' } : undefined,
+			toolCall: { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
 		})
 	}
 	// there are no events for tool_use, it comes in at the end
@@ -546,7 +541,7 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	stream.on('finalMessage', (response) => {
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
 		const tools = response.content.filter(c => c.type === 'tool_use')
-		const toolCall = tools[0] && anthropicToolToRawToolCallObj(tools[0])
+		const toolCall = tools[0] && rawToolCallObjOfAnthropicParams(tools[0])
 		const toolCallObj = toolCall ? { toolCall } : {}
 		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
@@ -791,7 +786,7 @@ const sendGeminiChat = async ({
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: isABuiltinToolName(toolName) ? { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } : undefined,
+					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 			}
 
@@ -800,7 +795,7 @@ const sendGeminiChat = async ({
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			} else {
 				if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
-				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId)
+				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}

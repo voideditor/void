@@ -1414,14 +1414,36 @@ const titleOfBuiltinToolName = {
 } as const satisfies Record<BuiltinToolName, { done: any, proposed: any, running: any }>
 
 
-const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type'>): React.ReactNode => {
+const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'type' | 'mcpServerName'>): React.ReactNode => {
 	const t = toolMessage
-	if (!builtinToolNames.includes(t.name as BuiltinToolName)) return t.name // good measure
 
-	const toolName = t.name as BuiltinToolName
-	if (t.type === 'success') return titleOfBuiltinToolName[toolName].done
-	if (t.type === 'running_now') return titleOfBuiltinToolName[toolName].running
-	return titleOfBuiltinToolName[toolName].proposed
+	// non-built-in title
+	if (!builtinToolNames.includes(t.name as BuiltinToolName)) {
+
+		// descriptor of Running or Ran etc
+		const descriptor =
+			t.type === 'success' ? 'Ran'
+				: t.type === 'running_now' ? 'Running'
+					: t.type === 'tool_request' ? 'Requested'
+						: t.type === 'rejected' ? 'Canceled'
+							: t.type === 'invalid_params' ? 'Canceled'
+								: t.type === 'tool_error' ? 'Canceled'
+									: 'Ran'
+
+		const title = `${descriptor} ${t.name}`
+
+		if (t.type === 'running_now' || t.type === 'tool_request')
+			return loadingTitleWrapper(title)
+		return title
+	}
+
+	// built-in title
+	else {
+		const toolName = t.name as BuiltinToolName
+		if (t.type === 'success') return titleOfBuiltinToolName[toolName].done
+		if (t.type === 'running_now') return titleOfBuiltinToolName[toolName].running
+		return titleOfBuiltinToolName[toolName].proposed
+	}
 }
 
 
@@ -1700,9 +1722,9 @@ const EditToolHeaderButtons = ({ applyBoxId, uri, codeStr, toolName, threadId }:
 
 
 
-const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: string }) => {
+const InvalidTool = ({ toolName, message, mcpServerName }: { toolName: ToolName, message: string, mcpServerName: string | undefined }) => {
 	const accessor = useAccessor()
-	const title = getTitle({ name: toolName, type: 'invalid_params' })
+	const title = getTitle({ name: toolName, type: 'invalid_params', mcpServerName })
 	const desc1 = 'Invalid parameters'
 	const icon = null
 	const isError = true
@@ -1716,9 +1738,9 @@ const InvalidTool = ({ toolName, message }: { toolName: ToolName, message: strin
 	return <ToolHeaderWrapper {...componentParams} />
 }
 
-const CanceledTool = ({ toolName }: { toolName: ToolName }) => {
+const CanceledTool = ({ toolName, mcpServerName }: { toolName: ToolName, mcpServerName: string | undefined }) => {
 	const accessor = useAccessor()
-	const title = getTitle({ name: toolName, type: 'rejected' })
+	const title = getTitle({ name: toolName, type: 'rejected', mcpServerName })
 	const desc1 = ''
 	const icon = null
 	const isRejected = true
@@ -1839,7 +1861,7 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const desc1 = toolMessage.name
 	const icon = null
 
-	if (toolMessage.type === 'tool_request') return null // do not show past requests
+
 	if (toolMessage.type === 'running_now') return null // do not show running
 
 	const isError = false
@@ -1847,16 +1869,17 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const { rawParams, params } = toolMessage
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected, }
 
-	if (toolMessage.type === 'success') {
+	componentParams.info = `${toolMessage.mcpServerName} MCP server`
+
+	if (toolMessage.type === 'success' || toolMessage.type === 'tool_request') {
 		const { result } = toolMessage
 		componentParams.children = <ToolChildrenWrapper>
 			<SmallProseWrapper>
 				<ChatMarkdownRender
 					string={`
-## Parameters
-\`\`\`\n${JSON.stringify(params, null, 2)}\n\`\`\`
-## Result
 \`\`\`\n${JSON.stringify(result, null, 2)}\n\`\`\`
+## (Parameters:)
+\`\`\`\n${JSON.stringify(params, null, 2)}\n\`\`\`
 `}
 					chatMessageLocation={undefined}
 					isApplyEnabled={false}
@@ -2501,7 +2524,7 @@ const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, me
 
 		if (chatMessage.type === 'invalid_params') {
 			return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-				<InvalidTool toolName={chatMessage.name} message={chatMessage.content} />
+				<InvalidTool toolName={chatMessage.name} message={chatMessage.content} mcpServerName={chatMessage.mcpServerName} />
 			</div>
 		}
 
@@ -2529,7 +2552,7 @@ const _ChatBubble = ({ threadId, chatMessage, currCheckpointIdx, isCommitted, me
 
 	else if (role === 'interrupted_streaming_tool') {
 		return <div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
-			<CanceledTool toolName={chatMessage.name} />
+			<CanceledTool toolName={chatMessage.name} mcpServerName={chatMessage.mcpServerName} />
 		</div>
 	}
 
@@ -2809,7 +2832,7 @@ const CommandBarInChat = () => {
 
 const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) => {
 
-	if (!isABuiltinToolName( toolCallSoFar.name))  return null
+	if (!isABuiltinToolName(toolCallSoFar.name)) return null
 
 	const accessor = useAccessor()
 

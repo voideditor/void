@@ -13,6 +13,7 @@ export type ToolMessage<T extends ToolName> = {
 	content: string; // give this result to LLM (string of value)
 	id: string;
 	rawParams: RawToolParamsObj;
+	mcpServerName: string | undefined; // the server name at the time of the call
 } & (
 		// in order of events:
 		| { type: 'invalid_params', result: null, name: T, }
@@ -29,6 +30,7 @@ export type ToolMessage<T extends ToolName> = {
 export type DecorativeCanceledTool = {
 	role: 'interrupted_streaming_tool';
 	name: ToolName;
+	mcpServerName: string | undefined; // the server name at the time of the call
 }
 
 

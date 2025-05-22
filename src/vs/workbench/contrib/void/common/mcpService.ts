@@ -31,7 +31,7 @@ type MCPState = {
 export interface IMCPService {
 	readonly _serviceBrand: undefined;
 	revealMCPConfigFile(): Promise<void>;
-	toggleServer(serverName: string, isOn: boolean): Promise<void>;
+	toggleMCPServer(serverName: string, isOn: boolean): Promise<void>;
 	getMCPToolFns(): {
 		callTool: MCPCallTool;
 		resultToString: MCPToolResultToString
@@ -248,8 +248,8 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	// toggle MCP server and update isOn in void settings
-	public async toggleServer(serverName: string, isOn: boolean): Promise<void> {
-		this.channel.call('toggleServer', { serverName, isOn })
+	public async toggleMCPServer(serverName: string, isOn: boolean): Promise<void> {
+		this.channel.call('toggleMCPServer', { serverName, isOn })
 		await this.voidSettingsService.setMCPServerState(serverName, { isOn });
 	}
 

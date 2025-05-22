@@ -100,8 +100,8 @@ export class MCPChannel implements IServerChannel {
 			else if (command === 'closeAllMCPServers') {
 				await this._closeAllMCPServers()
 			}
-			else if (command === 'toggleServer') {
-				await this._toggleServer(params.serverName, params.isOn)
+			else if (command === 'toggleMCPServer') {
+				await this._toggleMCPServer(params.serverName, params.isOn)
 			}
 			else if (command === 'callTool') {
 				const response = await this._safeCallTool(params.serverName, params.toolName, params.params)
@@ -345,7 +345,7 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private async _toggleServer(serverName: string, isOn: boolean) {
+	private async _toggleMCPServer(serverName: string, isOn: boolean) {
 		const prevServer = this.clients[serverName]?.formattedServer
 		if (isOn) {
 			// Handle turning on the server

@@ -22,7 +22,7 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 
 	const handleChangeEvent = (e: boolean) => {
 		// Handle the change event
-		mcpService.toggleServer(name, e);
+		mcpService.toggleMCPServer(name, e);
 	}
 
 	return (

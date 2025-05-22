@@ -15,7 +15,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServerOfName, MCPConfigFileType, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPServerEventResponse, MCPServerObject } from './mcpServiceTypes.js';
+import { MCPServerOfName, MCPConfigFileType, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPServerEventResponse, MCPServerObject, MCPToolCallParams, MCPGenericToolResponse } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
@@ -32,11 +32,15 @@ export interface IMCPService {
 	readonly _serviceBrand: undefined;
 	revealMCPConfigFile(): Promise<void>;
 	toggleServer(serverName: string, isOn: boolean): Promise<void>;
+	getMCPToolFns(): {
+		callTool: MCPCallTool;
+		resultToString: MCPToolResultToString
+	};
 
 	readonly state: MCPState;
 	onDidChangeState: Event<void>;
 
-	getCurrentMCPTools(): InternalToolInfo[];
+	getCurrentMCPToolNames(): InternalToolInfo[];
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -46,6 +50,23 @@ export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
 const MCP_CONFIG_FILE_NAME = 'mcp.json';
 const MCP_CONFIG_SAMPLE = { mcpServers: {} }
 const MCP_CONFIG_SAMPLE_STRING = JSON.stringify(MCP_CONFIG_SAMPLE, null, 2);
+
+
+export interface MCPCallTool {
+	[toolName: string]: (params: any) => Promise<{
+		result: any | Promise<any>,
+		interruptTool?: () => void
+	}>;
+}
+
+export interface MCPToolResultToString {
+	[toolName: string]: (params: any, result: any) => string;
+}
+
+
+
+
+
 
 class MCPService extends Disposable implements IMCPService {
 	_serviceBrand: undefined;
@@ -200,8 +221,8 @@ class MCPService extends Disposable implements IMCPService {
 		}
 	}
 
-	public getCurrentMCPTools(): InternalToolInfo[] {
-		const allTools = Object.values(this.state.mcpServerOfName).flatMap(server => {
+	public getCurrentMCPToolNames(): InternalToolInfo[] {
+		const allTools = Object.entries(this.state.mcpServerOfName).flatMap(([serverName, server]) => {
 			return server.tools.map(tool => {
 				// Convert JsonSchema to the expected format
 				const convertedParams: { [paramName: string]: { description: string } } = {};
@@ -219,6 +240,7 @@ class MCPService extends Disposable implements IMCPService {
 					description: tool.description || '',
 					params: convertedParams,
 					name: tool.name,
+					serverName,
 				};
 			});
 		});
@@ -283,6 +305,55 @@ class MCPService extends Disposable implements IMCPService {
 		}, {} as MCPServerStateOfName);
 
 		this.channel.call('refreshMCPServers', { mcpConfig: mcpConfigFile, serverStates: updatedServers })
+	}
+
+	public async callMCPTool(toolData: MCPToolCallParams): Promise<MCPGenericToolResponse> {
+		const response = await this.channel.call<MCPGenericToolResponse>('callTool', toolData);
+		return response;
+	}
+
+	public getMCPToolFns(): { callTool: MCPCallTool; resultToString: MCPToolResultToString } {
+		const tools = this.getCurrentMCPToolNames();
+		const toolFns: MCPCallTool = {};
+		const toolResultToStringFns: MCPToolResultToString = {};
+
+		tools.forEach((tool) => {
+			const name = tool.name;
+			const serverName = tool.mcpServerName;
+
+			// Define the tool call function
+			const toolFn = async (params: {
+				serverName: string,
+				toolName: string,
+				args: any
+			}) => {
+				const { serverName, toolName, args } = params;
+				const response = await this.callMCPTool({
+					serverName,
+					toolName,
+					params: args,
+				});
+				return {
+					result: response,
+				};
+			};
+
+			// Define the result-to-string function
+			const resultToStringFn = (params: any, result: MCPGenericToolResponse): string => {
+				if (result.event === 'error' || result.event === 'text') {
+					return result.text;
+				}
+				throw new Error(`MCP Server ${serverName} and Tool ${name} returned an unexpected result: ${JSON.stringify(result)}`);
+			};
+
+			toolFns[name] = toolFn;
+			toolResultToStringFns[name] = resultToStringFn;
+		});
+
+		return {
+			callTool: toolFns,
+			resultToString: toolResultToStringFns
+		};
 	}
 }
 

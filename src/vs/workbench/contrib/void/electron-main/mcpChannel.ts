@@ -13,11 +13,11 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPServerModel, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPServerModel, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPGenericToolResponse, MCPToolErrorResponse } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { equals } from '../../../../base/common/objects.js';
 import { MCPServerStateOfName } from '../common/voidSettingsTypes.js';
-
 
 
 // const getLoadingServerObject = (serverName: string, isOn: boolean | undefined) => {
@@ -85,6 +85,8 @@ export class MCPChannel implements IServerChannel {
 		else if (event === 'onDelete_server') return this.mcpEmitters.serverEvent.onDelete.event;
 		// else if (event === 'onLoading_server') return this.mcpEmitters.serverEvent.onChangeLoading.event;
 
+		// tool call events
+
 		// handle unknown events
 		else throw new Error(`Event not found: ${event}`);
 	}
@@ -101,10 +103,10 @@ export class MCPChannel implements IServerChannel {
 			else if (command === 'toggleServer') {
 				await this._toggleServer(params.serverName, params.isOn)
 			}
-			// TODO!!! is this still needed?
-			// else if (command === 'callTool') {
-			// 	// TODO: HANDLE THIS
-			// }
+			else if (command === 'callTool') {
+				const response = await this._safeCallTool(params.serverName, params.toolName, params.params)
+				return response
+			}
 			else {
 				throw new Error(`Void sendLLM: command "${command}" not recognized.`)
 			}
@@ -114,7 +116,7 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	// call functions
+	// server functions
 
 	private async _refreshMCPServers(params: { mcpConfig: MCPConfigFileType, serverStates: MCPServerStateOfName }) {
 
@@ -380,6 +382,70 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
+	// tool call functions
+
+	private async _callTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
+		const server = this.clients[serverName]
+		if (!server) throw new Error(`Server ${serverName} not found`)
+		const { client } = server
+		if (!client) throw new Error(`Client for server ${serverName} not found`)
+
+		// Call the tool with the provided parameters
+		const response = await client.callTool({
+			name: toolName,
+			arguments: params
+		})
+		const { content } = response as CallToolResult
+		const returnValue = content[0]
+
+		if (returnValue.type === 'text') {
+			// handle text response
+
+			if (response.isError) {
+				throw new Error(`Tool call error: ${response.content}`)
+				// handle error
+			}
+
+			// handle success
+			return {
+				event: 'text',
+				text: returnValue.text,
+				toolName,
+				serverName,
+			}
+		}
+
+		// if (returnValue.type === 'audio') {
+		// 	// handle audio response
+		// }
+
+		// if (returnValue.type === 'image') {
+		// 	// handle image response
+		// }
+
+		// if (returnValue.type === 'resource') {
+		// 	// handle resource response
+		// }
+
+		throw new Error(`Tool call error: We don\'t support ${returnValue.type} tool response yet for tool ${toolName} on server ${serverName}`)
+	}
+
+	// tool call error wrapper
+	private async _safeCallTool(serverName: string, toolName: string, params: any): Promise<MCPGenericToolResponse> {
+		try {
+			const response = await this._callTool(serverName, toolName, params)
+			return response
+		} catch (err) {
+			const fullErrorMessage = `❌ Failed to call tool "${toolName}" on server "${serverName}": ${typeof err === 'string' ? err : JSON.stringify(err, null, 2)}`
+			const errorResponse: MCPToolErrorResponse = {
+				event: 'error',
+				text: fullErrorMessage,
+				toolName,
+				serverName,
+			}
+			return errorResponse
+		}
+	}
 }
 
 

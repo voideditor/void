@@ -19,6 +19,7 @@ import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME, ToolName } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
+import { IMCPService, MCPCallTool, MCPToolResultToString } from '../common/mcpService.js'
 
 
 // tool use for AI
@@ -29,6 +30,10 @@ import { generateUuid } from '../../../../base/common/uuid.js'
 type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => ToolCallParams[T] }
 type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T] | Promise<ToolResultType[T]>, interruptTool?: () => void }> }
 type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
+
+// Interfaces that accept both internal tools and MCP tools
+export type ToolHandler = CallTool & MCPCallTool;
+export type ToolResultToStringHandler = ToolResultToString & MCPToolResultToString
 
 
 
@@ -111,8 +116,8 @@ const checkIfIsFolder = (uriStr: string) => {
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
 	validateParams: ValidateParams;
-	callTool: CallTool;
-	stringOfResult: ToolResultToString;
+	callTool: ToolHandler;
+	stringOfResult: ToolResultToStringHandler;
 }
 
 export const IToolsService = createDecorator<IToolsService>('ToolsService');
@@ -122,8 +127,8 @@ export class ToolsService implements IToolsService {
 	readonly _serviceBrand: undefined;
 
 	public validateParams: ValidateParams;
-	public callTool: CallTool;
-	public stringOfResult: ToolResultToString;
+	public callTool: ToolHandler;
+	public stringOfResult: ToolResultToStringHandler;
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -137,6 +142,7 @@ export class ToolsService implements IToolsService {
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@IMCPService private readonly mcpService: IMCPService,
 	) {
 
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
@@ -446,7 +452,8 @@ export class ToolsService implements IToolsService {
 				await this.terminalToolService.killPersistentTerminal(persistentTerminalId)
 				return { result: {} }
 			},
-
+			// Returns MCP server call tool functions
+			...this.mcpService.getMCPToolFns().callTool,
 		}
 
 
@@ -550,7 +557,8 @@ export class ToolsService implements IToolsService {
 			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal "${params.persistentTerminalId}".`;
 			},
-
+			// All MCP server result to string functions
+			...this.mcpService.getMCPToolFns().resultToString,
 		}
 
 

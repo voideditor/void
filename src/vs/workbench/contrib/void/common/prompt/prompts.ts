@@ -147,6 +147,8 @@ export type InternalToolInfo = {
 	params: {
 		[paramName: string]: { description: string }
 	},
+	// Only if the tool is from an MCP server
+	mcpServerName?: string,
 }
 
 

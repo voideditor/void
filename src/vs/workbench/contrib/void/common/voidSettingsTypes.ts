@@ -495,7 +495,7 @@ export const defaultOverridesOfModel = overridesOfModel
 
 
 export interface MCPServerStateOfName {
-	[serverName: string]: MCPServerState;
+	[serverName: string]: MCPServerState | undefined;
 }
 
 export interface MCPServerState {

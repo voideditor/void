@@ -1,17 +1,7 @@
-import { VoidSwitch } from '../util/inputs.js';
+import { VoidSwitch, VoidButtonBgDarken } from '../util/inputs.js';
 import { MCPConfigFileParseErrorResponse, MCPServerEventType, MCPServerEventResponse, MCPServerObject, MCPServerOfName } from '../../../../common/mcpServiceTypes.js';
 import { useEffect, useState } from 'react';
 import { useAccessor, useMCPServiceState } from '../util/services.js';
-import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
-
-// Command display component
-const CommandDisplay = ({ command }: { command: string }) => {
-	return (
-		<div className="px-2 py-1 bg-void-bg-3 text-xs font-mono overflow-x-auto whitespace-nowrap">
-			{command}
-		</div>
-	);
-};
 
 
 // MCP Server component
@@ -44,7 +34,7 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 				{/* Power toggle switch */}
 				<div className="ml-auto">
 					<VoidSwitch
-						value={server.isOn}
+						value={server.isOn ?? false}
 						disabled={server.status === 'error'}
 						onChange={handleChangeEvent}
 					/>
@@ -70,11 +60,13 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 				</div>
 			</div>
 
-			{/* Command display */}
+			{/* Command badge */}
 			{server.isOn && server.command && (
 				<div className="mt-2 mx-4">
 					<div className="text-xs text-gray-400">Command:</div>
-					<CommandDisplay command={server.command} />
+					<div className="px-2 py-1 bg-void-bg-3 text-xs font-mono overflow-x-auto whitespace-nowrap">
+						{server.command}
+					</div>
 				</div>
 			)}
 
@@ -97,36 +89,8 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 const MCPServersList = () => {
 
 	const mcpServiceState = useMCPServiceState()
-
-	// const handleListeners = (e: MCPServerEventResponse | MCPConfigFileParseErrorResponse) => {
-	// 	if (e.response.type === 'config-file-error') {
-	// 		// Handle the config error event
-	// 		const { error } = e.response;
-	// 		setMCPConfigError(error);
-	// 		return;
-	// 	}
-	// 	if (e.response.type === 'add' || e.response.type === 'update' || e.response.type === 'loading') {
-	// 		// Handle the add event
-	// 		const { name, newServer } = e.response;
-	// 		setMCPServers(prevServers => ({
-	// 			...prevServers,
-	// 			[name]: newServer
-	// 		}));
-	// 		return;
-	// 	}
-	// 	if (e.response.type === 'delete') {
-	// 		// Handle the delete event
-	// 		const { name, prevServer } = e.response;
-	// 		setMCPServers(prevServers => {
-	// 			const newServers = { ...prevServers };
-	// 			delete newServers[name];
-	// 			return newServers;
-	// 		});
-	// 		return;
-	// 	}
-	// 	throw new Error('Event not handled');
-	// }
-
+	const accessor = useAccessor();
+	const mcpService = accessor.get('IMCPService');
 
 	return (
 		<div className="text-white rounded-md py-4">

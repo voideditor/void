@@ -10,7 +10,6 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { join } from '../../../../base/common/path.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
@@ -148,10 +147,10 @@ class MCPService extends Disposable implements IMCPService {
 		this._onDidChangeState.fire();
 	}
 
-	private readonly _setHasError = async (hasError: string | undefined) => {
+	private readonly _setHasError = async (errMsg: string | undefined) => {
 		this.state = {
 			...this.state,
-			error: hasError ? `MCP config file not found` : undefined,
+			error: errMsg,
 		}
 		this._onDidChangeState.fire();
 	}
@@ -165,32 +164,6 @@ class MCPService extends Disposable implements IMCPService {
 		await this.fileService.writeFile(mcpConfigUri, buffer);
 	}
 
-	private async _parseMCPConfigFile(): Promise<MCPConfigFileType | null> {
-		// TODO!!!!!!! double check this
-		// this._onConfigParsingError.fire({
-		// 	response: {
-		// 		type: 'config-file-error',
-		// 		error: null
-		// 	}
-		// });
-
-		// Process config file
-		const mcpConfigUri = await this._getMCPConfigFilePath();
-
-		try {
-			const fileContent = await this.fileService.readFile(mcpConfigUri);
-			const contentString = fileContent.value.toString();
-			const configJson = JSON.parse(contentString);
-			if (!configJson.mcpServers) {
-				throw new Error('Invalid MCP config file: missing mcpServers property');
-			}
-			return configJson as MCPConfigFileType;
-		} catch (error) {
-			const fullError = `Error parsing MCP config file: ${error}`;
-			this._setHasError(fullError)
-			return null;
-		}
-	}
 
 	private async _addMCPConfigFileWatcher(): Promise<void> {
 		const mcpConfigUri = await this._getMCPConfigFilePath();
@@ -258,8 +231,8 @@ class MCPService extends Disposable implements IMCPService {
 	private async _getMCPConfigFilePath(): Promise<URI> {
 		const appName = this.productService.dataFolderName
 		const userHome = await this.pathService.userHome();
-		const mcpConfigPath = join(userHome.path, appName, MCP_CONFIG_FILE_NAME);
-		return URI.file(mcpConfigPath);
+		const uri = URI.joinPath(userHome, appName, MCP_CONFIG_FILE_NAME)
+		return uri
 	}
 
 	private async _configFileExists(mcpConfigUri: URI): Promise<boolean> {
@@ -270,6 +243,25 @@ class MCPService extends Disposable implements IMCPService {
 			return false;
 		}
 	}
+
+
+	private async _parseMCPConfigFile(): Promise<MCPConfigFileType | null> {
+		const mcpConfigUri = await this._getMCPConfigFilePath();
+		try {
+			const fileContent = await this.fileService.readFile(mcpConfigUri);
+			const contentString = fileContent.value.toString();
+			const configFileJson = JSON.parse(contentString);
+			if (!configFileJson.mcpServers) {
+				throw new Error('Missing mcpServers property');
+			}
+			return configFileJson as MCPConfigFileType;
+		} catch (error) {
+			const fullError = `Error parsing MCP config file: ${error}`;
+			this._setHasError(fullError)
+			return null;
+		}
+	}
+
 
 	// Handle server state changes
 	private async _refreshMCPServers(): Promise<void> {
@@ -285,7 +277,7 @@ class MCPService extends Disposable implements IMCPService {
 		const availableServers = Object.keys(mcpConfigFile.mcpServers);
 
 		// Handle added servers
-		const addedServers = availableServers.filter(serverName => !currMCPStateOfName[serverName].isOn);
+		const addedServers = availableServers.filter(serverName => !currMCPStateOfName[serverName]?.isOn);
 		const addedServersObject = addedServers.reduce((acc, serverName) => {
 			acc[serverName] = { isOn: true };
 			return acc;

@@ -261,11 +261,14 @@ const parseXMLPrefixToToolCall = (toolName: BuiltinToolName, toolId: string, str
 }
 
 export const extractXMLToolsWrapper = (
-	onText: OnText, onFinalMessage: OnFinalMessage, chatMode: ChatMode | null
+	onText: OnText,
+	onFinalMessage: OnFinalMessage,
+	chatMode: ChatMode | null,
+	mcpTools: InternalToolInfo[] | undefined,
 ): { newOnText: OnText, newOnFinalMessage: OnFinalMessage } => {
 
 	if (!chatMode) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
-	const tools = availableTools(chatMode)
+	const tools = availableTools(chatMode, mcpTools)
 	if (!tools) return { newOnText: onText, newOnFinalMessage: onFinalMessage }
 
 	const toolOfToolName: ToolOfToolName = {}

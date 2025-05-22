@@ -87,20 +87,10 @@ export type BuiltinToolResultType = {
 export type ToolCallParams<T extends BuiltinToolName | (string & {})> = T extends BuiltinToolName ? BuiltinToolCallParams[T] : RawToolParamsObj
 export type ToolResult<T extends BuiltinToolName | (string & {})> = T extends BuiltinToolName ? BuiltinToolResultType[T] : RawMCPToolCall
 
-
 export type BuiltinToolName = keyof BuiltinToolResultType
-export const builtinToolNames = Object.keys(builtinTools) as BuiltinToolName[]
 
 type BuiltinToolParamNameOfTool<T extends BuiltinToolName> = keyof (typeof builtinTools)[T]['params']
 export type BuiltinToolParamName = { [T in BuiltinToolName]: BuiltinToolParamNameOfTool<T> }[BuiltinToolName]
-
-const toolNamesSet = new Set<string>(builtinToolNames)
-
-export const isABuiltinToolName = (toolName: string): toolName is BuiltinToolName => {
-	const isAToolName = toolNamesSet.has(toolName)
-	return isAToolName
-}
-
 
 
 export type ToolName = BuiltinToolName | (string & {})

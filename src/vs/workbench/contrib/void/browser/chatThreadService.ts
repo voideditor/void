@@ -11,12 +11,12 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { chat_userMessageContent } from '../common/prompt/prompts.js';
+import { chat_userMessageContent, isABuiltinToolName } from '../common/prompt/prompts.js';
 import { AnthropicReasoning, getErrorMessage, RawToolCallObj, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { FeatureName, ModelSelection, ModelSelectionOptions } from '../common/voidSettingsTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, isABuiltinToolName, ToolCallParams, ToolName, ToolResult } from '../common/toolsServiceTypes.js';
+import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, ToolCallParams, ToolName, ToolResult } from '../common/toolsServiceTypes.js';
 import { IToolsService } from './toolsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -676,7 +676,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 			else {
 				const mcpTools = this._mcpService.getMCPTools()
-				const mcpTool = mcpTools[toolName]
+				const mcpTool = mcpTools?.find(t => t.name === toolName)
 				if (!mcpTool) { throw new Error(`MCP tool ${toolName} not found`) }
 
 				resolveInterruptor(() => { })

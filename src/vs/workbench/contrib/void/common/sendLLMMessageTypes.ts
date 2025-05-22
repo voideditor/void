@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import { InternalToolInfo } from './prompt/prompts.js'
 import { ToolName, ToolParamName } from './toolsServiceTypes.js'
 import { ChatMode, ModelSelection, ModelSelectionOptions, OverridesOfModel, ProviderName, RefreshableProviderName, SettingsOfProvider } from './voidSettingsTypes.js'
 
@@ -133,6 +134,7 @@ export type SendLLMMessageParams = {
 	overridesOfModel: OverridesOfModel | undefined;
 
 	settingsOfProvider: SettingsOfProvider;
+	mcpTools: InternalToolInfo[] | undefined;
 } & SendLLMType
 
 

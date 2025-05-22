@@ -183,186 +183,197 @@ export type SnakeCaseKeys<T extends Record<string, any>> = {
 
 
 
-// export const voidTools = {
-export const builtinTools
-	: {
-		[T in keyof BuiltinToolCallParams]: {
-			name: string;
-			description: string;
-			// more params can be generated than exist here, but these params must be a subset of them
-			params: Partial<{ [paramName in keyof SnakeCaseKeys<BuiltinToolCallParams[T]>]: { description: string } }>
-		}
+export const builtinTools: {
+	[T in keyof BuiltinToolCallParams]: {
+		name: string;
+		description: string;
+		// more params can be generated than exist here, but these params must be a subset of them
+		params: Partial<{ [paramName in keyof SnakeCaseKeys<BuiltinToolCallParams[T]>]: { description: string } }>
 	}
-	= {
-		// --- context-gathering (read/search/list) ---
+} = {
+	// --- context-gathering (read/search/list) ---
 
-		read_file: {
-			name: 'read_file',
-			description: `Returns full contents of a given file.`,
-			params: {
-				...uriParam('file'),
-				start_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the beginning of the file.' },
-				end_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the end of the file.' },
-				...paginationParam,
-			},
+	read_file: {
+		name: 'read_file',
+		description: `Returns full contents of a given file.`,
+		params: {
+			...uriParam('file'),
+			start_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the beginning of the file.' },
+			end_line: { description: 'Optional. Do NOT fill this field in unless you were specifically given exact line numbers to search. Defaults to the end of the file.' },
+			...paginationParam,
 		},
+	},
 
-		ls_dir: {
-			name: 'ls_dir',
-			description: `Lists all files and folders in the given URI.`,
-			params: {
-				uri: { description: `Optional. The FULL path to the ${'folder'}. Leave this as empty or "" to search all folders.` },
-				...paginationParam,
-			},
+	ls_dir: {
+		name: 'ls_dir',
+		description: `Lists all files and folders in the given URI.`,
+		params: {
+			uri: { description: `Optional. The FULL path to the ${'folder'}. Leave this as empty or "" to search all folders.` },
+			...paginationParam,
 		},
+	},
 
-		get_dir_tree: {
-			name: 'get_dir_tree',
-			description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
-			params: {
-				...uriParam('folder')
-			}
-		},
-
-		// pathname_search: {
-		// 	name: 'pathname_search',
-		// 	description: `Returns all pathnames that match a given \`find\`-style query over the entire workspace. ONLY searches file names. ONLY searches the current workspace. You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
-
-		search_pathnames_only: {
-			name: 'search_pathnames_only',
-			description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
-			params: {
-				query: { description: `Your query for the search.` },
-				include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
-				...paginationParam,
-			},
-		},
-
-
-
-		search_for_files: {
-			name: 'search_for_files',
-			description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
-			params: {
-				query: { description: `Your query for the search.` },
-				search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
-				is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
-				...paginationParam,
-			},
-		},
-
-		// add new search_in_file tool
-		search_in_file: {
-			name: 'search_in_file',
-			description: `Returns an array of all the start line numbers where the content appears in the file.`,
-			params: {
-				...uriParam('file'),
-				query: { description: 'The string or regex to search for in the file.' },
-				is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
-			}
-		},
-
-		read_lint_errors: {
-			name: 'read_lint_errors',
-			description: `Use this tool to view all the lint errors on a file.`,
-			params: {
-				...uriParam('file'),
-			},
-		},
-
-		// --- editing (create/delete) ---
-
-		create_file_or_folder: {
-			name: 'create_file_or_folder',
-			description: `Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.`,
-			params: {
-				...uriParam('file or folder'),
-			},
-		},
-
-		delete_file_or_folder: {
-			name: 'delete_file_or_folder',
-			description: `Delete a file or folder at the given path.`,
-			params: {
-				...uriParam('file or folder'),
-				is_recursive: { description: 'Optional. Return true to delete recursively.' }
-			},
-		},
-
-		edit_file: {
-			name: 'edit_file',
-			description: `Edit the contents of a file. You must provide the file's URI as well as a SINGLE string of SEARCH/REPLACE block(s) that will be used to apply the edit.`,
-			params: {
-				...uriParam('file'),
-				search_replace_blocks: { description: replaceTool_description }
-			},
-		},
-
-		rewrite_file: {
-			name: 'rewrite_file',
-			description: `Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.`,
-			params: {
-				...uriParam('file'),
-				new_content: { description: `The new contents of the file. Must be a string.` }
-			},
-		},
-		run_command: {
-			name: 'run_command',
-			description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). ${terminalDescHelper}`,
-			params: {
-				command: { description: 'The terminal command to run.' },
-				cwd: { description: cwdHelper },
-			},
-		},
-
-		run_persistent_command: {
-			name: 'run_persistent_command',
-			description: `Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after ${MAX_TERMINAL_BG_COMMAND_TIME} are returned, and command continues running in background). ${terminalDescHelper}`,
-			params: {
-				command: { description: 'The terminal command to run.' },
-				persistent_terminal_id: { description: 'The ID of the terminal created using open_persistent_terminal.' },
-			},
-		},
-
-
-
-		open_persistent_terminal: {
-			name: 'open_persistent_terminal',
-			description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
-			params: {
-				cwd: { description: cwdHelper },
-			}
-		},
-
-
-		kill_persistent_terminal: {
-			name: 'kill_persistent_terminal',
-			description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
-			params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
+	get_dir_tree: {
+		name: 'get_dir_tree',
+		description: `This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder. `,
+		params: {
+			...uriParam('folder')
 		}
+	},
+
+	// pathname_search: {
+	// 	name: 'pathname_search',
+	// 	description: `Returns all pathnames that match a given \`find\`-style query over the entire workspace. ONLY searches file names. ONLY searches the current workspace. You should use this when looking for a file with a specific name or path. ${paginationHelper.desc}`,
+
+	search_pathnames_only: {
+		name: 'search_pathnames_only',
+		description: `Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.`,
+		params: {
+			query: { description: `Your query for the search.` },
+			include_pattern: { description: 'Optional. Only fill this in if you need to limit your search because there were too many results.' },
+			...paginationParam,
+		},
+	},
 
 
-		// go_to_definition
-		// go_to_usages
 
-	} satisfies { [T in keyof BuiltinToolResultType]: InternalToolInfo }
+	search_for_files: {
+		name: 'search_for_files',
+		description: `Returns a list of file names whose content matches the given query. The query can be any substring or regex.`,
+		params: {
+			query: { description: `Your query for the search.` },
+			search_in_folder: { description: 'Optional. Leave as blank by default. ONLY fill this in if your previous search with the same query was truncated. Searches descendants of this folder only.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' },
+			...paginationParam,
+		},
+	},
+
+	// add new search_in_file tool
+	search_in_file: {
+		name: 'search_in_file',
+		description: `Returns an array of all the start line numbers where the content appears in the file.`,
+		params: {
+			...uriParam('file'),
+			query: { description: 'The string or regex to search for in the file.' },
+			is_regex: { description: 'Optional. Default is false. Whether the query is a regex.' }
+		}
+	},
+
+	read_lint_errors: {
+		name: 'read_lint_errors',
+		description: `Use this tool to view all the lint errors on a file.`,
+		params: {
+			...uriParam('file'),
+		},
+	},
+
+	// --- editing (create/delete) ---
+
+	create_file_or_folder: {
+		name: 'create_file_or_folder',
+		description: `Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.`,
+		params: {
+			...uriParam('file or folder'),
+		},
+	},
+
+	delete_file_or_folder: {
+		name: 'delete_file_or_folder',
+		description: `Delete a file or folder at the given path.`,
+		params: {
+			...uriParam('file or folder'),
+			is_recursive: { description: 'Optional. Return true to delete recursively.' }
+		},
+	},
+
+	edit_file: {
+		name: 'edit_file',
+		description: `Edit the contents of a file. You must provide the file's URI as well as a SINGLE string of SEARCH/REPLACE block(s) that will be used to apply the edit.`,
+		params: {
+			...uriParam('file'),
+			search_replace_blocks: { description: replaceTool_description }
+		},
+	},
+
+	rewrite_file: {
+		name: 'rewrite_file',
+		description: `Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.`,
+		params: {
+			...uriParam('file'),
+			new_content: { description: `The new contents of the file. Must be a string.` }
+		},
+	},
+	run_command: {
+		name: 'run_command',
+		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). ${terminalDescHelper}`,
+		params: {
+			command: { description: 'The terminal command to run.' },
+			cwd: { description: cwdHelper },
+		},
+	},
+
+	run_persistent_command: {
+		name: 'run_persistent_command',
+		description: `Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after ${MAX_TERMINAL_BG_COMMAND_TIME} are returned, and command continues running in background). ${terminalDescHelper}`,
+		params: {
+			command: { description: 'The terminal command to run.' },
+			persistent_terminal_id: { description: 'The ID of the terminal created using open_persistent_terminal.' },
+		},
+	},
 
 
 
-export const availableTools = (chatMode: ChatMode) => {
+	open_persistent_terminal: {
+		name: 'open_persistent_terminal',
+		description: `Use this tool when you want to run a terminal command indefinitely, like a dev server (eg \`npm run dev\`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.`,
+		params: {
+			cwd: { description: cwdHelper },
+		}
+	},
 
-	// TOOL_TODO!!!!
-	// merge MCP tools with these builtin tools
-	// Note: This requires refactoring the messaging architecture to pass MCP tools from the renderer process
-	// to the electron-main process through the IPC channel. For now, MCP tools are handled separately
-	// in the chatThreadService where both built-in and MCP tools are called appropriately.
 
-	const toolNames: BuiltinToolName[] | undefined = chatMode === 'normal' ? undefined
+	kill_persistent_terminal: {
+		name: 'kill_persistent_terminal',
+		description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
+		params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
+	}
+
+
+	// go_to_definition
+	// go_to_usages
+
+} satisfies { [T in keyof BuiltinToolResultType]: InternalToolInfo }
+
+
+
+
+export const builtinToolNames = Object.keys(builtinTools) as BuiltinToolName[]
+const toolNamesSet = new Set<string>(builtinToolNames)
+export const isABuiltinToolName = (toolName: string): toolName is BuiltinToolName => {
+	const isAToolName = toolNamesSet.has(toolName)
+	return isAToolName
+}
+
+
+
+
+
+export const availableTools = (chatMode: ChatMode | null, mcpTools: InternalToolInfo[] | undefined) => {
+
+	const builtinToolNames: BuiltinToolName[] | undefined = chatMode === 'normal' ? undefined
 		: chatMode === 'gather' ? (Object.keys(builtinTools) as BuiltinToolName[]).filter(toolName => !(toolName in approvalTypeOfBuiltinToolName))
 			: chatMode === 'agent' ? Object.keys(builtinTools) as BuiltinToolName[]
 				: undefined
 
-	const tools: InternalToolInfo[] | undefined = toolNames?.map(toolName => builtinTools[toolName])
+	const effectiveBuiltinTools = builtinToolNames?.map(toolName => builtinTools[toolName]) ?? undefined
+	const effectiveMCPTools = chatMode === 'agent' ? mcpTools : undefined
+
+	const tools: InternalToolInfo[] | undefined = !(builtinToolNames || mcpTools) ? undefined
+		: [
+			...effectiveBuiltinTools ?? [],
+			...effectiveMCPTools ?? [],
+		]
+
 	return tools
 }
 
@@ -388,8 +399,8 @@ export const reParsedToolXMLString = (toolName: ToolName, toolParams: RawToolPar
 
 /* We expect tools to come at the end - not a hard limit, but that's just how we process them, and the flow makes more sense that way. */
 // - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
-const systemToolsXMLPrompt = (chatMode: ChatMode) => {
-	const tools = availableTools(chatMode)
+const systemToolsXMLPrompt = (chatMode: ChatMode, mcpTools: InternalToolInfo[] | undefined) => {
+	const tools = availableTools(chatMode, mcpTools)
 	if (!tools || tools.length === 0) return null
 
 	const toolXMLDefinitions = (`\
@@ -414,7 +425,7 @@ const systemToolsXMLPrompt = (chatMode: ChatMode) => {
 // ======================================================== chat (normal, gather, agent) ========================================================
 
 
-export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, persistentTerminalIDs, directoryStr, chatMode: mode, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, persistentTerminalIDs: string[], chatMode: ChatMode, includeXMLToolDefinitions: boolean }) => {
+export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, persistentTerminalIDs, directoryStr, chatMode: mode, mcpTools, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, persistentTerminalIDs: string[], chatMode: ChatMode, mcpTools: InternalToolInfo[] | undefined, includeXMLToolDefinitions: boolean }) => {
 	const header = (`You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} whose job is \
 ${mode === 'agent' ? `to help the user develop, run, and make changes to their codebase.`
 			: mode === 'gather' ? `to search, understand, and reference files in the user's codebase.`
@@ -448,7 +459,7 @@ ${directoryStr}
 </files_overview>`)
 
 
-	const toolDefinitions = includeXMLToolDefinitions ? systemToolsXMLPrompt(mode) : null
+	const toolDefinitions = includeXMLToolDefinitions ? systemToolsXMLPrompt(mode, mcpTools) : null
 
 	const details: string[] = []
 

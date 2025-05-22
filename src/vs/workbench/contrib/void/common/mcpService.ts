@@ -34,13 +34,8 @@ export interface IMCPService {
 	readonly state: MCPServiceState; // NOT persisted
 	onDidChangeState: Event<void>;
 
-	getMCPTools(): Record<string, InternalToolInfo>;
-
+	getMCPTools(): InternalToolInfo[] | undefined;
 	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }>;
-
-
-	// this is outdated:
-	// getMCPToolFns(): MCPCallToolOfToolName;
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -177,21 +172,20 @@ class MCPService extends Disposable implements IMCPService {
 		}
 	}
 
-	public getMCPTools(): Record<string, InternalToolInfo> {
-		const allTools: Record<string, InternalToolInfo> = {};
+	public getMCPTools(): InternalToolInfo[] | undefined {
+		const allTools: InternalToolInfo[] = []
 		for (const serverName in this.state.mcpServerOfName) {
 			const server = this.state.mcpServerOfName[serverName];
-			if (server.tools) {
-				server.tools.forEach(tool => {
-					allTools[tool.name] = {
-						description: tool.description || '',
-						params: this._transformInputSchemaToParams(tool.inputSchema),
-						name: tool.name,
-						mcpServerName: serverName,
-					};
-				});
-			}
+			server.tools?.forEach(tool => {
+				allTools.push({
+					description: tool.description || '',
+					params: this._transformInputSchemaToParams(tool.inputSchema),
+					name: tool.name,
+					mcpServerName: serverName,
+				})
+			})
 		}
+		if (allTools.length === 0) return undefined
 		return allTools
 	}
 

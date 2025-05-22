@@ -17,6 +17,7 @@ import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
+import { IMCPService } from '../common/mcpService.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
 
@@ -539,6 +540,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@IVoidModelService private readonly voidModelService: IVoidModelService,
+		@IMCPService private readonly mcpService: IMCPService,
 	) {
 		super()
 	}
@@ -588,8 +590,10 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 		const includeXMLToolDefinitions = !specialToolFormat
 
+		const mcpTools = this.mcpService.getMCPTools()
+
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
-		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, includeXMLToolDefinitions })
+		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
 		return systemMessage
 	}
 

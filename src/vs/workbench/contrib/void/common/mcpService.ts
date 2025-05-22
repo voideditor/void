@@ -205,14 +205,6 @@ class MCPService extends Disposable implements IMCPService {
 		return allTools;
 	}
 
-	// toggle MCP server and update isOn in void settings
-	public async toggleServerIsOn(serverName: string, isOn: boolean): Promise<void> {
-		await this.voidSettingsService.setMCPServerState(serverName, { isOn });
-		this.channel.call('toggleMCPServer', { serverName, isOn })
-	}
-
-	// utility functions
-
 	private async _getMCPConfigFilePath(): Promise<URI> {
 		const appName = this.productService.dataFolderName
 		const userHome = await this.pathService.userHome();
@@ -274,11 +266,7 @@ class MCPService extends Disposable implements IMCPService {
 
 		// set all servers to loading
 		for (const serverName in newConfigFileJSON.mcpServers) {
-			if (serverName in this.state.mcpServerOfName) continue
-			this._setMCPServerState(serverName, {
-				status: 'loading',
-				tools: [],
-			})
+			this._setMCPServerState(serverName, { status: 'loading', tools: [] })
 		}
 		const updatedServerNames = Object.keys(newConfigFileJSON.mcpServers).filter(serverName => !addedServerNames.includes(serverName) && !removedServerNames.includes(serverName))
 
@@ -289,6 +277,15 @@ class MCPService extends Disposable implements IMCPService {
 			updatedServerNames,
 			userStateOfName: this.voidSettingsService.state.mcpUserStateOfName,
 		})
+	}
+
+
+	// toggle MCP server and update isOn in void settings
+	public async toggleServerIsOn(serverName: string, isOn: boolean): Promise<void> {
+		this._setMCPServerState(serverName, { status: 'loading', tools: [] })
+
+		await this.voidSettingsService.setMCPServerState(serverName, { isOn });
+		this.channel.call('toggleMCPServer', { serverName, isOn })
 	}
 
 

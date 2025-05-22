@@ -1355,7 +1355,7 @@ Use Model Context Protocol to provide Agent mode with more tools.
 							`} chatMessageLocation={undefined} />
 					</h4>
 					<div>
-						<VoidButtonBgDarken className='px-4 py-1 mb-2' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+						<VoidButtonBgDarken className='px-4 py-1 mb-2 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
 							Add MCP Server
 						</VoidButtonBgDarken>
 					</div>

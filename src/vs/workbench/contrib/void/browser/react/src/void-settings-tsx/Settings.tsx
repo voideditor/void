@@ -910,6 +910,9 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 		mcpService.toggleMCPServer(name, e);
 	}
 
+	const voidSettings = useSettingsState()
+	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
+
 	return (
 		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
 			<div className="flex items-center mx-4">
@@ -929,7 +932,7 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 				{/* Power toggle switch */}
 				<div className="ml-auto">
 					<VoidSwitch
-						value={server.isOn ?? false}
+						value={isOn ?? false}
 						disabled={server.status === 'error'}
 						onChange={handleChangeEvent}
 					/>
@@ -939,7 +942,7 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 			{/* Tools section */}
 			<div className="mt-1 mx-4">
 				<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
-					{server.isOn && server.tools.length > 0 ? (
+					{isOn && server.tools.length > 0 ? (
 						server.tools.map((tool: { name: string; description?: string }) => (
 							<span
 								key={tool.name}
@@ -956,7 +959,7 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 			</div>
 
 			{/* Command badge */}
-			{server.isOn && server.command && (
+			{isOn && server.command && (
 				<div className="mt-2 mx-4">
 					<div className="text-xs text-gray-400">Command:</div>
 					<div className="px-2 py-1 bg-void-bg-3 text-xs font-mono overflow-x-auto whitespace-nowrap">
@@ -983,11 +986,6 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 // Main component that renders the list of servers
 const MCPServersList = () => {
 	const mcpServiceState = useMCPServiceState()
-	const accessor = useAccessor();
-
-	const userSpecifiedMCPServerNames = mcpServiceState.userSpecifiedMCPServerNames
-	// TODO tell the user what servers they've specified (might be different from those found)
-
 
 	let content: React.ReactNode
 	if (mcpServiceState.error) {

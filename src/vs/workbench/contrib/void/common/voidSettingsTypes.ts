@@ -494,10 +494,10 @@ export const defaultOverridesOfModel = overridesOfModel
 
 
 
-export interface MCPServerStateOfName {
-	[serverName: string]: MCPServerState | undefined;
+export interface MCPUserStateOfName {
+	[serverName: string]: MCPUserState | undefined;
 }
 
-export interface MCPServerState {
+export interface MCPUserState {
 	isOn: boolean;
 }

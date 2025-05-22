@@ -17,7 +17,7 @@ import { MCPConfigFileType, MCPConfigFileServerType, MCPServerErrorModel, MCPSer
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { equals } from '../../../../base/common/objects.js';
-import { MCPServerStateOfName } from '../common/voidSettingsTypes.js';
+import { MCPUserStateOfName } from '../common/voidSettingsTypes.js';
 
 
 // const getLoadingServerObject = (serverName: string, isOn: boolean | undefined) => {
@@ -118,9 +118,9 @@ export class MCPChannel implements IServerChannel {
 
 	// server functions
 
-	private async _refreshMCPServers(params: { mcpConfig: MCPConfigFileType, serverStates: MCPServerStateOfName }) {
+	private async _refreshMCPServers(params: { mcpConfig: MCPConfigFileType, userStateOfName: MCPUserStateOfName }) {
 
-		const { mcpConfig, serverStates } = params
+		const { mcpConfig, userStateOfName } = params
 
 		// Get all prevServers
 		const prevServers = { ...this.clients }
@@ -174,7 +174,7 @@ export class MCPChannel implements IServerChannel {
 		if (addedServers.length > 0) {
 			// emit added servers
 			const addPromises = addedServers.map(async (serverName) => {
-				const addedServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
+				const addedServer = await this._safeSetupServer(mcpServers[serverName], serverName, userStateOfName[serverName]?.isOn)
 				return {
 					type: 'add',
 					newServer: addedServer,
@@ -189,7 +189,7 @@ export class MCPChannel implements IServerChannel {
 			// emit updated servers
 			const updatePromises = updatedServers.map(async (serverName) => {
 				const prevServer = this.clients[serverName]?.formattedServer;
-				const newServer = await this._safeSetupServer(mcpServers[serverName], serverName, serverStates[serverName]?.isOn)
+				const newServer = await this._safeSetupServer(mcpServers[serverName], serverName, userStateOfName[serverName]?.isOn)
 				return {
 					type: 'update',
 					prevServer,
@@ -234,7 +234,6 @@ export class MCPChannel implements IServerChannel {
 				const { tools } = await client.listTools()
 				formattedServer = {
 					status: isOn ? 'success' : 'offline',
-					isOn,
 					tools: tools,
 					command: server.url.toString(),
 				}
@@ -245,7 +244,6 @@ export class MCPChannel implements IServerChannel {
 				console.log(`Connected via SSE to ${serverName}`);
 				formattedServer = {
 					status: isOn ? 'success' : 'offline',
-					isOn,
 					tools: [],
 					command: server.url.toString(),
 				}
@@ -272,7 +270,6 @@ export class MCPChannel implements IServerChannel {
 			// Format server object
 			formattedServer = {
 				status: isOn ? 'success' : 'offline',
-				isOn,
 				tools: tools,
 				command: fullCommand,
 			}
@@ -301,7 +298,6 @@ export class MCPChannel implements IServerChannel {
 
 			const formattedError: MCPServerErrorModel = {
 				status: 'error',
-				isOn: false,
 				tools: [],
 				error: typedErr.message,
 				command: fullCommand,
@@ -369,7 +365,6 @@ export class MCPChannel implements IServerChannel {
 					name: serverName,
 					newServer: {
 						status: 'offline',
-						isOn,
 						tools: [],
 						command: '',
 						// Explicitly set error to undefined

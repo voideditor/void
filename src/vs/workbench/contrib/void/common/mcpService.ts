@@ -14,17 +14,16 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { MCPServerOfName, MCPConfigFileType, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPServerEventResponse, MCPServerObject, MCPToolCallParams, MCPGenericToolResponse } from './mcpServiceTypes.js';
+import { MCPServerOfName, MCPConfigFileType, MCPAddServerResponse, MCPUpdateServerResponse, MCPDeleteServerResponse, MCPServerObject, MCPToolCallParams, MCPGenericToolResponse } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
-import { MCPServerStateOfName } from './voidSettingsTypes.js';
+import { MCPUserStateOfName } from './voidSettingsTypes.js';
 
 
 type MCPState = {
 	mcpServerOfName: MCPServerOfName,
-	error: string | undefined,
-	userSpecifiedMCPServerNames: string[],
+	error: string | undefined, // global parsing error
 }
 
 export interface IMCPService {
@@ -77,7 +76,6 @@ class MCPService extends Disposable implements IMCPService {
 	state: MCPState = {
 		mcpServerOfName: {},
 		error: undefined,
-		userSpecifiedMCPServerNames: [],
 	}
 
 	// Emitters for server events
@@ -96,15 +94,12 @@ class MCPService extends Disposable implements IMCPService {
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
 		super();
-		// Register the service with the instantiation service
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
-		// Register listeners for the channel
-		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPAddServerResponse>)(e => this._onGetServerEvent(e)));
-		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPUpdateServerResponse>)(e => this._onGetServerEvent(e)));
-		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPDeleteServerResponse>)(e => this._onGetServerEvent(e)));
 
-		// this._register((this.channel.listen('onLoading_server') satisfies Event<MCPServerEventLoadingParam>)(e => this._onServerEvent(e)));
-		// Initialize the service
+		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPAddServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPUpdateServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPDeleteServerResponse>)(e => { this._setMCPServerState(e.response.name, e.response.newServer) }));
+
 		this._initialize();
 	}
 
@@ -127,12 +122,7 @@ class MCPService extends Disposable implements IMCPService {
 		}
 	}
 
-	private async _onGetServerEvent(e: MCPServerEventResponse) {
-		this._setMCPServer(e.response.name, e.response.newServer)
-	}
-
-
-	private readonly _setMCPServer = async (serverName: string, newServer: MCPServerObject | undefined) => {
+	private readonly _setMCPServerState = async (serverName: string, newServer: MCPServerObject | undefined) => {
 		this.state = {
 			...this.state,
 			mcpServerOfName: {
@@ -261,49 +251,37 @@ class MCPService extends Disposable implements IMCPService {
 	private async _refreshMCPServers(): Promise<void> {
 
 		this._setHasError(undefined)
-		// TODO!!! set is loading
 
-		const mcpConfigFile = await this._parseMCPConfigFile();
-		if (!mcpConfigFile) { console.log(`Not setting state: MCP config file not found`); return }
-		if (!mcpConfigFile?.mcpServers) { console.log(`Not setting state: MCP config file did not have an 'mcpServers' field`); return }
+		const newConfigFileJSON = await this._parseMCPConfigFile();
+		if (!newConfigFileJSON) { console.log(`Not setting state: MCP config file not found`); return }
+		if (!newConfigFileJSON?.mcpServers) { console.log(`Not setting state: MCP config file did not have an 'mcpServers' field`); return }
 
-		// set state to loading if it's the first time we're seeing it
-		const mcpConfigOfName = mcpConfigFile.mcpServers
+
+		const oldConfigFileNames = Object.keys(this.state.mcpServerOfName)
+		const newConfigFileNames = Object.keys(newConfigFileJSON.mcpServers)
+
+		const addedServerNames = newConfigFileNames.filter(serverName => !oldConfigFileNames.includes(serverName)); // in new and not in old
+		const removedServerNames = oldConfigFileNames.filter(serverName => !newConfigFileNames.includes(serverName)); // in old and not in new
+
+		// set isOn to any new servers in the config
+		const addedUserStateOfName: MCPUserStateOfName = {}
+		for (const name in addedServerNames) { addedUserStateOfName[name] = { isOn: true } }
+		await this.voidSettingsService.addMCPUserStateOfNames(addedUserStateOfName);
+
+		// delete isOn for any servers that no longer show up in the config
+		await this.voidSettingsService.removeMCPUserStateOfNames(removedServerNames);
+
+		// set all servers to loading
+		const mcpConfigOfName = newConfigFileJSON.mcpServers
 		for (const serverName in mcpConfigOfName) {
 			if (serverName in this.state.mcpServerOfName) continue
-			this._setMCPServer(serverName, {
-				isOn: false,
+			this._setMCPServerState(serverName, {
 				status: 'loading',
-				error: undefined,
-				command: undefined,
 				tools: [],
 			})
 		}
 
-		const currMCPStateOfName = this.voidSettingsService.state.mcpServerStateOfName;
-		const availableServers = Object.keys(mcpConfigFile.mcpServers);
-
-		// Handle added servers
-		const addedServers = availableServers.filter(serverName => !currMCPStateOfName[serverName]?.isOn);
-		const addedServersObject = addedServers.reduce((acc, serverName) => {
-			acc[serverName] = { isOn: true };
-			return acc;
-		}, {} as MCPServerStateOfName);
-		await this.voidSettingsService.addMCPServerStateOfName(addedServersObject);
-
-		// Handle removed servers
-		const removedServers = Object.keys(currMCPStateOfName).filter(serverName => availableServers.indexOf(serverName) === -1);
-		await this.voidSettingsService.removeMCPServerStateNames(removedServers);
-
-		// Compile the updated server list as MCPServerStates
-		const updatedServers = Object.keys(currMCPStateOfName).reduce((acc, serverName) => {
-			if (availableServers.includes(serverName)) {
-				acc[serverName] = currMCPStateOfName[serverName];
-			}
-			return acc;
-		}, {} as MCPServerStateOfName);
-
-		this.channel.call('refreshMCPServers', { mcpConfig: mcpConfigFile, serverStates: updatedServers })
+		this.channel.call('refreshMCPServers', { mcpConfig: newConfigFileJSON, userStateOfName: this.voidSettingsService.state.mcpUserStateOfName })
 	}
 
 	public async callMCPTool(toolData: MCPToolCallParams): Promise<MCPGenericToolResponse> {

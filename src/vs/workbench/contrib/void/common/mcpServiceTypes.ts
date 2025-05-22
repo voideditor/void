@@ -138,7 +138,6 @@ export interface MCPServerObject {
 	// Command-based server properties
 	tools: MCPTool[],
 	status: 'loading' | 'error' | 'success' | 'offline',
-	isOn: boolean | undefined,
 	command?: string,
 	error?: string,
 }

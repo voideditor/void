@@ -638,8 +638,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 
-		// TOOL_TODO!!!!!!!!! call the builtin versus the MCP tool here and stringify
-
+		// TOOL_TODO!!!!!!!!! call the builtin versus the MCP tool here (finish filling in the comment below and replace it out with the tool call and stringify functions further below)
 		// const isBuiltInTool = (toolNames as string[]).includes(toolName)
 		// const callToolFn = (toolName: string, toolParams: BuiltinToolCallParams[ToolName]) => {
 		// 	if (isBuiltInTool) {

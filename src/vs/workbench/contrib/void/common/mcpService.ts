@@ -36,7 +36,7 @@ export interface IMCPService {
 
 	getCurrentMCPToolNames(): InternalToolInfo[];
 
-	// TOOL_TODO!!!! implement getMCPTools here, which gets merged with builtins in prompts
+	// TOOL_TODO!!!! implement getMCPTools here, which gets merged with builtins in prompts.ts. Should generally be the same shape as voidTools in prompts.ts.
 
 	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: MCPGenericToolResponse }>;
 

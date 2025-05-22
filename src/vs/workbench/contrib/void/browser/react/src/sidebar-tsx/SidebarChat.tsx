@@ -1619,7 +1619,7 @@ const ToolRequestAcceptRejectButtons = ({ toolName }: { toolName: ToolName }) =>
 
 	const approvalType = isABuiltinToolName(toolName) ? approvalTypeOfBuiltinToolName[toolName] : 'mcp-tools'
 	const approvalToggle = approvalType ? <div key={approvalType} className="flex items-center ml-2 gap-x-1">
-		<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc='Auto-approve' />
+		<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc={`Auto-approve ${approvalType}`} />
 	</div> : null
 
 	return <div className="flex gap-2 mx-0.5 items-center">

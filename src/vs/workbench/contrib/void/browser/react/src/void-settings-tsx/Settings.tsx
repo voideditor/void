@@ -19,7 +19,7 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
-import { MCPServerObject } from '../../../../common/mcpServiceTypes.js';
+import { MCPServer } from '../../../../common/mcpServiceTypes.js';
 import { useMCPServiceState } from '../util/services.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
@@ -901,7 +901,7 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 // full settings
 
 // MCP Server component
-const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) => {
+const MCPServer = ({ name, server }: { name: string, server: MCPServer }) => {
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
 
@@ -942,8 +942,8 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 			{/* Tools section */}
 			<div className="mt-1 mx-4">
 				<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
-					{isOn && server.tools.length > 0 ? (
-						server.tools.map((tool: { name: string; description?: string }) => (
+					{isOn && (server.tools ?? []).length > 0 ? (
+						(server.tools ?? []).map((tool: { name: string; description?: string }) => (
 							<span
 								key={tool.name}
 								className="px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded text-xs"

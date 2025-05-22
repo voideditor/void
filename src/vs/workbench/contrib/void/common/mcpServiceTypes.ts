@@ -116,7 +116,7 @@ export interface MCPTool {
 
 // MCP SERVER CONFIG FILE TYPES -----------------------------
 
-export interface MCPConfigFileServerType {
+export interface MCPConfigFileEntryJSON {
 	// Command-based server properties
 	command?: string;
 	args?: string[];
@@ -127,73 +127,60 @@ export interface MCPConfigFileServerType {
 	headers?: Record<string, string>;
 }
 
-export interface MCPConfigFileType {
-	mcpServers: Record<string, MCPConfigFileServerType>;
+export interface MCPConfigFileJSON {
+	mcpServers: Record<string, MCPConfigFileEntryJSON>;
 }
 
 
 // SERVER EVENT TYPES ------------------------------------------
 
-export interface MCPServerObject {
+export type MCPServer = {
 	// Command-based server properties
 	tools: MCPTool[],
-	status: 'loading' | 'error' | 'success' | 'offline',
+	status: 'loading' | 'success' | 'offline',
 	command?: string,
 	error?: string,
+} | {
+	tools?: undefined,
+	status: 'error',
+	command?: string,
+	error: string,
 }
 
 export interface MCPServerOfName {
-	[serverName: string]: MCPServerObject;
+	[serverName: string]: MCPServer;
 }
 
-// Create separate types for success and error cases
-export type MCPServerSuccessModel = MCPServerObject;
-export type MCPServerErrorModel = Omit<MCPServerObject, 'error'> & { error: string };
-
-
-export type MCPServerSetupParams = {
-	serverName: string;
-	onSuccess: (param: { model: MCPServerSuccessModel & { serverName: string } }) => void;
-	onError: (param: { model: MCPServerErrorModel & { serverName: string } }) => void;
-}
-
-// Listener event types
-export type EventMCPServerSetupOnSuccess = Parameters<MCPServerSetupParams['onSuccess']>[0]
-export type EventMCPServerSetupOnError = Parameters<MCPServerSetupParams['onError']>[0]
-
-export type MCPServerModel = MCPServerSuccessModel | MCPServerErrorModel;
-
-
-export type MCPServerEventType = {
+export type MCPServerEvent = {
 	type: 'add';
 	name: string;
 	prevServer?: undefined;
-	newServer: MCPServerModel;
+	newServer: MCPServer;
 } | {
 	type: 'update';
 	name: string;
-	prevServer: MCPServerModel;
-	newServer: MCPServerModel;
+	prevServer: MCPServer;
+	newServer: MCPServer;
 } | {
 	type: 'delete';
 	name: string;
 	newServer?: undefined;
-	prevServer: MCPServerModel;
+	prevServer: MCPServer;
 } | {
 	type: 'loading';
 	name: string;
 	prevServer?: undefined;
-	newServer: MCPServerModel;
+	newServer: MCPServer;
 }
 
 // Response types
-export type MCPAddServerResponse = { response: MCPServerEventType & { type: 'add' } }
-export type MCPUpdateServerResponse = { response: MCPServerEventType & { type: 'update' } }
-export type MCPDeleteServerResponse = { response: MCPServerEventType & { type: 'delete' } }
-// export type MCPLoadingChangeResponse = { response: MCPEventType & { type: 'loading' } }
+export type MCPServerEventResponse = { response: MCPServerEvent }
+
+export type MCPAddServerResponse = { response: MCPServerEvent & { type: 'add' } }
+export type MCPUpdateServerResponse = { response: MCPServerEvent & { type: 'update' } }
+export type MCPDeleteServerResponse = { response: MCPServerEvent & { type: 'delete' } }
 
 
-export type MCPServerEventResponse = { response: MCPServerEventType }
 
 export interface MCPConfigFileParseErrorResponse {
 	response: {

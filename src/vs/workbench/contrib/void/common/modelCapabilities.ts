@@ -111,6 +111,7 @@ export const defaultModelsOfProvider = {
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
 		'deepseek/deepseek-r1-zero:free',
+		'mistralai/devstral-small:free'
 		// 'openrouter/quasar-alpha',
 		// 'google/gemini-2.5-pro-preview-03-25',
 		// 'mistralai/codestral-2501',
@@ -135,6 +136,7 @@ export const defaultModelsOfProvider = {
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
+		'devstral-small-latest',
 		'mistral-large-latest',
 		'mistral-medium-latest',
 		'ministral-3b-latest',
@@ -269,6 +271,12 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
+	},
+	'devstral': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+		contextWindow: 131_000, reservedOutputTokenSpace: 8_192,
 	},
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
@@ -425,6 +433,7 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 	if (lower.includes('qwq')) { return toFallback(openSourceModelOptions_assumingOAICompat, 'qwq') }
 	if (lower.includes('phi4')) return toFallback(openSourceModelOptions_assumingOAICompat, 'phi4')
 	if (lower.includes('codestral')) return toFallback(openSourceModelOptions_assumingOAICompat, 'codestral')
+	if (lower.includes('devstral')) return toFallback(openSourceModelOptions_assumingOAICompat, 'devstral')
 
 	if (lower.includes('gemma')) return toFallback(openSourceModelOptions_assumingOAICompat, 'gemma')
 
@@ -931,6 +940,17 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
+
+	'devstral-small-latest': { //https://openrouter.ai/mistralai/devstral-small:free
+		contextWindow: 131_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0, output: 0 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 14 }, //https://ollama.com/library/devstral
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+
 	'ministral-8b-latest': { // ollama 'mistral'
 		contextWindow: 131_000,
 		reservedOutputTokenSpace: 4_096,
@@ -1106,10 +1126,19 @@ const ollamaModelOptions = {
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
+	'devstral:latest': {
+		contextWindow: 131_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 14 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
 
 } as const satisfies Record<string, VoidStaticModelInfo>
 
-export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq', 'deepseek-r1'] as const satisfies (keyof typeof ollamaModelOptions)[]
+export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq', 'deepseek-r1', 'devstral:latest'] as const satisfies (keyof typeof ollamaModelOptions)[]
 
 
 const vLLMSettings: VoidStaticProviderInfo = {
@@ -1261,6 +1290,14 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: null,
 		cost: { input: 0.3, output: 0.9 },
+		downloadable: false,
+		reasoningCapabilities: false,
+	},
+	'mistralai/devstral-small:free': {
+		...openSourceModelOptions_assumingOAICompat.devstral,
+		contextWindow: 130_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
 		downloadable: false,
 		reasoningCapabilities: false,
 	},

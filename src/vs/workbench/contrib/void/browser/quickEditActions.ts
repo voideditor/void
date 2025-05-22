@@ -42,7 +42,6 @@ registerAction2(class extends Action2 {
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
 				weight: KeybindingWeight.VoidExtension,
-				when: 'editorFocus && !terminalFocus',
 			}
 		});
 	}

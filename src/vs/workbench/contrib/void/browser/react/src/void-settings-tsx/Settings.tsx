@@ -915,10 +915,10 @@ const MCPServer = ({ name, server }: { name: string, server: MCPServerObject }) 
 			<div className="flex items-center mx-4">
 				{/* Status indicator */}
 				<div className={`w-2 h-2 rounded-full mr-2
-					${server.status === 'success' ? 'green-500'
-						: server.status === 'error' ? 'red-500'
-							: server.status === 'loading' ? 'yellow-500'
-								: server.status === 'offline' ? 'gray-500'
+					${server.status === 'success' ? 'bg-green-500'
+						: server.status === 'error' ? 'bg-red-500'
+							: server.status === 'loading' ? 'bg-yellow-500'
+								: server.status === 'offline' ? 'bg-gray-500'
 									: ''}
 
 				  `}></div>

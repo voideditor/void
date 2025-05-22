@@ -219,6 +219,14 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								className="ml-1 text-xs align-top text-blue-400"
 							>*</span>
 						)}
+						{providerName === 'klusterAI' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="Kluster.ai offers 5$ welcome credit."
+								data-tooltip-place="right"
+								className="ml-1 text-xs align-top text-blue-400"
+							>*</span>
+						)}
 					</div>
 					<div>
 						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />
@@ -509,9 +517,9 @@ const VoidOnboardingContent = () => {
 	}
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
-		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
-		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio'],
-		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
+		smart: ['anthropic', 'openAI', 'gemini', 'openRouter', 'klusterAI'],
+		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio', 'klusterAI'],
+		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM', 'klusterAI'],
 		all: providerNames,
 	}
 

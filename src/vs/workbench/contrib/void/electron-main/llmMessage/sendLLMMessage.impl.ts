@@ -121,6 +121,29 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const options = { endpoint, apiKey: thisConfig.apiKey, apiVersion };
 		return new AzureOpenAI({ ...options, ...commonPayloadOpts });
 	}
+	else if (providerName === 'awsBedrock') {
+		/**
+		  * We treat Bedrock as *OpenAI-compatible only through a proxy*:
+		  *   • LiteLLM default → http://localhost:4000/v1
+		  *   • Bedrock-Access-Gateway → https://<api-id>.execute-api.<region>.amazonaws.com/openai/
+		  *
+		  * The native Bedrock runtime endpoint
+		  *   https://bedrock-runtime.<region>.amazonaws.com
+		  * is **NOT** OpenAI-compatible, so we do *not* fall back to it here.
+		  */
+		const { endpoint, apiKey } = settingsOfProvider.awsBedrock
+
+		// ① use the user-supplied proxy if present
+		// ② otherwise default to local LiteLLM
+		let baseURL = endpoint || 'http://localhost:4000/v1'
+
+		// Normalize: make sure we end with “/v1”
+		if (!baseURL.endsWith('/v1'))
+			baseURL = baseURL.replace(/\/+$/, '') + '/v1'
+
+		return new OpenAI({ baseURL, apiKey, ...commonPayloadOpts })
+	}
+
 
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider[providerName]
@@ -907,6 +930,12 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
+	awsBedrock: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+
 } satisfies CallFnOfProvider
 
 

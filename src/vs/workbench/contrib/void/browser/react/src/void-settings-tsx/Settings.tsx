@@ -943,7 +943,10 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 							<span
 								key={tool.name}
 								className="px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded text-xs"
-								title={tool.description || ''}
+
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={tool.description || ''}
+								data-tooltip-class-name='void-max-w-[20px]'
 							>
 								{tool.name}
 							</span>

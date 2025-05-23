@@ -1868,7 +1868,13 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const { rawParams, params } = toolMessage
 	const componentParams: ToolHeaderParams = { title, desc1, isError, icon, isRejected, }
 
-	componentParams.info = `MCP server "${toolMessage.mcpServerName}"`
+	const paramsStr = JSON.stringify(params, null, 2)
+	componentParams.desc2 = <CopyButton codeStr={paramsStr} toolTipName={`Copy inputs: ${paramsStr}`} />
+
+	componentParams.info = !toolMessage.mcpServerName ? 'MCP tool not found' : undefined
+
+	// Add copy inputs button in desc2
+
 
 	if (toolMessage.type === 'success' || toolMessage.type === 'tool_request') {
 		const { result } = toolMessage

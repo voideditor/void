@@ -1428,7 +1428,9 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 							: t.type === 'invalid_params' ? 'Call'
 								: t.type === 'tool_error' ? 'Call'
 									: 'Call'
-		const title = `${descriptor} MCP`
+
+
+		const title = `${descriptor} ${toolMessage.mcpServerName || 'MCP'}`
 		if (t.type === 'running_now' || t.type === 'tool_request')
 			return loadingTitleWrapper(title)
 		return title
@@ -1852,7 +1854,7 @@ const CommandTool = ({ toolMessage, type, threadId }: { threadId: string } & ({
 type WrapperProps<T extends ToolName> = { toolMessage: Exclude<ToolMessage<T>, { type: 'invalid_params' }>, messageIdx: number, threadId: string }
 const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
+	const mcpService = accessor.get('IMCPService')
 
 	const title = getTitle(toolMessage)
 	const desc1 = toolMessage.name
@@ -1870,14 +1872,11 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 
 	if (toolMessage.type === 'success' || toolMessage.type === 'tool_request') {
 		const { result } = toolMessage
+		const resultStr = result ? mcpService.stringifyResult(result) : 'null'
 		componentParams.children = <ToolChildrenWrapper>
 			<SmallProseWrapper>
 				<ChatMarkdownRender
-					string={`
-\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\`
-## Inputs:
-\`\`\`json\n${JSON.stringify(params, null, 2)}\n\`\`\`
-`}
+					string={`\`\`\`json\n${resultStr}\n\`\`\``}
 					chatMessageLocation={undefined}
 					isApplyEnabled={false}
 					isLinkDetectionEnabled={true}

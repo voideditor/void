@@ -36,6 +36,7 @@ export interface IMCPService {
 
 	getMCPTools(): InternalToolInfo[] | undefined;
 	callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }>;
+	stringifyResult(result: RawMCPToolCall): string
 }
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
@@ -286,6 +287,21 @@ class MCPService extends Disposable implements IMCPService {
 		})
 	}
 
+	stringifyResult(result: RawMCPToolCall): string {
+		let toolResultStr: string
+		if (result.event === 'text') {
+			toolResultStr = result.text
+		} else if (result.event === 'image') {
+			toolResultStr = `[Image: ${result.image.mimeType}]`
+		} else if (result.event === 'audio') {
+			toolResultStr = `[Audio content]`
+		} else if (result.event === 'resource') {
+			toolResultStr = `[Resource content]`
+		} else {
+			toolResultStr = JSON.stringify(result)
+		}
+		return toolResultStr
+	}
 
 	// toggle MCP server and update isOn in void settings
 	public async toggleServerIsOn(serverName: string, isOn: boolean): Promise<void> {

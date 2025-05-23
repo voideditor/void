@@ -713,18 +713,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			}
 			// For MCP tools, handle the result based on its type
 			else {
-				const toolResult_ = toolResult as RawMCPToolCall
-				if (toolResult_.event === 'text') {
-					toolResultStr = toolResult_.text
-				} else if (toolResult_.event === 'image') {
-					toolResultStr = `[Image: ${toolResult_.image.mimeType}]`
-				} else if (toolResult_.event === 'audio') {
-					toolResultStr = `[Audio content]`
-				} else if (toolResult_.event === 'resource') {
-					toolResultStr = `[Resource content]`
-				} else {
-					toolResultStr = JSON.stringify(toolResult)
-				}
+				toolResultStr = this._mcpService.stringifyResult(toolResult as RawMCPToolCall)
 			}
 		} catch (error) {
 			const errorMessage = this.toolErrMsgs.errWhenStringifying(error)

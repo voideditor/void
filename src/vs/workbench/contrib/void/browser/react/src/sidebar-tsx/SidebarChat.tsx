@@ -1421,13 +1421,13 @@ const getTitle = (toolMessage: Pick<ChatMessage & { role: 'tool' }, 'name' | 'ty
 	if (!builtinToolNames.includes(t.name as BuiltinToolName)) {
 		// descriptor of Running or Ran etc
 		const descriptor =
-			t.type === 'success' ? 'Ran'
-				: t.type === 'running_now' ? 'Running'
-					: t.type === 'tool_request' ? 'Requested'
-						: t.type === 'rejected' ? 'Canceled'
-							: t.type === 'invalid_params' ? 'Canceled'
-								: t.type === 'tool_error' ? 'Canceled'
-									: 'Ran'
+			t.type === 'success' ? 'Called'
+				: t.type === 'running_now' ? 'Calling'
+					: t.type === 'tool_request' ? 'Call'
+						: t.type === 'rejected' ? 'Call'
+							: t.type === 'invalid_params' ? 'Call'
+								: t.type === 'tool_error' ? 'Call'
+									: 'Call'
 		const title = `${descriptor} MCP`
 		if (t.type === 'running_now' || t.type === 'tool_request')
 			return loadingTitleWrapper(title)

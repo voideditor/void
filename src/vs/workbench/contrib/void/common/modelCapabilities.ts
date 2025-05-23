@@ -86,6 +86,9 @@ export const defaultModelsOfProvider = {
 	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
 		'grok-2',
 		'grok-3',
+		'grok-3-mini',
+		'grok-3-fast',
+		'grok-3-mini-fast'
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
 		'gemini-2.5-pro-exp-03-25',

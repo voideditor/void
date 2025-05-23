@@ -481,7 +481,6 @@ ${directoryStr}
 		details.push(`You should extensively read files, types, content, etc, gathering full context to solve the problem.`)
 	}
 
-
 	details.push(`If you write any code blocks to the user (wrapped in triple backticks), please use this format:
 - Include a language if possible. Terminal should have the language 'shell'.
 - The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
@@ -529,7 +528,9 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 // 		chat_systemMessage({ chatMode, workspaceFolders: [], openedURIs: [], activeURI: 'pee', persistentTerminalIDs: [], directoryStr: 'lol', }))
 // }
 
-const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: number): Promise<{
+export const DEFAULT_FILE_SIZE_LIMIT = 2_000_000
+
+export const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: number): Promise<{
 	val: string,
 	truncated: boolean,
 	fullFileLen: number,
@@ -553,46 +554,70 @@ const readFile = async (fileService: IFileService, uri: URI, fileSizeLimit: numb
 
 
 
+export const messageOfSelection = async (
+	s: StagingSelectionItem,
+	opts: {
+		directoryStrService: IDirectoryStrService,
+		fileService: IFileService,
+		folderOpts: {
+			maxChildren: number,
+			maxCharsPerFile: number,
+		}
+	}
+) => {
+	const lineNumAddition = (range: [number, number]) => ` (lines ${range[0]}:${range[1]})`
+
+	if (s.type === 'File' || s.type === 'CodeSelection') {
+		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
+		const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
+		const content = val === null ? 'null' : `${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+		const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`
+		return str
+	}
+	else if (s.type === 'Folder') {
+		const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)
+		const folderStructure = `${s.uri.fsPath} folder structure:${tripleTick[0]}\n${dirStr}\n${tripleTick[1]}`
+
+		const uris = await opts.directoryStrService.getAllURIsInDirectory(s.uri, { maxResults: opts.folderOpts.maxChildren })
+		const strOfFiles = await Promise.all(uris.map(async uri => {
+			const { val, truncated } = await readFile(opts.fileService, uri, opts.folderOpts.maxCharsPerFile)
+			const truncationStr = truncated ? `\n... file truncated ...` : ''
+			const content = val === null ? 'null' : `${tripleTick[0]}\n${val}${truncationStr}\n${tripleTick[1]}`
+			const str = `${uri.fsPath}:\n${content}`
+			return str
+		}))
+		const contentStr = [folderStructure, ...strOfFiles].join('\n\n')
+		return contentStr
+	}
+	else
+		return ''
+
+}
 
 
-
-export const chat_userMessageContent = async (instructions: string, currSelns: StagingSelectionItem[] | null,
-	opts: { directoryStrService: IDirectoryStrService, fileService: IFileService }
+export const chat_userMessageContent = async (
+	instructions: string,
+	currSelns: StagingSelectionItem[] | null,
+	opts: {
+		directoryStrService: IDirectoryStrService,
+		fileService: IFileService
+	},
 ) => {
 
-	const lineNumAddition = (range: [number, number]) => ` (lines ${range[0]}:${range[1]})`
-	let selnsStrs: string[] = []
-	selnsStrs = await Promise.all(currSelns?.map(async (s) => {
+	const selnsStrs = await Promise.all(
+		(currSelns ?? []).map(async (s) =>
+			messageOfSelection(s, {
+				...opts,
+				folderOpts: { maxChildren: 100, maxCharsPerFile: 100_000, }
+			})
+		)
+	)
 
-		if (s.type === 'File' || s.type === 'CodeSelection') {
-			const { val } = await readFile(opts.fileService, s.uri, 2_000_000)
-			const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
-			const content = val === null ? 'null' : `${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
-			const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`
-			return str
-		}
-		else if (s.type === 'Folder') {
-			const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)
-			const folderStructure = `${s.uri.fsPath} folder structure:${tripleTick[0]}\n${dirStr}\n${tripleTick[1]}`
 
-			const uris = await opts.directoryStrService.getAllURIsInDirectory(s.uri, { maxResults: 100 })
-			const strOfFiles = await Promise.all(uris.map(async uri => {
-				const { val, truncated } = await readFile(opts.fileService, uri, 100_000)
-				const truncationStr = truncated ? `\n... file truncated ...` : ''
-				const content = val === null ? 'null' : `${tripleTick[0]}\n${val}${truncationStr}\n${tripleTick[1]}`
-				const str = `${uri.fsPath}:\n${content}`
-				return str
-			}))
-			const contentStr = [folderStructure, ...strOfFiles].join('\n\n')
-			return contentStr
-		}
-		else
-			return ''
-	}) ?? [])
-
-	const selnsStr = selnsStrs.join('\n') ?? ''
 	let str = ''
 	str += `${instructions}`
+
+	const selnsStr = selnsStrs.join('\n\n') ?? ''
 	if (selnsStr) str += `\n---\nSELECTIONS\n${selnsStr}`
 	return str;
 }

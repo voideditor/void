@@ -298,6 +298,9 @@ class MCPService extends Disposable implements IMCPService {
 
 	public async callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }> {
 		const result = await this.channel.call<RawMCPToolCall>('callTool', toolData);
+		if (result.event === 'error') {
+			throw new Error(`Error: ${result.text}`)
+		}
 		return { result };
 	}
 

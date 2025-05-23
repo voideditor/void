@@ -716,8 +716,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				const toolResult_ = toolResult as RawMCPToolCall
 				if (toolResult_.event === 'text') {
 					toolResultStr = toolResult_.text
-				} else if (toolResult_.event === 'error') {
-					toolResultStr = `Error: ${toolResult_.text}`
 				} else if (toolResult_.event === 'image') {
 					toolResultStr = `[Image: ${toolResult_.image.mimeType}]`
 				} else if (toolResult_.event === 'audio') {

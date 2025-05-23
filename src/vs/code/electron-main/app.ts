@@ -130,6 +130,7 @@ import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpda
 import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
 import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
 import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/sendLLMMessageChannel.js';
+import { MCPChannel } from '../../workbench/contrib/void/electron-main/mcpChannel.js';
 
 /**
  * The main VS Code application. There will only ever be one instance,
@@ -1242,6 +1243,9 @@ export class CodeApplication extends Disposable {
 
 		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
 		mainProcessElectronServer.registerChannel('void-channel-llmMessage', sendLLMMessageChannel);
+
+		const mcpChannel = new MCPChannel();
+		mainProcessElectronServer.registerChannel('void-channel-mcp', mcpChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

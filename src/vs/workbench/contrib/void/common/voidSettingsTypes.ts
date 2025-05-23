@@ -33,7 +33,7 @@ export type VoidStatefulModelInfo = { // <-- STATEFUL
 	modelName: string,
 	type: 'default' | 'autodetected' | 'custom';
 	isHidden: boolean, // whether or not the user is hiding it (switched off)
-}  // TODO!!! eventually we'd want to let the user change supportsFIM, etc on the model themselves
+}
 
 
 
@@ -491,3 +491,13 @@ export type OverridesOfModel = {
 const overridesOfModel = {} as OverridesOfModel
 for (const providerName of providerNames) { overridesOfModel[providerName] = {} }
 export const defaultOverridesOfModel = overridesOfModel
+
+
+
+export interface MCPUserStateOfName {
+	[serverName: string]: MCPUserState | undefined;
+}
+
+export interface MCPUserState {
+	isOn: boolean;
+}

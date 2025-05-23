@@ -13,6 +13,7 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
+import { IMCPService } from './mcpService.js';
 
 // calls channel to implement features
 export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
@@ -61,6 +62,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		// @INotificationService private readonly notificationService: INotificationService,
+		@IMCPService private readonly mcpService: IMCPService,
 	) {
 		super()
 
@@ -116,6 +118,8 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 		const { settingsOfProvider, } = this.voidSettingsService.state
 
+		const mcpTools = this.mcpService.getMCPTools()
+
 		// add state for request id
 		const requestId = generateUuid();
 		this.llmMessageHooks.onText[requestId] = onText
@@ -129,6 +133,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			requestId,
 			settingsOfProvider,
 			modelSelection,
+			mcpTools,
 		} satisfies MainSendLLMMessageParams);
 
 		return requestId

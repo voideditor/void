@@ -103,9 +103,9 @@ const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzu
 
 // Data structures for provider tabs
 const providerNamesOfTab: Record<TabName, ProviderName[]> = {
-	Free: ['gemini', 'openRouter','groq'],
+	Free: ['gemini', 'openRouter','groq','together'],
 	Local: localProviderNames,
-	Paid: providerNames.filter(pn => !(['gemini', 'openRouter','groq', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
+	Paid: providerNames.filter(pn => !(['gemini', 'openRouter','groq','together', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
 	'Cloud/Other': cloudProviders,
 };
 
@@ -226,6 +226,16 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								className="ml-1 text-xs align-top text-blue-400"
 							>*</span>
 						)}
+						{
+							providerName === 'together' && (
+								<span
+									data-tooltip-id="void-tooltip-provider-info"
+									data-tooltip-content="Together offers free API access with rate limits. Register at together.xyz to get an API key for models like Llama3-70b."
+									data-tooltip-place="right"
+									className="ml-1 text-xs align-top text-blue-400"
+								>*</span>
+							)
+						}
 					</div>
 					<div>
 						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />

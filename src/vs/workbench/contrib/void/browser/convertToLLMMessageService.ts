@@ -250,8 +250,8 @@ const prepareOpenAIOrAnthropicMessages = ({
 	reservedOutputTokenSpace,
 }: {
 	messages: SimpleLLMMessage[],
-	systemMessage: string,
-	aiInstructions: string,
+	systemMessage: string | undefined,
+	aiInstructions: string | undefined,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	specialToolFormat: 'openai-style' | 'anthropic-style' | undefined,
 	supportsAnthropicReasoning: boolean,
@@ -491,8 +491,8 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 
 const prepareMessages = (params: {
 	messages: SimpleLLMMessage[],
-	systemMessage: string,
-	aiInstructions: string,
+	systemMessage: string | undefined,
+	aiInstructions: string | undefined,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
 	supportsAnthropicReasoning: boolean,
@@ -520,7 +520,7 @@ const prepareMessages = (params: {
 export interface IConvertToLLMMessageService {
 	readonly _serviceBrand: undefined;
 	prepareLLMSimpleMessages: (opts: { simpleMessages: SimpleLLMMessage[], systemMessage: string, modelSelection: ModelSelection | null, featureName: FeatureName }) => { messages: LLMChatMessage[], separateSystemMessage: string | undefined }
-	prepareLLMChatMessages: (opts: { chatMessages: ChatMessage[], chatMode: ChatMode, modelSelection: ModelSelection | null }) => Promise<{ messages: LLMChatMessage[], separateSystemMessage: string | undefined }>
+	prepareLLMChatMessages: (opts: { chatMessages: ChatMessage[], chatMode: ChatMode, modelSelection: ModelSelection | null, explicitlyDisableSystemMessage?: boolean, explicitlyProvideAiInstructions?: string, }) => Promise<{ messages: LLMChatMessage[], separateSystemMessage: string | undefined }>
 	prepareFIMMessage(opts: { messages: LLMFIMMessage, }): { prefix: string, suffix: string, stopTokens: string[] }
 }
 
@@ -662,7 +662,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		})
 		return { messages, separateSystemMessage };
 	}
-	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection }) => {
+	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection, explicitlyDisableSystemMessage, explicitlyProvideAiInstructions, }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
 
 		const { overridesOfModel } = this.voidSettingsService.state
@@ -673,20 +673,22 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			contextWindow,
 			supportsSystemMessage,
 		} = getModelCapabilities(providerName, modelName, overridesOfModel)
-		const systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
+
+		const systemMessageFromGenerator = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
 
 		// Get combined AI instructions
-		const aiInstructions = this._getCombinedAIInstructions();
-
+		const aiInstructions = explicitlyProvideAiInstructions || this._getCombinedAIInstructions();
+		const globalDisableSystemMessageSetting = this.voidSettingsService.state.globalSettings.disableSystemMessage;
+		const finalSystemMessageForPrepareMessages = (explicitlyDisableSystemMessage || globalDisableSystemMessageSetting) ? undefined : systemMessageFromGenerator;
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: llmMessages,
-			systemMessage,
+			systemMessage: finalSystemMessageForPrepareMessages,
 			aiInstructions,
 			supportsSystemMessage,
 			specialToolFormat,

@@ -434,6 +434,7 @@ export type GlobalSettings = {
 	showInlineSuggestions: boolean;
 	includeToolLintErrors: boolean;
 	isOnboardingComplete: boolean;
+	disableSystemMessage: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -447,6 +448,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	showInlineSuggestions: true,
 	includeToolLintErrors: true,
 	isOnboardingComplete: false,
+	disableSystemMessage: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

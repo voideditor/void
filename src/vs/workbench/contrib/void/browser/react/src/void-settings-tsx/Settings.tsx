@@ -5,6 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { IVoidSettingsService, DISABLE_SYSTEM_MESSAGE_SETTING_ID } from '../../../../common/voidSettingsService.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -1242,6 +1243,25 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					<ErrorBoundary>
 						<AIInstructionsBox />
 					</ErrorBoundary>
+					{/* --- Disable System Message Toggle --- */}
+                    <div className='my-4'>
+                        <ErrorBoundary>
+						<div className='flex items-center gap-x-2'>
+                            <VoidSwitch
+                                size='xs'
+                                value={settingsState.globalSettings.disableSystemMessage}
+                                onChange={(newValue) => {
+                                    voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+                                }}
+                            />
+                            <span className='text-void-fg-3 text-xs pointer-events-none'>
+                                {settingsState.globalSettings.disableSystemMessage ? 'Minimal system messages sent' : 'Full system messages sent'}
+                            </span>
+                        </div>
+						</ErrorBoundary>
+                        <div className='text-void-fg-3 text-xs mt-1'> When enabled, Void will send a minimal system message to the model to reduce token usage and improve model performance for certain tasks.
+                        </div>
+                    </div>
 				</div>
 			</div>
 		</div>

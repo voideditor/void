@@ -12,9 +12,11 @@ interface NumStat {
 const exec = promisify(_exec)
 
 const git = async (command: string, path: string): Promise<string> => {
-	const { stdout } = await exec(`${command}`, { cwd: path })
-	//TODO VoidSCM - handle stderr
-	return stdout
+	const { stdout, stderr } = await exec(`${command}`, { cwd: path })
+	if (stderr) {
+		throw new Error(stderr)
+	}
+	return stdout.trim()
 }
 
 const getNumStat = async (path: string): Promise<NumStat[]> => {
@@ -39,8 +41,8 @@ const getSampledDiff = async (file: string, path: string): Promise<string> => {
 export class VoidSCM implements IVoidSCM {
 	readonly _serviceBrand: undefined
 
-	async gitStat(path: string): Promise<string> {
-		return await git('git diff --stat', path)
+	gitStat(path: string): Promise<string> {
+		return git('git diff --stat', path)
 	}
 
 	async gitSampledDiffs(path: string): Promise<string> {
@@ -49,7 +51,7 @@ export class VoidSCM implements IVoidSCM {
 			.sort((a, b) => (b.added + b.removed) - (a.added + a.removed))
 			.slice(0, 10)
 		const diffs = await Promise.all(topFiles.map(async ({ file }) => ({ file, diff: await getSampledDiff(file, path) })))
-		return diffs.map(({ file, diff }) => `==== ${file} ====\n${diff}`).join('\n\n') //TODO VoidSCM - investigate why file can be undefined
+		return diffs.map(({ file, diff }) => `==== ${file} ====\n${diff}`).join('\n\n')
 	}
 }
 

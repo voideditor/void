@@ -58,6 +58,9 @@ import './voidOnboardingService.js'
 // register misc service
 import './miscWokrbenchContrib.js'
 
+// register file service (for explorer context menu)
+import './fileService.js'
+
 // register source control management
 import './voidSCM.js'
 

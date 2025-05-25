@@ -7,7 +7,7 @@
 /* eslint-disable */
 import Anthropic from '@anthropic-ai/sdk';
 import { Ollama } from 'ollama';
-import OpenAI, { ClientOptions } from 'openai';
+import OpenAI, { ClientOptions, AzureOpenAI } from 'openai';
 import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 import { Tool as GeminiTool, FunctionDeclaration, GoogleGenAI, ThinkingConfig, Schema, Type } from '@google/genai';
@@ -114,9 +114,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
+		//  https://github.com/openai/openai-node?tab=readme-ov-file#microsoft-azure-openai
 		const thisConfig = settingsOfProvider[providerName]
-		const baseURL = `https://${thisConfig.project}.services.ai.azure.com/api/models/chat/completions??api-version=${thisConfig.azureApiVersion}`
-		return new OpenAI({ baseURL: baseURL, apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		const endpoint = `https://${thisConfig.project}.openai.azure.com/`;
+		const apiVersion = thisConfig.azureApiVersion ?? '2024-04-01-preview';
+		const options = { endpoint, apiKey: thisConfig.apiKey, apiVersion };
+		return new AzureOpenAI({ ...options, ...commonPayloadOpts });
 	}
 
 	else if (providerName === 'deepseek') {
@@ -147,7 +150,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 
 const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens }, onFinalMessage, onError, settingsOfProvider, modelName: modelName_, _setAborter, providerName, overridesOfModel }: SendFIMParams_Internal) => {
 
-	const { modelName, supportsFIM } = getModelCapabilities(providerName, modelName_, overridesOfModel)
+	const {
+		modelName,
+		supportsFIM,
+		additionalOpenAIPayload,
+	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
+
 	if (!supportsFIM) {
 		if (modelName === modelName_)
 			onError({ message: `Model ${modelName} does not support FIM.`, fullError: null })
@@ -156,7 +164,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 		return
 	}
 
-	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
+	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload: additionalOpenAIPayload })
 	openai.completions
 		.create({
 			model: modelName,
@@ -236,6 +244,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		modelName,
 		specialToolFormat,
 		reasoningCapabilities,
+		additionalOpenAIPayload,
 	} = getModelCapabilities(providerName, modelName_, overridesOfModel)
 
 	const { providerReasoningIOSettings } = getProviderCapabilities(providerName)
@@ -243,7 +252,11 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	// reasoning
 	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {}
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
-	const includeInPayload = providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo) || {}
+
+	const includeInPayload = {
+		...providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo),
+		...additionalOpenAIPayload
+	}
 
 	// tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null
@@ -253,11 +266,16 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 
 	// instance
 	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
+	if (providerName === 'microsoftAzure') {
+		// Required to select the model
+		(openai as AzureOpenAI).deploymentName = modelName;
+	}
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
 		model: modelName,
 		messages: messages as any,
 		stream: true,
 		...nativeToolsObj,
+		...additionalOpenAIPayload
 		// max_completion_tokens: maxTokens,
 	}
 

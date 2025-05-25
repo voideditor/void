@@ -256,6 +256,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		await this._storeState()
 		this._onDidChangeState.fire()
 		this._onUpdate_syncApplyToChat()
+		this._onUpdate_syncSCMToChat()
 	}
 	async resetState() {
 		await this.dangerousSetState(defaultState())
@@ -391,6 +392,10 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 	}
 
+	private _onUpdate_syncSCMToChat() {
+		this.setModelSelectionOfFeature('SCM', deepClone(this.state.modelSelectionOfFeature['Chat']))
+	}
+
 	setGlobalSetting: SetGlobalSettingFn = async (settingName, newVal) => {
 		const newState: VoidSettingsState = {
 			...this.state,
@@ -405,6 +410,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		// hooks
 		if (this.state.globalSettings.syncApplyToChat) this._onUpdate_syncApplyToChat()
+		this._onUpdate_syncSCMToChat()
 	}
 
 
@@ -425,6 +431,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		// hooks
 		if (featureName === 'Chat') {
 			if (this.state.globalSettings.syncApplyToChat) this._onUpdate_syncApplyToChat()
+			this._onUpdate_syncSCMToChat()
 		}
 	}
 

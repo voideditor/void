@@ -16,4 +16,4 @@ export interface IVoidSCM {
 	gitSampledDiffs(path: string): Promise<string>
 }
 
-export const IVoidSCM = createDecorator<IVoidSCM>('void-scm')
+export const IVoidSCM = createDecorator<IVoidSCM>('voidSCMService')

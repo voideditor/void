@@ -7,7 +7,7 @@ import { generateUuid } from '../../../../../base/common/uuid.js'
 import { endsWithAnyPrefixOf, SurroundingsRemover } from '../../common/helpers/extractCodeFromResult.js'
 import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js'
 import { OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js'
-import { BuiltinToolName, BuiltinToolParamName } from '../../common/toolsServiceTypes.js'
+import { ToolName, ToolParamName } from '../../common/toolsServiceTypes.js'
 import { ChatMode } from '../../common/voidSettingsTypes.js'
 
 
@@ -165,15 +165,15 @@ const findIndexOfAny = (fullText: string, matches: string[]) => {
 
 
 type ToolOfToolName = { [toolName: string]: InternalToolInfo | undefined }
-const parseXMLPrefixToToolCall = (toolName: BuiltinToolName, toolId: string, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
+const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: string, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
 	const paramsObj: RawToolParamsObj = {}
-	const doneParams: BuiltinToolParamName[] = []
+	const doneParams: ToolParamName<T>[] = []
 	let isDone = false
 
 	const getAnswer = (): RawToolCallObj => {
 		// trim off all whitespace at and before first \n and after last \n for each param
 		for (const p in paramsObj) {
-			const paramName = p as BuiltinToolParamName
+			const paramName = p as ToolParamName<T>
 			const orig = paramsObj[paramName]
 			if (orig === undefined) continue
 			paramsObj[paramName] = trimBeforeAndAfterNewLines(orig)
@@ -203,16 +203,16 @@ const parseXMLPrefixToToolCall = (toolName: BuiltinToolName, toolId: string, str
 
 	const pm = new SurroundingsRemover(str)
 
-	const allowedParams = Object.keys(toolOfToolName[toolName]?.params ?? {}) as BuiltinToolParamName[]
+	const allowedParams = Object.keys(toolOfToolName[toolName]?.params ?? {}) as ToolParamName<T>[]
 	if (allowedParams.length === 0) return getAnswer()
-	let latestMatchedOpenParam: null | BuiltinToolParamName = null
+	let latestMatchedOpenParam: null | ToolParamName<T> = null
 	let n = 0
 	while (true) {
 		n += 1
 		if (n > 10) return getAnswer() // just for good measure as this code is early
 
 		// find the param name opening tag
-		let matchedOpenParam: null | BuiltinToolParamName = null
+		let matchedOpenParam: null | ToolParamName<T> = null
 		for (const paramName of allowedParams) {
 			const removed = pm.removeFromStartUntilFullMatch(`<${paramName}>`, true)
 			if (removed) {
@@ -282,7 +282,7 @@ export const extractXMLToolsWrapper = (
 	let trueFullText = ''
 	let latestToolCall: RawToolCallObj | undefined = undefined
 
-	let foundOpenTag: { idx: number, toolName: BuiltinToolName } | null = null
+	let foundOpenTag: { idx: number, toolName: ToolName } | null = null
 	let openToolTagBuffer = '' // the characters we've seen so far that come after a < with no space afterwards, not yet added to fullText
 
 	let prevFullTextLen = 0
@@ -312,7 +312,7 @@ export const extractXMLToolsWrapper = (
 				const i = findIndexOfAny(fullText, toolOpenTags)
 				if (i !== null) {
 					const [idx, toolTag] = i
-					const toolName = toolTag.substring(1, toolTag.length - 1) as BuiltinToolName
+					const toolName = toolTag.substring(1, toolTag.length - 1) as ToolName
 					// console.log('found ', toolName)
 					foundOpenTag = { idx, toolName }
 

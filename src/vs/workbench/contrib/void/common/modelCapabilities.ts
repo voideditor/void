@@ -154,6 +154,8 @@ export const defaultModelsOfProvider = {
 		'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
 		'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
 		'meta-llama/Llama-Vision-Free',
+		'qwen/Qwen-QwQ-32B-Instruct',
+		'qwen/Qwen-2.5-Coder-32B-Instruct',
 		'mistralai/Mistral-7B-Instruct-v0.2'
 	],
 	openAICompatible: [], // fallback

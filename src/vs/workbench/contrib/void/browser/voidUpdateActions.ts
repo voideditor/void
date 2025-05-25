@@ -8,7 +8,7 @@ import Severity from '../../../../base/common/severity.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { INotificationActions, INotificationService } from '../../../../platform/notification/common/notification.js';
+import { INotificationActions, INotificationHandle, INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { IVoidUpdateService } from '../common/voidUpdateService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
@@ -20,7 +20,7 @@ import { IAction } from '../../../../base/common/actions.js';
 
 
 
-const notifyUpdate = (res: VoidCheckUpdateRespose & { message: string }, notifService: INotificationService, updateService: IUpdateService) => {
+const notifyUpdate = (res: VoidCheckUpdateRespose & { message: string }, notifService: INotificationService, updateService: IUpdateService): INotificationHandle => {
 	const message = res?.message || 'This is a very old version of Void, please download the latest version! [Void Editor](https://voideditor.com/download-beta)!'
 
 	let actions: INotificationActions | undefined
@@ -119,18 +119,21 @@ const notifyUpdate = (res: VoidCheckUpdateRespose & { message: string }, notifSe
 		progress: actions ? { worked: 0, total: 100 } : undefined,
 		actions: actions,
 	})
+
+	return notifController
 	// const d = notifController.onDidClose(() => {
 	// 	notifyYesUpdate(notifService, res)
 	// 	d.dispose()
 	// })
 }
-const notifyErrChecking = (notifService: INotificationService) => {
+const notifyErrChecking = (notifService: INotificationService): INotificationHandle => {
 	const message = `Void Error: There was an error checking for updates. If this persists, please get in touch or reinstall Void [here](https://voideditor.com/download-beta)!`
-	notifService.notify({
+	const notifController = notifService.notify({
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
 	})
+	return notifController
 }
 
 
@@ -140,30 +143,35 @@ const performVoidCheck = async (
 	voidUpdateService: IVoidUpdateService,
 	metricsService: IMetricsService,
 	updateService: IUpdateService,
-) => {
+): Promise<INotificationHandle | null> => {
 
 	const metricsTag = explicit ? 'Manual' : 'Auto'
 
 	metricsService.capture(`Void Update ${metricsTag}: Checking...`, {})
 	const res = await voidUpdateService.check(explicit)
 	if (!res) {
-		notifyErrChecking(notifService);
+		const notifController = notifyErrChecking(notifService);
 		metricsService.capture(`Void Update ${metricsTag}: Error`, { res })
+		return notifController
 	}
 	else {
 		if (res.message) {
-			notifyUpdate(res, notifService, updateService)
+			const notifController = notifyUpdate(res, notifService, updateService)
 			metricsService.capture(`Void Update ${metricsTag}: Yes`, { res })
+			return notifController
 		}
 		else {
 			metricsService.capture(`Void Update ${metricsTag}: No`, { res })
-			return
+			return null
 		}
 	}
 }
 
 
 // Action
+let lastNotifController: INotificationHandle | null = null
+
+
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
@@ -177,7 +185,15 @@ registerAction2(class extends Action2 {
 		const notifService = accessor.get(INotificationService)
 		const metricsService = accessor.get(IMetricsService)
 		const updateService = accessor.get(IUpdateService)
-		performVoidCheck(true, notifService, voidUpdateService, metricsService, updateService)
+
+		const currNotifController = lastNotifController
+
+		const newController = await performVoidCheck(true, notifService, voidUpdateService, metricsService, updateService)
+
+		if (newController) {
+			currNotifController?.close()
+			lastNotifController = newController
+		}
 	}
 })
 

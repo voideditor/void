@@ -94,6 +94,13 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'together') {
 		return { title: 'Together', }
 	}
+	else if (providerName === 'nebius') {
+		return { title: 'Nebius', }
+	}
+	else if (providerName === 'venice') {
+		return { title: 'Venice', }
+	}
+
 	else if (providerName === 'xAI') {
 		return { title: 'Grok (xAI)', }
 	}
@@ -119,6 +126,8 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'gemini') return 'Get your [API Key here](https://aistudio.google.com/apikey). Read about [rate limits here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).'
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
 	if (providerName === 'together') return 'Get your [API Key here](https://together.xyz/console/api-keys).'
+	if (providerName === 'nebius') return 'Get your [API Key here](https://console.nebius.com/api-keys).'
+	if (providerName === 'venice') return 'Get your [API Key here](https://console.venice.ai/api-keys).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
 	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (use this for llama.cpp and more).`
@@ -151,12 +160,14 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 							providerName === 'gemini' ? 'AIzaSy...' :
 								providerName === 'groq' ? 'gsk_key...' :
 									providerName === 'together' ? 'sk-tog-key...' :
-										providerName === 'openAICompatible' ? 'sk-key...' :
-											providerName === 'xAI' ? 'xai-key...' :
-												providerName === 'mistral' ? 'api-key...' :
-													providerName === 'googleVertex' ? 'AIzaSy...' :
-														providerName === 'microsoftAzure' ? 'key-...' :
-															'',
+										providerName === 'nebius' ? 'sk-neb-key...' :
+											providerName === 'venice' ? 'sk-ven-key...' :
+												providerName === 'openAICompatible' ? 'sk-key...' :
+													providerName === 'xAI' ? 'xai-key...' :
+														providerName === 'mistral' ? 'api-key...' :
+															providerName === 'googleVertex' ? 'AIzaSy...' :
+																providerName === 'microsoftAzure' ? 'key-...' :
+																	'',
 
 			isPasswordField: true,
 		}
@@ -313,6 +324,18 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.together,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.together),
+		_didFillInProviderSettings: undefined,
+	},
+	nebius: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.nebius,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.nebius),
+		_didFillInProviderSettings: undefined,
+	},
+	venice: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.venice,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.venice),
 		_didFillInProviderSettings: undefined,
 	},
 	openRouter: { // aggregator (serves models from multiple providers)

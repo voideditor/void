@@ -1076,6 +1076,15 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 		chatbubbleContents = <>
 			<SelectedFiles type='past' messageIdx={messageIdx} selections={chatMessage.selections || []} />
 			<span className='px-0.5'>{chatMessage.displayContent}</span>
+			{chatMessage.imageData && chatMessage.imageMimeType && (
+				<div className="chat-image-preview mt-2">
+					<img
+						src={chatMessage.imageData}
+						alt="User image"
+						style={{ maxWidth: '100%', maxHeight: '250px', display: 'block', borderRadius: '4px' }}
+					/>
+				</div>
+			)}
 		</>
 	}
 	else if (mode === 'edit') {
@@ -1333,7 +1342,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 				<ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
 					<SmallProseWrapper>
 						<ChatMarkdownRender
-							string={reasoningStr}
+							chatMessage={{ displayContent: reasoningStr || '' }} // imageData and imageMimeType will be undefined
 							chatMessageLocation={chatMessageLocation}
 							isApplyEnabled={false}
 							isLinkDetectionEnabled={true}
@@ -1348,7 +1357,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 				<ProseWrapper>
 					<ChatMarkdownRender
-						string={chatMessage.displayContent || ''}
+						chatMessage={{ displayContent: chatMessage.displayContent || '', imageData: chatMessage.imageData, imageMimeType: chatMessage.imageMimeType }}
 						chatMessageLocation={chatMessageLocation}
 						isApplyEnabled={true}
 						isLinkDetectionEnabled={true}
@@ -1636,7 +1645,7 @@ export const ListableToolItem = ({ name, onClick, isSmall, className, showDot }:
 const EditToolChildren = ({ uri, code }: { uri: URI | undefined, code: string }) => {
 	return <div className='!select-text cursor-auto'>
 		<SmallProseWrapper>
-			<ChatMarkdownRender string={code} codeURI={uri} chatMessageLocation={undefined} />
+			<ChatMarkdownRender chatMessage={{ displayContent: code }} codeURI={uri} chatMessageLocation={undefined} />
 		</SmallProseWrapper>
 	</div>
 }
@@ -1897,7 +1906,7 @@ const toolNameToComponent: { [T in ToolName]: { resultWrapper: ResultWrapper<T>,
 				componentParams.children = <ToolChildrenWrapper>
 					<SmallProseWrapper>
 						<ChatMarkdownRender
-							string={`\`\`\`\n${result.str}\n\`\`\``}
+							chatMessage={{ displayContent: `\`\`\`\n${result.str}\n\`\`\`` }}
 							chatMessageLocation={undefined}
 							isApplyEnabled={false}
 							isLinkDetectionEnabled={true}
@@ -2815,8 +2824,9 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+	const [stagedImage, setStagedImage] = useState<{ data: string, type: string } | null>(null); // New state for staged image
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
+	const isDisabled = (instructionsAreEmpty && !stagedImage) || !!isFeatureNameDisabled('Chat', settingsState) // Disable if no text and no image
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2831,16 +2841,22 @@ export const SidebarChat = () => {
 		const userMessage = _forceSubmit || textAreaRef.current?.value || ''
 
 		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })
+			await chatThreadsService.addUserMessageAndStreamResponse({
+				userMessage,
+				threadId,
+				imageData: stagedImage?.data,
+				imageMimeType: stagedImage?.type
+			})
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}
 
 		setSelections([]) // clear staging
+		setStagedImage(null); // Clear staged image after submit
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
+	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState, stagedImage])
 
 	const onAbort = async () => {
 		const threadId = currentThread.id
@@ -2988,8 +3004,26 @@ export const SidebarChat = () => {
 			ref={textAreaRef}
 			fnsRef={textAreaFnsRef}
 			multiline={true}
+			onImagePasted={(base64Data, mimeType) => {
+				setStagedImage({ data: base64Data, type: mimeType });
+			}}
 		/>
-
+		{stagedImage && (
+			<div className="void-image-preview-container">
+				<img
+					src={stagedImage.data}
+					alt="Staged image"
+					className="void-pasted-image-preview"
+				/>
+				<button
+					onClick={() => setStagedImage(null)}
+					className="void-remove-image-button"
+					aria-label="Remove image"
+				>
+					×
+				</button>
+			</div>
+		)}
 	</VoidChatArea>
 
 

@@ -180,6 +180,8 @@ export type VoidStaticModelInfo = { // not stateful
 	};
 
 
+	supportsImageInput?: boolean;
+
 	// --- below is just informative, not used in sending / receiving, cannot be customized in settings ---
 	cost: {
 		input: number;
@@ -202,7 +204,8 @@ export const modelOverrideKeys = [
 	'specialToolFormat',
 	'supportsFIM',
 	'reasoningCapabilities',
-	'additionalOpenAIPayload'
+	'additionalOpenAIPayload',
+	'supportsImageInput'
 ] as const
 
 export type ModelOverrides = Pick<
@@ -475,6 +478,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -492,6 +496,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -509,6 +514,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -526,6 +532,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'claude-3-5-haiku-20241022': {
@@ -536,6 +543,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'claude-3-opus-20240229': {
@@ -546,6 +554,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'claude-3-sonnet-20240229': { // no point of using this, but including this for people who put it in
@@ -601,6 +610,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'o4-mini': {
@@ -611,6 +621,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4.1': {
@@ -621,6 +632,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gpt-4.1-mini': {
@@ -631,6 +643,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gpt-4.1-nano': {
@@ -641,6 +654,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'o1': {
@@ -650,6 +664,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'o3-mini': {
@@ -659,6 +674,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
+		supportsImageInput: true,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4o': {
@@ -669,6 +685,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'o1-mini': {
@@ -688,6 +705,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'system-role', // ??
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -730,6 +748,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
@@ -740,6 +759,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
@@ -750,6 +770,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
@@ -761,6 +782,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
 	},
@@ -771,6 +793,7 @@ const xAIModelOptions = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' } },
 	},
@@ -805,6 +828,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -821,6 +845,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false, // no reasoning
 	},
 	'gemini-2.5-flash-preview-04-17': {
@@ -831,6 +856,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -847,6 +873,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canTurnOffReasoning: true,
@@ -863,6 +890,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gemini-2.0-flash-lite-preview-02-05': {
@@ -873,6 +901,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash': {
@@ -883,6 +912,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-pro': {
@@ -893,6 +923,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'gemini-1.5-flash-8b': {
@@ -903,6 +934,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -955,6 +987,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsFIM: false,
 		downloadable: { sizeGb: 73 },
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'mistral-medium-latest': { // https://openrouter.ai/mistralai/mistral-medium-3

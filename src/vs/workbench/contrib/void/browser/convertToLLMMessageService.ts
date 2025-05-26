@@ -29,7 +29,7 @@ type SimpleLLMMessage = {
 	rawParams: RawToolParamsObj;
 } | {
 	role: 'user';
-	content: string;
+	content: string | Array<{ type: 'text', text: string } | { type: 'image_url', image_url: { url: string, mimeType?: string } }>;
 } | {
 	role: 'assistant';
 	content: string;
@@ -137,7 +137,7 @@ user: ...content, result(id, content)
 type AnthropicOrOpenAILLMMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage
 
 const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
-	const newMessages: (AnthropicLLMChatMessage | (SimpleLLMMessage & { role: 'tool' }))[] = messages;
+	const newMessages: (AnthropicLLMChatMessage | (SimpleLLMMessage & { role: 'tool' }))[] = messages.map(msg => ({...msg})) as (AnthropicLLMChatMessage | (SimpleLLMMessage & { role: 'tool' }))[];
 
 	for (let i = 0; i < messages.length; i += 1) {
 		const currMsg = messages[i]
@@ -162,12 +162,36 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 		}
 
 		if (currMsg.role === 'user') {
-			newMessages[i] = {
-				role: 'user',
-				content: currMsg.content,
-			}
-			continue
-		}
+    const sourceParts: ({ type: 'text'; text: string; } | { type: 'image_url'; image_url: { url: string; mimeType?: string }; })[] =
+        (typeof currMsg.content === 'string')
+            ? [{ type: 'text', text: currMsg.content }]
+            : currMsg.content;
+
+    let anthropicUserContentParts = sourceParts.map(part => {
+        if (part.type === 'text') {
+            return { type: 'text' as const, text: part.text || EMPTY_MESSAGE };
+        } else {
+            const imageData = part.image_url.url.startsWith('data:')
+                ? part.image_url.url.split(',')[1]
+                : part.image_url.url;
+            return {
+                type: 'image' as const,
+                source: {
+                    type: 'base64' as const,
+                    media_type: part.image_url.mimeType || 'image/jpeg',
+                    data: imageData
+                }
+            };
+        }
+    });
+
+    if (anthropicUserContentParts.length === 0) {
+        anthropicUserContentParts.push({ type: 'text' as const, text: EMPTY_MESSAGE });
+    }
+
+    newMessages[i] = { role: 'user', content: anthropicUserContentParts } as AnthropicLLMChatMessage;
+    continue
+}
 
 		if (currMsg.role === 'tool') {
 			// add anthropic tools
@@ -276,7 +300,22 @@ const prepareOpenAIOrAnthropicMessages = ({
 	messages.unshift({ role: 'system', content: combinedSystemMessage })
 
 	// ================ trim ================
-	messages = messages.map(m => ({ ...m, content: m.role !== 'tool' ? m.content.trim() : m.content }))
+	messages = messages.map(m => {
+		const newMessage = { ...m };
+		if (newMessage.role !== 'tool') {
+			if (typeof newMessage.content === 'string') {
+				newMessage.content = newMessage.content.trim();
+			} else if (Array.isArray(newMessage.content)) {
+				newMessage.content = newMessage.content.map(part => {
+					if (part.type === 'text') {
+						return { ...part, text: part.text.trim()};
+					}
+					return part;
+				});
+			}
+		}
+		return newMessage;
+	});
 
 	type MesType = (typeof messages)[0]
 
@@ -285,7 +324,19 @@ const prepareOpenAIOrAnthropicMessages = ({
 	// the higher the weight, the higher the desire to truncate - TRIM HIGHEST WEIGHT MESSAGES
 	const alreadyTrimmedIdxes = new Set<number>()
 	const weight = (message: MesType, messages: MesType[], idx: number) => {
-		const base = message.content.length
+		let base: number;
+		if (typeof message.content === 'string') {
+			base = message.content.length;
+		} else if (Array.isArray(message.content)) {
+			base = message.content.reduce((sum, part) => {
+				if (part.type === 'text') {
+					return sum + part.text.length;
+				}
+				return sum;
+			}, 0);
+		} else {
+			base = 0;
+		}
 
 		let multiplier: number
 		multiplier = 1 + (messages.length - 1 - idx) / messages.length // slow rampdown from 2 to 1 as index increases
@@ -310,14 +361,17 @@ const prepareOpenAIOrAnthropicMessages = ({
 		return base * multiplier
 	}
 
-	const _findLargestByWeight = (messages_: MesType[]) => {
+	const _findLargestByWeight = (messages_: MesType[], alreadyTrimmedIdxes: Set<number>) => {
 		let largestIndex = -1
-		let largestWeight = -Infinity
-		for (let i = 0; i < messages.length; i += 1) {
-			const m = messages[i]
-			const w = weight(m, messages_, i)
-			if (w > largestWeight) {
-				largestWeight = w
+		let maxWeight = -1
+
+		for (let i = 0; i < messages_.length; i++) {
+			if (alreadyTrimmedIdxes.has(i)) {
+				continue
+			}
+			const currentWeight = weight(messages_[i], messages_, i)
+			if (currentWeight > maxWeight) {
+				maxWeight = currentWeight
 				largestIndex = i
 			}
 		}
@@ -325,39 +379,83 @@ const prepareOpenAIOrAnthropicMessages = ({
 	}
 
 	let totalLen = 0
-	for (const m of messages) { totalLen += m.content.length }
-	const charsNeedToTrim = totalLen - Math.max(
-		(contextWindow - reservedOutputTokenSpace) * CHARS_PER_TOKEN, // can be 0, in which case charsNeedToTrim=everything, bad
-		5_000 // ensure we don't trim at least 5k chars (just a random small value)
-	)
-
-
-	// <----------------------------------------->
-	// 0                      |    |             |
-	//                        |    contextWindow |
-	//                     contextWindow - maxOut|putTokens
-	//                                          totalLen
+	for (const m of messages) {
+		if (typeof m.content === 'string') {
+			totalLen += m.content.length;
+		} else if (Array.isArray(m.content)) {
+			totalLen += m.content.reduce((sum, part) => {
+				if (part.type === 'text') {
+					return sum + part.text.length;
+				}
+				return sum;
+			}, 0);
+		}
+	}
+	const maxTokens = contextWindow - (reservedOutputTokenSpace ?? 0);
+	const charsNeedToTrim = Math.max(0, totalLen - (maxTokens * CHARS_PER_TOKEN))
 	let remainingCharsToTrim = charsNeedToTrim
+
 	let i = 0
 
 	while (remainingCharsToTrim > 0) {
 		i += 1
 		if (i > 100) break
 
-		const trimIdx = _findLargestByWeight(messages)
+		const trimIdx = _findLargestByWeight(messages, alreadyTrimmedIdxes)
+		if (trimIdx === -1) {
+			break;
+		}
+
 		const m = messages[trimIdx]
 
 		// if can finish here, do
-		const numCharsWillTrim = m.content.length - TRIM_TO_LEN
-		if (numCharsWillTrim > remainingCharsToTrim) {
-			// trim remainingCharsToTrim + '...'.length chars
-			m.content = m.content.slice(0, m.content.length - remainingCharsToTrim - '...'.length).trim() + '...'
-			break
+		let numCharsWillTrim: number;
+		if (typeof m.content === 'string') {
+			numCharsWillTrim = m.content.length;
+		} else if (Array.isArray(m.content)) {
+			numCharsWillTrim = m.content.reduce((sum, part) => {
+				if (part.type === 'text') {
+					return sum + part.text.length;
+				}
+				return sum;
+			}, 0);
+		} else {
+			numCharsWillTrim = 0;
 		}
 
-		remainingCharsToTrim -= numCharsWillTrim
-		m.content = m.content.substring(0, TRIM_TO_LEN - '...'.length) + '...'
-		alreadyTrimmedIdxes.add(trimIdx)
+		if (numCharsWillTrim <= TRIM_TO_LEN) {
+			alreadyTrimmedIdxes.add(trimIdx);
+			continue;
+		}
+
+		const numCharsCanTrimToMin = numCharsWillTrim - TRIM_TO_LEN;
+
+		const charsToTrimFromThisMessage = Math.min(remainingCharsToTrim, numCharsCanTrimToMin);
+
+		if (charsToTrimFromThisMessage <= 0) {
+			alreadyTrimmedIdxes.add(trimIdx);
+			continue;
+		}
+
+		if (typeof m.content === 'string') {
+			m.content = m.content.slice(0, numCharsWillTrim - charsToTrimFromThisMessage).trim() + '...'
+		} else if (Array.isArray(m.content)) {
+			let charsTrimmed = 0;
+			for (let j = m.content.length - 1; j >= 0; j--) {
+				const part = m.content[j];
+				if (part.type === 'text') {
+					const textToTrim = Math.min(charsToTrimFromThisMessage - charsTrimmed, part.text.length);
+					part.text = part.text.slice(0, part.text.length - textToTrim).trim() + '...';
+					charsTrimmed += textToTrim;
+					if (charsTrimmed >= charsToTrimFromThisMessage) break;
+				}
+			}
+		}
+
+		remainingCharsToTrim -= charsToTrimFromThisMessage;
+		if (numCharsWillTrim - charsToTrimFromThisMessage <= TRIM_TO_LEN) {
+			alreadyTrimmedIdxes.add(trimIdx);
+		}
 	}
 
 	// ================ system message hack ================
@@ -387,11 +485,11 @@ const prepareOpenAIOrAnthropicMessages = ({
 	// if supports system message
 	if (supportsSystemMessage) {
 		if (supportsSystemMessage === 'separated')
-			separateSystemMessageStr = newSysMsg
+			separateSystemMessageStr = typeof newSysMsg === 'string' ? newSysMsg : undefined;
 		else if (supportsSystemMessage === 'system-role')
-			llmMessages.unshift({ role: 'system', content: newSysMsg }) // add new first message
+			llmMessages.unshift({ role: 'system', content: newSysMsg as string }) // add new first message
 		else if (supportsSystemMessage === 'developer-role')
-			llmMessages.unshift({ role: 'developer', content: newSysMsg }) // add new first message
+			llmMessages.unshift({ role: 'developer', content: newSysMsg as string }) // add new first message
 	}
 	// if does not support system message
 	else {
@@ -617,13 +715,37 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 					name: m.name,
 					id: m.id,
 					rawParams: m.rawParams,
-				})
-			}
-			else if (m.role === 'user') {
+			});
+		} else if (m.role === 'user') {
+			const textContent = m.content || EMPTY_MESSAGE;
+			const currentModelSelection = this.voidSettingsService.state.modelSelectionOfFeature['Chat'];
+
+			if (m.imageData && m.imageMimeType && currentModelSelection) {
+				const { providerName, modelName } = currentModelSelection;
+				const { overridesOfModel } = this.voidSettingsService.state;
+				const modelCaps = getModelCapabilities(providerName, modelName, overridesOfModel);
+
+				if (modelCaps.supportsImageInput) {
+					simpleLLMMessages.push({
+						role: 'user',
+						content: [
+							{ type: 'text', text: textContent },
+							{ type: 'image_url', image_url: { url: `data:${m.imageMimeType};base64,${m.imageData}`, mimeType: m.imageMimeType } }
+						]
+					});
+				} else {
+					console.warn(`Model ${modelName} (provider: ${providerName}) does not support image input. Image from user message will be ignored.`);
+					simpleLLMMessages.push({
+						role: 'user',
+						content: textContent,
+					});
+				}
+			} else {
 				simpleLLMMessages.push({
-					role: m.role,
-					content: m.content,
-				})
+					role: 'user',
+					content: textContent,
+				});
+			}
 			}
 		}
 		return simpleLLMMessages

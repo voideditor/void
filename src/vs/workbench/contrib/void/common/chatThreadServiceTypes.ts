@@ -51,6 +51,8 @@ export type ChatMessage =
 		role: 'user';
 		content: string; // content displayed to the LLM on future calls - allowed to be '', will be replaced with (empty)
 		displayContent: string; // content displayed to user  - allowed to be '', will be ignored
+		imageData?: string; // base64 encoded image data
+		imageMimeType?: string;
 		selections: StagingSelectionItem[] | null; // the user's selection
 		state: {
 			stagingSelections: StagingSelectionItem[];
@@ -59,6 +61,8 @@ export type ChatMessage =
 	} | {
 		role: 'assistant';
 		displayContent: string; // content received from LLM  - allowed to be '', will be replaced with (empty)
+		imageData?: string;
+		imageMimeType?: string;
 		reasoning: string; // reasoning from the LLM, used for step-by-step thinking
 
 		anthropicReasoning: AnthropicReasoning[] | null; // anthropic reasoning

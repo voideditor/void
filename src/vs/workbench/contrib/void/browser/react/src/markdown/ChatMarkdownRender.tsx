@@ -542,15 +542,29 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	)
 }
 
+export type ChatMessageRenderableContent = {
+	displayContent: string;
+	imageData?: string;
+	imageMimeType?: string;
+};
 
-export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
-	string = string.replaceAll('\n•', '\n\n•')
-	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
+export const ChatMarkdownRender = ({ chatMessage, inPTag = false, chatMessageLocation, ...options }: { chatMessage: ChatMessageRenderableContent, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
+	let displayContent = chatMessage.displayContent.replaceAll('\n•', '\n\n•')
+	const tokens = marked.lexer(displayContent); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
 				<RenderToken key={index} token={token} inPTag={inPTag} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
 			))}
+			{chatMessage.imageData && chatMessage.imageMimeType && (
+				<div className="void-image-preview-container">
+					<img
+						src={chatMessage.imageData}
+						alt="Chat image"
+						className="void-pasted-image-preview"
+					/>
+				</div>
+			)}
 		</>
 	)
 }

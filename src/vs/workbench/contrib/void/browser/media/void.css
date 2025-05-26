@@ -202,3 +202,42 @@
 .void-scrollable-element *::-webkit-scrollbar-corner {
 	background-color: var(--void-bg-3) !important;
 }
+
+.void-image-preview-container {
+    margin-top: 8px;
+    padding: 4px;
+    border: 1px solid var(--void-border-2);
+    border-radius: 4px;
+    position: relative;
+    max-width: 200px;
+    background-color: var(--void-bg-2);
+}
+
+.void-pasted-image-preview {
+    max-width: 100%;
+    max-height: 160px;
+    border-radius: 3px;
+    display: block;
+}
+
+.void-remove-image-button {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: var(--void-bg-1);
+    color: var(--void-fg-3);
+    border: 1px solid var(--void-border-3);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.void-remove-image-button:hover {
+    background-color: var(--void-bg-3);
+    color: var(--void-fg-1);
+}

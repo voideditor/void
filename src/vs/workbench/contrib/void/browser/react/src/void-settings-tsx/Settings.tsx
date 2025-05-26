@@ -895,6 +895,44 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 	</>
 }
 
+export const ImportProfilesButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
+	const accessor = useAccessor()
+	const profileTransferService = accessor.get('IProfileTransferService')
+
+	const [transferState, setTransferState] = useState<{ type: 'done', error?: string } | { type: | 'loading' | 'justfinished' }>({ type: 'done' })
+
+
+
+	const onClick = async () => {
+		if (transferState.type !== 'done') return
+
+		setTransferState({ type: 'loading' })
+
+		const errAcc = await profileTransferService.transferProfiles(os, fromEditor)
+
+		// Even if some files were missing, consider it a success if no actual errors occurred
+		const hadError = !!errAcc
+		if (hadError) {
+			setTransferState({ type: 'done', error: errAcc })
+		}
+		else {
+			setTransferState({ type: 'justfinished' })
+			setTimeout(() => { setTransferState({ type: 'done' }); }, 3000)
+		}
+	}
+
+	return <>
+		<VoidButtonBgDarken className={`max-w-48 p-4 ${className}`} disabled={transferState.type !== 'done'} onClick={onClick}>
+			{transferState.type === 'done' ? `Transfer profiles from ${fromEditor}`
+				: transferState.type === 'loading' ? <span className='text-nowrap flex flex-nowrap'>Transferring<IconLoading /></span>
+					: transferState.type === 'justfinished' ? <AnimatedCheckmarkButton text='Profiles Transferred' className='bg-none' />
+						: null
+			}
+		</VoidButtonBgDarken>
+		{transferState.type === 'done' && transferState.error ? <WarningBox text={transferState.error} /> : null}
+	</>
+}
+
 
 // full settings
 
@@ -1167,6 +1205,20 @@ export const Settings = () => {
 							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
 							<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
 							<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
+						</div>
+					</ErrorBoundary>
+				</div>
+
+				{/* Import Profiles section */}
+				<div className='mt-12'>
+					<ErrorBoundary>
+						<h2 className='text-3xl mb-2 mt-12'>Import Profiles</h2>
+						<h4 className='text-void-fg-3 mb-4'>{`Transfer your profiles into Void.`}</h4>
+
+						<div className='flex flex-col gap-2'>
+							<ImportProfilesButton className='w-48' fromEditor="VS Code" />
+							<ImportProfilesButton className='w-48' fromEditor="Cursor" />
+							<ImportProfilesButton className='w-48' fromEditor="Windsurf" />
 						</div>
 					</ErrorBoundary>
 				</div>

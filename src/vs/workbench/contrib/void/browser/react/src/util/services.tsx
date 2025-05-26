@@ -22,6 +22,7 @@ import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js'
 import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
 import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
 import { IExtensionTransferService } from '../../../../../../../workbench/contrib/void/browser/extensionTransferService.js'
+import { IProfileTransferService } from '../../../../../../../workbench/contrib/void/browser/profileTransferService.js'
 
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
@@ -215,6 +216,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ITerminalService: accessor.get(ITerminalService),
 		IExtensionManagementService: accessor.get(IExtensionManagementService),
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
+		IProfileTransferService: accessor.get(IProfileTransferService),
 
 	} as const
 	return reactAccessor

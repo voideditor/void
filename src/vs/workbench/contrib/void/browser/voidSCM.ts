@@ -69,10 +69,15 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 			const requestId = this.setRequestId()
 			try {
 				const { path, repo } = this.gitRepoInfo()
-				const [stat, sampledDiffs] = await Promise.all([this.voidSCM.gitStat(path), this.voidSCM.gitSampledDiffs(path)])
+				const [stat, sampledDiffs, branch, log] = await Promise.all([
+					this.voidSCM.gitStat(path),
+					this.voidSCM.gitSampledDiffs(path),
+					this.voidSCM.gitBranch(path),
+					this.voidSCM.gitLog(path)
+				])
 				this.checkIsCurrentRequest(requestId)
 				const modelOptions = this.prepareModelOptions()
-				const prompt = this.preparePrompt(stat, sampledDiffs)
+				const prompt = this.preparePrompt(stat, sampledDiffs, branch, log)
 				const { messages, separateSystemMessage } = this.prepareMessages(prompt, modelOptions)
 				const commitMessage = await this.sendLLMMessage(messages, separateSystemMessage!, modelOptions)
 				this.checkIsCurrentRequest(requestId)
@@ -151,20 +156,29 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 		}
 	}
 
-	private preparePrompt(stat: string, sampledDiffs: string) {
+	private preparePrompt(stat: string, sampledDiffs: string, branch: string, log: string) {
 		const section1 = `Section 1 - Summary of Changes (git diff --stat):`
 		const section2 = `Section 2 - Sampled File Diffs (Top changed files):`
+		const section3 = `Section 3 - Current Git Branch:`
+		const section4 = `Section 4 - Last 5 Commits (excluding merges):`
 		return `
-	Based on the following Git changes, write a clear, concise commit message that accurately summarizes the intent of the code changes.
+Based on the following Git changes, write a clear, concise commit message that accurately summarizes the intent of the code changes.
 
-	${section1}
+${section1}
 
-	${stat}
+${stat}
 
-	${section2}
+${section2}
 
-	${sampledDiffs}
-	`.trim()
+${sampledDiffs}
+
+${section3}
+
+${branch}
+
+${section4}
+
+${log}`.trim()
 	}
 
 	private prepareMessages(prompt: string, modelOptions: ModelOptions) {

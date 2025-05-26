@@ -14,6 +14,18 @@ export interface IVoidSCM {
 	 * @param path Path to the git repository
 	 */
 	gitSampledDiffs(path: string): Promise<string>
+	/**
+	 * Get the current git branch
+	 *
+	 * @param path Path to the git repository
+	 */
+	gitBranch(path: string): Promise<string>
+	/**
+	 * Get the last 5 commits excluding merges
+	 *
+	 * @param path Path to the git repository
+	 */
+	gitLog(path: string): Promise<string>
 }
 
 export const IVoidSCM = createDecorator<IVoidSCM>('voidSCMService')

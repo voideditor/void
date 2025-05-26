@@ -53,6 +53,14 @@ export class VoidSCM implements IVoidSCM {
 		const diffs = await Promise.all(topFiles.map(async ({ file }) => ({ file, diff: await getSampledDiff(file, path) })))
 		return diffs.map(({ file, diff }) => `==== ${file} ====\n${diff}`).join('\n\n')
 	}
+
+	gitBranch(path: string): Promise<string> {
+		return git('git branch --show-current', path)
+	}
+
+	gitLog(path: string): Promise<string> {
+		return git('git log --pretty=format:"%h|%s|%ad" --date=short --no-merges -n 5', path)
+	}
 }
 
 registerSingleton(IVoidSCM, VoidSCM, InstantiationType.Delayed)

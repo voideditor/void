@@ -10,7 +10,7 @@ import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js'
 import { ILLMMessageService } from '../common/sendLLMMessageService.js'
 import { ModelSelection, OverridesOfModel, ModelSelectionOptions } from '../common/voidSettingsTypes.js'
-import { commitMessage_systemMessage } from '../common/prompt/prompts.js'
+import { gitCommitMessage_systemMessage, gitCommitMessage_userMessage } from '../common/prompt/prompts.js'
 import { LLMChatMessage } from '../common/sendLLMMessageTypes.js'
 import { ISCMRepository } from '../../../../workbench/contrib/scm/common/scm.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
@@ -28,12 +28,14 @@ interface ModelOptions {
 }
 
 export interface IGenerateCommitMessageService {
-	readonly _serviceBrand: undefined;
+	readonly _serviceBrand: undefined
 	generateCommitMessage(): Promise<void>
 	abort(): void
 }
 
 export const IGenerateCommitMessageService = createDecorator<IGenerateCommitMessageService>('voidGenerateCommitMessageService');
+
+const loadingContextKey = 'voidSCMGenerateCommitMessageLoading'
 
 class GenerateCommitMessageService extends Disposable implements IGenerateCommitMessageService {
 	readonly _serviceBrand: undefined;
@@ -54,7 +56,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 		@INotificationService private readonly notificationService: INotificationService
 	) {
 		super()
-		this.loadingContextKey = this.contextKeyService.createKey('voidSCMGenerateCommitMessageLoading', false)
+		this.loadingContextKey = this.contextKeyService.createKey(loadingContextKey, false)
 		this.voidSCM = ProxyChannel.toService<IVoidSCM>(mainProcessService.getChannel('void-channel-scm'));
 	}
 
@@ -77,7 +79,8 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 				])
 				this.checkIsCurrentRequest(requestId)
 				const modelOptions = this.prepareModelOptions()
-				const prompt = this.preparePrompt(stat, sampledDiffs, branch, log)
+				const prompt = gitCommitMessage_userMessage(stat, sampledDiffs, branch, log)
+				console.log(prompt)
 				const { messages, separateSystemMessage } = this.prepareMessages(prompt, modelOptions)
 				const commitMessage = await this.sendLLMMessage(messages, separateSystemMessage!, modelOptions)
 				this.checkIsCurrentRequest(requestId)
@@ -156,36 +159,11 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 		}
 	}
 
-	private preparePrompt(stat: string, sampledDiffs: string, branch: string, log: string) {
-		const section1 = `Section 1 - Summary of Changes (git diff --stat):`
-		const section2 = `Section 2 - Sampled File Diffs (Top changed files):`
-		const section3 = `Section 3 - Current Git Branch:`
-		const section4 = `Section 4 - Last 5 Commits (excluding merges):`
-		return `
-Based on the following Git changes, write a clear, concise commit message that accurately summarizes the intent of the code changes.
-
-${section1}
-
-${stat}
-
-${section2}
-
-${sampledDiffs}
-
-${section3}
-
-${branch}
-
-${section4}
-
-${log}`.trim()
-	}
-
 	private prepareMessages(prompt: string, modelOptions: ModelOptions) {
 		const simpleMessages = [{ role: 'user' as 'user', content: prompt }]
 		const { messages, separateSystemMessage } = this.convertToLLMMessageService.prepareLLMSimpleMessages({
 			simpleMessages,
-			systemMessage: commitMessage_systemMessage,
+			systemMessage: gitCommitMessage_systemMessage,
 			modelSelection: modelOptions.modelSelection,
 			featureName: this.scm,
 		})
@@ -241,7 +219,7 @@ class GenerateCommitMessageAction extends Action2 {
 			f1: true,
 			menu: [{
 				id: MenuId.SCMInputBox,
-				when: ContextKeyExpr.and(ContextKeyExpr.equals('scmProvider', 'git'), ContextKeyExpr.equals('voidSCMGenerateCommitMessageLoading', false)),
+				when: ContextKeyExpr.and(ContextKeyExpr.equals('scmProvider', 'git'), ContextKeyExpr.equals(loadingContextKey, false)),
 				group: 'inline'
 			}]
 		})
@@ -257,13 +235,13 @@ class LoadingGenerateCommitMessageAction extends Action2 {
 	constructor() {
 		super({
 			id: 'void.loadingGenerateCommitMessageAction',
-			title: localize2('voidCommitMessagePromptCancel', 'Cancel'),
+			title: localize2('voidCommitMessagePromptCancel', 'Void: Cancel Commit Message Generation'),
 			icon: ThemeIcon.fromId('stop-circle'),
-			tooltip: localize2('voidCommitMessagePromptCancelTooltip', 'Cancel'),
-			f1: true,
+			tooltip: localize2('voidCommitMessagePromptCancelTooltip', 'Void: Cancel Commit Message Generation'),
+			f1: false, //Having a cancel command in the command palette is more confusing than useful.
 			menu: [{
 				id: MenuId.SCMInputBox,
-				when: ContextKeyExpr.and(ContextKeyExpr.equals('scmProvider', 'git'), ContextKeyExpr.equals('voidSCMGenerateCommitMessageLoading', true)),
+				when: ContextKeyExpr.and(ContextKeyExpr.equals('scmProvider', 'git'), ContextKeyExpr.equals(loadingContextKey, true)),
 				group: 'inline'
 			}]
 		})

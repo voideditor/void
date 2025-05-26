@@ -977,7 +977,7 @@ Store Result: After computing fib(n), the result is stored in memo for future re
 // ======================================================== scm ========================================================================
 
 export const commitMessage_systemMessage = `
-You are an expert software engineer AI assistant responsible for writing clear, concise Git commit messages. Keep your commit messages to 2 sentences or less.
+You are an expert software engineer AI assistant responsible for writing clear and concise Git commit messages that summarize the **purpose** and **intent** of the change. Try to keep your commit messages to one sentence. If necessary, you can use two sentences.
 
 You always respond with:
 - The commit message wrapped in <output> tags

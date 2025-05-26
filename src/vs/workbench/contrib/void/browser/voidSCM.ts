@@ -80,7 +80,6 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 				this.checkIsCurrentRequest(requestId)
 				const modelOptions = this.prepareModelOptions()
 				const prompt = gitCommitMessage_userMessage(stat, sampledDiffs, branch, log)
-				console.log(prompt)
 				const { messages, separateSystemMessage } = this.prepareMessages(prompt, modelOptions)
 				const commitMessage = await this.sendLLMMessage(messages, separateSystemMessage!, modelOptions)
 				this.checkIsCurrentRequest(requestId)

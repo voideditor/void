@@ -175,19 +175,22 @@ export class MCPChannel implements IServerChannel {
 				await client.connect(transport);
 				console.log(`Connected via HTTP to ${serverName}`);
 				const { tools } = await client.listTools()
+				const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
 				info = {
 					status: isOn ? 'success' : 'offline',
-					tools: tools,
+					tools: toolsWithUniqueName,
 					command: server.url.toString(),
 				}
 			} catch (httpErr) {
 				console.warn(`HTTP failed for ${serverName}, trying SSE…`, httpErr);
 				transport = new SSEClientTransport(server.url);
 				await client.connect(transport);
+				const { tools } = await client.listTools()
+				const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
 				console.log(`Connected via SSE to ${serverName}`);
 				info = {
 					status: isOn ? 'success' : 'offline',
-					tools: [],
+					tools: toolsWithUniqueName,
 					command: server.url.toString(),
 				}
 			}
@@ -206,6 +209,7 @@ export class MCPChannel implements IServerChannel {
 
 			// Get the tools from the server
 			const { tools } = await client.listTools()
+			const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
 
 			// Create a full command string for display
 			const fullCommand = `${server.command} ${server.args?.join(' ') || ''}`
@@ -213,7 +217,7 @@ export class MCPChannel implements IServerChannel {
 			// Format server object
 			info = {
 				status: isOn ? 'success' : 'offline',
-				tools: tools,
+				tools: toolsWithUniqueName,
 				command: fullCommand,
 			}
 
@@ -223,6 +227,10 @@ export class MCPChannel implements IServerChannel {
 
 
 		return { _client: client, mcpServerEntryJSON: server, mcpServer: info }
+	}
+
+	private _addUniquePrefix(base: string) {
+		return `${Math.random().toString(36).slice(2, 8)}_${base}`;
 	}
 
 	private async _createClient(serverConfig: MCPConfigFileEntryJSON, serverName: string, isOn = true): Promise<ClientInfo> {

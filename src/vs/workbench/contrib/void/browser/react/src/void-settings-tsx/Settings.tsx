@@ -908,6 +908,8 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 	const voidSettings = useSettingsState()
 	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
 
+	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
+
 	return (
 		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
 			<div className="flex items-center mx-4">
@@ -948,7 +950,7 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 								data-tooltip-content={tool.description || ''}
 								data-tooltip-class-name='void-max-w-[20px]'
 							>
-								{tool.name}
+								{removeUniquePrefix(tool.name)}
 							</span>
 						))
 					) : (

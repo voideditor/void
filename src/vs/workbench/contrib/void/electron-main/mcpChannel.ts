@@ -355,13 +355,13 @@ export class MCPChannel implements IServerChannel {
 			return response
 		} catch (err) {
 			let errorMessage: string;
-			
+
 			// Check if it's an MCP error with a code
 			if (err && typeof err === 'object' && 'code' in err) {
-				const errorCode = (err as any).code;
-				const errorName = (err as any).name || 'Unknown Error';
-				const errorMsg = (err as any).message || '';
-				
+				const errorCode = err.code;
+				const errorName = err.name || 'Unknown Error';
+				const errorMsg = err.message || '';
+
 				// Map common JSON-RPC error codes to user-friendly messages
 				let codeDescription = '';
 				switch (errorCode) {
@@ -383,7 +383,7 @@ export class MCPChannel implements IServerChannel {
 					default:
 						codeDescription = `Error Code ${errorCode}`;
 				}
-				
+
 				errorMessage = `${errorName} (${codeDescription})${errorMsg ? ': ' + errorMsg : ''}`;
 			} else if (err && typeof err === 'object' && 'message' in err) {
 				// Standard error with message
@@ -395,7 +395,7 @@ export class MCPChannel implements IServerChannel {
 				// Unknown error format
 				errorMessage = JSON.stringify(err, null, 2);
 			}
-			
+
 			const fullErrorMessage = `❌ Failed to call tool "${toolName}" on server "${serverName}": ${errorMessage}`;
 			const errorResponse: MCPToolErrorResponse = {
 				event: 'error',

@@ -30,7 +30,7 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { truncate } from '../../../../base/common/strings.js';
-import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
+import { THREAD_STORAGE_KEY_III, THREAD_STORAGE_KEY_II } from '../common/storageKeys.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 import { timeout } from '../../../../base/common/async.js';
 import { deepClone } from '../../../../base/common/objects.js';
@@ -327,6 +327,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
 
+		this._migrateThreads()
 		const readThreads = this._readAllThreads() || {}
 
 		const allThreads = readThreads
@@ -389,7 +390,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// !!! this is important for properly restoring URIs from storage
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
-	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
+	private _convertThreadDataFromStorageV2(threadsStr: string): ChatThreads {
 		return JSON.parse(threadsStr, (key, value) => {
 			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
 				return URI.from(value); // TODO URI.revive instead of this?
@@ -398,24 +399,69 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		});
 	}
 
-	private _readAllThreads(): ChatThreads | null {
-		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION);
+	private _readAllThreadsV2(): ChatThreads | null {
+		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY_II, StorageScope.APPLICATION);
 		if (!threadsStr) {
 			return null
 		}
-		const threads = this._convertThreadDataFromStorage(threadsStr);
+		const threads = this._convertThreadDataFromStorageV2(threadsStr);
 
 		return threads
 	}
 
-	private _storeAllThreads(threads: ChatThreads) {
-		const serializedThreads = JSON.stringify(threads);
+	// !!! this is important for properly restoring URIs from storage
+	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
+	private _convertThreadDataFromStorage(threadStr: string): ThreadType {
+		return JSON.parse(threadStr, (key, value) => {
+			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
+				return URI.from(value); // TODO URI.revive instead of this?
+			}
+			return value;
+		});
+	}
+
+	private _readAllThreads(): ChatThreads | null {
+		const keys = this._storageService.keys(StorageScope.APPLICATION, StorageTarget.USER)
+		const threads = keys
+			.filter(k => k.startsWith(THREAD_STORAGE_KEY_III))
+			.map(k => this._storageService.get(k, StorageScope.APPLICATION))
+			.filter(t => t)
+			.map(t => this._convertThreadDataFromStorage(t!))
+		if (!threads.length) {
+			return null
+		}
+		return threads.reduce((acc, t) => {
+			acc[t.id] = t
+			return acc
+		}, {} as ChatThreads)
+	}
+
+	private _migrateThreads() {
+		const threads = this._readAllThreadsV2()
+		if (!threads) return
+		Object
+			.values(threads)
+			.filter(t => t)
+			.forEach(t => this._storeThread(t!))
+		this._storageService.remove(THREAD_STORAGE_KEY_II, StorageScope.APPLICATION)
+	}
+
+	private _storeThread(thread: ThreadType) {
+		const serializedThread = JSON.stringify(thread);
 		this._storageService.store(
-			THREAD_STORAGE_KEY,
-			serializedThreads,
+			this._storageKey(thread.id),
+			serializedThread,
 			StorageScope.APPLICATION,
 			StorageTarget.USER
 		);
+	}
+
+	private _removeThreadFromStorage(threadId: string) {
+		this._storageService.remove(this._storageKey(threadId), StorageScope.APPLICATION)
+	}
+
+	private _storageKey(threadId: string) {
+		return `${THREAD_STORAGE_KEY_III}.${threadId}`
 	}
 
 
@@ -893,7 +939,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				],
 			}
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[oldThread.id]!)
 		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 
@@ -1240,7 +1286,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 					messages: newMessages,
 				}
 			};
-			this._storeAllThreads(newThreads);
+			this._storeThread(newThreads[threadId]!)
 			this._setState({ allThreads: newThreads });
 		}
 
@@ -1597,7 +1643,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[newThread.id]!)
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id })
 	}
 
@@ -1610,7 +1656,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		delete newThreads[threadId];
 
 		// store the updated threads
-		this._storeAllThreads(newThreads);
+		this._removeThreadFromStorage(threadId)
 		this._setState({ ...this.state, allThreads: newThreads })
 	}
 
@@ -1626,7 +1672,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread,
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[newThread.id]!)
 		this._setState({ allThreads: newThreads })
 	}
 
@@ -1647,7 +1693,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 				],
 			}
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[oldThread.id]!)
 		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 

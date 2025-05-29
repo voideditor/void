@@ -1134,8 +1134,8 @@ const togetherModelOptions = {
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canIOReasoning: true,
-			canTurnOffReasoning: false,
-			openSourceThinkTags: ['<think>', '</think>']
+			canTurnOffReasoning: false, // Cannot be turned off via API, only controlled by budget
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // Together AI uses budget, max is technically 24576 but 8192 is often enough
 		},
 	},
 	'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free': {
@@ -1148,8 +1148,8 @@ const togetherModelOptions = {
 		reasoningCapabilities: {
 			supportsReasoning: true,
 			canIOReasoning: true,
-			canTurnOffReasoning: false,
-			openSourceThinkTags: ['<think>', '</think>']
+			canTurnOffReasoning: false, // Cannot be turned off via API, only controlled by budget
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // Together AI uses budget, max is technically 24576 but 8192 is often enough
 		},
 	},
 	'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': {
@@ -1190,11 +1190,37 @@ const togetherSettings: VoidStaticProviderInfo = {
 		if (lower.includes('llama-3.3-70b')) fallbackName = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free'
 		if (lower.includes('llama-vision')) fallbackName = 'meta-llama/Llama-Vision-Free'
 		if (lower.includes('mistral-7b-instruct')) fallbackName = 'mistralai/Mistral-7B-Instruct-v0.2'
+
+		// Use extensive fallback if no specific Together AI fallback matched
+		if (!fallbackName) {
+			const extensiveRes = extensiveModelOptionsFallback(modelName)
+			if (extensiveRes) return extensiveRes // Return extensive fallback if found
+		}
+
+
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...togetherModelOptions[fallbackName] }
 		return null
 	},
 	providerReasoningIOSettings: {
-		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		input: {
+			includeInPayload: (reasoningInfo) => {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+				// Together AI reasoning uses a budget slider like Gemini/Anthropic
+				if (reasoningInfo.type === 'budget_slider_value') {
+					// Together AI requires max_tokens for reasoning budget
+					return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } }
+				}
+				if (reasoningInfo.type === 'effort_slider_value')
+					return {
+						reasoning: {
+							effort: reasoningInfo.reasoningEffort
+						}
+					}
+				return null
+			}
+		},
+		// Together AI reasoning output field is 'reasoning' https://docs.together.ai/docs/reasoning
+		output: { nameOfFieldInDelta: 'reasoning' },
 	},
 }
 //--------------------nebius-ai--------------------
@@ -1389,7 +1415,25 @@ const nebiusSettings: VoidStaticProviderInfo = {
 		return null
 	},
 	providerReasoningIOSettings: {
-		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		input: {
+			includeInPayload: (reasoningInfo) => {
+				if (!reasoningInfo?.isReasoningEnabled) return null;
+				// Nebius reasoning uses a budget slider like Gemini/Anthropic or effort like xAI
+				if (reasoningInfo.type === 'budget_slider_value') {
+					// nebius requires max_tokens for reasoning budget
+					return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } };
+				}
+				if (reasoningInfo.type === 'effort_slider_value')
+					return {
+						reasoning: {
+							effort: reasoningInfo.reasoningEffort
+						}
+					};
+				return null;
+			}
+		},
+		output: { nameOfFieldInDelta: 'reasoning' }, // Nebius AI reasoning output field
+
 	},
 }
 
@@ -1415,6 +1459,7 @@ const veniceModelOptions = {
 		reasoningCapabilities: false,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
+
 const verseSettings: VoidStaticProviderInfo = {
 	modelOptions: veniceModelOptions,
 	modelOptionsFallback: (modelName) => {
@@ -1426,7 +1471,16 @@ const verseSettings: VoidStaticProviderInfo = {
 		return null
 	},
 	providerReasoningIOSettings: {
-		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		input: { includeInPayload: (reasoningInfo) => {
+			if (!reasoningInfo?.isReasoningEnabled) return null
+			// Venice AI reasoning uses a budget slider like Gemini/Anthropic
+			if (reasoningInfo.type === 'budget_slider_value') {
+				// Venice AI requires max_tokens for reasoning budget
+				return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } }
+			}
+			return null
+		} },
+		output: { nameOfFieldInDelta: 'reasoning' }, // Venice AI reasoning output field
 	},
 }
 

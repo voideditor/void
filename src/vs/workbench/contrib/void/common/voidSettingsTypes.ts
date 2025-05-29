@@ -125,9 +125,9 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'openRouter') return 'Get your [API Key here](https://openrouter.ai/settings/keys). Read about [rate limits here](https://openrouter.ai/docs/api-reference/limits).'
 	if (providerName === 'gemini') return 'Get your [API Key here](https://aistudio.google.com/apikey). Read about [rate limits here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).'
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
-	if (providerName === 'together') return 'Get your [API Key here](https://together.xyz/console/api-keys).'
-	if (providerName === 'nebius') return 'Get your [API Key here](https://console.nebius.com/api-keys).'
-	if (providerName === 'venice') return 'Get your [API Key here](https://console.venice.ai/api-keys).'
+	if (providerName === 'together') return 'Get your [API Key here](https://api.together.ai/settings/api-keys).'
+	if (providerName === 'nebius') return 'Get your [API Key here](https://studio.nebius.com/settings/api-keys).'
+	if (providerName === 'venice') return 'Get your [API Key here](https://venice.ai/settings/api).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
 	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (use this for llama.cpp and more).`

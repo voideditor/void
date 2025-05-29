@@ -495,7 +495,15 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}><X className="size-4" /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button 
+							onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-place='right'
+							data-tooltip-content='Delete'
+							className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+						>
+							<X size={12} className="text-void-fg-3 opacity-50" />
+						</button>}
 					</div>
 				</div>
 			</div>

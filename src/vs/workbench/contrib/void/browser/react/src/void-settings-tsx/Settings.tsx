@@ -948,7 +948,7 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 
 								data-tooltip-id='void-tooltip'
 								data-tooltip-content={tool.description || ''}
-								data-tooltip-class-name='void-max-w-[20px]'
+								data-tooltip-class-name='void-max-w-[300px]'
 							>
 								{removeUniquePrefix(tool.name)}
 							</span>
@@ -1140,7 +1140,7 @@ export const Settings = () => {
 									className='hover:brightness-110'
 									data-tooltip-id='void-tooltip'
 									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
-									data-tooltip-class-name='void-max-w-[20px]'
+									data-tooltip-class-name='void-max-w-[300px]'
 								>
 									Only works with FIM models.*
 								</span>

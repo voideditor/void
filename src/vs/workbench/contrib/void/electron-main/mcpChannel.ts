@@ -354,7 +354,49 @@ export class MCPChannel implements IServerChannel {
 			const response = await this._callTool(serverName, toolName, params)
 			return response
 		} catch (err) {
-			const fullErrorMessage = `❌ Failed to call tool "${toolName}" on server "${serverName}": ${typeof err === 'string' ? err : JSON.stringify(err, null, 2)}`
+			let errorMessage: string;
+			
+			// Check if it's an MCP error with a code
+			if (err && typeof err === 'object' && 'code' in err) {
+				const errorCode = (err as any).code;
+				const errorName = (err as any).name || 'Unknown Error';
+				const errorMsg = (err as any).message || '';
+				
+				// Map common JSON-RPC error codes to user-friendly messages
+				let codeDescription = '';
+				switch (errorCode) {
+					case -32700:
+						codeDescription = 'Parse Error';
+						break;
+					case -32600:
+						codeDescription = 'Invalid Request';
+						break;
+					case -32601:
+						codeDescription = 'Method Not Found';
+						break;
+					case -32602:
+						codeDescription = 'Invalid Parameters';
+						break;
+					case -32603:
+						codeDescription = 'Internal Error';
+						break;
+					default:
+						codeDescription = `Error Code ${errorCode}`;
+				}
+				
+				errorMessage = `${errorName} (${codeDescription})${errorMsg ? ': ' + errorMsg : ''}`;
+			} else if (err && typeof err === 'object' && 'message' in err) {
+				// Standard error with message
+				errorMessage = (err as any).message;
+			} else if (typeof err === 'string') {
+				// String error
+				errorMessage = err;
+			} else {
+				// Unknown error format
+				errorMessage = JSON.stringify(err, null, 2);
+			}
+			
+			const fullErrorMessage = `❌ Failed to call tool "${toolName}" on server "${serverName}": ${errorMessage}`;
 			const errorResponse: MCPToolErrorResponse = {
 				event: 'error',
 				text: fullErrorMessage,

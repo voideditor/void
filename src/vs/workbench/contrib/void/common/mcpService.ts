@@ -118,11 +118,21 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	private readonly _setMCPServerState = async (serverName: string, newServer: MCPServer | undefined) => {
-		this.state = {
-			...this.state,
-			mcpServerOfName: {
-				...this.state.mcpServerOfName,
-				...newServer === undefined ? {} : { [serverName]: newServer, }
+		if (newServer === undefined) {
+			// Remove the server from the state
+			const { [serverName]: removed, ...remainingServers } = this.state.mcpServerOfName;
+			this.state = {
+				...this.state,
+				mcpServerOfName: remainingServers
+			}
+		} else {
+			// Add or update the server
+			this.state = {
+				...this.state,
+				mcpServerOfName: {
+					...this.state.mcpServerOfName,
+					[serverName]: newServer
+				}
 			}
 		}
 		this._onDidChangeState.fire();

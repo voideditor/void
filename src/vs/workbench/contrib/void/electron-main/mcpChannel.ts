@@ -387,7 +387,7 @@ export class MCPChannel implements IServerChannel {
 				errorMessage = `${errorName} (${codeDescription})${errorMsg ? ': ' + errorMsg : ''}`;
 			} else if (err && typeof err === 'object' && 'message' in err) {
 				// Standard error with message
-				errorMessage = (err as any).message;
+				errorMessage = err.message;
 			} else if (typeof err === 'string') {
 				// String error
 				errorMessage = err;

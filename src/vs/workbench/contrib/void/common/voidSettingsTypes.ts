@@ -97,6 +97,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'mistral') {
 		return { title: 'Mistral', }
 	}
+	else if (providerName === 'cohere') {
+		return { title: 'Cohere', }
+	}
 	else if (providerName === 'googleVertex') {
 		return { title: 'Google Vertex AI', }
 	}
@@ -117,6 +120,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
+	if (providerName === 'cohere') return 'Get your [API Key here](https://dashboard.cohere.com/api-keys).'
 	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (use this for llama.cpp and more).`
 	if (providerName === 'googleVertex') return 'You must authenticate before using Vertex with Void. Read more about endpoints [here](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/call-vertex-using-openai-library), and regions [here](https://cloud.google.com/vertex-ai/docs/general/locations#available-regions).'
 	if (providerName === 'microsoftAzure') return 'Read more about endpoints [here](https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP), and get your API key [here](https://learn.microsoft.com/en-us/azure/search/search-security-api-keys?tabs=rest-use%2Cportal-find%2Cportal-query#find-existing-keys).'
@@ -151,7 +155,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 											providerName === 'mistral' ? 'api-key...' :
 												providerName === 'googleVertex' ? 'AIzaSy...' :
 													providerName === 'microsoftAzure' ? 'key-...' :
-														'',
+														providerName === 'cohere' ? 'key...' :
+															'',
 
 			isPasswordField: true,
 		}
@@ -284,6 +289,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.mistral,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mistral),
+		_didFillInProviderSettings: undefined,
+	},
+	cohere: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.cohere,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.cohere),
 		_didFillInProviderSettings: undefined,
 	},
 	liteLLM: {

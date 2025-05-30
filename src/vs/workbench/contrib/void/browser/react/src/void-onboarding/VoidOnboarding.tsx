@@ -219,6 +219,14 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								className="ml-1 text-xs align-top text-blue-400"
 							>*</span>
 						)}
+						{providerName === 'cohere' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="Cohere offers 1000 free messages a month."
+								data-tooltip-place="right"
+								className="ml-1 text-xs align-top text-blue-400"
+							>*</span>
+						)}
 					</div>
 					<div>
 						<SettingsForProvider providerName={providerName} showProviderTitle={false} showProviderSuggestions={true} />

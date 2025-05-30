@@ -45,6 +45,9 @@ export const defaultProviderSettings = {
 	mistral: {
 		apiKey: '',
 	},
+	cohere: {
+		apiKey: '',
+	},
 	lmStudio: {
 		endpoint: 'http://localhost:1234',
 	},
@@ -141,6 +144,9 @@ export const defaultModelsOfProvider = {
 		'mistral-medium-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
+	],
+	cohere: [ // https://docs.cohere.com/docs/models
+		'command-a-03-2025',
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
@@ -1017,6 +1023,24 @@ const mistralSettings: VoidStaticProviderInfo = {
 	},
 }
 
+// ---------------- COHERE ----------------
+
+const cohereModelOptions = { // https://cohere.com/pricing https://docs.cohere.com/docs/models
+	'command-a-03-2025': {
+		contextWindow: 256_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 2.50, output: 10.0 },
+		supportsFIM: false,
+		downloadable: { sizeGb: 216 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const cohereSettings: VoidStaticProviderInfo = {
+	modelOptions: cohereModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+}
 
 // ---------------- GROQ ----------------
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
@@ -1431,6 +1455,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
 	mistral: mistralSettings,
+	cohere: cohereSettings,
 
 	liteLLM: liteLLMSettings,
 	lmStudio: lmStudioSettings,

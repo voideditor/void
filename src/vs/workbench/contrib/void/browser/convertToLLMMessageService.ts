@@ -250,8 +250,8 @@ const prepareOpenAIOrAnthropicMessages = ({
 	reservedOutputTokenSpace,
 }: {
 	messages: SimpleLLMMessage[],
-	systemMessage: string | undefined,
-	aiInstructions: string | undefined,
+	systemMessage: string,
+	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	specialToolFormat: 'openai-style' | 'anthropic-style' | undefined,
 	supportsAnthropicReasoning: boolean,
@@ -491,8 +491,8 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 
 const prepareMessages = (params: {
 	messages: SimpleLLMMessage[],
-	systemMessage: string | undefined,
-	aiInstructions: string | undefined,
+	systemMessage: string,
+	aiInstructions: string,
 	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
 	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
 	supportsAnthropicReasoning: boolean,
@@ -674,21 +674,21 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			supportsSystemMessage,
 		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 
-		const systemMessageFromGenerator = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
+		const { disableSystemMessage } = this.voidSettingsService.state.globalSettings;
+		const fullSystemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
+		const systemMessage = disableSystemMessage ? '' : fullSystemMessage;
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
 
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
-		const globalDisableSystemMessageSetting = this.voidSettingsService.state.globalSettings.disableSystemMessage;
-		const finalSystemMessageForPrepareMessages = globalDisableSystemMessageSetting ? undefined : systemMessageFromGenerator;
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: llmMessages,
-			systemMessage: finalSystemMessageForPrepareMessages,
+			systemMessage,
 			aiInstructions,
 			supportsSystemMessage,
 			specialToolFormat,

@@ -446,6 +446,7 @@ export type GlobalSettings = {
 	aiInstructions: string;
 	enableAutocomplete: boolean;
 	syncApplyToChat: boolean;
+	syncSCMToChat: boolean;
 	enableFastApply: boolean;
 	chatMode: ChatMode;
 	autoApprove: { [approvalType in ToolApprovalType]?: boolean };
@@ -460,6 +461,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	aiInstructions: '',
 	enableAutocomplete: false,
 	syncApplyToChat: true,
+	syncSCMToChat: true,
 	enableFastApply: true,
 	chatMode: 'agent',
 	autoApprove: {},

@@ -1218,9 +1218,32 @@ export const Settings = () => {
 						</div>
 					</ErrorBoundary>
 
+					{/* SCM */}
+					<ErrorBoundary>
 
+						<div className='w-full'>
+							<h4 className={`text-base`}>{displayInfoOfFeatureName('SCM')}</h4>
+							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of Source Control features.</div>
 
+							<div className='my-2'>
+								{/* Sync to Chat Switch */}
+								<div className='flex items-center gap-x-2 my-2'>
+									<VoidSwitch
+										size='xs'
+										value={settingsState.globalSettings.syncSCMToChat}
+										onChange={(newVal) => voidSettingsService.setGlobalSetting('syncSCMToChat', newVal)}
+									/>
+									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncSCMToChat ? 'Same as Chat model' : 'Different model'}</span>
+								</div>
 
+								{/* Model Dropdown */}
+								<div className={`my-2 ${settingsState.globalSettings.syncSCMToChat ? 'hidden' : ''}`}>
+									<ModelDropdown featureName={'SCM'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+								</div>
+							</div>
+
+						</div>
+					</ErrorBoundary>
 
 					{/* Tools Section */}
 					<div>

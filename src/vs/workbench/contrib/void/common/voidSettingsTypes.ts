@@ -155,7 +155,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 											providerName === 'mistral' ? 'api-key...' :
 												providerName === 'googleVertex' ? 'AIzaSy...' :
 													providerName === 'microsoftAzure' ? 'key-...' :
-														'',
+														providerName === 'awsBedrock' ? 'key-...' :
+															'',
 
 			isPasswordField: true,
 		}

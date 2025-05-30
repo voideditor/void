@@ -60,6 +60,12 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
+	awsBedrock: {
+		apiKey: '',
+		region: 'us-east-1', // add region setting
+		endpoint: '', // optionally allow overriding default
+	},
+
 } as const
 
 
@@ -88,6 +94,9 @@ export const defaultModelsOfProvider = {
 	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
 		'grok-2',
 		'grok-3',
+		'grok-3-mini',
+		'grok-3-fast',
+		'grok-3-mini-fast'
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
 		'gemini-2.5-pro-exp-03-25',
@@ -142,6 +151,7 @@ export const defaultModelsOfProvider = {
 	openAICompatible: [], // fallback
 	googleVertex: [],
 	microsoftAzure: [],
+	awsBedrock: [],
 	liteLLM: [],
 
 
@@ -1095,6 +1105,18 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 	},
 }
 
+// ---------------- AWS BEDROCK ----------------
+const awsBedrockModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+
+const awsBedrockSettings: VoidStaticProviderInfo = {
+	modelOptions: awsBedrockModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
+}
+
 
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
@@ -1372,7 +1394,6 @@ const openRouterModelOptions_assumingOpenAICompat = {
 
 const openRouterSettings: VoidStaticProviderInfo = {
 	modelOptions: openRouterModelOptions_assumingOpenAICompat,
-	// TODO!!! send a query to openrouter to get the price, etc.
 	modelOptionsFallback: (modelName) => {
 		const res = extensiveModelOptionsFallback(modelName)
 		// openRouter does not support gemini-style, use openai-style instead
@@ -1435,6 +1456,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
+	awsBedrock: awsBedrockSettings,
 } as const
 
 

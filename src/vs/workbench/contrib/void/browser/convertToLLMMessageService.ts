@@ -7,7 +7,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
-import { reParsedToolXMLString, chat_systemMessage, ToolName } from '../common/prompt/prompts.js';
+import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
@@ -16,6 +16,8 @@ import { ITerminalToolService } from './terminalToolService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
+import { ToolName } from '../common/toolsServiceTypes.js';
+import { IMCPService } from '../common/mcpService.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
 
@@ -455,8 +457,8 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 						return { text: c.text }
 					}
 					else if (c.type === 'tool_use') {
-						latestToolName = c.name as ToolName
-						return { functionCall: { id: c.id, name: c.name as ToolName, args: c.input } }
+						latestToolName = c.name
+						return { functionCall: { id: c.id, name: c.name, args: c.input } }
 					}
 					else return null
 				}).filter(m => !!m)
@@ -538,6 +540,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@IVoidModelService private readonly voidModelService: IVoidModelService,
+		@IMCPService private readonly mcpService: IMCPService,
 	) {
 		super()
 	}
@@ -587,8 +590,10 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 		const includeXMLToolDefinitions = !specialToolFormat
 
+		const mcpTools = this.mcpService.getMCPTools()
+
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
-		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, includeXMLToolDefinitions })
+		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
 		return systemMessage
 	}
 
@@ -673,13 +678,15 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			contextWindow,
 			supportsSystemMessage,
 		} = getModelCapabilities(providerName, modelName, overridesOfModel)
-		const systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
+
+		const { disableSystemMessage } = this.voidSettingsService.state.globalSettings;
+		const fullSystemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
+		const systemMessage = disableSystemMessage ? '' : fullSystemMessage;
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
 
 		// Get combined AI instructions
 		const aiInstructions = this._getCombinedAIInstructions();
-
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)

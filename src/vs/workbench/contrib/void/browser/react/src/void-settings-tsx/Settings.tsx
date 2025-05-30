@@ -19,6 +19,8 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
+import { MCPServer } from '../../../../common/mcpServiceTypes.js';
+import { useMCPServiceState } from '../util/services.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -454,7 +456,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}</span>
+					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 
 				{/* right part is anything that fits */}
@@ -493,7 +495,15 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}><X className="size-4" /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button
+							onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-place='right'
+							data-tooltip-content='Delete'
+							className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+						>
+							<X size={12} className="text-void-fg-3 opacity-50" />
+						</button>}
 					</div>
 				</div>
 			</div>
@@ -898,6 +908,114 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 
 // full settings
 
+// MCP Server component
+const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer }) => {
+	const accessor = useAccessor();
+	const mcpService = accessor.get('IMCPService');
+
+	const voidSettings = useSettingsState()
+	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
+
+	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
+
+	return (
+		<div className="border border-void-border-2 bg-void-bg-1 py-3 px-4 rounded-sm my-2">
+			<div className="flex items-center justify-between">
+				{/* Left side - status and name */}
+				<div className="flex items-center gap-2">
+					{/* Status indicator */}
+					<div className={`w-2 h-2 rounded-full
+						${server.status === 'success' ? 'bg-green-500'
+							: server.status === 'error' ? 'bg-red-500'
+								: server.status === 'loading' ? 'bg-yellow-500'
+									: server.status === 'offline' ? 'bg-void-fg-3'
+										: ''}
+					`}></div>
+
+					{/* Server name */}
+					<div className="text-sm font-medium text-void-fg-1">{name}</div>
+				</div>
+
+				{/* Right side - power toggle switch */}
+				<VoidSwitch
+					value={isOn ?? false}
+					size='xs'
+					disabled={server.status === 'error'}
+					onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
+				/>
+			</div>
+
+			{/* Tools section */}
+			{isOn && (
+				<div className="mt-3">
+					<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+						{(server.tools ?? []).length > 0 ? (
+							(server.tools ?? []).map((tool: { name: string; description?: string }) => (
+								<span
+									key={tool.name}
+									className="px-2 py-0.5 bg-void-bg-2 text-void-fg-3 rounded-sm text-xs"
+
+									data-tooltip-id='void-tooltip'
+									data-tooltip-content={tool.description || ''}
+									data-tooltip-class-name='void-max-w-[300px]'
+								>
+									{removeUniquePrefix(tool.name)}
+								</span>
+							))
+						) : (
+							<span className="text-xs text-void-fg-3">No tools available</span>
+						)}
+					</div>
+				</div>
+			)}
+
+			{/* Command badge */}
+			{isOn && server.command && (
+				<div className="mt-3">
+					<div className="text-xs text-void-fg-3 mb-1">Command:</div>
+					<div className="px-2 py-1 bg-void-bg-2 text-xs font-mono overflow-x-auto whitespace-nowrap text-void-fg-2 rounded-sm">
+						{server.command}
+					</div>
+				</div>
+			)}
+
+			{/* Error message if present */}
+			{server.error && (
+				<div className="mt-3">
+					<WarningBox text={server.error} />
+				</div>
+			)}
+		</div>
+	);
+};
+
+// Main component that renders the list of servers
+const MCPServersList = () => {
+	const mcpServiceState = useMCPServiceState()
+
+	let content: React.ReactNode
+	if (mcpServiceState.error) {
+		content = <div className="text-void-fg-3 text-sm mt-2">
+			{mcpServiceState.error}
+		</div>
+	}
+	else {
+		const entries = Object.entries(mcpServiceState.mcpServerOfName)
+		if (entries.length === 0) {
+			content = <div className="text-void-fg-3 text-sm mt-2">
+				No servers found
+			</div>
+		}
+		else {
+			content = entries.map(([name, server]) => (
+				<MCPServerComponent key={name} name={name} server={server} />
+			))
+		}
+	}
+
+	return <div className="my-2">{content}</div>
+};
+
 export const Settings = () => {
 	const isDark = useIsDark()
 	const accessor = useAccessor()
@@ -908,6 +1026,7 @@ export const Settings = () => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
+	const mcpService = accessor.get('IMCPService')
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
 		let dataStr: string
@@ -1033,7 +1152,7 @@ export const Settings = () => {
 									className='hover:brightness-110'
 									data-tooltip-id='void-tooltip'
 									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
-									data-tooltip-class-name='void-max-w-[20px]'
+									data-tooltip-class-name='void-max-w-[300px]'
 								>
 									Only works with FIM models.*
 								</span>
@@ -1233,6 +1352,7 @@ export const Settings = () => {
 
 				<div className='mt-12 max-w-[600px]'>
 					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+
 					<h4 className={`text-void-fg-3 mb-4`}>
 						<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
@@ -1241,6 +1361,44 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					</h4>
 					<ErrorBoundary>
 						<AIInstructionsBox />
+					</ErrorBoundary>
+					{/* --- Disable System Message Toggle --- */}
+					<div className='my-4'>
+						<ErrorBoundary>
+							<div className='flex items-center gap-x-2'>
+								<VoidSwitch
+									size='xs'
+									value={settingsState.globalSettings.disableSystemMessage}
+									onChange={(newValue) => {
+										voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+									}}
+								/>
+								<span className='text-void-fg-3 text-xs pointer-events-none'>
+									{settingsState.globalSettings.disableSystemMessage ? 'Disable system message' : 'Disable system message'}
+								</span>
+							</div>
+						</ErrorBoundary>
+						<div className='text-void-fg-3 text-xs mt-1'>
+							{`When disabled, Void will not include anything in the system message except for content you specified above.`}
+						</div>
+					</div>
+				</div>
+
+				<div className='mt-12'>
+					<h2 className='text-3xl mb-2'>MCP</h2>
+					<h4 className={`text-void-fg-3 mb-4`}>
+						<ChatMarkdownRender inPTag={true} string={`
+Use Model Context Protocol to provide Agent mode with more tools.
+							`} chatMessageLocation={undefined} />
+					</h4>
+					<div className='my-2'>
+						<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+							Add MCP Server
+						</VoidButtonBgDarken>
+					</div>
+
+					<ErrorBoundary>
+						<MCPServersList />
 					</ErrorBoundary>
 				</div>
 			</div>

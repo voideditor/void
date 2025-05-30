@@ -100,7 +100,7 @@ const tabNames = ['Free', 'Paid', 'Local'] as const;
 type TabName = typeof tabNames[number] | 'Cloud/Other';
 
 // Data for cloud providers tab
-const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'openAICompatible'];
+const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'awsBedrock', 'openAICompatible'];
 
 // Data structures for provider tabs
 const providerNamesOfTab: Record<TabName, ProviderName[]> = {

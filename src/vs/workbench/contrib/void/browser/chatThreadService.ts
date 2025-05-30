@@ -390,7 +390,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// !!! this is important for properly restoring URIs from storage
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
-	private _convertThreadDataFromStorageV2(threadsStr: string): ChatThreads {
+	private _convertThreadDataFromStorage<T>(threadsStr: string): T {
 		return JSON.parse(threadsStr, (key, value) => {
 			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
 				return URI.from(value); // TODO URI.revive instead of this?
@@ -404,20 +404,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		if (!threadsStr) {
 			return null
 		}
-		const threads = this._convertThreadDataFromStorageV2(threadsStr);
+		const threads = this._convertThreadDataFromStorage<ChatThreads>(threadsStr);
 
 		return threads
-	}
-
-	// !!! this is important for properly restoring URIs from storage
-	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
-	private _convertThreadDataFromStorage(threadStr: string): ThreadType {
-		return JSON.parse(threadStr, (key, value) => {
-			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
-				return URI.from(value); // TODO URI.revive instead of this?
-			}
-			return value;
-		});
 	}
 
 	private _readThreadIds(): string[] {
@@ -430,7 +419,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const threads = threadIds
 			.map(id => this._storageService.get(this._storageKey(id), StorageScope.APPLICATION))
 			.filter(t => t)
-			.map(t => this._convertThreadDataFromStorage(t!))
+			.map(t => this._convertThreadDataFromStorage<ThreadType>(t!))
 		if (!threads.length) {
 			return null
 		}

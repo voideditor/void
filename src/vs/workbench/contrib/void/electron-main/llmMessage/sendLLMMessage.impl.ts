@@ -20,7 +20,6 @@ import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
-import { BuiltinToolParamName } from '../../common/toolsServiceTypes.js';
 
 const getGoogleApiKey = async () => {
 	// module‑level singleton
@@ -230,7 +229,7 @@ const rawToolCallObjOfParamsStr = (name: string, toolParamsStr: string, id: stri
 	if (typeof input !== 'object') return null
 
 	const rawParams: RawToolParamsObj = input
-	return { id, name, rawParams, doneParams: Object.keys(rawParams) as BuiltinToolParamName[], isDone: true }
+	return { id, name, rawParams, doneParams: Object.keys(rawParams), isDone: true }
 }
 
 
@@ -241,7 +240,7 @@ const rawToolCallObjOfAnthropicParams = (toolBlock: Anthropic.Messages.ToolUseBl
 	if (typeof input !== 'object') return null
 
 	const rawParams: RawToolParamsObj = input
-	return { id, name, rawParams, doneParams: Object.keys(rawParams) as BuiltinToolParamName[], isDone: true }
+	return { id, name, rawParams, doneParams: Object.keys(rawParams), isDone: true }
 }
 
 

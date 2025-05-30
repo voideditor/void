@@ -5,31 +5,32 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { VoidFileSnapshot } from './editCodeServiceTypes.js';
-import { ToolName } from './prompt/prompts.js';
 import { AnthropicReasoning, RawToolParamsObj } from './sendLLMMessageTypes.js';
-import { ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { ToolCallParams, ToolName, ToolResult } from './toolsServiceTypes.js';
 
 export type ToolMessage<T extends ToolName> = {
 	role: 'tool';
 	content: string; // give this result to LLM (string of value)
 	id: string;
 	rawParams: RawToolParamsObj;
+	mcpServerName: string | undefined; // the server name at the time of the call
 } & (
 		// in order of events:
 		| { type: 'invalid_params', result: null, name: T, }
 
-		| { type: 'tool_request', result: null, name: T, params: ToolCallParams[T], }  // params were validated, awaiting user
+		| { type: 'tool_request', result: null, name: T, params: ToolCallParams<T>, }  // params were validated, awaiting user
 
-		| { type: 'running_now', result: null, name: T, params: ToolCallParams[T], }
+		| { type: 'running_now', result: null, name: T, params: ToolCallParams<T>, }
 
-		| { type: 'tool_error', result: string, name: T, params: ToolCallParams[T], } // error when tool was running
-		| { type: 'success', result: Awaited<ToolResultType[T]>, name: T, params: ToolCallParams[T], }
-		| { type: 'rejected', result: null, name: T, params: ToolCallParams[T] }
+		| { type: 'tool_error', result: string, name: T, params: ToolCallParams<T>, } // error when tool was running
+		| { type: 'success', result: Awaited<ToolResult<T>>, name: T, params: ToolCallParams<T>, }
+		| { type: 'rejected', result: null, name: T, params: ToolCallParams<T> }
 	) // user rejected
 
 export type DecorativeCanceledTool = {
 	role: 'interrupted_streaming_tool';
 	name: ToolName;
+	mcpServerName: string | undefined; // the server name at the time of the call
 }
 
 

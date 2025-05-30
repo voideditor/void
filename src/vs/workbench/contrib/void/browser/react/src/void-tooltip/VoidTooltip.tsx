@@ -50,6 +50,8 @@ export const VoidTooltip = () => {
 					padding: 0px 8px;
 					border-radius: 6px;
 					z-index: 999999;
+					max-width: 300px;
+					word-wrap: break-word;
 				}
 
 				#void-tooltip {

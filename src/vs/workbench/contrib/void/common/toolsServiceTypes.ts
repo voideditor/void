@@ -18,7 +18,7 @@ export type ShallowDirectoryItem = {
 }
 
 
-export const approvalTypeOfBuiltinToolName: Partial<{ [T in BuiltinToolName]?: 'edits' | 'terminal' | 'mcp-tools' }> = {
+export const approvalTypeOfBuiltinToolName: Partial<{ [T in BuiltinToolName]?: 'edits' | 'terminal' | 'MCP tools' }> = {
 	'create_file_or_folder': 'edits',
 	'delete_file_or_folder': 'edits',
 	'rewrite_file': 'edits',
@@ -35,7 +35,7 @@ export type ToolApprovalType = NonNullable<(typeof approvalTypeOfBuiltinToolName
 
 export const toolApprovalTypes = new Set<ToolApprovalType>([
 	...Object.values(approvalTypeOfBuiltinToolName),
-	'mcp-tools',
+	'MCP tools',
 ])
 
 

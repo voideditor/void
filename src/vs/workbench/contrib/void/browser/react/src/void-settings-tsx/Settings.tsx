@@ -23,12 +23,12 @@ import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransfe
 //  Sidebar navigation helpers
 // ─────────────────────────────────────────────
 type SectionKey =
-  | 'models'
-  | 'localProviders'
-  | 'providers'
-  | 'featureOptions'
-  | 'general'
-  | 'all';
+	| 'models'
+	| 'localProviders'
+	| 'providers'
+	| 'featureOptions'
+	| 'general'
+	| 'all';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -910,19 +910,19 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 
 export const Settings = () => {
 	const isDark = useIsDark()
-  // ─── sidebar nav ──────────────────────────
-  const [selectedSection, setSelectedSection] =
-    useState<SectionKey>('models');
+	// ─── sidebar nav ──────────────────────────
+	const [selectedSection, setSelectedSection] =
+		useState<SectionKey>('models');
 
-  const navItems: { key: SectionKey; label: string }[] = [
-    { key: 'models',         label: 'Models' },
-    { key: 'localProviders', label: 'Local Providers' },
-    { key: 'providers',      label: 'Providers' },
-    { key: 'featureOptions', label: 'Feature Options' },
-    { key: 'general',        label: 'General' },
-    { key: 'all',            label: 'All Settings' },
-  ];
-    const show = (key: SectionKey) => selectedSection === 'all' || selectedSection === key;
+	const navItems: { key: SectionKey; label: string }[] = [
+		{ key: 'models', label: 'Models' },
+		{ key: 'localProviders', label: 'Local Providers' },
+		{ key: 'providers', label: 'Providers' },
+		{ key: 'featureOptions', label: 'Feature Options' },
+		{ key: 'general', label: 'General' },
+		{ key: 'all', label: 'All Settings' },
+	];
+	const show = (key: SectionKey) => selectedSection === 'all' || selectedSection === key;
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 	const environmentService = accessor.get('IEnvironmentService')
@@ -997,334 +997,334 @@ export const Settings = () => {
 
 
 	return (
-  <div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-    <div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto">
-      {/* ──────────────  SIDEBAR  ────────────── */}
+		<div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
+			<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto">
+				{/* ──────────────  SIDEBAR  ────────────── */}
 
-<aside className="md:w-1/4 w-full p-6 shrink-0 overflow-y-auto">
-  {/* vertical tab list */}
-  <div className="flex flex-col gap-2">
-    {navItems.map(({ key, label }) => (
-      <button
-        key={key}
-               onClick={() => {
-          if (key === 'all') {
-          setSelectedSection('all');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          } else {
-            setSelectedSection(key);
-          }
-        }}
-        className={`
+				<aside className="md:w-1/4 w-full p-6 shrink-0 overflow-y-auto">
+					{/* vertical tab list */}
+					<div className="flex flex-col gap-2">
+						{navItems.map(({ key, label }) => (
+							<button
+								key={key}
+								onClick={() => {
+									if (key === 'all') {
+										setSelectedSection('all');
+										window.scrollTo({ top: 0, behavior: 'smooth' });
+									} else {
+										setSelectedSection(key);
+									}
+								}}
+								className={`
           py-2 px-4 rounded-md text-left transition-all duration-200
           ${selectedSection === key
-            ? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
-            : 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'}
+										? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
+										: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'}
         `}
-      >
-        {label}
-      </button>
-    ))}
-  </div>
-</aside>
-
-      {/* ───────────── MAIN PANE ───────────── */}
-      <main className="flex-1 overflow-y-auto p-6 select-none">
-
-
-
-			<div className='max-w-3xl'>
-
-				<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
-
-				<div className='w-full h-[1px] my-2' />
-
-				{/* Models section (formerly FeaturesTab) */}
-				<ErrorBoundary>
-					<RedoOnboardingButton />
-				</ErrorBoundary>
-
-				<div className='w-full h-[1px] my-4' />
-
-				{/* Models section (formerly FeaturesTab) */}
-				<ErrorBoundary>
-{show('models') && (
-<>
-					<h2 className={`text-3xl mb-2`}>Models</h2>
-					<ModelDump />
-					<div className='w-full h-[1px] my-4' />
-					<AutoDetectLocalModelsToggle />
-					<RefreshableModels />
-    </>
-  )}
-				</ErrorBoundary>
-{show('localProviders') && (
-  <ErrorBoundary>
-    <>
-
-				<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
-				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-
-				<div className='opacity-80 mb-4'>
-					<OllamaSetupInstructions sayWeAutoDetect={true} />
-				</div>
-
-
-					<VoidProviderSettings providerNames={localProviderNames} />
-				    </>
-  </ErrorBoundary>
-)}
-{show('providers') && (
-  <ErrorBoundary>
-    <>
-				<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
-				<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-
-					<VoidProviderSettings providerNames={nonlocalProviderNames} />
-				    </>
-  </ErrorBoundary>
-)}
-
-
-{show('featureOptions') && (
-  <ErrorBoundary>
-    <>
-				<h2 className={`text-3xl mt-12`}>Feature Options</h2>
-
-				<div className='flex flex-col gap-y-8 my-4'>
-					<ErrorBoundary>
-						{/* FIM */}
-						<div>
-							<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1'>
-								<span>
-									Experimental.{' '}
-								</span>
-								<span
-									className='hover:brightness-110'
-									data-tooltip-id='void-tooltip'
-									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
-									data-tooltip-class-name='void-max-w-[20px]'
-								>
-									Only works with FIM models.*
-								</span>
-							</div>
-
-							<div className='my-2'>
-								{/* Enable Switch */}
-								<ErrorBoundary>
-									<div className='flex items-center gap-x-2 my-2'>
-										<VoidSwitch
-											size='xs'
-											value={settingsState.globalSettings.enableAutocomplete}
-											onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
-										/>
-										<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
-									</div>
-								</ErrorBoundary>
-
-								{/* Model Dropdown */}
-								<ErrorBoundary>
-									<div className={`my-2 ${!settingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
-										<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-									</div>
-								</ErrorBoundary>
-
-							</div>
-
-						</div>
-					</ErrorBoundary>
-
-					{/* Apply */}
-					<ErrorBoundary>
-
-						<div className='w-full'>
-							<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
-
-							<div className='my-2'>
-								{/* Sync to Chat Switch */}
-								<div className='flex items-center gap-x-2 my-2'>
-									<VoidSwitch
-										size='xs'
-										value={settingsState.globalSettings.syncApplyToChat}
-										onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
-									/>
-									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
-								</div>
-
-								{/* Model Dropdown */}
-								<div className={`my-2 ${settingsState.globalSettings.syncApplyToChat ? 'hidden' : ''}`}>
-									<ModelDropdown featureName={'Apply'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
-								</div>
-							</div>
-
-
-							<div className='my-2'>
-								{/* Fast Apply Method Dropdown */}
-								<div className='flex items-center gap-x-2 my-2'>
-									<FastApplyMethodDropdown />
-								</div>
-							</div>
-
-						</div>
-					</ErrorBoundary>
-
-
-
-
-					{/* Tools Section */}
-					<div>
-						<h4 className={`text-base`}>Tools</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
-
-						<div className='my-2'>
-							{/* Auto Accept Switch */}
-							<ErrorBoundary>
-								{[...toolApprovalTypes].map((approvalType) => {
-									return <div key={approvalType} className="flex items-center gap-x-2 my-2">
-										<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc={`Auto-approve ${approvalType}`} />
-									</div>
-								})}
-
-							</ErrorBoundary>
-
-							{/* Tool Lint Errors Switch */}
-							<ErrorBoundary>
-
-								<div className='flex items-center gap-x-2 my-2'>
-									<VoidSwitch
-										size='xs'
-										value={settingsState.globalSettings.includeToolLintErrors}
-										onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
-									/>
-									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
-								</div>
-							</ErrorBoundary>
-						</div>
+							>
+								{label}
+							</button>
+						))}
 					</div>
+				</aside>
+
+				{/* ───────────── MAIN PANE ───────────── */}
+				<main className="flex-1 overflow-y-auto p-6 select-none">
 
 
 
-					<div className='w-full'>
-						<h4 className={`text-base`}>Editor</h4>
-						<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+					<div className='max-w-3xl'>
 
-						<div className='my-2'>
-							{/* Auto Accept Switch */}
+						<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
+
+						<div className='w-full h-[1px] my-2' />
+
+						{/* Models section (formerly FeaturesTab) */}
+						<ErrorBoundary>
+							<RedoOnboardingButton />
+						</ErrorBoundary>
+
+						<div className='w-full h-[1px] my-4' />
+
+						{/* Models section (formerly FeaturesTab) */}
+						<ErrorBoundary>
+							{show('models') && (
+								<>
+									<h2 className={`text-3xl mb-2`}>Models</h2>
+									<ModelDump />
+									<div className='w-full h-[1px] my-4' />
+									<AutoDetectLocalModelsToggle />
+									<RefreshableModels />
+								</>
+							)}
+						</ErrorBoundary>
+						{show('localProviders') && (
 							<ErrorBoundary>
-								<div className='flex items-center gap-x-2 my-2'>
-									<VoidSwitch
-										size='xs'
-										value={settingsState.globalSettings.showInlineSuggestions}
-										onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
-									/>
-									<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
-								</div>
+								<>
+
+									<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
+									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
+
+									<div className='opacity-80 mb-4'>
+										<OllamaSetupInstructions sayWeAutoDetect={true} />
+									</div>
+
+
+									<VoidProviderSettings providerNames={localProviderNames} />
+								</>
 							</ErrorBoundary>
-						</div>
-					</div>
-				</div>
-				    </>
-  </ErrorBoundary>
-)}
+						)}
+						{show('providers') && (
+							<ErrorBoundary>
+								<>
+									<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
+									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
+
+									<VoidProviderSettings providerNames={nonlocalProviderNames} />
+								</>
+							</ErrorBoundary>
+						)}
 
 
-{show('general') && (
-  <>
+						{show('featureOptions') && (
+							<ErrorBoundary>
+								<>
+									<h2 className={`text-3xl mt-12`}>Feature Options</h2>
 
-				{/* General section (formerly GeneralTab) */}
-				<div className='mt-12'>
-					<ErrorBoundary>
-						<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
-						<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
+									<div className='flex flex-col gap-y-8 my-4'>
+										<ErrorBoundary>
+											{/* FIM */}
+											<div>
+												<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
+												<div className='text-sm italic text-void-fg-3 mt-1'>
+													<span>
+														Experimental.{' '}
+													</span>
+													<span
+														className='hover:brightness-110'
+														data-tooltip-id='void-tooltip'
+														data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
+														data-tooltip-class-name='void-max-w-[20px]'
+													>
+														Only works with FIM models.*
+													</span>
+												</div>
 
-						<div className='flex flex-col gap-2'>
-							<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
-							<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
-							<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
-						</div>
-					</ErrorBoundary>
-				</div>
+												<div className='my-2'>
+													{/* Enable Switch */}
+													<ErrorBoundary>
+														<div className='flex items-center gap-x-2 my-2'>
+															<VoidSwitch
+																size='xs'
+																value={settingsState.globalSettings.enableAutocomplete}
+																onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+															/>
+															<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
+														</div>
+													</ErrorBoundary>
 
-				{/* Import/Export section, as its own block right after One-Click Switch */}
-				<div className='mt-12'>
-					<h2 className='text-3xl mb-2'>Import/Export</h2>
-					<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
-					<div className='flex flex-col gap-8'>
-						{/* Settings Subcategory */}
-						<div className='flex flex-col gap-2 max-w-48 w-full'>
-							<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
-							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
-								Import Settings
-							</VoidButtonBgDarken>
-							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Settings')}>
-								Export Settings
-							</VoidButtonBgDarken>
-							<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { voidSettingsService.resetState(); }}>
-								Reset Settings
-							</ConfirmButton>
-						</div>
-						{/* Chats Subcategory */}
-						<div className='flex flex-col gap-2 w-full max-w-48'>
-							<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
-							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
-								Import Chats
-							</VoidButtonBgDarken>
-							<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Chats')}>
-								Export Chats
-							</VoidButtonBgDarken>
-							<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { chatThreadsService.resetState(); }}>
-								Reset Chats
-							</ConfirmButton>
-						</div>
-					</div>
-				</div>
+													{/* Model Dropdown */}
+													<ErrorBoundary>
+														<div className={`my-2 ${!settingsState.globalSettings.enableAutocomplete ? 'hidden' : ''}`}>
+															<ModelDropdown featureName={'Autocomplete'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+														</div>
+													</ErrorBoundary>
 
+												</div>
 
+											</div>
+										</ErrorBoundary>
 
-				<div className='mt-12'>
+										{/* Apply */}
+										<ErrorBoundary>
 
-					<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-					<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+											<div className='w-full'>
+												<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
+												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
 
-					<ErrorBoundary>
-						<div className='flex flex-col gap-2 justify-center max-w-48 w-full'>
-							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
-								General Settings
-							</VoidButtonBgDarken>
-							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
-								Keyboard Settings
-							</VoidButtonBgDarken>
-							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
-								Theme Settings
-							</VoidButtonBgDarken>
-							<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
-								Open Logs
-							</VoidButtonBgDarken>
-						</div>
-					</ErrorBoundary>
-				</div>
+												<div className='my-2'>
+													{/* Sync to Chat Switch */}
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.syncApplyToChat}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
+													</div>
+
+													{/* Model Dropdown */}
+													<div className={`my-2 ${settingsState.globalSettings.syncApplyToChat ? 'hidden' : ''}`}>
+														<ModelDropdown featureName={'Apply'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+													</div>
+												</div>
 
 
-				<div className='mt-12 max-w-[600px]'>
-					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-					<h4 className={`text-void-fg-3 mb-4`}>
-						<ChatMarkdownRender inPTag={true} string={`
+												<div className='my-2'>
+													{/* Fast Apply Method Dropdown */}
+													<div className='flex items-center gap-x-2 my-2'>
+														<FastApplyMethodDropdown />
+													</div>
+												</div>
+
+											</div>
+										</ErrorBoundary>
+
+
+
+
+										{/* Tools Section */}
+										<div>
+											<h4 className={`text-base`}>Tools</h4>
+											<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+
+											<div className='my-2'>
+												{/* Auto Accept Switch */}
+												<ErrorBoundary>
+													{[...toolApprovalTypes].map((approvalType) => {
+														return <div key={approvalType} className="flex items-center gap-x-2 my-2">
+															<ToolApprovalTypeSwitch size='xs' approvalType={approvalType} desc={`Auto-approve ${approvalType}`} />
+														</div>
+													})}
+
+												</ErrorBoundary>
+
+												{/* Tool Lint Errors Switch */}
+												<ErrorBoundary>
+
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.includeToolLintErrors}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
+													</div>
+												</ErrorBoundary>
+											</div>
+										</div>
+
+
+
+										<div className='w-full'>
+											<h4 className={`text-base`}>Editor</h4>
+											<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+
+											<div className='my-2'>
+												{/* Auto Accept Switch */}
+												<ErrorBoundary>
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.showInlineSuggestions}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
+													</div>
+												</ErrorBoundary>
+											</div>
+										</div>
+									</div>
+								</>
+							</ErrorBoundary>
+						)}
+
+
+						{show('general') && (
+							<>
+
+								{/* General section (formerly GeneralTab) */}
+								<div className='mt-12'>
+									<ErrorBoundary>
+										<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
+										<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
+
+										<div className='flex flex-col gap-2'>
+											<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
+											<OneClickSwitchButton className='w-48' fromEditor="Cursor" />
+											<OneClickSwitchButton className='w-48' fromEditor="Windsurf" />
+										</div>
+									</ErrorBoundary>
+								</div>
+
+								{/* Import/Export section, as its own block right after One-Click Switch */}
+								<div className='mt-12'>
+									<h2 className='text-3xl mb-2'>Import/Export</h2>
+									<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
+									<div className='flex flex-col gap-8'>
+										{/* Settings Subcategory */}
+										<div className='flex flex-col gap-2 max-w-48 w-full'>
+											<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
+											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
+												Import Settings
+											</VoidButtonBgDarken>
+											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Settings')}>
+												Export Settings
+											</VoidButtonBgDarken>
+											<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { voidSettingsService.resetState(); }}>
+												Reset Settings
+											</ConfirmButton>
+										</div>
+										{/* Chats Subcategory */}
+										<div className='flex flex-col gap-2 w-full max-w-48'>
+											<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
+											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
+												Import Chats
+											</VoidButtonBgDarken>
+											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Chats')}>
+												Export Chats
+											</VoidButtonBgDarken>
+											<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { chatThreadsService.resetState(); }}>
+												Reset Chats
+											</ConfirmButton>
+										</div>
+									</div>
+								</div>
+
+
+
+								<div className='mt-12'>
+
+									<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
+
+									<ErrorBoundary>
+										<div className='flex flex-col gap-2 justify-center max-w-48 w-full'>
+											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+												General Settings
+											</VoidButtonBgDarken>
+											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+												Keyboard Settings
+											</VoidButtonBgDarken>
+											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+												Theme Settings
+											</VoidButtonBgDarken>
+											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+												Open Logs
+											</VoidButtonBgDarken>
+										</div>
+									</ErrorBoundary>
+								</div>
+
+
+								<div className='mt-12 max-w-[600px]'>
+									<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>
+										<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
 Alternatively, place a \`.voidrules\` file in the root of your workspace.
 								`} chatMessageLocation={undefined} />
-					</h4>
-					<ErrorBoundary>
-						<AIInstructionsBox />
-					</ErrorBoundary>
-			</div>
-  </>
-)}
+									</h4>
+									<ErrorBoundary>
+										<AIInstructionsBox />
+									</ErrorBoundary>
+								</div>
+							</>
+						)}
 
-  </div>
-</main>
-</div>
-</div>
-);
+					</div>
+				</main>
+			</div>
+		</div>
+	);
 }

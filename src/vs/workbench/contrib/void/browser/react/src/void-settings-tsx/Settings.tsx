@@ -456,7 +456,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}</span>
+					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 
 				{/* right part is anything that fits */}
@@ -495,7 +495,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button 
+						{type === 'default' || type === 'autodetected' ? null : <button
 							onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}
 							data-tooltip-id='void-tooltip'
 							data-tooltip-place='right'

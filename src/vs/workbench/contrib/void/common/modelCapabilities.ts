@@ -60,6 +60,10 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
+	klusterAI: { // Kluste.ai https://docs.kluster.ai/get-started/start-building/setup/
+		//endpoint: 'https://api.kluster.ai/v1',
+		apiKey: '',
+	},
 } as const
 
 
@@ -147,6 +151,14 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	liteLLM: [],
 
+	klusterAI: [
+		'Qwen/Qwen3-235B-A22B-FP8',
+		'Qwen/Qwen2.5-VL-7B-Instruct',
+		'deepseek-ai/DeepSeek-V3-0324',
+		'deepseek-ai/DeepSeek-R1',
+		'google/gemma-3-27b-it',
+		'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
+	],
 
 } as const satisfies Record<ProviderName, string[]>
 
@@ -1411,6 +1423,93 @@ const openRouterSettings: VoidStaticProviderInfo = {
 }
 
 
+// ---------------- KLUSTER.AI ----------------
+
+const klusterAISettings: VoidStaticProviderInfo = {
+	providerReasoningIOSettings: {
+		output: { needsManualParse: true },
+	},
+	modelOptionsFallback: (modelName) => {
+		// For Kluster AI, we'll use the extensive fallback since they support various open source models
+		return extensiveModelOptionsFallback(modelName)
+	},
+	modelOptions: {
+		'Qwen/Qwen3-235B-A22B-FP8': {
+			contextWindow: 40_960,
+			reservedOutputTokenSpace: 40_960,
+			cost: { input: 0.40, output: 0.60 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: {
+				supportsReasoning: true,
+				canTurnOffReasoning: true,
+				canIOReasoning: true,
+				openSourceThinkTags: ['<think>', '</think>']
+			},
+		},
+		'Qwen/Qwen2.5-VL-7B-Instruct': {
+			// This model has multimodal capabilities (vision), but the multimodal property is not supported in VoidStaticModelInfo
+			contextWindow: 32_768,
+			reservedOutputTokenSpace: 32_768,
+			cost: { input: 0.20, output: 0.30 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: false,
+		},
+		'deepseek-ai/DeepSeek-V3-0324': {
+			contextWindow: 163_840,
+			reservedOutputTokenSpace: 163_840,
+			cost: { input: 0.40, output: 0.60 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: false,
+		},
+		'deepseek-ai/DeepSeek-R1': {
+			contextWindow: 163_840,
+			reservedOutputTokenSpace: 163_840,
+			cost: { input: 0.60, output: 0.80 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: {
+				supportsReasoning: true,
+				canTurnOffReasoning: false,
+				canIOReasoning: true,
+				openSourceThinkTags: ['<think>', '</think>']
+			},
+		},
+		'google/gemma-3-27b-it': {
+			// This model has multimodal capabilities, but the multimodal property is not supported in VoidStaticModelInfo
+			contextWindow: 64_000,
+			reservedOutputTokenSpace: 8_000,
+			cost: { input: 0.30, output: 0.50 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: false,
+		},
+		'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': {
+			// This model has multimodal capabilities, but the multimodal property is not supported in VoidStaticModelInfo
+			contextWindow: 1_048_576,
+			reservedOutputTokenSpace: 1_048_576,
+			cost: { input: 0.50, output: 0.70 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: false,
+		},
+	}
+}
+
 
 
 // ---------------- model settings of everything above ----------------
@@ -1437,6 +1536,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
+	klusterAI: klusterAISettings,
 } as const
 
 

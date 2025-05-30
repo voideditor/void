@@ -1223,7 +1223,7 @@ export const Settings = () => {
 
 						<div className='w-full'>
 							<h4 className={`text-base`}>{displayInfoOfFeatureName('SCM')}</h4>
-							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of Source Control features.</div>
+							<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Commit Message Generator.</div>
 
 							<div className='my-2'>
 								{/* Sync to Chat Switch */}

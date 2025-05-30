@@ -382,7 +382,7 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 		return 'Apply'
 	// source control:
 	else if (featureName === 'SCM')
-		return 'Source Control'
+		return 'Commit Message Generator'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }

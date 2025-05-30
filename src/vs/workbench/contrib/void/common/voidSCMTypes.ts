@@ -1,6 +1,6 @@
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
-export interface IVoidSCM {
+export interface IVoidSCMService {
 	readonly _serviceBrand: undefined;
 	/**
 	 * Get git diff --stat
@@ -28,4 +28,4 @@ export interface IVoidSCM {
 	gitLog(path: string): Promise<string>
 }
 
-export const IVoidSCM = createDecorator<IVoidSCM>('voidSCMService')
+export const IVoidSCMService = createDecorator<IVoidSCMService>('voidSCMService')

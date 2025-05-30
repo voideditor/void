@@ -1,5 +1,5 @@
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
-import { IVoidSCM } from '../common/voidSCM.js'
+import { IVoidSCMService } from '../common/voidSCMTypes.js'
 import { promisify } from 'util'
 import { exec as _exec } from 'child_process'
 
@@ -38,7 +38,7 @@ const getSampledDiff = async (file: string, path: string): Promise<string> => {
 	return diff.slice(0, 2000)
 }
 
-export class VoidSCM implements IVoidSCM {
+export class VoidSCMService implements IVoidSCMService {
 	readonly _serviceBrand: undefined
 
 	gitStat(path: string): Promise<string> {
@@ -63,4 +63,4 @@ export class VoidSCM implements IVoidSCM {
 	}
 }
 
-registerSingleton(IVoidSCM, VoidSCM, InstantiationType.Delayed)
+registerSingleton(IVoidSCMService, VoidSCMService, InstantiationType.Delayed)

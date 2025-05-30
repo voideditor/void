@@ -62,7 +62,7 @@ import './miscWokrbenchContrib.js'
 import './fileService.js'
 
 // register source control management
-import './voidSCM.js'
+import './voidSCMService.js'
 
 // ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
 

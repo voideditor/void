@@ -130,8 +130,8 @@ import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpda
 import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
 import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
 import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/sendLLMMessageChannel.js';
-import { IVoidSCM } from '../../workbench/contrib/void/common/voidSCM.js';
-import { VoidSCM } from '../../workbench/contrib/void/electron-main/voidSCM.js';
+import { VoidSCMService } from '../../workbench/contrib/void/electron-main/voidSCMMain.js';
+import { IVoidSCMService } from '../../workbench/contrib/void/common/voidSCMTypes.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -1103,7 +1103,7 @@ export class CodeApplication extends Disposable {
 		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
 		services.set(IVoidUpdateService, new SyncDescriptor(VoidMainUpdateService, undefined, false));
-		services.set(IVoidSCM, new SyncDescriptor(VoidSCM, undefined, false));
+		services.set(IVoidSCMService, new SyncDescriptor(VoidSCMService, undefined, false));
 
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
@@ -1245,7 +1245,7 @@ export class CodeApplication extends Disposable {
 		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
 		mainProcessElectronServer.registerChannel('void-channel-llmMessage', sendLLMMessageChannel);
 
-		const voidSCMChannel = ProxyChannel.fromService(accessor.get(IVoidSCM), disposables);
+		const voidSCMChannel = ProxyChannel.fromService(accessor.get(IVoidSCMService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-scm', voidSCMChannel);
 
 		// Extension Host Debug Broadcasting

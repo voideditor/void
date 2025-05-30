@@ -203,17 +203,6 @@
 	background-color: var(--void-bg-3) !important;
 }
 
-.void-chat-staged-images-container {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: 8px;
-}
-
-.void-chat-staged-image-item {
-	position: relative;
-}
-
 .void-pasted-image-preview {
 	width: 80px;
 	height: 80px;
@@ -224,51 +213,9 @@
 	background-color: var(--vscode-editor-background, #1e1e1e);
 }
 
-.void-chat-staged-image-remove-button {
-	position: absolute;
-	top: 0px;
-	right: 0px;
-	background-color: var(--void-bg-1, #444);
-	color: var(--void-fg-1, #ccc);
-	border-radius: 9999px;
-	padding: 2px;
-	line-height: 1;
-	cursor: pointer;
-	transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
-	width: 18px;
-	height: 18px;
-	font-size: 12px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: bold;
-	border: none;
-	z-index: 10;
-}
-
-.void-chat-staged-image-remove-button:hover {
-	opacity: 0.8;
-	background-color: var(--void-border-1, #666);
-}
-
-.void-chat-staged-image-remove-button:active {
-	opacity: 1;
-	transform: scale(0.95);
-}
-
-.void-chat-bubble-images-container,
 .void-image-preview-container {
 	margin-top: 8px;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
-}
-
-.void-chat-bubble-image {
-	max-width: 150px;
-	max-height: 150px;
-	display: block;
-	border-radius: 4px;
-	border: 1px solid var(--void-border-2, #555);
-	background-color: var(--vscode-editor-background, #1e1e1e);
 }

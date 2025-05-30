@@ -1082,13 +1082,14 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			<SelectedFiles type='past' messageIdx={messageIdx} selections={chatMessage.selections || []} />
 			<span className='px-0.5'>{chatMessage.displayContent}</span>
 			{chatMessage.images && chatMessage.images.length > 0 && (
-				<div className="void-chat-bubble-images-container">
+				<div className="mt-2 mb-2 flex flex-wrap gap-2">
 					{chatMessage.images.map((image, index) => (
 						<img
 							key={index}
 							src={`data:${image.mimeType};base64,${image.data}`}
 							alt={`User image ${index + 1}`}
-							className="void-chat-bubble-image"
+							style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
+							className="border border-void-border-2"
 						/>
 					))}
 				</div>
@@ -1373,13 +1374,14 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 						isLinkDetectionEnabled={true}
 					/>
 					{chatMessage.images && chatMessage.images.length > 0 && (
-						<div className="void-chat-bubble-images-container">
+						<div className="mt-2 mb-2 flex flex-wrap gap-2">
 							{chatMessage.images.map((image, index) => (
 								<img
 									key={index}
 									src={`data:${image.mimeType};base64,${image.data}`}
 									alt={`Assistant image ${index + 1}`}
-									className="void-chat-bubble-image"
+									style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
+									className="border border-void-border-2"
 								/>
 							))}
 						</div>
@@ -3113,18 +3115,19 @@ export const SidebarChat = () => {
 			}}
 		/>
 		{stagedImages.length > 0 && (
-			<div className="void-chat-staged-images-container">
+			<div className="flex flex-wrap gap-2 mt-2 mb-2">
 				{stagedImages.map((image, index) => (
-					<div key={index} className="void-chat-staged-image-item">
+					<div key={index} className="relative">
 						<img
 							src={image.data}
 							alt={`Staged image ${index + 1}`}
-							className="void-pasted-image-preview"
+							className="w-20 h-20 object-cover border border-void-border-2 rounded"
 						/>
 						<button
 							onClick={() => setStagedImages(prevImages => prevImages.filter((_, i) => i !== index))}
-							className="void-chat-staged-image-remove-button"
+							className="absolute top-0 right-0 bg-void-bg-1 rounded-full p-0.5 leading-none text-void-fg-1 hover:opacity-80"
 							aria-label={`Remove image ${index + 1}`}
+							style={{ width: '18px', height: '18px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
 						>
 							×
 						</button>

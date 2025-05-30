@@ -1258,7 +1258,8 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
                             </span>
                         </div>
 						</ErrorBoundary>
-                        <div className='text-void-fg-3 text-xs mt-1'> When enabled, Void will send a minimal system message to the model to reduce token usage and improve model performance for certain tasks.
+                        <div className='text-void-fg-3 text-xs mt-1'>
+							{`When enabled, Void will not include anything in the system message except for content you specified in voidrules and AI Instructions.`}
                         </div>
                     </div>
 				</div>

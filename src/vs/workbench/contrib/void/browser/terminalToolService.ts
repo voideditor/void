@@ -346,19 +346,19 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			await Promise.any([waitUntilDone, waitUntilInterrupt])
 				.finally(() => disposables.forEach(d => d.dispose()))
 
+
+
+			// read result if timed out, since we didn't get it (could clean this code up but it's ok)
+			if (resolveReason?.type === 'timeout') {
+				const terminalId = isPersistent ? params.persistentTerminalId : params.terminalId
+				result = await this.readTerminal(terminalId)
+			}
+
 			if (!isPersistent) {
 				interrupt()
 			}
 
 			if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
-
-			// read result if timed out, since we didn't get it (could clean this code up but it's ok)
-			if (resolveReason.type === 'timeout') {
-				const terminalId = isPersistent ? params.persistentTerminalId : params.terminalId
-				result = await this.readTerminal(terminalId)
-			}
-
-
 
 			if (!isPersistent) result = `$ ${command}\n${result}`
 			result = removeAnsiEscapeCodes(result)

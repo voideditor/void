@@ -279,6 +279,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 			// autoapprove is now an obj not a boolean (1.2.5)
 			if (typeof readS.globalSettings.autoApprove === 'boolean') readS.globalSettings.autoApprove = {}
+
+			if (readS.globalSettings.disableSystemMessage === undefined) readS.globalSettings.disableSystemMessage = false;
 		}
 		catch (e) {
 			readS = defaultState()

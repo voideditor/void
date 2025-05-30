@@ -1358,6 +1358,26 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 					<ErrorBoundary>
 						<AIInstructionsBox />
 					</ErrorBoundary>
+					{/* --- Disable System Message Toggle --- */}
+                    <div className='my-4'>
+                        <ErrorBoundary>
+						<div className='flex items-center gap-x-2'>
+                            <VoidSwitch
+                                size='xs'
+                                value={settingsState.globalSettings.disableSystemMessage}
+                                onChange={(newValue) => {
+                                    voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+                                }}
+                            />
+                            <span className='text-void-fg-3 text-xs pointer-events-none'>
+                                {settingsState.globalSettings.disableSystemMessage ? 'Minimal system messages sent' : 'Full system messages sent'}
+                            </span>
+                        </div>
+						</ErrorBoundary>
+                        <div className='text-void-fg-3 text-xs mt-1'>
+							{`When enabled, Void will not include anything in the system message except for content you specified in voidrules and AI Instructions.`}
+                        </div>
+                    </div>
 				</div>
 
 				<div className='mt-12 max-w-[600px]'>

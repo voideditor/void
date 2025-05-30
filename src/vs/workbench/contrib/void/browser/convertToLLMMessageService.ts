@@ -725,21 +725,22 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 			const textContent = m.content || EMPTY_MESSAGE;
 			const currentModelSelection = this.voidSettingsService.state.modelSelectionOfFeature['Chat'];
 
-			if (m.imageData && m.imageMimeType && currentModelSelection) {
+			if (m.images && m.images.length > 0 && currentModelSelection) {
 				const { providerName, modelName } = currentModelSelection;
 				const { overridesOfModel } = this.voidSettingsService.state;
 				const modelCaps = getModelCapabilities(providerName, modelName, overridesOfModel);
 
 				if (modelCaps.supportsImageInput) {
+					const contentParts: ({ type: 'text', text: string } | { type: 'image_url', image_url: { url: string, mimeType?: string } })[] = [{ type: 'text', text: textContent }];
+					for (const image of m.images) {
+						contentParts.push({ type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.data}`, mimeType: image.mimeType } });
+					}
 					simpleLLMMessages.push({
 						role: 'user',
-						content: [
-							{ type: 'text', text: textContent },
-							{ type: 'image_url', image_url: { url: `data:${m.imageMimeType};base64,${m.imageData}`, mimeType: m.imageMimeType } }
-						]
+						content: contentParts
 					});
 				} else {
-					console.warn(`Model ${modelName} (provider: ${providerName}) does not support image input. Image from user message will be ignored.`);
+					console.warn(`Model ${modelName} (provider: ${providerName}) does not support image input. Images from user message will be ignored.`);
 					simpleLLMMessages.push({
 						role: 'user',
 						content: textContent,

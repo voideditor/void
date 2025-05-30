@@ -1081,13 +1081,16 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 		chatbubbleContents = <>
 			<SelectedFiles type='past' messageIdx={messageIdx} selections={chatMessage.selections || []} />
 			<span className='px-0.5'>{chatMessage.displayContent}</span>
-			{chatMessage.imageData && chatMessage.imageMimeType && (
-				<div className="chat-image-preview mt-2">
-					<img
-						src={chatMessage.imageData}
-						alt="User image"
-						style={{ maxWidth: '100%', maxHeight: '250px', display: 'block', borderRadius: '4px' }}
-					/>
+			{chatMessage.images && chatMessage.images.length > 0 && (
+				<div className="void-chat-bubble-images-container">
+					{chatMessage.images.map((image, index) => (
+						<img
+							key={index}
+							src={`data:${image.mimeType};base64,${image.data}`}
+							alt={`User image ${index + 1}`}
+							className="void-chat-bubble-image"
+						/>
+					))}
 				</div>
 			)}
 		</>
@@ -1347,7 +1350,6 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 				<ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
 					<SmallProseWrapper>
 						<ChatMarkdownRender
-							// imageData and imageMimeType will be undefined
 							string={reasoningStr || ''}
 							chatMessageLocation={chatMessageLocation}
 							isApplyEnabled={false}
@@ -1364,11 +1366,24 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 				<ProseWrapper>
 					<ChatMarkdownRender
 						string={chatMessage.displayContent}
-						image={chatMessage.imageData ? { imgData: chatMessage.imageData } : undefined}
+						// Images are handled separately below for now
+						// image={chatMessage.imageData ? { imgData: chatMessage.imageData } : undefined}
 						chatMessageLocation={chatMessageLocation}
 						isApplyEnabled={true}
 						isLinkDetectionEnabled={true}
 					/>
+					{chatMessage.images && chatMessage.images.length > 0 && (
+						<div className="void-chat-bubble-images-container">
+							{chatMessage.images.map((image, index) => (
+								<img
+									key={index}
+									src={`data:${image.mimeType};base64,${image.data}`}
+									alt={`Assistant image ${index + 1}`}
+									className="void-chat-bubble-image"
+								/>
+							))}
+						</div>
+					)}
 				</ProseWrapper>
 			</div>
 		}
@@ -2914,9 +2929,9 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
-	const [stagedImage, setStagedImage] = useState<{ data: string, type: string } | null>(null); // New state for staged image
+	const [stagedImages, setStagedImages] = useState<Array<{ data: string; mimeType: string }>>([]); // New state for staged images
 
-	const isDisabled = (instructionsAreEmpty && !stagedImage) || !!isFeatureNameDisabled('Chat', settingsState) // Disable if no text and no image
+	const isDisabled = (instructionsAreEmpty && stagedImages.length === 0) || !!isFeatureNameDisabled('Chat', settingsState) // Disable if no text and no image
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2934,19 +2949,18 @@ export const SidebarChat = () => {
 			await chatThreadsService.addUserMessageAndStreamResponse({
 				userMessage,
 				threadId,
-				imageData: stagedImage?.data,
-				imageMimeType: stagedImage?.type
+				images: stagedImages
 			})
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}
 
 		setSelections([]) // clear staging
-		setStagedImage(null); // Clear staged image after submit
+		setStagedImages([]); // Clear staged images after submit
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState, stagedImage])
+	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState, stagedImages])
 
 	const onAbort = async () => {
 		const threadId = currentThread.id
@@ -3095,23 +3109,27 @@ export const SidebarChat = () => {
 			fnsRef={textAreaFnsRef}
 			multiline={true}
 			onImagePasted={(base64Data, mimeType) => {
-				setStagedImage({ data: base64Data, type: mimeType });
+				setStagedImages(prevImages => [...prevImages, { data: base64Data, mimeType: mimeType }]);
 			}}
 		/>
-		{stagedImage && (
-			<div className="void-image-preview-container">
-				<img
-					src={stagedImage.data}
-					alt="Staged image"
-					className="void-pasted-image-preview"
-				/>
-				<button
-					onClick={() => setStagedImage(null)}
-					className="void-remove-image-button"
-					aria-label="Remove image"
-				>
-					×
-				</button>
+		{stagedImages.length > 0 && (
+			<div className="void-chat-staged-images-container">
+				{stagedImages.map((image, index) => (
+					<div key={index} className="void-chat-staged-image-item">
+						<img
+							src={image.data}
+							alt={`Staged image ${index + 1}`}
+							className="void-pasted-image-preview"
+						/>
+						<button
+							onClick={() => setStagedImages(prevImages => prevImages.filter((_, i) => i !== index))}
+							className="void-chat-staged-image-remove-button"
+							aria-label={`Remove image ${index + 1}`}
+						>
+							×
+						</button>
+					</div>
+				))}
 			</div>
 		)}
 	</VoidChatArea>

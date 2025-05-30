@@ -203,41 +203,72 @@
 	background-color: var(--void-bg-3) !important;
 }
 
-.void-image-preview-container {
-    margin-top: 8px;
-    padding: 4px;
-    border: 1px solid var(--void-border-2);
-    border-radius: 4px;
-    position: relative;
-    max-width: 200px;
-    background-color: var(--void-bg-2);
+.void-chat-staged-images-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.void-chat-staged-image-item {
+	position: relative;
 }
 
 .void-pasted-image-preview {
-    max-width: 100%;
-    max-height: 160px;
-    border-radius: 3px;
-    display: block;
+	width: 80px;
+	height: 80px;
+	object-fit: cover;
+	border: 1px solid var(--void-border-2, #555);
+	border-radius: 4px;
+	display: block;
+	background-color: var(--vscode-editor-background, #1e1e1e);
 }
 
-.void-remove-image-button {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: var(--void-bg-1);
-    color: var(--void-fg-3);
-    border: 1px solid var(--void-border-3);
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+.void-chat-staged-image-remove-button {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	background-color: var(--void-bg-1, #444);
+	color: var(--void-fg-1, #ccc);
+	border-radius: 9999px;
+	padding: 2px;
+	line-height: 1;
+	cursor: pointer;
+	transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+	width: 18px;
+	height: 18px;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: bold;
+	border: none;
+	z-index: 10;
 }
 
-.void-remove-image-button:hover {
-    background-color: var(--void-bg-3);
-    color: var(--void-fg-1);
+.void-chat-staged-image-remove-button:hover {
+	opacity: 0.8;
+	background-color: var(--void-border-1, #666);
+}
+
+.void-chat-staged-image-remove-button:active {
+	opacity: 1;
+	transform: scale(0.95);
+}
+
+.void-chat-bubble-images-container,
+.void-image-preview-container {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.void-chat-bubble-image {
+	max-width: 150px;
+	max-height: 150px;
+	display: block;
+	border-radius: 4px;
+	border: 1px solid var(--void-border-2, #555);
+	background-color: var(--vscode-editor-background, #1e1e1e);
 }

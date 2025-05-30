@@ -919,66 +919,72 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
 
 	return (
-		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
-			<div className="flex items-center mx-4">
-				{/* Status indicator */}
-				<div className={`w-2 h-2 rounded-full mr-2
-					${server.status === 'success' ? 'bg-green-500'
-						: server.status === 'error' ? 'bg-red-500'
-							: server.status === 'loading' ? 'bg-yellow-500'
-								: server.status === 'offline' ? 'bg-gray-500'
-									: ''}
+		<div className="border border-void-border-2 bg-void-bg-1 py-3 px-4 rounded-sm my-2">
+			<div className="flex items-center justify-between">
+				{/* Left side - status and name */}
+				<div className="flex items-center gap-2">
+					{/* Status indicator */}
+					<div className={`w-2 h-2 rounded-full
+						${server.status === 'success' ? 'bg-green-500'
+							: server.status === 'error' ? 'bg-red-500'
+								: server.status === 'loading' ? 'bg-yellow-500'
+									: server.status === 'offline' ? 'bg-void-fg-3'
+										: ''}
+					`}></div>
 
-				  `}></div>
-
-				{/* Server name */}
-				<div className="text-sm font-medium mr-2">{name}</div>
-
-				{/* Power toggle switch */}
-				<div className="ml-auto mb-2">
-					<VoidSwitch
-						value={isOn ?? false}
-						size='sm'
-						disabled={server.status === 'error'}
-						onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
-					/>
+					{/* Server name */}
+					<div className="text-sm font-medium text-void-fg-1">{name}</div>
 				</div>
+
+				{/* Right side - power toggle switch */}
+				<VoidSwitch
+					value={isOn ?? false}
+					size='xs'
+					disabled={server.status === 'error'}
+					onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
+				/>
 			</div>
 
 			{/* Tools section */}
-			<div className="mt-1 mx-4">
-				<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
-					{isOn && (server.tools ?? []).length > 0 ? (
-						(server.tools ?? []).map((tool: { name: string; description?: string }) => (
-							<span
-								key={tool.name}
-								className="px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded text-xs"
+			{isOn && (
+				<div className="mt-3">
+					<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+						{(server.tools ?? []).length > 0 ? (
+							(server.tools ?? []).map((tool: { name: string; description?: string }) => (
+								<span
+									key={tool.name}
+									className="px-2 py-0.5 bg-void-bg-2 text-void-fg-3 rounded-sm text-xs"
 
-								data-tooltip-id='void-tooltip'
-								data-tooltip-content={tool.description || ''}
-								data-tooltip-class-name='void-max-w-[300px]'
-							>
-								{removeUniquePrefix(tool.name)}
-							</span>
-						))
-					) : (
-						<span className="text-xs text-gray-500">No tools available</span>
-					)}
+									data-tooltip-id='void-tooltip'
+									data-tooltip-content={tool.description || ''}
+									data-tooltip-class-name='void-max-w-[300px]'
+								>
+									{removeUniquePrefix(tool.name)}
+								</span>
+							))
+						) : (
+							<span className="text-xs text-void-fg-3">No tools available</span>
+						)}
+					</div>
 				</div>
-			</div>
+			)}
 
 			{/* Command badge */}
 			{isOn && server.command && (
-				<div className="mt-2 mx-4">
-					<div className="text-xs text-gray-400">Command:</div>
-					<div className="px-2 py-1 bg-void-bg-3 text-xs font-mono overflow-x-auto whitespace-nowrap">
+				<div className="mt-3">
+					<div className="text-xs text-void-fg-3 mb-1">Command:</div>
+					<div className="px-2 py-1 bg-void-bg-2 text-xs font-mono overflow-x-auto whitespace-nowrap text-void-fg-2 rounded-sm">
 						{server.command}
 					</div>
 				</div>
 			)}
 
 			{/* Error message if present */}
-			{server.error && (<WarningBox className='ml-4' text={server.error} />)}
+			{server.error && (
+				<div className="mt-3">
+					<WarningBox text={server.error} />
+				</div>
+			)}
 		</div>
 	);
 };
@@ -989,27 +995,25 @@ const MCPServersList = () => {
 
 	let content: React.ReactNode
 	if (mcpServiceState.error) {
-		content = <div className="text-red-500 text-sm font-medium">
+		content = <div className="text-void-fg-3 text-sm mt-2">
 			{mcpServiceState.error}
 		</div>
 	}
 	else {
 		const entries = Object.entries(mcpServiceState.mcpServerOfName)
 		if (entries.length === 0) {
-			content = <div className="text-red-500 text-sm font-medium">
+			content = <div className="text-void-fg-3 text-sm mt-2">
 				No servers found
 			</div>
 		}
 		else {
 			content = entries.map(([name, server]) => (
-				<div className="py-2" key={name}>
-					<MCPServerComponent name={name} server={server} />
-				</div>
+				<MCPServerComponent key={name} name={name} server={server} />
 			))
 		}
 	}
 
-	return content
+	return <div className="my-2">{content}</div>
 };
 
 export const Settings = () => {
@@ -1359,44 +1363,44 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 						<AIInstructionsBox />
 					</ErrorBoundary>
 					{/* --- Disable System Message Toggle --- */}
-                    <div className='my-4'>
-                        <ErrorBoundary>
-						<div className='flex items-center gap-x-2'>
-                            <VoidSwitch
-                                size='xs'
-                                value={settingsState.globalSettings.disableSystemMessage}
-                                onChange={(newValue) => {
-                                    voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
-                                }}
-                            />
-                            <span className='text-void-fg-3 text-xs pointer-events-none'>
-                                {settingsState.globalSettings.disableSystemMessage ? 'Minimal system messages sent' : 'Full system messages sent'}
-                            </span>
-                        </div>
+					<div className='my-4'>
+						<ErrorBoundary>
+							<div className='flex items-center gap-x-2'>
+								<VoidSwitch
+									size='xs'
+									value={settingsState.globalSettings.disableSystemMessage}
+									onChange={(newValue) => {
+										voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+									}}
+								/>
+								<span className='text-void-fg-3 text-xs pointer-events-none'>
+									{settingsState.globalSettings.disableSystemMessage ? 'Disable system message' : 'Disable system message'}
+								</span>
+							</div>
 						</ErrorBoundary>
-                        <div className='text-void-fg-3 text-xs mt-1'>
-							{`When enabled, Void will not include anything in the system message except for content you specified in voidrules and AI Instructions.`}
-                        </div>
-                    </div>
+						<div className='text-void-fg-3 text-xs mt-1'>
+							{`When disabled, Void will not include anything in the system message except for content you specified above.`}
+						</div>
+					</div>
 				</div>
 
-				<div className='mt-12 max-w-[600px]'>
+				<div className='mt-12'>
 					<h2 className='text-3xl mb-2'>MCP</h2>
 					<h4 className={`text-void-fg-3 mb-4`}>
 						<ChatMarkdownRender inPTag={true} string={`
 Use Model Context Protocol to provide Agent mode with more tools.
 							`} chatMessageLocation={undefined} />
 					</h4>
-					<div>
-						<VoidButtonBgDarken className='px-4 py-1 mb-2 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+					<div className='my-2'>
+						<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
 							Add MCP Server
 						</VoidButtonBgDarken>
 					</div>
-				</div>
 
-				<ErrorBoundary>
-					<MCPServersList />
-				</ErrorBoundary>
+					<ErrorBoundary>
+						<MCPServersList />
+					</ErrorBoundary>
+				</div>
 			</div>
 		</div>
 	</div>

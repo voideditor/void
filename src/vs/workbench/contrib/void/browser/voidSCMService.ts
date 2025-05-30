@@ -134,7 +134,6 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 	/** LLM Functions */
 
 	private sendLLMMessage(messages: LLMChatMessage[], separateSystemMessage: string, modelOptions: ModelOptions): Promise<string> {
-		//TODO VoidSCM - Experiment with LLM messages to get better results. The results now seem decent. But it hasn't been tested much and could probably be improved.
 		return new Promise((resolve, reject) => {
 
 			this.llmRequestId = this.llmMessageService.sendLLMMessage({

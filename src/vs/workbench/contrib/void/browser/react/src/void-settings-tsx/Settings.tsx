@@ -22,7 +22,7 @@ import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransfe
 // ─────────────────────────────────────────────
 //  Sidebar navigation helpers
 // ─────────────────────────────────────────────
-type SectionKey =
+type Tab =
 	| 'models'
 	| 'localProviders'
 	| 'providers'
@@ -912,17 +912,17 @@ export const Settings = () => {
 	const isDark = useIsDark()
 	// ─── sidebar nav ──────────────────────────
 	const [selectedSection, setSelectedSection] =
-		useState<SectionKey>('models');
+		useState<Tab>('models');
 
-	const navItems: { key: SectionKey; label: string }[] = [
-		{ key: 'models', label: 'Models' },
-		{ key: 'localProviders', label: 'Local Providers' },
-		{ key: 'providers', label: 'Providers' },
-		{ key: 'featureOptions', label: 'Feature Options' },
-		{ key: 'general', label: 'General' },
-		{ key: 'all', label: 'All Settings' },
+	const navItems: { tab: Tab; label: string }[] = [
+		{ tab: 'models', label: 'Models' },
+		{ tab: 'localProviders', label: 'Local Providers' },
+		{ tab: 'providers', label: 'Other Providers' },
+		{ tab: 'featureOptions', label: 'Feature Options' },
+		{ tab: 'general', label: 'General' },
+		{ tab: 'all', label: 'All Settings' },
 	];
-	const show = (key: SectionKey) => selectedSection === 'all' || selectedSection === key;
+	const shouldShowTab = (tab: Tab) => selectedSection === 'all' || selectedSection === tab;
 	const accessor = useAccessor()
 	const commandService = accessor.get('ICommandService')
 	const environmentService = accessor.get('IEnvironmentService')
@@ -997,27 +997,27 @@ export const Settings = () => {
 
 
 	return (
-		<div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-			<div className="flex flex-col md:flex-row w-full h-[80vh] gap-6 max-w-[900px] mx-auto">
+		<div className={`@@void-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%', overflow: 'auto' }}>
+			<div className="flex flex-col md:flex-row w-full gap-6 max-w-[900px] mx-auto mb-32" style={{ minHeight: '80vh' }}>
 				{/* ──────────────  SIDEBAR  ────────────── */}
 
-				<aside className="md:w-1/4 w-full p-6 shrink-0 overflow-y-auto">
+				<aside className="md:w-1/4 w-full p-6 shrink-0">
 					{/* vertical tab list */}
-					<div className="flex flex-col gap-2">
-						{navItems.map(({ key, label }) => (
+					<div className="flex flex-col gap-2 mt-12">
+						{navItems.map(({ tab, label }) => (
 							<button
-								key={key}
+								key={tab}
 								onClick={() => {
-									if (key === 'all') {
+									if (tab === 'all') {
 										setSelectedSection('all');
 										window.scrollTo({ top: 0, behavior: 'smooth' });
 									} else {
-										setSelectedSection(key);
+										setSelectedSection(tab);
 									}
 								}}
 								className={`
           py-2 px-4 rounded-md text-left transition-all duration-200
-          ${selectedSection === key
+          ${selectedSection === tab
 										? 'bg-[#0e70c0]/80 text-white font-medium shadow-sm'
 										: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'}
         `}
@@ -1029,7 +1029,7 @@ export const Settings = () => {
 				</aside>
 
 				{/* ───────────── MAIN PANE ───────────── */}
-				<main className="flex-1 overflow-y-auto p-6 select-none">
+				<main className="flex-1 p-6 select-none">
 
 
 
@@ -1046,50 +1046,47 @@ export const Settings = () => {
 
 						<div className='w-full h-[1px] my-4' />
 
-						{/* Models section (formerly FeaturesTab) */}
-						<ErrorBoundary>
-							{show('models') && (
-								<>
+						{/* All sections in flex container with gap-12 */}
+						<div className='flex flex-col gap-12'>
+							{/* Models section (formerly FeaturesTab) */}
+							<div className={shouldShowTab('models') ? `` : 'hidden'}>
+								<ErrorBoundary>
 									<h2 className={`text-3xl mb-2`}>Models</h2>
 									<ModelDump />
 									<div className='w-full h-[1px] my-4' />
 									<AutoDetectLocalModelsToggle />
 									<RefreshableModels />
-								</>
-							)}
-						</ErrorBoundary>
-						{show('localProviders') && (
-							<ErrorBoundary>
-								<>
+								</ErrorBoundary>
+							</div>
 
-									<h2 className={`text-3xl mb-2 mt-12`}>Local Providers</h2>
+							{/* Local Providers section */}
+							<div className={shouldShowTab('localProviders') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className={`text-3xl mb-2`}>Local Providers</h2>
 									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 
 									<div className='opacity-80 mb-4'>
 										<OllamaSetupInstructions sayWeAutoDetect={true} />
 									</div>
 
-
 									<VoidProviderSettings providerNames={localProviderNames} />
-								</>
-							</ErrorBoundary>
-						)}
-						{show('providers') && (
-							<ErrorBoundary>
-								<>
-									<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
+								</ErrorBoundary>
+							</div>
+
+							{/* Other Providers section */}
+							<div className={shouldShowTab('providers') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className={`text-3xl mb-2`}>Other Providers</h2>
 									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
 									<VoidProviderSettings providerNames={nonlocalProviderNames} />
-								</>
-							</ErrorBoundary>
-						)}
+								</ErrorBoundary>
+							</div>
 
-
-						{show('featureOptions') && (
-							<ErrorBoundary>
-								<>
-									<h2 className={`text-3xl mt-12`}>Feature Options</h2>
+							{/* Feature Options section */}
+							<div className={shouldShowTab('featureOptions') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className={`text-3xl mb-2`}>Feature Options</h2>
 
 									<div className='flex flex-col gap-y-8 my-4'>
 										<ErrorBoundary>
@@ -1225,18 +1222,15 @@ export const Settings = () => {
 											</div>
 										</div>
 									</div>
-								</>
-							</ErrorBoundary>
-						)}
+								</ErrorBoundary>
+							</div>
 
-
-						{show('general') && (
-							<>
-
-								{/* General section (formerly GeneralTab) */}
-								<div className='mt-12'>
+							{/* General section */}
+							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
+								{/* One-Click Switch section */}
+								<div>
 									<ErrorBoundary>
-										<h2 className='text-3xl mb-2 mt-12'>One-Click Switch</h2>
+										<h2 className='text-3xl mb-2'>One-Click Switch</h2>
 										<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
 
 										<div className='flex flex-col gap-2'>
@@ -1247,8 +1241,8 @@ export const Settings = () => {
 									</ErrorBoundary>
 								</div>
 
-								{/* Import/Export section, as its own block right after One-Click Switch */}
-								<div className='mt-12'>
+								{/* Import/Export section */}
+								<div>
 									<h2 className='text-3xl mb-2'>Import/Export</h2>
 									<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
 									<div className='flex flex-col gap-8'>
@@ -1283,7 +1277,8 @@ export const Settings = () => {
 
 
 
-								<div className='mt-12'>
+								{/* Built-in Settings section */}
+								<div>
 
 									<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
 									<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
@@ -1307,7 +1302,8 @@ export const Settings = () => {
 								</div>
 
 
-								<div className='mt-12 max-w-[600px]'>
+								{/* AI Instructions section */}
+								<div className='max-w-[600px]'>
 									<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
 									<h4 className={`text-void-fg-3 mb-4`}>
 										<ChatMarkdownRender inPTag={true} string={`
@@ -1319,8 +1315,8 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 										<AIInstructionsBox />
 									</ErrorBoundary>
 								</div>
-							</>
-						)}
+							</div>
+						</div>
 
 					</div>
 				</main>

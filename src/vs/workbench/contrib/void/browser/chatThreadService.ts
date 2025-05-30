@@ -420,11 +420,15 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		});
 	}
 
+	private _readThreadIds(): string[] {
+		const threadIdsStr = this._storageService.get(this._threadIdsStorageKey(), StorageScope.APPLICATION)
+		return threadIdsStr ? JSON.parse(threadIdsStr) : []
+	}
+
 	private _readAllThreads(): ChatThreads | null {
-		const keys = this._storageService.keys(StorageScope.APPLICATION, StorageTarget.USER)
-		const threads = keys
-			.filter(k => k.startsWith(THREAD_STORAGE_KEY_III))
-			.map(k => this._storageService.get(k, StorageScope.APPLICATION))
+		const threadIds = this._readThreadIds()
+		const threads = threadIds
+			.map(id => this._storageService.get(this._storageKey(id), StorageScope.APPLICATION))
 			.filter(t => t)
 			.map(t => this._convertThreadDataFromStorage(t!))
 		if (!threads.length) {
@@ -439,14 +443,29 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	private _migrateThreads() {
 		const threads = this._readAllThreadsV2()
 		if (!threads) return
-		Object
-			.values(threads)
-			.filter(t => t)
-			.forEach(t => this._storeThread(t!))
+		const threadsToStore = Object.values(threads).filter(t => t)
+		const threadIds = threadsToStore.map(t => t!.id)
+		this._storeThreadIds(threadIds)
+		threadsToStore.forEach(t => this._storeThread(t!))
 		this._storageService.remove(THREAD_STORAGE_KEY_II, StorageScope.APPLICATION)
 	}
 
-	private _storeThread(thread: ThreadType) {
+	private _storeThreadIds(threadIds: string[]) {
+		this._storageService.store(
+			this._threadIdsStorageKey(),
+			JSON.stringify(threadIds),
+			StorageScope.APPLICATION,
+			StorageTarget.USER
+		)
+	}
+
+	/**
+	 * Store a thread using the storage service. Provide the new thread IDs if they have changed (i.e. new thread, duplicated thread, removed thread)
+	 */
+	private _storeThread(thread: ThreadType, newThreadIds?: string[]) {
+		if (newThreadIds) {
+			this._storeThreadIds(newThreadIds)
+		}
 		const serializedThread = JSON.stringify(thread);
 		this._storageService.store(
 			this._storageKey(thread.id),
@@ -456,8 +475,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		);
 	}
 
-	private _removeThreadFromStorage(threadId: string) {
+	private _removeThreadFromStorage(threadId: string, threadIds: string[]) {
+		this._storeThreadIds(threadIds)
 		this._storageService.remove(this._storageKey(threadId), StorageScope.APPLICATION)
+	}
+
+	private _threadIdsStorageKey() {
+		return `${THREAD_STORAGE_KEY_III}.threadIds`
 	}
 
 	private _storageKey(threadId: string) {
@@ -1643,7 +1667,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread
 		}
-		this._storeThread(newThreads[newThread.id]!)
+		this._storeThread(newThreads[newThread.id]!, Object.keys(newThreads))
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id })
 	}
 
@@ -1656,7 +1680,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		delete newThreads[threadId];
 
 		// store the updated threads
-		this._removeThreadFromStorage(threadId)
+		this._removeThreadFromStorage(threadId, Object.keys(newThreads))
 		this._setState({ ...this.state, allThreads: newThreads })
 	}
 
@@ -1672,7 +1696,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread,
 		}
-		this._storeThread(newThreads[newThread.id]!)
+		this._storeThread(newThreads[newThread.id]!, Object.keys(newThreads))
 		this._setState({ allThreads: newThreads })
 	}
 

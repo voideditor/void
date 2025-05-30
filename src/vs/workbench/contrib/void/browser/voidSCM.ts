@@ -39,7 +39,6 @@ const loadingContextKey = 'voidSCMGenerateCommitMessageLoading'
 
 class GenerateCommitMessageService extends Disposable implements IGenerateCommitMessageService {
 	readonly _serviceBrand: undefined;
-	private readonly scm = 'SCM'
 	private readonly execute = new ThrottledDelayer(300)
 	private llmRequestId: string | null = null
 	private currentRequestId: string | null = null
@@ -66,9 +65,12 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 	}
 
 	async generateCommitMessage() {
-		this.setLoading(true)
+		this.loadingContextKey.set(true)
 		this.execute.trigger(async () => {
-			const requestId = this.setRequestId()
+			const requestId = generateUuid()
+			this.currentRequestId = requestId
+
+
 			try {
 				const { path, repo } = this.gitRepoInfo()
 				const [stat, sampledDiffs, branch, log] = await Promise.all([
@@ -77,18 +79,35 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 					this.voidSCM.gitBranch(path),
 					this.voidSCM.gitLog(path)
 				])
-				this.checkIsCurrentRequest(requestId)
-				const modelOptions = this.prepareModelOptions()
+
+				if (!this.isCurrentRequest(requestId)) { throw new CancellationError() }
+
+				const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature['SCM'] ?? null
+				const modelSelectionOptions = modelSelection ? this.voidSettingsService.state.optionsOfModelSelection['SCM'][modelSelection?.providerName]?.[modelSelection.modelName] : undefined
+				const overridesOfModel = this.voidSettingsService.state.overridesOfModel
+
+				const modelOptions: ModelOptions = { modelSelection, modelSelectionOptions, overridesOfModel }
+
 				const prompt = gitCommitMessage_userMessage(stat, sampledDiffs, branch, log)
-				const { messages, separateSystemMessage } = this.prepareMessages(prompt, modelOptions)
+
+				const simpleMessages = [{ role: 'user', content: prompt } as const]
+				const { messages, separateSystemMessage } = this.convertToLLMMessageService.prepareLLMSimpleMessages({
+					simpleMessages,
+					systemMessage: gitCommitMessage_systemMessage,
+					modelSelection: modelOptions.modelSelection,
+					featureName: 'SCM',
+				})
+
 				const commitMessage = await this.sendLLMMessage(messages, separateSystemMessage!, modelOptions)
-				this.checkIsCurrentRequest(requestId)
+
+				if (!this.isCurrentRequest(requestId)) { throw new CancellationError() }
+
 				this.setCommitMessage(repo, commitMessage)
 			} catch (error) {
 				this.onError(error)
 			} finally {
 				if (this.isCurrentRequest(requestId)) {
-					this.setLoading(false)
+					this.loadingContextKey.set(false)
 				}
 			}
 		})
@@ -99,7 +118,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 			this.llmMessageService.abort(this.llmRequestId)
 		}
 		this.execute.cancel()
-		this.setLoading(false)
+		this.loadingContextKey.set(false)
 		this.currentRequestId = null
 	}
 
@@ -115,20 +134,6 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 	private sendLLMMessage(messages: LLMChatMessage[], separateSystemMessage: string, modelOptions: ModelOptions): Promise<string> {
 		//TODO VoidSCM - Experiment with LLM messages to get better results. The results now seem decent. But it hasn't been tested much and could probably be improved.
 		return new Promise((resolve, reject) => {
-			const onFinalMessage = (params: { fullText: string }) => {
-				const match = params.fullText.match(/<output>([\s\S]*?)<\/output>/i)
-				const commitMessage = match ? match[1].trim() : ''
-				resolve(commitMessage)
-			}
-
-			const onError = (error: any) => {
-				console.error(error)
-				reject(error)
-			}
-
-			const onAbort = () => {
-				reject(new CancellationError())
-			}
 
 			this.llmRequestId = this.llmMessageService.sendLLMMessage({
 				messagesType: 'chatMessages',
@@ -139,62 +144,32 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 				modelSelectionOptions: modelOptions.modelSelectionOptions,
 				overridesOfModel: modelOptions.overridesOfModel,
 				onText: () => { },
-				onFinalMessage: onFinalMessage,
-				onError: onError,
-				onAbort: onAbort,
+				onFinalMessage: (params: { fullText: string }) => {
+					const match = params.fullText.match(/<output>([\s\S]*?)<\/output>/i)
+					const commitMessage = match ? match[1].trim() : ''
+					resolve(commitMessage)
+				},
+				onError: (error) => {
+					console.error(error)
+					reject(error)
+				},
+				onAbort: () => {
+					reject(new CancellationError())
+				},
 				logging: { loggingName: 'VoidSCM - Commit Message' },
 			})
 		})
 	}
 
-	private prepareModelOptions(): ModelOptions {
-		const modelSelection = this.voidSettingsService.state.modelSelectionOfFeature[this.scm]
-		const modelSelectionOptions = modelSelection ? this.voidSettingsService.state.optionsOfModelSelection[this.scm][modelSelection?.providerName]?.[modelSelection.modelName] : undefined
-		const overridesOfModel = this.voidSettingsService.state.overridesOfModel
-		return {
-			modelSelection,
-			modelSelectionOptions,
-			overridesOfModel
-		}
-	}
-
-	private prepareMessages(prompt: string, modelOptions: ModelOptions) {
-		const simpleMessages = [{ role: 'user' as 'user', content: prompt }]
-		const { messages, separateSystemMessage } = this.convertToLLMMessageService.prepareLLMSimpleMessages({
-			simpleMessages,
-			systemMessage: gitCommitMessage_systemMessage,
-			modelSelection: modelOptions.modelSelection,
-			featureName: this.scm,
-		})
-		return {
-			messages,
-			separateSystemMessage
-		}
-	}
 
 	/** Request Helpers */
-
-	private setRequestId() {
-		const requestId = generateUuid()
-		this.currentRequestId = requestId
-		return requestId
-	}
 
 	private isCurrentRequest(requestId: string) {
 		return requestId === this.currentRequestId
 	}
 
-	private checkIsCurrentRequest(requestId: string) {
-		if (!this.isCurrentRequest(requestId)) {
-			throw new CancellationError()
-		}
-	}
 
 	/** UI Functions */
-
-	private setLoading(isLoading: boolean) {
-		this.loadingContextKey.set(isLoading)
-	}
 
 	private setCommitMessage(repo: ISCMRepository, commitMessage: string) {
 		repo.input.setValue(commitMessage, false)

@@ -27,6 +27,7 @@ type Tab =
 	| 'localProviders'
 	| 'providers'
 	| 'featureOptions'
+	| 'mcp'
 	| 'general'
 	| 'all';
 
@@ -1036,6 +1037,7 @@ export const Settings = () => {
 		{ tab: 'localProviders', label: 'Local Providers' },
 		{ tab: 'providers', label: 'Other Providers' },
 		{ tab: 'featureOptions', label: 'Feature Options' },
+		{ tab: 'mcp', label: 'MCP' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'all', label: 'All Settings' },
 	];
@@ -1343,6 +1345,27 @@ export const Settings = () => {
 								</ErrorBoundary>
 							</div>
 
+							{/* MCP section */}
+							<div className={shouldShowTab('mcp') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className='text-3xl mb-2'>MCP</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>
+										<ChatMarkdownRender inPTag={true} string={`
+Use Model Context Protocol to provide Agent mode with more tools.
+							`} chatMessageLocation={undefined} />
+									</h4>
+									<div className='my-2'>
+										<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+											Add MCP Server
+										</VoidButtonBgDarken>
+									</div>
+
+									<ErrorBoundary>
+										<MCPServersList />
+									</ErrorBoundary>
+								</ErrorBoundary>
+							</div>
+
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
 								{/* One-Click Switch section */}
@@ -1397,7 +1420,6 @@ export const Settings = () => {
 
 								{/* Built-in Settings section */}
 								<div>
-
 									<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
 									<h4 className={`text-void-fg-3 mb-4`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
 
@@ -1432,8 +1454,29 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 									<ErrorBoundary>
 										<AIInstructionsBox />
 									</ErrorBoundary>
+									{/* --- Disable System Message Toggle --- */}
+									<div className='my-4'>
+										<ErrorBoundary>
+											<div className='flex items-center gap-x-2'>
+												<VoidSwitch
+													size='xs'
+													value={!!settingsState.globalSettings.disableSystemMessage}
+													onChange={(newValue) => {
+														voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+													}}
+												/>
+												<span className='text-void-fg-3 text-xs pointer-events-none'>
+													{'Disable system message'}
+												</span>
+											</div>
+										</ErrorBoundary>
+										<div className='text-void-fg-3 text-xs mt-1'>
+											{`When disabled, Void will not include anything in the system message except for content you specified above.`}
+										</div>
+									</div>
 								</div>
 							</div>
+
 						</div>
 
 					</div>

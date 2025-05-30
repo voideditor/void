@@ -172,7 +172,7 @@ registerAction2(class extends Action2 {
 		const oldUI = await oldThread?.state.mountedInfo?.whenMounted
 
 		const oldSelns = oldThread?.state.stagingSelections
-		const oldVal = oldUI?.textAreaRef.current?.value
+		const oldVal = oldUI?.textAreaRef?.current?.value
 
 		// open and focus new thread
 		chatThreadsService.openNewThread()

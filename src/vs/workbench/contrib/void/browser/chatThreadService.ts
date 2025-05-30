@@ -641,7 +641,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
-			const approvalType = isBuiltInTool ? approvalTypeOfBuiltinToolName[toolName] : 'mcp-tools'
+			const approvalType = isBuiltInTool ? approvalTypeOfBuiltinToolName[toolName] : 'MCP tools'
 			if (approvalType) {
 				const autoApprove = this._settingsService.state.globalSettings.autoApprove[approvalType]
 				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)

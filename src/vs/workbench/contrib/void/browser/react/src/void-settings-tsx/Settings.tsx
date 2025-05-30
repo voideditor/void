@@ -19,6 +19,8 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
+import { MCPServer } from '../../../../common/mcpServiceTypes.js';
+import { useMCPServiceState } from '../util/services.js';
 
 const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
 
@@ -454,7 +456,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit truncate'>{modelName}</span>
+					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 
 				{/* right part is anything that fits */}
@@ -493,7 +495,15 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* X button */}
 					<div className={`w-5 flex items-center justify-center`}>
-						{type === 'default' || type === 'autodetected' ? null : <button onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}><X className="size-4" /></button>}
+						{type === 'default' || type === 'autodetected' ? null : <button
+							onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}
+							data-tooltip-id='void-tooltip'
+							data-tooltip-place='right'
+							data-tooltip-content='Delete'
+							className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+						>
+							<X size={12} className="text-void-fg-3 opacity-50" />
+						</button>}
 					</div>
 				</div>
 			</div>
@@ -898,6 +908,110 @@ export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }:
 
 // full settings
 
+// MCP Server component
+const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer }) => {
+	const accessor = useAccessor();
+	const mcpService = accessor.get('IMCPService');
+
+	const voidSettings = useSettingsState()
+	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
+
+	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
+
+	return (
+		<div className="border-b border-gray-800 bg-gray-300/10 py-4 rounded-lg ">
+			<div className="flex items-center mx-4">
+				{/* Status indicator */}
+				<div className={`w-2 h-2 rounded-full mr-2
+					${server.status === 'success' ? 'bg-green-500'
+						: server.status === 'error' ? 'bg-red-500'
+							: server.status === 'loading' ? 'bg-yellow-500'
+								: server.status === 'offline' ? 'bg-gray-500'
+									: ''}
+
+				  `}></div>
+
+				{/* Server name */}
+				<div className="text-sm font-medium mr-2">{name}</div>
+
+				{/* Power toggle switch */}
+				<div className="ml-auto mb-2">
+					<VoidSwitch
+						value={isOn ?? false}
+						size='sm'
+						disabled={server.status === 'error'}
+						onChange={() => mcpService.toggleServerIsOn(name, !isOn)}
+					/>
+				</div>
+			</div>
+
+			{/* Tools section */}
+			<div className="mt-1 mx-4">
+				<div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pb-1">
+					{isOn && (server.tools ?? []).length > 0 ? (
+						(server.tools ?? []).map((tool: { name: string; description?: string }) => (
+							<span
+								key={tool.name}
+								className="px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded text-xs"
+
+								data-tooltip-id='void-tooltip'
+								data-tooltip-content={tool.description || ''}
+								data-tooltip-class-name='void-max-w-[300px]'
+							>
+								{removeUniquePrefix(tool.name)}
+							</span>
+						))
+					) : (
+						<span className="text-xs text-gray-500">No tools available</span>
+					)}
+				</div>
+			</div>
+
+			{/* Command badge */}
+			{isOn && server.command && (
+				<div className="mt-2 mx-4">
+					<div className="text-xs text-gray-400">Command:</div>
+					<div className="px-2 py-1 bg-void-bg-3 text-xs font-mono overflow-x-auto whitespace-nowrap">
+						{server.command}
+					</div>
+				</div>
+			)}
+
+			{/* Error message if present */}
+			{server.error && (<WarningBox className='ml-4' text={server.error} />)}
+		</div>
+	);
+};
+
+// Main component that renders the list of servers
+const MCPServersList = () => {
+	const mcpServiceState = useMCPServiceState()
+
+	let content: React.ReactNode
+	if (mcpServiceState.error) {
+		content = <div className="text-red-500 text-sm font-medium">
+			{mcpServiceState.error}
+		</div>
+	}
+	else {
+		const entries = Object.entries(mcpServiceState.mcpServerOfName)
+		if (entries.length === 0) {
+			content = <div className="text-red-500 text-sm font-medium">
+				No servers found
+			</div>
+		}
+		else {
+			content = entries.map(([name, server]) => (
+				<div className="py-2" key={name}>
+					<MCPServerComponent name={name} server={server} />
+				</div>
+			))
+		}
+	}
+
+	return content
+};
+
 export const Settings = () => {
 	const isDark = useIsDark()
 	const accessor = useAccessor()
@@ -908,6 +1022,7 @@ export const Settings = () => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
+	const mcpService = accessor.get('IMCPService')
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
 		let dataStr: string
@@ -1033,7 +1148,7 @@ export const Settings = () => {
 									className='hover:brightness-110'
 									data-tooltip-id='void-tooltip'
 									data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
-									data-tooltip-class-name='void-max-w-[20px]'
+									data-tooltip-class-name='void-max-w-[300px]'
 								>
 									Only works with FIM models.*
 								</span>
@@ -1233,6 +1348,7 @@ export const Settings = () => {
 
 				<div className='mt-12 max-w-[600px]'>
 					<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
+
 					<h4 className={`text-void-fg-3 mb-4`}>
 						<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
@@ -1243,6 +1359,24 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 						<AIInstructionsBox />
 					</ErrorBoundary>
 				</div>
+
+				<div className='mt-12 max-w-[600px]'>
+					<h2 className='text-3xl mb-2'>MCP</h2>
+					<h4 className={`text-void-fg-3 mb-4`}>
+						<ChatMarkdownRender inPTag={true} string={`
+Use Model Context Protocol to provide Agent mode with more tools.
+							`} chatMessageLocation={undefined} />
+					</h4>
+					<div>
+						<VoidButtonBgDarken className='px-4 py-1 mb-2 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+							Add MCP Server
+						</VoidButtonBgDarken>
+					</div>
+				</div>
+
+				<ErrorBoundary>
+					<MCPServersList />
+				</ErrorBoundary>
 			</div>
 		</div>
 	</div>

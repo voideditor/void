@@ -1037,8 +1037,8 @@ export const Settings = () => {
 		{ tab: 'localProviders', label: 'Local Providers' },
 		{ tab: 'providers', label: 'Other Providers' },
 		{ tab: 'featureOptions', label: 'Feature Options' },
-		{ tab: 'mcp', label: 'MCP' },
 		{ tab: 'general', label: 'General' },
+		{ tab: 'mcp', label: 'MCP' },
 		{ tab: 'all', label: 'All Settings' },
 	];
 	const shouldShowTab = (tab: Tab) => selectedSection === 'all' || selectedSection === tab;
@@ -1345,27 +1345,6 @@ export const Settings = () => {
 								</ErrorBoundary>
 							</div>
 
-							{/* MCP section */}
-							<div className={shouldShowTab('mcp') ? `` : 'hidden'}>
-								<ErrorBoundary>
-									<h2 className='text-3xl mb-2'>MCP</h2>
-									<h4 className={`text-void-fg-3 mb-4`}>
-										<ChatMarkdownRender inPTag={true} string={`
-Use Model Context Protocol to provide Agent mode with more tools.
-							`} chatMessageLocation={undefined} />
-									</h4>
-									<div className='my-2'>
-										<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
-											Add MCP Server
-										</VoidButtonBgDarken>
-									</div>
-
-									<ErrorBoundary>
-										<MCPServersList />
-									</ErrorBoundary>
-								</ErrorBoundary>
-							</div>
-
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
 								{/* One-Click Switch section */}
@@ -1476,6 +1455,33 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 									</div>
 								</div>
 							</div>
+
+
+
+							{/* MCP section */}
+							<div className={shouldShowTab('mcp') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className='text-3xl mb-2'>MCP</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>
+										<ChatMarkdownRender inPTag={true} string={`
+Use Model Context Protocol to provide Agent mode with more tools.
+							`} chatMessageLocation={undefined} />
+									</h4>
+									<div className='my-2'>
+										<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+											Add MCP Server
+										</VoidButtonBgDarken>
+									</div>
+
+									<ErrorBoundary>
+										<MCPServersList />
+									</ErrorBoundary>
+								</ErrorBoundary>
+							</div>
+
+
+
+
 
 						</div>
 

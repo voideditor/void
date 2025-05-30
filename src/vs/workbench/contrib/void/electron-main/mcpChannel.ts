@@ -195,7 +195,7 @@ export class MCPChannel implements IServerChannel {
 				}
 			}
 		} else if (server.command) {
-			console.log('ENV DATA: ', server.env)
+			// console.log('ENV DATA: ', server.env)
 			transport = new StdioClientTransport({
 				command: server.command,
 				args: server.args,

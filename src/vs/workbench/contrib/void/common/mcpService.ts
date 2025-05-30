@@ -88,7 +88,7 @@ class MCPService extends Disposable implements IMCPService {
 
 
 		const onEvent = (e: MCPServerEventResponse) => {
-			console.log('GOT EVENT', e)
+			// console.log('GOT EVENT', e)
 			this._setMCPServerState(e.response.name, e.response.newServer)
 		}
 		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(onEvent));

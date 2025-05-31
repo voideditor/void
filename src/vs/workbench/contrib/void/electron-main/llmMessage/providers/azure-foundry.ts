@@ -10,7 +10,7 @@ import {
 	ProviderSettingsSchema,
 	ProviderSetupInfo,
 	StreamChunk,
-} from "./types.js";
+} from "../providerTypes.js";
 
 // Define Azure AI Foundry specific config type
 export type AzureAIFoundryConfig = AzureConfig & {

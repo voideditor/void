@@ -2,30 +2,30 @@ import OpenAI from "openai";
 import {
 	availableTools,
 	InternalToolInfo,
-} from "../../../common/prompt/prompts.js";
+} from "../../common/prompt/prompts.js";
 import {
 	ChatMode,
 	displayInfoOfProviderName,
 	ProviderName,
-} from "../../../common/voidSettingsTypes.js";
+} from "../../common/voidSettingsTypes.js";
 import {
 	CallFnOfProvider,
 	sendLLMMessageToProviderImplementation,
-} from "../sendLLMMessage.impl.js";
+} from "./sendLLMMessage.impl.js";
 import { createAdaptedProvider } from "./providerOrchestrator.js";
 import {
 	ModelProvider,
 	ProviderDisplayInfo,
 	ProviderSettingsSchema,
 	ProviderSetupInfo,
-} from "./types.js";
+} from "./providerTypes.js";
 
 // Import specific providers
 import {
 	RawToolCallObj,
 	RawToolParamsObj,
-} from "../../../common/sendLLMMessageTypes.js";
-import { azureAiFoundryProvider } from "./azure-foundry.js";
+} from "../../common/sendLLMMessageTypes.js";
+import { azureAiFoundryProvider } from "./providers/azure-foundry.js";
 
 // Create fallback providers for providers that don't have their own files yet
 const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
@@ -227,4 +227,4 @@ export type {
 	SendFIMParams,
 	StreamChunk,
 	ToolsAndWrappersSetup,
-} from "./types.js";
+} from "./providerTypes.js";

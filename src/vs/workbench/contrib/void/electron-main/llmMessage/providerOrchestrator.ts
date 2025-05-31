@@ -12,25 +12,25 @@ import {
 	ProviderSetupInfo,
 	ProviderSettingsSchema,
 	ProviderDefaultSettings,
-} from "./types.js";
+} from "./providerTypes.js";
 import {
 	ProviderName,
 	displayInfoOfProviderName,
 	subTextMdOfProviderName,
 	displayInfoOfSettingName,
 	customSettingNamesOfProvider,
-} from "../../../common/voidSettingsTypes.js";
+} from "../../common/voidSettingsTypes.js";
 import {
 	defaultProviderSettings,
 	defaultModelsOfProvider,
-} from "../../../common/modelCapabilities.js";
+} from "../../common/modelCapabilities.js";
 import { setupProviderForChat, setupProviderForFIM } from "./providerUtils.js";
 import {
 	rawToolCallObjOfParamsStr,
 	invalidApiKeyMessageForProvider,
-} from "./index.js";
-import { isABuiltinToolName } from "../../../common/prompt/prompts.js";
-import { LLMChatMessage } from "../../../common/sendLLMMessageTypes.js";
+} from "./modelProvider.js";
+import { isABuiltinToolName } from "../../common/prompt/prompts.js";
+import { LLMChatMessage } from "../../common/sendLLMMessageTypes.js";
 
 /**
  * Orchestrates the interaction between the complex sendLLMMessage interface

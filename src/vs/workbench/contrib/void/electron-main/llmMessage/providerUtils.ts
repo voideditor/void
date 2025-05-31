@@ -2,28 +2,28 @@ import {
 	getModelCapabilities,
 	getProviderCapabilities,
 	getSendableReasoningInfo,
-} from "../../../common/modelCapabilities.js";
+} from "../../common/modelCapabilities.js";
 import {
 	extractReasoningWrapper,
 	extractXMLToolsWrapper,
-} from "../extractGrammar.js";
-import { openAITools } from "./index.js";
+} from "./extractGrammar.js";
+import { openAITools } from "./modelProvider.js";
 import {
 	ModelCapabilitiesSetup,
 	ReasoningSetup,
 	ToolsAndWrappersSetup,
 	SendChatParams,
 	SendFIMParams,
-} from "./types.js";
+} from "./providerTypes.js";
 import {
 	ProviderName,
 	SettingsOfProvider,
 	ModelSelectionOptions,
 	OverridesOfModel,
 	ChatMode,
-} from "../../../common/voidSettingsTypes.js";
-import { InternalToolInfo } from "../../../common/prompt/prompts.js";
-import { OnText, OnFinalMessage } from "../../../common/sendLLMMessageTypes.js";
+} from "../../common/voidSettingsTypes.js";
+import { InternalToolInfo } from "../../common/prompt/prompts.js";
+import { OnText, OnFinalMessage } from "../../common/sendLLMMessageTypes.js";
 
 /**
  * Extracts the provider configuration from settings

@@ -1,18 +1,18 @@
-import { InternalToolInfo } from "../../../common/prompt/prompts.js";
+import { InternalToolInfo } from "../../common/prompt/prompts.js";
 import {
 	LLMChatMessage,
 	LLMFIMMessage,
 	OnError,
 	OnFinalMessage,
 	OnText,
-} from "../../../common/sendLLMMessageTypes.js";
+} from "../../common/sendLLMMessageTypes.js";
 import {
 	ChatMode,
 	ModelSelectionOptions,
 	OverridesOfModel,
 	ProviderName,
 	SettingsOfProvider,
-} from "../../../common/voidSettingsTypes.js";
+} from "../../common/voidSettingsTypes.js";
 
 export type ProviderCapability =
 	| "chat"

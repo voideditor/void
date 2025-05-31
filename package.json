@@ -73,6 +73,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/core-auth": "^1.9.0",
+    "@azure/core-sse": "^2.2.0",
     "@c4312/eventsource-umd": "^3.0.5",
     "@floating-ui/react": "^0.27.8",
     "@google/genai": "^0.13.0",

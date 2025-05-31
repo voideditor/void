@@ -320,8 +320,7 @@ export class MCPChannel implements IServerChannel {
 			// handle text response
 
 			if (response.isError) {
-				throw new Error(`Tool call error: ${response.content}`)
-				// handle error
+				throw new Error(`Tool call error: ${returnValue.text}`)
 			}
 
 			// handle success

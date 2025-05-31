@@ -226,3 +226,21 @@ export type {
 	StreamChunk,
 	ToolsAndWrappersSetup,
 } from "./providerTypes.js";
+
+export type {
+	// Validation types
+	SettingValidationRules,
+	NumberValidationRules,
+	BooleanValidationRules,
+	EnumValidationRules,
+	MultiselectValidationRules,
+	FieldValidationRules,
+	FieldValidationResult,
+	SettingsValidationResult,
+} from "./providerSettingsValidation.js";
+
+// Export validation functions
+export {
+	validateField,
+	validateProviderSettings,
+} from "./providerSettingsValidation.js";

@@ -13,6 +13,7 @@ import {
 	ProviderName,
 	SettingsOfProvider,
 } from "../../common/voidSettingsTypes.js";
+import { FieldValidationRules } from "./providerSettingsValidation.js";
 
 export type ProviderCapability =
 	| "chat"
@@ -164,12 +165,17 @@ export type ProviderSetupInfo = {
 	subTextMd: string; // Markdown text with setup instructions and links
 };
 
-// Setting field display information
+// Setting field display information with validation
 export type SettingFieldInfo = {
 	title: string;
+	description?: string;
 	placeholder: string;
 	isPasswordField?: boolean;
 	isRequired?: boolean;
+	/** Field type - determines how validation is performed */
+	fieldType?: "string" | "number" | "boolean" | "enum" | "multiselect";
+	/** Validation rules for this field */
+	validation?: FieldValidationRules;
 };
 
 // Provider settings schema - defines what settings this provider needs

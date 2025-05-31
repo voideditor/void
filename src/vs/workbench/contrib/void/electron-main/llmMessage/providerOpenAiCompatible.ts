@@ -2,9 +2,9 @@ import OpenAI from "openai";
 import { InternalToolInfo } from "../../common/prompt/prompts.js";
 import { ChatMode } from "../../common/voidSettingsTypes.js";
 import {
+	BaseProviderConfig,
 	CompletionResult,
 	ModelProvider,
-	OpenAICompatibleConfig,
 	ProviderCapability,
 	ProviderDefaultSettings,
 	ProviderDisplayInfo,
@@ -17,8 +17,9 @@ import {
 } from "./providerTypes.js";
 
 // Define OpenAI specific config type
-export type OpenAIConfig = OpenAICompatibleConfig & {
-	organization?: string;
+export type OpenAICompatibleConfig = BaseProviderConfig & {
+	apiKey: string;
+	endpoint?: string;
 };
 
 // Configuration for creating OpenAI-compatible providers

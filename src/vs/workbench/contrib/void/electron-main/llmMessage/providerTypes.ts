@@ -274,30 +274,6 @@ export type ModelProvider = {
 
 // Provider-specific configs and payload types (to support other hosts of these models)
 
-// Helper types for common provider configurations
-export type OpenAICompatibleConfig = BaseProviderConfig & {
-	apiKey: string;
-	endpoint?: string;
-	organization?: string;
-};
-
-export type AnthropicConfig = BaseProviderConfig & {
-	apiKey: string;
-	anthropic_version?: string;
-};
-
-export type AzureConfig = BaseProviderConfig & {
-	apiKey: string;
-	endpoint: string;
-	azureApiVersion?: string;
-	project?: string;
-};
-
-export type LocalServerConfig = BaseProviderConfig & {
-	endpoint: string;
-	apiKey?: string;
-};
-
 export type AnthropicToolsPayload = {
 	tools?: {
 		name: string;

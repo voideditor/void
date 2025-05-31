@@ -2,7 +2,7 @@ import { default as ModelClient } from "@azure-rest/ai-inference";
 import { AzureKeyCredential } from "@azure/core-auth";
 import { createSseStream } from "@azure/core-sse";
 import {
-	AzureConfig,
+	BaseProviderConfig,
 	CompletionResult,
 	ModelProvider,
 	ProviderDefaultSettings,
@@ -13,9 +13,10 @@ import {
 } from "../providerTypes.js";
 
 // Define Azure AI Foundry specific config type
-export type AzureAIFoundryConfig = AzureConfig & {
-	azureApiVersion: string;
-	project: string;
+export type AzureConfig = BaseProviderConfig & {
+	apiKey: string;
+	endpoint: string;
+	azureApiVersion?: string;
 };
 
 /**
@@ -94,7 +95,7 @@ export const azureAiFoundryProvider: ModelProvider = {
 
 		try {
 			// Cast to our specific config type for better DX
-			const config = providerConfig as AzureAIFoundryConfig;
+			const config = providerConfig as AzureConfig;
 
 			const client = ModelClient(
 				config.endpoint,

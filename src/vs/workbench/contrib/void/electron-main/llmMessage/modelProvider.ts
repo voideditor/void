@@ -204,17 +204,13 @@ export const providerSupportsCapability = (
 
 // Export types for convenience
 export type {
-	AnthropicConfig,
 	AnthropicToolsPayload,
-	AzureConfig,
 	BaseProviderConfig,
 	CommonAdditionalPayload,
 	CompletionResult,
 	GeminiToolsPayload,
 	ListModelsParams,
-	LocalServerConfig,
 	ModelCapabilitiesSetup,
-	OpenAICompatibleConfig,
 	OpenAICompatibleToolsPayload,
 	ProviderCapability,
 	ProviderDefaultSettings,
@@ -228,6 +224,5 @@ export type {
 	SendChatParams,
 	SendFIMParams,
 	StreamChunk,
-	ToolsAndWrappersSetup
+	ToolsAndWrappersSetup,
 } from "./providerTypes.js";
-

@@ -14,6 +14,7 @@ import {
 import {
 	invalidApiKeyMessageForProvider,
 	rawToolCallObjOfParamsStr,
+	validateProviderSettings,
 } from "./modelProvider.js";
 import {
 	CompletionResult,
@@ -61,6 +62,22 @@ export class ProviderOrchestrator {
 				reasoningSetup,
 				toolsAndWrappers,
 			} = setupProviderForChat(params);
+
+			// Validate provider settings before proceeding
+			const settingsSchema = this.provider.getSettingsSchema();
+			const settingsValidation = validateProviderSettings(
+				thisConfig,
+				settingsSchema
+			);
+
+			if (!settingsValidation.isValid) {
+				const errorMessages = Object.values(settingsValidation.fieldErrors);
+				onError({
+					message: `Settings validation failed: ${errorMessages.join(", ")}`,
+					fullError: null,
+				});
+				return;
+			}
 
 			const { modelName } = modelCapabilities;
 			const { includeInPayload } = reasoningSetup;
@@ -118,10 +135,6 @@ export class ProviderOrchestrator {
 					mcpTools
 				);
 
-				// Update the adapters to use the wrapped versions
-				const originalWrappedOnText = wrappedOnText;
-				const originalWrappedOnFinalMessage = wrappedOnFinalMessage;
-
 				wrappedOnText = (textParams) => {
 					// Convert OnText params to StreamChunk and call wrapped function
 					wrapped.wrappedOnText({
@@ -152,11 +165,6 @@ export class ProviderOrchestrator {
 					});
 				};
 			}
-
-			// Get reasoning field name - use provider config or fallback to existing logic
-			const nameOfFieldInDelta =
-				reasoningConfig.deltaFieldName ||
-				reasoningSetup.providerReasoningIOSettings?.output?.nameOfFieldInDelta;
 
 			// Format messages using provider's custom formatter or default
 			const formattedMessages = this.provider.formatMessages
@@ -346,6 +354,23 @@ export class ProviderOrchestrator {
 		try {
 			// Use existing convenience methods for common setup
 			const { thisConfig, modelCapabilities } = setupProviderForFIM(params);
+
+			// Validate provider settings before proceeding
+			const settingsSchema = this.provider.getSettingsSchema();
+			const settingsValidation = validateProviderSettings(
+				thisConfig,
+				settingsSchema
+			);
+
+			if (!settingsValidation.isValid) {
+				const errorMessages = Object.values(settingsValidation.fieldErrors);
+				onError({
+					message: `Settings validation failed: ${errorMessages.join(", ")}`,
+					fullError: null,
+				});
+				return;
+			}
+
 			const { modelName } = modelCapabilities;
 
 			const onComplete = (result: CompletionResult) => {
@@ -439,6 +464,27 @@ export function createAdaptedProvider(
 		list?: (params: ListModelsParams) => Promise<void>;
 	}
 ): ModelProvider {
+	// Create schema once to avoid calling it multiple times
+	const getSettingsSchemaFn = (): ProviderSettingsSchema => {
+		const settingNames = customSettingNamesOfProvider(providerName);
+		const schema: ProviderSettingsSchema = {};
+
+		for (const settingName of settingNames) {
+			const displayInfo = displayInfoOfSettingName(
+				providerName,
+				settingName as any
+			);
+			schema[settingName] = {
+				title: displayInfo.title,
+				placeholder: displayInfo.placeholder,
+				isPasswordField: displayInfo.isPasswordField,
+				isRequired: settingName === "apiKey", // Most providers require API key
+			};
+		}
+
+		return schema;
+	};
+
 	return {
 		providerName,
 		capabilities: ["chat", "streaming"],
@@ -458,25 +504,7 @@ export function createAdaptedProvider(
 			};
 		},
 
-		getSettingsSchema(): ProviderSettingsSchema {
-			const settingNames = customSettingNamesOfProvider(providerName);
-			const schema: ProviderSettingsSchema = {};
-
-			for (const settingName of settingNames) {
-				const displayInfo = displayInfoOfSettingName(
-					providerName,
-					settingName as any
-				);
-				schema[settingName] = {
-					title: displayInfo.title,
-					placeholder: displayInfo.placeholder,
-					isPasswordField: displayInfo.isPasswordField,
-					isRequired: settingName === "apiKey", // Most providers require API key
-				};
-			}
-
-			return schema;
-		},
+		getSettingsSchema: getSettingsSchemaFn,
 
 		getDefaultSettings(): ProviderDefaultSettings {
 			return defaultProviderSettings[providerName] as ProviderDefaultSettings;
@@ -487,6 +515,22 @@ export function createAdaptedProvider(
 		},
 
 		async sendChat(params: ProviderSendChatParams): Promise<void> {
+			// Validate provider settings before proceeding
+			const settingsSchema = getSettingsSchemaFn();
+			const settingsValidation = validateProviderSettings(
+				params.providerConfig,
+				settingsSchema
+			);
+
+			if (!settingsValidation.isValid) {
+				const errorMessages = Object.values(settingsValidation.fieldErrors);
+				params.onError({
+					message: `Settings validation failed: ${errorMessages.join(", ")}`,
+					fullError: null,
+				});
+				return;
+			}
+
 			// Transform ProviderSendChatParams back to SendChatParams
 			// This is a bit hacky but needed for legacy providers
 			const legacyParams: SendChatParams = {
@@ -510,6 +554,24 @@ export function createAdaptedProvider(
 
 		sendFIM: legacyImpl.sendFIM
 			? async (params: ProviderSendFIMParams): Promise<void> => {
+				// Validate provider settings before proceeding
+				const settingsSchema = getSettingsSchemaFn();
+				const settingsValidation = validateProviderSettings(
+					params.providerConfig,
+					settingsSchema
+				);
+
+				if (!settingsValidation.isValid) {
+					const errorMessages = Object.values(settingsValidation.fieldErrors);
+					params.onError({
+						message: `Settings validation failed: ${errorMessages.join(
+							", "
+						)}`,
+						fullError: null,
+					});
+					return;
+				}
+
 				const legacyParams: SendFIMParams = {
 					messages: {
 						prefix: params.prefix,

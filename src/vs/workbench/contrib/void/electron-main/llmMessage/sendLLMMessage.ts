@@ -6,7 +6,7 @@
 import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../common/sendLLMMessageTypes.js';
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
-import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
+import { getProvider } from './providers/index.js';
 
 
 export const sendLLMMessage = async ({
@@ -100,24 +100,46 @@ export const sendLLMMessage = async ({
 
 
 	try {
-		const implementation = sendLLMMessageToProviderImplementation[providerName]
-		if (!implementation) {
+		const provider = getProvider(providerName);
+		if (!provider) {
 			onError({ message: `Error: Provider "${providerName}" not recognized.`, fullError: null })
 			return
 		}
-		const { sendFIM, sendChat } = implementation
+
+		const commonParams = {
+			onText,
+			onFinalMessage,
+			onError,
+			settingsOfProvider,
+			modelSelectionOptions,
+			overridesOfModel,
+			modelName,
+			_setAborter,
+			providerName,
+			separateSystemMessage,
+		};
+
 		if (messagesType === 'chatMessages') {
-			await sendChat({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName, _setAborter, providerName, separateSystemMessage, chatMode })
+			await provider.sendChat({
+				...commonParams,
+				messages: messages_,
+				chatMode
+			});
 			return
 		}
+
 		if (messagesType === 'FIMMessage') {
-			if (sendFIM) {
-				await sendFIM({ messages: messages_, onText, onFinalMessage, onError, settingsOfProvider, modelSelectionOptions, overridesOfModel, modelName, _setAborter, providerName, separateSystemMessage })
+			if (provider.sendFIM) {
+				await provider.sendFIM({
+					...commonParams,
+					messages: messages_
+				});
 				return
 			}
 			onError({ message: `Error running Autocomplete with ${providerName} - ${modelName}.`, fullError: null })
 			return
 		}
+
 		onError({ message: `Error: Message type "${messagesType}" not recognized.`, fullError: null })
 		return
 	}
@@ -128,8 +150,5 @@ export const sendLLMMessage = async ({
 		// ; (_aborter as any)?.()
 		// _didAbort = true
 	}
-
-
-
 }
 

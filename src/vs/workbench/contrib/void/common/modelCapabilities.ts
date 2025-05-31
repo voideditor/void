@@ -60,6 +60,11 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
+	azureAiFoundry: { // Azure AI Foundry (Azure AI Inference SDK, non-OpenAI models)
+		endpoint: '',
+		apiKey: '',
+		azureApiVersion: '2024-12-01-preview',
+	},
 } as const
 
 
@@ -146,6 +151,7 @@ export const defaultModelsOfProvider = {
 	googleVertex: [],
 	microsoftAzure: [],
 	liteLLM: [],
+	azureAiFoundry: [],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1098,6 +1104,14 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 	},
 }
 
+// ---------------- AZURE AI FOUNDRY ----------------
+const azureAiFoundryModelOptions = {
+} as const satisfies Record<string, VoidStaticModelInfo>
+const azureAiFoundrySettings: VoidStaticProviderInfo = {
+	modelOptions: azureAiFoundryModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+}
+
 
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
@@ -1438,6 +1452,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
+	azureAiFoundry: azureAiFoundrySettings,
 } as const
 
 

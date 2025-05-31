@@ -821,7 +821,7 @@ const sendGeminiChat = async ({
 
 
 
-type CallFnOfProvider = {
+export type CallFnOfProvider = {
 	[providerName in ProviderName]: {
 		sendChat: (params: SendChatParams_Internal) => Promise<void>;
 		sendFIM: ((params: SendFIMParams_Internal) => void) | null;
@@ -904,6 +904,11 @@ export const sendLLMMessageToProviderImplementation = {
 	},
 	microsoftAzure: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	azureAiFoundry: {
+		sendChat: async (params) => { }, // just for type checking
 		sendFIM: null,
 		list: null,
 	},

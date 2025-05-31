@@ -43,42 +43,23 @@ export const azureAiFoundryProvider: ModelProvider = {
 
 	getSettingsSchema(): ProviderSettingsSchema {
 		return {
+			endpoint: {
+				title: "baseURL",
+				placeholder: "https://my-foundry-resource.services.ai.azure.com/models",
+				isRequired: true,
+				validation: {
+					pattern: "^https://[^\\s/$.?#]*\\.services\\.ai\\.azure\\.com/models$"
+				}
+			},
 			apiKey: {
 				title: "API Key",
-				placeholder: "key-...",
+				placeholder: "12e9gi278TYe1bguiiNe2....",
 				isPasswordField: true,
 				isRequired: true,
 				validation: {
 					minLength: 20,
-					pattern: "^key-[a-zA-Z0-9_-]+$",
+					pattern: "^[a-zA-Z0-9]+$",
 					noEmpty: true
-				}
-			},
-			endpoint: {
-				title: "baseURL",
-				placeholder: "https://my-foundry-resource.azure.com/v1",
-				isRequired: true,
-				validation: {
-					pattern: "^https://[^\\s/$.?#]*\\.azure\\.com.*$"
-				}
-			},
-			project: {
-				title: "Resource",
-				placeholder: "my-resource",
-				isRequired: true,
-				validation: {
-					minLength: 1,
-					maxLength: 100,
-					pattern: "^[a-zA-Z0-9-]+$",
-					noEmpty: true
-				}
-			},
-			azureApiVersion: {
-				title: "API Version",
-				placeholder: "2024-05-01-preview",
-				isRequired: false,
-				validation: {
-					pattern: "^\\d{4}-\\d{2}-\\d{2}(-preview)?$"
 				}
 			},
 		};
@@ -88,8 +69,6 @@ export const azureAiFoundryProvider: ModelProvider = {
 		return {
 			apiKey: "",
 			endpoint: "",
-			project: "",
-			azureApiVersion: "2024-05-01-preview",
 		};
 	},
 
@@ -116,11 +95,7 @@ export const azureAiFoundryProvider: ModelProvider = {
 
 			const client = ModelClient(
 				config.endpoint,
-				new AzureKeyCredential(config.apiKey),
-				{
-					apiVersion: config.azureApiVersion,
-					endpoint: config.endpoint,
-				}
+				new AzureKeyCredential(config.apiKey)
 			);
 
 			// Build the request payload

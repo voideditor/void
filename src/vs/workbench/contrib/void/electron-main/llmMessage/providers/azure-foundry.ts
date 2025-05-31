@@ -2,157 +2,130 @@ import { default as ModelClient } from "@azure-rest/ai-inference";
 import { AzureKeyCredential } from "@azure/core-auth";
 import { createSseStream } from "@azure/core-sse";
 import {
-	getModelCapabilities,
-	getProviderCapabilities,
-	getSendableReasoningInfo,
-} from "../../../common/modelCapabilities.js";
-import { LLMChatMessage } from "../../../common/sendLLMMessageTypes.js";
-import {
-	extractReasoningWrapper,
-	extractXMLToolsWrapper,
-} from "../extractGrammar.js";
-import {
-	invalidApiKeyMessage,
-	openAITools,
-	rawToolCallObjOfParamsStr,
-} from "./index.js";
-import { ModelProvider, SendChatParams } from "./types.js";
-import { isABuiltinToolName } from '../../../common/prompt/prompts.js';
+	AzureConfig,
+	CompletionResult,
+	ModelProvider,
+	ProviderDefaultSettings,
+	ProviderDisplayInfo,
+	ProviderSettingsSchema,
+	ProviderSetupInfo,
+	StreamChunk,
+} from "./types.js";
 
-/*
- * Azure AI Foundry is a provider that uses the Azure AI Inference SDK to
- * send messages to an Azure AI Foundry model (non-OpenAI models hosted on Azure).
+// Define Azure AI Foundry specific config type
+export type AzureAIFoundryConfig = AzureConfig & {
+	azureApiVersion: string;
+	project: string;
+};
+
+/**
+ * Azure AI Foundry provider implementation
  */
 export const azureAiFoundryProvider: ModelProvider = {
-	sendChat: async (params: SendChatParams) => {
+	providerName: "azureAiFoundry",
+	capabilities: ["chat", "streaming", "tools", "reasoning"],
+
+	// Metadata methods
+	getDisplayInfo(): ProviderDisplayInfo {
+		return {
+			title: "Azure AI Foundry",
+			description: "Microsoft's Azure AI Foundry service for model inference",
+		};
+	},
+
+	getSetupInfo(): ProviderSetupInfo {
+		return {
+			subTextMd:
+				"Read more about endpoints [here](https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP), and get your API key [here](https://learn.microsoft.com/en-us/azure/search/search-security-api-keys?tabs=rest-use%2Cportal-find%2Cportal-query#find-existing-keys).",
+		};
+	},
+
+	getSettingsSchema(): ProviderSettingsSchema {
+		return {
+			apiKey: {
+				title: "API Key",
+				placeholder: "key-...",
+				isPasswordField: true,
+				isRequired: true,
+			},
+			endpoint: {
+				title: "baseURL",
+				placeholder: "https://my-foundry-resource.azure.com/v1",
+				isRequired: true,
+			},
+			project: {
+				title: "Resource",
+				placeholder: "my-resource",
+				isRequired: true,
+			},
+			azureApiVersion: {
+				title: "API Version",
+				placeholder: "2024-05-01-preview",
+				isRequired: false,
+			},
+		};
+	},
+
+	getDefaultSettings(): ProviderDefaultSettings {
+		return {
+			apiKey: "",
+			endpoint: "",
+			project: "",
+			azureApiVersion: "2024-05-01-preview",
+		};
+	},
+
+	getDefaultModels(): string[] {
+		return ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-35-turbo"];
+	},
+
+	async sendChat(params): Promise<void> {
 		const {
-			providerName,
-			modelName: modelName_,
-			overridesOfModel,
-			modelSelectionOptions,
-			separateSystemMessage,
-			settingsOfProvider,
-			chatMode,
-			onError,
-			_setAborter,
 			messages,
-			mcpTools,
-		} = params;
-		let { onText, onFinalMessage } = params;
-
-		const {
 			modelName,
-			specialToolFormat,
-			reasoningCapabilities,
-			additionalOpenAIPayload,
-		} = getModelCapabilities(providerName, modelName_, overridesOfModel);
-
-		const { providerReasoningIOSettings } =
-			getProviderCapabilities(providerName);
-
-		// reasoning
-		const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {};
-		const reasoningInfo = getSendableReasoningInfo(
-			"Chat",
-			providerName,
-			modelName_,
-			modelSelectionOptions,
-			overridesOfModel
-		); // user's modelName_ here
-
-		const includeInPayload = {
-			...providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo),
-			...additionalOpenAIPayload,
-		};
-
-		// Get config
-		const thisConfig = settingsOfProvider[providerName];
-
-		// Create client
-		const client = ModelClient(
-			thisConfig.endpoint ?? "",
-			new AzureKeyCredential(thisConfig.apiKey ?? ""),
-			{
-				apiVersion: thisConfig.azureApiVersion || "2024-05-01-preview",
-				endpoint: thisConfig.endpoint,
-			}
-		);
-
-		// Prepare messages
-		const extractContent = (message: LLMChatMessage) => {
-			if ("content" in message) return message.content;
-			if ("parts" in message && Array.isArray(message.parts)) {
-				return message.parts
-					.map((part) => ("text" in part ? part.text : ""))
-					.join("");
-			}
-			return "";
-		};
-
-		const formattedMessages = separateSystemMessage
-			? [
-				{ role: "system", content: separateSystemMessage },
-				...messages.map((m) => ({
-					role: m.role,
-					content: extractContent(m),
-				})),
-			]
-			: messages.map((m) => ({ role: m.role, content: extractContent(m) }));
-
-		// tools
-		const potentialTools = chatMode !== null ? openAITools(chatMode) : null;
-		const nativeToolsObj =
-			potentialTools && specialToolFormat === "openai-style"
-				? ({ tools: potentialTools } as const)
-				: {};
-
-		// open source models - manually parse think tokens
-		const {
-			needsManualParse: needsManualReasoningParse,
-			nameOfFieldInDelta: nameOfReasoningFieldInDelta,
-		} = providerReasoningIOSettings?.output ?? {};
-		const manuallyParseReasoning =
-			needsManualReasoningParse && canIOReasoning && openSourceThinkTags;
-		if (manuallyParseReasoning) {
-			const { newOnText, newOnFinalMessage } = extractReasoningWrapper(
-				onText,
-				onFinalMessage,
-				openSourceThinkTags
-			);
-			onText = newOnText;
-			onFinalMessage = newOnFinalMessage;
-		}
-
-		// manually parse out tool results if XML
-		if (!specialToolFormat) {
-			const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(
-				onText,
-				onFinalMessage,
-				chatMode,
-				mcpTools
-			);
-			onText = newOnText;
-			onFinalMessage = newOnFinalMessage;
-		}
-
-		let fullTextSoFar = "";
-		let fullReasoningSoFar = "";
-		let toolName = "";
-		let toolId = "";
-		let toolParamsStr = "";
+			providerConfig,
+			toolsPayload,
+			additionalPayload,
+			onStreamChunk,
+			onComplete,
+			onError,
+			setAborter,
+		} = params;
 
 		try {
+			// Cast to our specific config type for better DX
+			const config = providerConfig as AzureAIFoundryConfig;
+
+			const client = ModelClient(
+				config.endpoint,
+				new AzureKeyCredential(config.apiKey),
+				{
+					apiVersion: config.azureApiVersion,
+					endpoint: config.endpoint,
+				}
+			);
+
+			// Build the request payload
+			const requestBody = {
+				messages,
+				model: modelName,
+				stream: true,
+				...toolsPayload,
+				// Spread additionalPayload but handle Azure-specific formatting
+				...Object.fromEntries(
+					Object.entries(additionalPayload).map(([key, value]) => {
+						// Azure expects stop as array, not string
+						if (key === "stop" && typeof value === "string") {
+							return [key, [value]];
+						}
+						return [key, value];
+					})
+				),
+			};
+
 			const response = await client
 				.path("/chat/completions")
-				.post({
-					body: {
-						messages: formattedMessages,
-						model: modelName,
-						stream: true,
-						...nativeToolsObj,
-						...includeInPayload,
-					},
-				})
+				.post({ body: requestBody })
 				.asNodeStream();
 
 			if (!response.body) {
@@ -161,94 +134,70 @@ export const azureAiFoundryProvider: ModelProvider = {
 				);
 			}
 
-			// Set up aborter
-			_setAborter(() => response.body?.destroy());
+			setAborter(() => response.body?.destroy());
 
-			// Parse SSE stream
 			const sseStream = createSseStream(response.body);
 
-			// Process stream events
+			let fullText = "";
+			let fullReasoning = "";
+			let toolCall: { id: string; name: string; arguments: string } | null =
+				null;
+
 			for await (const event of sseStream) {
 				if (event.data === "[DONE]") break;
 
 				try {
 					const data = JSON.parse(event.data);
 					for (const choice of data.choices || []) {
-						// Handle text
-						const newText = choice.delta?.content || "";
-						fullTextSoFar += newText;
+						const chunk: StreamChunk = {};
 
-						// Handle tool calls
-						if (
-							choice.delta?.tool_calls &&
-							choice.delta.tool_calls.length > 0
-						) {
-							const toolCall = choice.delta.tool_calls[0];
-							toolName += toolCall.function?.name || "";
-							toolParamsStr += toolCall.function?.arguments || "";
-							toolId += toolCall.id || "";
+						if (choice.delta?.content) {
+							chunk.text = choice.delta.content;
+							fullText += choice.delta.content;
 						}
 
-						// Handle reasoning
-						let newReasoning = "";
-						if (nameOfReasoningFieldInDelta) {
-							// @ts-ignore
-							newReasoning =
-								(choice.delta?.[nameOfReasoningFieldInDelta] || "") + "";
-							fullReasoningSoFar += newReasoning;
+						if (choice.delta?.tool_calls?.length > 0) {
+							const toolCallDelta = choice.delta.tool_calls[0];
+							if (!toolCall) {
+								toolCall = { id: "", name: "", arguments: "" };
+							}
+							if (toolCallDelta.function?.name) {
+								toolCall.name += toolCallDelta.function.name;
+							}
+							if (toolCallDelta.function?.arguments) {
+								toolCall.arguments += toolCallDelta.function.arguments;
+							}
+							if (toolCallDelta.id) {
+								toolCall.id += toolCallDelta.id;
+							}
+							chunk.toolCall = {
+								id: toolCallDelta.id,
+								name: toolCallDelta.function?.name,
+								arguments: toolCallDelta.function?.arguments,
+							};
 						}
 
-						// Update UI
-						onText({
-							fullText: fullTextSoFar,
-							fullReasoning: fullReasoningSoFar,
-							toolCall: isABuiltinToolName(toolName)
-								? {
-									name: toolName,
-									rawParams: {},
-									isDone: false,
-									doneParams: [],
-									id: toolId,
-								}
-								: undefined,
-						});
+						if (choice.delta?.reasoning) {
+							chunk.reasoning = choice.delta.reasoning;
+							fullReasoning += choice.delta.reasoning;
+						}
+
+						onStreamChunk(chunk);
 					}
 				} catch (parseError) {
 					console.error("Error parsing SSE event:", parseError);
 				}
 			}
 
-			// Handle final response
-			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
-				onError({
-					message: "Azure AI Inference: Response was empty.",
-					fullError: null,
-				});
-			} else {
-				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId);
-				const toolCallObj = toolCall ? { toolCall } : {};
-				onFinalMessage({
-					fullText: fullTextSoFar,
-					fullReasoning: fullReasoningSoFar,
-					anthropicReasoning: null,
-					...toolCallObj,
-				});
-			}
+			const result: CompletionResult = {
+				text: fullText,
+				reasoning: fullReasoning || undefined,
+				toolCall,
+			};
+
+			onComplete(result);
 		} catch (error) {
-			if (error instanceof Error && error.message?.includes("401")) {
-				onError({
-					message: invalidApiKeyMessage(providerName),
-					fullError: error,
-				});
-			} else {
-				onError({
-					message: `Azure AI Inference error: ${error?.message || String(error)
-						}`,
-					fullError: error,
-				});
-			}
+			onError(error);
 		}
 	},
-
-	capabilities: ["chat", "streaming"],
 };

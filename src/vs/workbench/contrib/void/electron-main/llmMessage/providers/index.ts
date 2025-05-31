@@ -1,5 +1,10 @@
-import { ModelProvider } from "./types.js";
+import OpenAI from "openai";
 import {
+	availableTools,
+	InternalToolInfo,
+} from "../../../common/prompt/prompts.js";
+import {
+	ChatMode,
 	displayInfoOfProviderName,
 	ProviderName,
 } from "../../../common/voidSettingsTypes.js";
@@ -7,18 +12,20 @@ import {
 	CallFnOfProvider,
 	sendLLMMessageToProviderImplementation,
 } from "../sendLLMMessage.impl.js";
-import { ChatMode } from "../../../common/voidSettingsTypes.js";
+import { createAdaptedProvider } from "./providerOrchestrator.js";
 import {
-	availableTools,
-	InternalToolInfo,
-} from "../../../common/prompt/prompts.js";
-import OpenAI from "openai";
+	ModelProvider,
+	ProviderDisplayInfo,
+	ProviderSettingsSchema,
+	ProviderSetupInfo,
+} from "./types.js";
 
 // Import specific providers
+import {
+	RawToolCallObj,
+	RawToolParamsObj,
+} from "../../../common/sendLLMMessageTypes.js";
 import { azureAiFoundryProvider } from "./azure-foundry.js";
-import { RawToolCallObj } from '../../../common/sendLLMMessageTypes.js';
-import { RawToolParamsObj } from '../../../common/sendLLMMessageTypes.js';
-
 
 // Create fallback providers for providers that don't have their own files yet
 const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
@@ -27,33 +34,69 @@ const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
 	if (!impl) {
 		throw new Error(`Provider "${providerName}" not found`);
 	}
-	return {
+	return createAdaptedProvider(providerName, {
 		sendChat: impl.sendChat,
 		sendFIM: impl.sendFIM
 			? async (params) => {
 				impl.sendFIM!(params);
 			}
 			: undefined,
-		listModels: impl.list
+		list: impl.list
 			? async (params) => {
 				impl.list!(params);
 			}
 			: undefined,
-		capabilities: ["chat", "streaming"], // Basic capabilities for fallback
-	};
+	});
 };
 
-export const rawToolCallObjOfParamsStr = (name: string, toolParamsStr: string, id: string): RawToolCallObj | null => {
-	let input: unknown
-	try { input = JSON.parse(toolParamsStr) }
-	catch (e) { return null }
+// Main provider registry - accepts any string key for extensibility
+export const providers: Record<ProviderName | string, ModelProvider> = {
+	// Newer provider implementations (cast to base type for registry compatibility)
+	azureAiFoundry: azureAiFoundryProvider,
 
-	if (input === null) return null
-	if (typeof input !== 'object') return null
+	// Existing implementations
+	anthropic: createFallbackProvider("anthropic"),
+	awsBedrock: createFallbackProvider("awsBedrock"),
+	deepseek: createFallbackProvider("deepseek"),
+	gemini: createFallbackProvider("gemini"),
+	googleVertex: createFallbackProvider("googleVertex"),
+	groq: createFallbackProvider("groq"),
+	liteLLM: createFallbackProvider("liteLLM"),
+	lmStudio: createFallbackProvider("lmStudio"),
+	microsoftAzure: createFallbackProvider("microsoftAzure"),
+	mistral: createFallbackProvider("mistral"),
+	ollama: createFallbackProvider("ollama"),
+	openAI: createFallbackProvider("openAI"),
+	openAICompatible: createFallbackProvider("openAICompatible"),
+	openRouter: createFallbackProvider("openRouter"),
+	vLLM: createFallbackProvider("vLLM"),
+	xAI: createFallbackProvider("xAI"),
+};
 
-	const rawParams: RawToolParamsObj = input
-	return { id, name, rawParams, doneParams: Object.keys(rawParams), isDone: true }
-}
+export const rawToolCallObjOfParamsStr = (
+	name: string,
+	toolParamsStr: string,
+	id: string
+): RawToolCallObj | null => {
+	let input: unknown;
+	try {
+		input = JSON.parse(toolParamsStr);
+	} catch (e) {
+		return null;
+	}
+
+	if (input === null) return null;
+	if (typeof input !== "object") return null;
+
+	const rawParams: RawToolParamsObj = input;
+	return {
+		id,
+		name,
+		rawParams,
+		doneParams: Object.keys(rawParams),
+		isDone: true,
+	};
+};
 
 export const openAITools = (chatMode: ChatMode) => {
 	const allowedTools = availableTools(chatMode, []);
@@ -95,32 +138,13 @@ export const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
 export const invalidApiKeyMessage = (providerName: ProviderName) =>
 	`Invalid ${displayInfoOfProviderName(providerName).title} API key.`;
 
-// Main provider registry
-export const providers: Record<ProviderName, ModelProvider> = {
-	// Dedicated provider implementations
-	azureAiFoundry: azureAiFoundryProvider,
-
-	// Legacy implementations
-	anthropic: createFallbackProvider("anthropic"),
-	awsBedrock: createFallbackProvider("awsBedrock"),
-	deepseek: createFallbackProvider("deepseek"),
-	gemini: createFallbackProvider("gemini"),
-	googleVertex: createFallbackProvider("googleVertex"),
-	groq: createFallbackProvider("groq"),
-	liteLLM: createFallbackProvider("liteLLM"),
-	lmStudio: createFallbackProvider("lmStudio"),
-	microsoftAzure: createFallbackProvider("microsoftAzure"),
-	mistral: createFallbackProvider("mistral"),
-	ollama: createFallbackProvider("ollama"),
-	openAI: createFallbackProvider("openAI"),
-	openAICompatible: createFallbackProvider("openAICompatible"),
-	openRouter: createFallbackProvider("openRouter"),
-	vLLM: createFallbackProvider("vLLM"),
-	xAI: createFallbackProvider("xAI"),
-};
+export const invalidApiKeyMessageForProvider = (provider: ModelProvider) =>
+	`Invalid ${provider.getDisplayInfo().title} API key.`;
 
 // Helper function to get a provider
-export const getProvider = (providerName: ProviderName): ModelProvider => {
+export const getProvider = (
+	providerName: ProviderName | string
+): ModelProvider => {
 	const provider = providers[providerName];
 	if (!provider) {
 		throw new Error(`Provider "${providerName}" not found`);
@@ -128,9 +152,48 @@ export const getProvider = (providerName: ProviderName): ModelProvider => {
 	return provider;
 };
 
+// NEW: Helper function to get provider display info from the provider itself
+export const getProviderDisplayInfo = (
+	providerName: ProviderName | string
+): ProviderDisplayInfo => {
+	const provider = providers[providerName as ProviderName];
+	if (provider) {
+		return provider.getDisplayInfo();
+	}
+
+	// Fallback for providers not yet in registry
+	throw new Error(`Provider "${providerName}" not found in registry`);
+};
+
+// NEW: Helper function to get provider settings schema from the provider itself
+export const getProviderSettingsSchema = (
+	providerName: ProviderName | string
+): ProviderSettingsSchema => {
+	const provider = providers[providerName as ProviderName];
+	if (provider) {
+		return provider.getSettingsSchema();
+	}
+
+	// Fallback for providers not yet in registry
+	throw new Error(`Provider "${providerName}" not found in registry`);
+};
+
+// NEW: Helper function to get provider setup info from the provider itself
+export const getProviderSetupInfo = (
+	providerName: ProviderName | string
+): ProviderSetupInfo => {
+	const provider = providers[providerName as ProviderName];
+	if (provider) {
+		return provider.getSetupInfo();
+	}
+
+	// Fallback for providers not yet in registry
+	throw new Error(`Provider "${providerName}" not found in registry`);
+};
+
 // Helper function to check if a provider supports a capability
 export const providerSupportsCapability = (
-	providerName: ProviderName,
+	providerName: ProviderName | string,
 	capability: string
 ): boolean => {
 	const provider = providers[providerName];
@@ -138,4 +201,30 @@ export const providerSupportsCapability = (
 };
 
 // Export types for convenience
-export * from "./types.js";
+export type {
+	AnthropicConfig,
+	AnthropicToolsPayload,
+	AzureConfig,
+	BaseProviderConfig,
+	CommonAdditionalPayload,
+	CompletionResult,
+	GeminiToolsPayload,
+	ListModelsParams,
+	LocalServerConfig,
+	ModelCapabilitiesSetup,
+	OpenAICompatibleConfig,
+	OpenAICompatibleToolsPayload,
+	ProviderCapability,
+	ProviderDefaultSettings,
+	ProviderDisplayInfo,
+	ProviderSendChatParams,
+	ProviderSendFIMParams,
+	ProviderSettingsSchema,
+	ProviderSetupInfo,
+	ReasoningPayload,
+	ReasoningSetup,
+	SendChatParams,
+	SendFIMParams,
+	StreamChunk,
+	ToolsAndWrappersSetup,
+} from "./types.js";

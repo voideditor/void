@@ -44,7 +44,7 @@ export class ProviderOrchestrator {
 	 * Handles a chat request by doing all common setup and calling the provider's core logic
 	 */
 	async sendChat(params: SendChatParams): Promise<void> {
-		const { messages, separateSystemMessage, onError, _setAborter } = params;
+		const { messages, separateSystemMessage, onError, _setAborter, chatMode, mcpTools } = params;
 
 		try {
 			// Use existing convenience methods for all common setup
@@ -57,12 +57,88 @@ export class ProviderOrchestrator {
 
 			const { modelName } = modelCapabilities;
 			const { includeInPayload } = reasoningSetup;
-			const { nativeToolsObj, wrappedOnText, wrappedOnFinalMessage } =
+			let { nativeToolsObj, wrappedOnText, wrappedOnFinalMessage } =
 				toolsAndWrappers;
 
-			// Get reasoning field name for streaming
-			const { nameOfFieldInDelta } =
-				reasoningSetup.providerReasoningIOSettings?.output ?? {};
+			// Get provider-specific customization configs
+			const reasoningConfig = this.provider.getReasoningConfig?.(modelName) || {};
+			const toolConfig = this.provider.getToolConfig?.(modelName) || {};
+			const streamHooks = this.provider.getStreamProcessingHooks?.(modelName) || {};
+
+			// Apply provider-specific callback wrapping if defined
+			if (this.provider.wrapCallbacks) {
+				// Create adapter functions to convert between callback types
+				const streamChunkToOnText = (chunk: StreamChunk) => {
+					wrappedOnText({
+						fullText: chunk.text || '',
+						fullReasoning: chunk.reasoning || '',
+						toolCall: chunk.toolCall ? {
+							name: chunk.toolCall.name || '',
+							rawParams: {},
+							isDone: false,
+							doneParams: [],
+							id: chunk.toolCall.id || '',
+						} : undefined,
+					});
+				};
+
+				const completionResultToOnFinalMessage = (result: CompletionResult) => {
+					const toolCall = result.toolCall ? rawToolCallObjOfParamsStr(
+						result.toolCall.name,
+						result.toolCall.arguments,
+						result.toolCall.id
+					) || undefined : undefined;
+
+					wrappedOnFinalMessage({
+						fullText: result.text,
+						fullReasoning: result.reasoning || '',
+						anthropicReasoning: null,
+						toolCall,
+					});
+				};
+
+				const wrapped = this.provider.wrapCallbacks(
+					streamChunkToOnText,
+					completionResultToOnFinalMessage,
+					modelName,
+					chatMode,
+					mcpTools
+				);
+
+				// Update the adapters to use the wrapped versions
+				const originalWrappedOnText = wrappedOnText;
+				const originalWrappedOnFinalMessage = wrappedOnFinalMessage;
+
+				wrappedOnText = (textParams) => {
+					// Convert OnText params to StreamChunk and call wrapped function
+					wrapped.wrappedOnText({
+						text: textParams.fullText,
+						reasoning: textParams.fullReasoning,
+						toolCall: textParams.toolCall ? {
+							name: textParams.toolCall.name,
+							arguments: JSON.stringify(textParams.toolCall.rawParams),
+							id: textParams.toolCall.id,
+						} : undefined,
+					});
+				};
+
+				wrappedOnFinalMessage = (finalParams) => {
+					// Convert OnFinalMessage params to CompletionResult and call wrapped function
+					wrapped.wrappedOnComplete({
+						text: finalParams.fullText,
+						reasoning: finalParams.fullReasoning,
+						toolCall: finalParams.toolCall ? {
+							name: finalParams.toolCall.name,
+							arguments: JSON.stringify(finalParams.toolCall.rawParams),
+							id: finalParams.toolCall.id,
+						} : null,
+					});
+				};
+			}
+
+			// Get reasoning field name - use provider config or fallback to existing logic
+			const nameOfFieldInDelta = reasoningConfig.deltaFieldName ||
+				reasoningSetup.providerReasoningIOSettings?.output?.nameOfFieldInDelta;
 
 			// Format messages using provider's custom formatter or default
 			const formattedMessages = this.provider.formatMessages
@@ -70,9 +146,15 @@ export class ProviderOrchestrator {
 				: this.defaultFormatMessages(messages, separateSystemMessage);
 
 			// Format tools using provider's custom formatter or use processed tools
-			const toolsPayload = this.provider.formatTools
+			// Apply tool config customization
+			let toolsPayload = this.provider.formatTools
 				? this.provider.formatTools(nativeToolsObj.tools || [])
 				: nativeToolsObj;
+
+			// Disable native tools if provider config specifies
+			if (toolConfig.useNativeTools === false) {
+				toolsPayload = {};
+			}
 
 			// State for accumulating streaming data
 			let fullTextSoFar = "";
@@ -83,27 +165,51 @@ export class ProviderOrchestrator {
 
 			// Transform the streaming callbacks
 			const onStreamChunk = (chunk: StreamChunk) => {
+				// Apply preprocessing hook if defined
+				const processedChunk = streamHooks.preprocessChunk?.(chunk) || chunk;
+
 				// Accumulate text
-				if (chunk.text) {
-					fullTextSoFar += chunk.text;
+				if (processedChunk.text) {
+					fullTextSoFar += processedChunk.text;
 				}
 
 				// Accumulate reasoning
-				if (chunk.reasoning) {
-					fullReasoningSoFar += chunk.reasoning;
+				if (processedChunk.reasoning) {
+					fullReasoningSoFar += processedChunk.reasoning;
 				}
 
 				// Accumulate tool calls
-				if (chunk.toolCall) {
-					toolName += chunk.toolCall.name || "";
-					toolId += chunk.toolCall.id || "";
-					toolParamsStr += chunk.toolCall.arguments || "";
+				if (processedChunk.toolCall) {
+					toolName += processedChunk.toolCall.name || "";
+					toolId += processedChunk.toolCall.id || "";
+					toolParamsStr += processedChunk.toolCall.arguments || "";
 				}
+
+				// Apply custom tool parsing if configured
+				if (toolConfig.parseToolCall && fullTextSoFar) {
+					const parsedTool = toolConfig.parseToolCall(fullTextSoFar);
+					if (parsedTool) {
+						toolName = parsedTool.name;
+						toolId = parsedTool.id;
+						toolParamsStr = parsedTool.arguments;
+					}
+				}
+
+				// Apply post-processing hook if defined
+				const finalContent = streamHooks.postprocessContent?.({
+					text: fullTextSoFar,
+					reasoning: fullReasoningSoFar,
+					toolCall: toolName ? { name: toolName, id: toolId, arguments: toolParamsStr } : undefined,
+				}) || {
+					text: fullTextSoFar,
+					reasoning: fullReasoningSoFar,
+					toolCall: toolName ? { name: toolName, id: toolId, arguments: toolParamsStr } : undefined,
+				};
 
 				// Call the wrapped onText with current state
 				wrappedOnText({
-					fullText: fullTextSoFar,
-					fullReasoning: fullReasoningSoFar,
+					fullText: finalContent.text || '',
+					fullReasoning: finalContent.reasoning || '',
 					toolCall: isABuiltinToolName(toolName)
 						? {
 							name: toolName,
@@ -144,17 +250,33 @@ export class ProviderOrchestrator {
 			};
 
 			const handleError = (error: any) => {
-				if (error instanceof Error && error.message?.includes("401")) {
-					onError({
-						message: invalidApiKeyMessageForProvider(this.provider),
-						fullError: error,
+				// Use custom error handler if defined
+				if (streamHooks.handleError) {
+					streamHooks.handleError(error, (err) => {
+						if (err instanceof Error && err.message?.includes("401")) {
+							onError({
+								message: invalidApiKeyMessageForProvider(this.provider),
+								fullError: err,
+							});
+						} else {
+							onError({
+								message: `${this.provider.providerName} error: ${err?.message || String(err)}`,
+								fullError: err,
+							});
+						}
 					});
 				} else {
-					onError({
-						message: `${this.provider.providerName} error: ${error?.message || String(error)
-							}`,
-						fullError: error,
-					});
+					if (error instanceof Error && error.message?.includes("401")) {
+						onError({
+							message: invalidApiKeyMessageForProvider(this.provider),
+							fullError: error,
+						});
+					} else {
+						onError({
+							message: `${this.provider.providerName} error: ${error?.message || String(error)}`,
+							fullError: error,
+						});
+					}
 				}
 			};
 

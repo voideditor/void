@@ -182,6 +182,32 @@ export type ProviderDefaultSettings = {
 	[settingName: string]: string;
 };
 
+// Extraction logic types for customizing provider behavior
+export type ReasoningExtractionConfig = {
+	/** XML-like tags for manual reasoning parsing (e.g., { open: '<think>', close: '</think>' }) */
+	tags?: { open: string; close: string };
+	/** Field name in streaming delta that contains reasoning (e.g., 'reasoning' for OpenAI o1) */
+	deltaFieldName?: string;
+	/** Whether this provider needs manual parsing of reasoning tags */
+	needsManualParsing?: boolean;
+};
+
+export type ToolExtractionConfig = {
+	/** Whether tools are handled natively by the API or need XML parsing */
+	useNativeTools?: boolean;
+	/** Custom tool call parsing logic */
+	parseToolCall?: (content: string) => { name: string; arguments: string; id: string } | null;
+};
+
+export type StreamProcessingHooks = {
+	/** Process raw stream chunk before standard processing */
+	preprocessChunk?: (chunk: any) => any;
+	/** Post-process extracted content */
+	postprocessContent?: (content: { text?: string; reasoning?: string; toolCall?: any }) => { text?: string; reasoning?: string; toolCall?: any };
+	/** Custom error handling */
+	handleError?: (error: any, defaultHandler: (error: any) => void) => void;
+};
+
 // ModelProvider interface
 export type ModelProvider = {
 	/** Only implement core API calling logic */
@@ -201,6 +227,27 @@ export type ModelProvider = {
 
 	/** Optional: custom tools formatting (otherwise uses OpenAI format) */
 	formatTools?: (tools: any[]) => any;
+
+	/** Optional: reasoning extraction configuration */
+	getReasoningConfig?: (modelName: string) => ReasoningExtractionConfig;
+
+	/** Optional: tool extraction configuration */
+	getToolConfig?: (modelName: string) => ToolExtractionConfig;
+
+	/** Optional: stream processing hooks for advanced customization */
+	getStreamProcessingHooks?: (modelName: string) => StreamProcessingHooks;
+
+	/** Optional: wrap onText/onFinalMessage for custom extraction logic */
+	wrapCallbacks?: (
+		onText: (chunk: StreamChunk) => void,
+		onComplete: (result: CompletionResult) => void,
+		modelName: string,
+		chatMode: ChatMode | null,
+		mcpTools: InternalToolInfo[] | undefined
+	) => {
+		wrappedOnText: (chunk: StreamChunk) => void;
+		wrappedOnComplete: (result: CompletionResult) => void;
+	};
 
 	// Provider metadata methods
 	/** Return display information for this provider */

@@ -26,6 +26,7 @@ import {
 	RawToolParamsObj,
 } from "../../common/sendLLMMessageTypes.js";
 import { azureAiFoundryProvider } from "./providers/azure-foundry.js";
+import { azureDatabricksProvider } from "./providers/azure-databricks.js";
 
 // Create fallback providers for providers that don't have their own files yet
 const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
@@ -53,6 +54,7 @@ const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
 export const providers: Record<ProviderName | string, ModelProvider> = {
 	// Newer provider implementations (cast to base type for registry compatibility)
 	azureAiFoundry: azureAiFoundryProvider,
+	azureDatabricks: azureDatabricksProvider,
 
 	// Existing implementations
 	anthropic: createFallbackProvider("anthropic"),

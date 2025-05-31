@@ -123,6 +123,7 @@ const featureNameMap: { display: string, featureName: FeatureName }[] = [
 	{ display: 'Quick Edit', featureName: 'Ctrl+K' },
 	{ display: 'Autocomplete', featureName: 'Autocomplete' },
 	{ display: 'Fast Apply', featureName: 'Apply' },
+	{ display: 'Source Control', featureName: 'SCM' },
 ];
 
 const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setPageIndex: (index: number) => void }) => {

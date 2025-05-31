@@ -929,11 +929,6 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	azureAiFoundry: {
-		sendChat: async (params) => { }, // just for type checking
-		sendFIM: null,
-		list: null,
-	},
 	awsBedrock: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,

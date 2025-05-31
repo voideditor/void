@@ -245,6 +245,10 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
+	private _removeUniquePrefix(name: string) {
+		return name.split('_').slice(1).join('_')
+	}
+
 	private async _closeAllMCPServers() {
 		for (const serverName in this.infoOfClientId) {
 			await this._closeClient(serverName)
@@ -310,7 +314,7 @@ export class MCPChannel implements IServerChannel {
 
 		// Call the tool with the provided parameters
 		const response = await client.callTool({
-			name: toolName,
+			name: this._removeUniquePrefix(toolName),
 			arguments: params
 		})
 		const { content } = response as CallToolResult
@@ -320,8 +324,7 @@ export class MCPChannel implements IServerChannel {
 			// handle text response
 
 			if (response.isError) {
-				throw new Error(`Tool call error: ${response.content}`)
-				// handle error
+				throw new Error(`Tool call error: ${returnValue.text}`)
 			}
 
 			// handle success

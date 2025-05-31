@@ -60,11 +60,6 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		azureApiVersion: '2024-05-01-preview',
 	},
-	azureAiFoundry: { // Azure AI Foundry (Azure AI Inference SDK, non-OpenAI models)
-		endpoint: '',
-		apiKey: '',
-		azureApiVersion: '2024-12-01-preview',
-	},
 	awsBedrock: {
 		apiKey: '',
 		region: 'us-east-1', // add region setting
@@ -158,7 +153,6 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
-	azureAiFoundry: [],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1111,14 +1105,6 @@ const microsoftAzureSettings: VoidStaticProviderInfo = {
 	},
 }
 
-// ---------------- AZURE AI FOUNDRY ----------------
-const azureAiFoundryModelOptions = {
-} as const satisfies Record<string, VoidStaticModelInfo>
-const azureAiFoundrySettings: VoidStaticProviderInfo = {
-	modelOptions: azureAiFoundryModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
-}
-
 // ---------------- AWS BEDROCK ----------------
 const awsBedrockModelOptions = {
 } as const satisfies Record<string, VoidStaticModelInfo>
@@ -1470,7 +1456,6 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
-	azureAiFoundry: azureAiFoundrySettings,
 	awsBedrock: awsBedrockSettings,
 } as const
 

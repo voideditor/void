@@ -20,7 +20,9 @@ export type AzureConfig = BaseProviderConfig & {
 };
 
 /**
- * Azure AI Foundry provider implementation
+ * Azure AI Foundry provider implementation using Microsoft's AI Inference REST API.
+ * Handles Azure-specific formatting requirements (e.g., stop parameter as array)
+ * and processes streaming responses with reasoning capabilities.
  */
 export const azureAiFoundryProvider: ModelProvider = {
 	providerName: "azureAiFoundry",
@@ -48,8 +50,9 @@ export const azureAiFoundryProvider: ModelProvider = {
 				placeholder: "https://my-foundry-resource.services.ai.azure.com/models",
 				isRequired: true,
 				validation: {
-					pattern: "^https://[^\\s/$.?#]*\\.services\\.ai\\.azure\\.com/models$"
-				}
+					pattern:
+						"^https://[^\\s/$.?#]*\\.services\\.ai\\.azure\\.com/models$",
+				},
 			},
 			apiKey: {
 				title: "API Key",
@@ -59,8 +62,8 @@ export const azureAiFoundryProvider: ModelProvider = {
 				validation: {
 					minLength: 20,
 					pattern: "^[a-zA-Z0-9]+$",
-					noEmpty: true
-				}
+					noEmpty: true,
+				},
 			},
 		};
 	},
@@ -98,16 +101,17 @@ export const azureAiFoundryProvider: ModelProvider = {
 				new AzureKeyCredential(config.apiKey)
 			);
 
-			// Build the request payload
+			/**
+			 * Azure AI Foundry expects stop parameter as array format,
+			 * unlike OpenAI which accepts either string or array
+			 */
 			const requestBody = {
 				messages,
 				model: modelName,
 				stream: true,
 				...toolsPayload,
-				// Spread additionalPayload but handle Azure-specific formatting
 				...Object.fromEntries(
 					Object.entries(additionalPayload).map(([key, value]) => {
-						// Azure expects stop as array, not string
 						if (key === "stop" && typeof value === "string") {
 							return [key, [value]];
 						}
@@ -149,6 +153,10 @@ export const azureAiFoundryProvider: ModelProvider = {
 							fullText += choice.delta.content;
 						}
 
+						/**
+						 * Azure tool calls accumulate across multiple chunks,
+						 * requiring state management to reconstruct complete calls
+						 */
 						if (choice.delta?.tool_calls?.length > 0) {
 							const toolCallDelta = choice.delta.tool_calls[0];
 							if (!toolCall) {

@@ -2,7 +2,9 @@
 
 import { ProviderSettingsSchema, SettingFieldInfo } from "./providerTypes.js";
 
-// Validation rules for settings (JSON Schema-like but limited)
+/**
+ * Validation rules for string-based settings with pattern matching and length constraints.
+ */
 export type SettingValidationRules = {
 	/** Minimum length for string values */
 	minLength?: number;
@@ -56,7 +58,10 @@ export type MultiselectValidationRules = {
 	custom?: (values: string[]) => string | null;
 };
 
-// Combined validation rules that can handle all field types
+/**
+ * Union type supporting validation rules for all supported field types.
+ * Provides type-safe validation configuration across different data types.
+ */
 export type FieldValidationRules =
 	| SettingValidationRules
 	| NumberValidationRules
@@ -77,7 +82,8 @@ export type SettingsValidationResult = {
 };
 
 /**
- * Validates a single field value against its validation rules
+ * Validates a single field against its schema and validation rules.
+ * Handles type-specific validation and required field checking.
  */
 export const validateField = (
 	value: string | undefined,
@@ -86,7 +92,6 @@ export const validateField = (
 ): FieldValidationResult => {
 	const { isRequired, fieldType = "string", validation } = fieldInfo;
 
-	// Check if field is required
 	if (isRequired && (!value || value.trim() === "")) {
 		return {
 			isValid: false,
@@ -94,19 +99,16 @@ export const validateField = (
 		};
 	}
 
-	// If no value and not required, it's valid
 	if (!value && !isRequired) {
 		return { isValid: true };
 	}
 
-	// If no validation rules, it's valid
 	if (!validation) {
 		return { isValid: true };
 	}
 
 	const trimmedValue = value || "";
 
-	// Handle number field validation
 	if (fieldType === "number") {
 		return validateNumberField(
 			trimmedValue,
@@ -115,7 +117,6 @@ export const validateField = (
 		);
 	}
 
-	// Handle boolean field validation
 	if (fieldType === "boolean") {
 		return validateBooleanField(
 			trimmedValue,
@@ -124,7 +125,6 @@ export const validateField = (
 		);
 	}
 
-	// Handle enum field validation
 	if (fieldType === "enum") {
 		return validateEnumField(
 			trimmedValue,
@@ -133,7 +133,6 @@ export const validateField = (
 		);
 	}
 
-	// Handle multiselect field validation
 	if (fieldType === "multiselect") {
 		return validateMultiselectField(
 			trimmedValue,
@@ -142,7 +141,6 @@ export const validateField = (
 		);
 	}
 
-	// Handle string field validation
 	return validateStringField(
 		trimmedValue,
 		validation as SettingValidationRules,
@@ -158,7 +156,6 @@ const validateStringField = (
 	validation: SettingValidationRules,
 	fieldInfo: SettingFieldInfo
 ): FieldValidationResult => {
-	// Check minimum length
 	if (
 		validation.minLength !== undefined &&
 		value.length < validation.minLength
@@ -169,7 +166,6 @@ const validateStringField = (
 		};
 	}
 
-	// Check maximum length
 	if (
 		validation.maxLength !== undefined &&
 		value.length > validation.maxLength
@@ -180,7 +176,6 @@ const validateStringField = (
 		};
 	}
 
-	// Check pattern
 	if (validation.pattern && value) {
 		try {
 			const regex = new RegExp(validation.pattern);
@@ -198,7 +193,6 @@ const validateStringField = (
 		}
 	}
 
-	// Check custom validation
 	if (validation.custom && value) {
 		const customError = validation.custom(value);
 		if (customError) {
@@ -213,14 +207,13 @@ const validateStringField = (
 };
 
 /**
- * Validates a number field against number validation rules
+ * Validates numeric fields with range, integer, and decimal precision constraints.
  */
 const validateNumberField = (
 	value: string,
 	validation: NumberValidationRules,
 	fieldInfo: SettingFieldInfo
 ): FieldValidationResult => {
-	// Parse the number
 	const numValue = parseFloat(value);
 	if (isNaN(numValue)) {
 		return {
@@ -229,7 +222,6 @@ const validateNumberField = (
 		};
 	}
 
-	// Check if integer is required
 	if (validation.integer && !Number.isInteger(numValue)) {
 		return {
 			isValid: false,
@@ -237,7 +229,6 @@ const validateNumberField = (
 		};
 	}
 
-	// Check decimal places
 	if (validation.decimalPlaces !== undefined && !validation.integer) {
 		const decimalPart = value.split(".")[1];
 		if (decimalPart && decimalPart.length > validation.decimalPlaces) {
@@ -248,7 +239,6 @@ const validateNumberField = (
 		}
 	}
 
-	// Check minimum value
 	if (validation.min !== undefined && numValue < validation.min) {
 		return {
 			isValid: false,
@@ -256,7 +246,6 @@ const validateNumberField = (
 		};
 	}
 
-	// Check maximum value
 	if (validation.max !== undefined && numValue > validation.max) {
 		return {
 			isValid: false,
@@ -264,7 +253,6 @@ const validateNumberField = (
 		};
 	}
 
-	// Check custom validation
 	if (validation.custom) {
 		const customError = validation.custom(numValue);
 		if (customError) {
@@ -286,7 +274,6 @@ const validateBooleanField = (
 	validation: BooleanValidationRules,
 	fieldInfo: SettingFieldInfo
 ): FieldValidationResult => {
-	// Check if value is a valid boolean representation
 	if (value !== "true" && value !== "false") {
 		return {
 			isValid: false,
@@ -294,10 +281,8 @@ const validateBooleanField = (
 		};
 	}
 
-	// Parse the boolean
 	const boolValue = value === "true";
 
-	// Check custom validation
 	if (validation.custom) {
 		const customError = validation.custom(boolValue);
 		if (customError) {
@@ -319,7 +304,6 @@ const validateEnumField = (
 	validation: EnumValidationRules,
 	fieldInfo: SettingFieldInfo
 ): FieldValidationResult => {
-	// Check if value is in allowed options
 	if (!validation.options.includes(value)) {
 		return {
 			isValid: false,
@@ -328,7 +312,6 @@ const validateEnumField = (
 		};
 	}
 
-	// Check custom validation
 	if (validation.custom) {
 		const customError = validation.custom(value);
 		if (customError) {
@@ -343,14 +326,14 @@ const validateEnumField = (
 };
 
 /**
- * Validates a multiselect field against multiselect validation rules
+ * Validates multiselect fields that contain comma-separated values.
+ * Ensures all selections are valid options and respects min/max selection limits.
  */
 const validateMultiselectField = (
 	value: string,
 	validation: MultiselectValidationRules,
 	fieldInfo: SettingFieldInfo
 ): FieldValidationResult => {
-	// Parse comma-separated values
 	let values: string[] = [];
 	if (value.trim()) {
 		values = value
@@ -359,7 +342,6 @@ const validateMultiselectField = (
 			.filter((v) => v.length > 0);
 	}
 
-	// Check for invalid options
 	const invalidOptions = values.filter((v) => !validation.options.includes(v));
 	if (invalidOptions.length > 0) {
 		return {
@@ -371,7 +353,6 @@ const validateMultiselectField = (
 		};
 	}
 
-	// Check minimum selections
 	if (
 		validation.minSelections !== undefined &&
 		values.length < validation.minSelections
@@ -383,7 +364,6 @@ const validateMultiselectField = (
 		};
 	}
 
-	// Check maximum selections
 	if (
 		validation.maxSelections !== undefined &&
 		values.length > validation.maxSelections
@@ -395,7 +375,6 @@ const validateMultiselectField = (
 		};
 	}
 
-	// Check custom validation
 	if (validation.custom) {
 		const customError = validation.custom(values);
 		if (customError) {
@@ -410,7 +389,8 @@ const validateMultiselectField = (
 };
 
 /**
- * Validates an entire settings object against a provider settings schema
+ * Validates all provider settings against their schema definitions.
+ * Returns comprehensive validation results with field-specific error messages.
  */
 export const validateProviderSettings = (
 	settings: Record<string, string>,
@@ -419,7 +399,6 @@ export const validateProviderSettings = (
 	const fieldErrors: Record<string, string> = {};
 	let isValid = true;
 
-	// Validate each field in the schema
 	for (const [fieldName, fieldInfo] of Object.entries(schema)) {
 		const fieldValue = settings[fieldName];
 		const result = validateField(fieldValue, fieldInfo, fieldName);

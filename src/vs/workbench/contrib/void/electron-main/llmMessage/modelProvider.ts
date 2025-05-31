@@ -28,7 +28,10 @@ import {
 import { azureDatabricksProvider } from "./providers/azure-databricks.js";
 import { azureAiFoundryProvider } from "./providers/azure-foundry.js";
 
-// Create fallback providers for providers that don't have their own files yet
+/**
+ * Creates fallback providers for legacy implementations that haven't been migrated
+ * to the new provider interface. Bridges old sendLLMMessage patterns with new interface.
+ */
 const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
 	const impl: CallFnOfProvider[ProviderName] | undefined =
 		sendLLMMessageToProviderImplementation[providerName];
@@ -50,7 +53,10 @@ const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
 	});
 };
 
-// Main provider registry - accepts any string key for extensibility
+/**
+ * Central provider registry supporting both modern and legacy provider implementations.
+ * Extensible to accept any string key for custom providers beyond core ProviderName types.
+ */
 export const providers: Record<ProviderName | string, ModelProvider> = {
 	// Newer provider implementations (cast to base type for registry compatibility)
 	azureAiFoundry: azureAiFoundryProvider,
@@ -111,6 +117,10 @@ export const openAITools = (chatMode: ChatMode) => {
 	return openAITools;
 };
 
+/**
+ * Converts internal tool definitions to OpenAI-compatible function call format.
+ * Transforms parameter schemas while maintaining type safety and required field information.
+ */
 export const toOpenAICompatibleTool = (toolInfo: InternalToolInfo) => {
 	const { name, description, params } = toolInfo;
 

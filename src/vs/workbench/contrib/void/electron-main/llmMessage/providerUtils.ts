@@ -59,7 +59,8 @@ export function setupModelCapabilities(
 }
 
 /**
- * Sets up reasoning configuration and payload
+ * Configures reasoning capabilities and payload based on provider and model support.
+ * Determines if manual parsing is needed for open-source models vs native reasoning support.
  */
 export function setupReasoning(
 	providerName: ProviderName,
@@ -93,7 +94,10 @@ export function setupReasoning(
 }
 
 /**
- * Sets up tools and wraps onText/onFinalMessage with reasoning and XML tool extraction
+ * Sets up tools and wraps callbacks with reasoning and XML tool extraction layers.
+ * Applies different wrapping strategies based on model capabilities:
+ * - Native tool support (OpenAI-style) vs XML tool parsing
+ * - Native reasoning support vs manual tag extraction
  */
 export function setupToolsAndWrappers(
 	chatMode: ChatMode | null,
@@ -106,7 +110,6 @@ export function setupToolsAndWrappers(
 	openSourceThinkTags: any,
 	additionalOpenAIPayload: any = {}
 ): ToolsAndWrappersSetup {
-	// Setup tools
 	const potentialTools = chatMode !== null ? openAITools(chatMode) : null;
 
 	let nativeToolsObj: any;
@@ -122,7 +125,6 @@ export function setupToolsAndWrappers(
 	let wrappedOnText = onText;
 	let wrappedOnFinalMessage = onFinalMessage;
 
-	// Setup reasoning wrapper for open source models
 	const { needsManualParse: needsManualReasoningParse } =
 		providerReasoningIOSettings?.output ?? {};
 
@@ -139,7 +141,6 @@ export function setupToolsAndWrappers(
 		wrappedOnFinalMessage = newOnFinalMessage;
 	}
 
-	// Setup XML tools wrapper if not using native tool format
 	if (!specialToolFormat) {
 		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(
 			wrappedOnText,
@@ -159,7 +160,8 @@ export function setupToolsAndWrappers(
 }
 
 /**
- * Extracts all common setup from SendChatParams
+ * Orchestrates all chat-related setup by combining provider config, model capabilities,
+ * reasoning configuration, and tool/wrapper setup into a single coordinated result.
  */
 export function setupProviderForChat(params: SendChatParams) {
 	const {
@@ -174,17 +176,14 @@ export function setupProviderForChat(params: SendChatParams) {
 		mcpTools,
 	} = params;
 
-	// Get provider config
 	const thisConfig = getProviderConfig(settingsOfProvider, providerName);
 
-	// Setup model capabilities
 	const modelCapabilities = setupModelCapabilities(
 		providerName,
 		modelName_,
 		overridesOfModel
 	);
 
-	// Setup reasoning
 	const reasoningSetup = setupReasoning(
 		providerName,
 		modelName_,
@@ -193,7 +192,6 @@ export function setupProviderForChat(params: SendChatParams) {
 		modelCapabilities.reasoningCapabilities
 	);
 
-	// Setup tools and wrappers
 	const toolsAndWrappers = setupToolsAndWrappers(
 		chatMode,
 		mcpTools,

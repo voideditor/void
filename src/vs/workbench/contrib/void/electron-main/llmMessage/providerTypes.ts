@@ -24,7 +24,10 @@ export type ProviderCapability =
 	| "system-message"
 	| "streaming";
 
-// Complex params from sendLLMMessage - includes all setup, reasoning, tools, etc.
+/**
+ * Complex parameters from sendLLMMessage containing all setup, reasoning, tools, and context.
+ * Used by legacy providers that handle full orchestration internally.
+ */
 export type SendChatParams = {
 	messages: LLMChatMessage[];
 	onText: OnText;
@@ -41,7 +44,10 @@ export type SendChatParams = {
 	mcpTools: InternalToolInfo[] | undefined;
 };
 
-// Complex params from sendLLMMessage - includes all setup, reasoning, tools, etc.
+/**
+ * Complex parameters from sendLLMMessage containing all setup, reasoning, tools, and context.
+ * Used by legacy providers that handle full orchestration internally.
+ */
 export type SendFIMParams = {
 	messages: LLMFIMMessage;
 	onText: OnText;
@@ -56,7 +62,10 @@ export type SendFIMParams = {
 	separateSystemMessage: string | undefined;
 };
 
-// Complex params from sendLLMMessage - includes all setup, reasoning, tools, etc.
+/**
+ * Parameters for listing models from the provider.
+ * Used by providers that support listing models.
+ */
 export type ListModelsParams<T = any> = {
 	onSuccess: (result: { models: T[] }) => void;
 	onError: (result: { error: string }) => void;
@@ -64,7 +73,10 @@ export type ListModelsParams<T = any> = {
 	providerName: ProviderName;
 };
 
-// Common payload types for better DX
+/**
+ * Tools payload for OpenAI-compatible providers.
+ * Used by providers that use the OpenAI-compatible format.
+ */
 export type OpenAICompatibleToolsPayload = {
 	tools?: {
 		type: "function";
@@ -84,11 +96,15 @@ export type OpenAICompatibleToolsPayload = {
 	| { type: "function"; function: { name: string } };
 };
 
+/**
+ * Reasoning payload for OpenAI-compatible providers.
+ * Used by providers that use the OpenAI-compatible format.
+ */
 export type ReasoningPayload = {
 	reasoning?: boolean;
 	reasoning_effort?: string;
 	reasoning_budget?: number;
-	[key: string]: any; // Allow additional reasoning-specific fields
+	[key: string]: any;
 };
 
 export type CommonAdditionalPayload = {
@@ -97,17 +113,19 @@ export type CommonAdditionalPayload = {
 	max_tokens?: number;
 	stop?: string | string[];
 	stream?: boolean;
-	[key: string]: any; // Allow provider-specific fields
+	[key: string]: any;
 };
 
-// Generic provider configuration that providers can extend
 export type BaseProviderConfig = {
 	apiKey?: string;
 	endpoint?: string;
-	[key: string]: any; // Allow provider-specific fields
+	[key: string]: any;
 };
 
-// Enhanced provider params - simplified from generic system
+/**
+ * Simplified provider parameters after orchestration has handled setup, reasoning, and tools.
+ * Modern providers only need to implement API-specific logic using these streamlined params.
+ */
 export type ProviderSendChatParams = {
 	messages: LLMChatMessage[];
 	systemMessage?: string;
@@ -133,6 +151,10 @@ export type ProviderSendFIMParams = {
 	setAborter: (aborter: () => void) => void;
 };
 
+/**
+ * Normalized streaming chunk format that abstracts provider-specific streaming differences.
+ * Providers emit these chunks which are then processed by orchestration layers.
+ */
 export type StreamChunk = {
 	text?: string;
 	reasoning?: string;
@@ -154,102 +176,102 @@ export type CompletionResult = {
 	} | null;
 };
 
-// Provider display information
 export type ProviderDisplayInfo = {
 	title: string;
 	description?: string;
 };
 
-// Provider setup instructions
 export type ProviderSetupInfo = {
-	subTextMd: string; // Markdown text with setup instructions and links
+	subTextMd: string;
 };
 
-// Setting field display information with validation
+/**
+ * Schema definition for provider settings with validation rules.
+ * Supports various field types and comprehensive validation options.
+ */
 export type SettingFieldInfo = {
 	title: string;
 	description?: string;
 	placeholder: string;
 	isPasswordField?: boolean;
 	isRequired?: boolean;
-	/** Field type - determines how validation is performed */
 	fieldType?: "string" | "number" | "boolean" | "enum" | "multiselect";
-	/** Validation rules for this field */
 	validation?: FieldValidationRules;
 };
 
-// Provider settings schema - defines what settings this provider needs
 export type ProviderSettingsSchema = {
 	[settingName: string]: SettingFieldInfo;
 };
 
-// Default settings values for a provider
 export type ProviderDefaultSettings = {
 	[settingName: string]: string;
 };
 
-// Extraction logic types for customizing provider behavior
+/**
+ * Configuration for reasoning extraction from provider responses.
+ * Handles both native reasoning support and manual tag parsing.
+ */
 export type ReasoningExtractionConfig = {
-	/** XML-like tags for manual reasoning parsing (e.g., { open: '<think>', close: '</think>' }) */
 	tags?: { open: string; close: string };
-	/** Field name in streaming delta that contains reasoning (e.g., 'reasoning' for OpenAI o1) */
 	deltaFieldName?: string;
-	/** Whether this provider needs manual parsing of reasoning tags */
 	needsManualParsing?: boolean;
 };
 
+/**
+ * Configuration for tool call extraction and processing.
+ * Supports both native API tool calls and XML-based parsing.
+ */
 export type ToolExtractionConfig = {
-	/** Whether tools are handled natively by the API or need XML parsing */
 	useNativeTools?: boolean;
-	/** Custom tool call parsing logic */
 	parseToolCall?: (
 		content: string
 	) => { name: string; arguments: string; id: string } | null;
 };
 
+/**
+ * Hooks for customizing stream processing at various stages.
+ * Allows providers to inject custom logic into the processing pipeline.
+ */
 export type StreamProcessingHooks = {
-	/** Process raw stream chunk before standard processing */
 	preprocessChunk?: (chunk: any) => any;
-	/** Post-process extracted content */
 	postprocessContent?: (content: {
 		text?: string;
 		reasoning?: string;
 		toolCall?: any;
 	}) => { text?: string; reasoning?: string; toolCall?: any };
-	/** Custom error handling */
 	handleError?: (error: any, defaultHandler: (error: any) => void) => void;
 };
 
-// ModelProvider interface
+/**
+ * Modern provider interface focused on core API implementation.
+ * Orchestration handles all setup, reasoning, tools, and callback management.
+ * Providers only implement sendChat/sendFIM and provide metadata/configuration.
+ */
 export type ModelProvider = {
-	/** Only implement core API calling logic */
 	sendChat: (params: ProviderSendChatParams) => Promise<void>;
 	sendFIM?: (params: ProviderSendFIMParams) => Promise<void>;
 	listModels?: (params: ListModelsParams) => Promise<void>;
 	capabilities: ProviderCapability[];
 
-	/** Provider-specific configuration (preferably a camelCase string with no spaces or special characters) */
 	providerName: string;
 
-	/** Optional: custom message formatting (otherwise uses standard formatting) */
 	formatMessages?: (
 		messages: LLMChatMessage[],
 		systemMessage?: string
 	) => any[];
 
-	/** Optional: custom tools formatting (otherwise uses OpenAI format) */
 	formatTools?: (tools: any[]) => any;
 
-	/** Optional: reasoning extraction configuration */
 	getReasoningConfig?: (modelName: string) => ReasoningExtractionConfig;
 
-	/** Optional: tool extraction configuration */
 	getToolConfig?: (modelName: string) => ToolExtractionConfig;
 
-	/** Optional: stream processing hooks for advanced customization */
 	getStreamProcessingHooks?: (modelName: string) => StreamProcessingHooks;
 
-	/** Optional: wrap onText/onFinalMessage for custom extraction logic */
+	/**
+	 * Advanced callback wrapping for providers with complex extraction needs.
+	 * Most providers should use getReasoningConfig/getToolConfig instead.
+	 */
 	wrapCallbacks?: (
 		onText: (chunk: StreamChunk) => void,
 		onComplete: (result: CompletionResult) => void,
@@ -261,25 +283,20 @@ export type ModelProvider = {
 		wrappedOnComplete: (result: CompletionResult) => void;
 	};
 
-	// Provider metadata methods
-	/** Return display information for this provider */
 	getDisplayInfo(): ProviderDisplayInfo;
 
-	/** Return setup instructions and documentation links */
 	getSetupInfo(): ProviderSetupInfo;
 
-	/** Return schema defining what settings this provider needs */
 	getSettingsSchema(): ProviderSettingsSchema;
 
-	/** Return default values for provider settings */
 	getDefaultSettings(): ProviderDefaultSettings;
 
-	/** Return default model names for this provider */
 	getDefaultModels(): string[];
 };
 
-// Provider-specific configs and payload types (to support other hosts of these models)
-
+/**
+ * Alternative tool payload formats for providers that don't use OpenAI-compatible format.
+ */
 export type AnthropicToolsPayload = {
 	tools?: {
 		name: string;

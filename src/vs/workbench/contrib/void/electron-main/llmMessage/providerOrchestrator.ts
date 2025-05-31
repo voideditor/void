@@ -42,7 +42,8 @@ export class ProviderOrchestrator {
 	constructor(private provider: ModelProvider) { }
 
 	/**
-	 * Handles a chat request by doing all common setup and calling the provider's core logic
+	 * Handles chat requests by performing common setup and delegating to provider-specific logic.
+	 * Manages reasoning extraction, tool call processing, streaming callbacks, and error handling.
 	 */
 	async sendChat(params: SendChatParams): Promise<void> {
 		const {
@@ -55,7 +56,6 @@ export class ProviderOrchestrator {
 		} = params;
 
 		try {
-			// Use existing convenience methods for all common setup
 			const {
 				thisConfig,
 				modelCapabilities,
@@ -63,7 +63,6 @@ export class ProviderOrchestrator {
 				toolsAndWrappers,
 			} = setupProviderForChat(params);
 
-			// Validate provider settings before proceeding
 			const settingsSchema = this.provider.getSettingsSchema();
 			const settingsValidation = validateProviderSettings(
 				thisConfig,
@@ -84,16 +83,17 @@ export class ProviderOrchestrator {
 			let { nativeToolsObj, wrappedOnText, wrappedOnFinalMessage } =
 				toolsAndWrappers;
 
-			// Get provider-specific customization configs
 			const reasoningConfig =
 				this.provider.getReasoningConfig?.(modelName) || {};
 			const toolConfig = this.provider.getToolConfig?.(modelName) || {};
 			const streamHooks =
 				this.provider.getStreamProcessingHooks?.(modelName) || {};
 
-			// Apply provider-specific callback wrapping if defined
+			/**
+			 * Convert between different callback interfaces when provider defines custom wrappers.
+			 * This bridges the gap between StreamChunk/CompletionResult and OnText/OnFinalMessage.
+			 */
 			if (this.provider.wrapCallbacks) {
-				// Create adapter functions to convert between callback types
 				const streamChunkToOnText = (chunk: StreamChunk) => {
 					wrappedOnText({
 						fullText: chunk.text || "",
@@ -136,7 +136,6 @@ export class ProviderOrchestrator {
 				);
 
 				wrappedOnText = (textParams) => {
-					// Convert OnText params to StreamChunk and call wrapped function
 					wrapped.wrappedOnText({
 						text: textParams.fullText,
 						reasoning: textParams.fullReasoning,
@@ -151,7 +150,6 @@ export class ProviderOrchestrator {
 				};
 
 				wrappedOnFinalMessage = (finalParams) => {
-					// Convert OnFinalMessage params to CompletionResult and call wrapped function
 					wrapped.wrappedOnComplete({
 						text: finalParams.fullText,
 						reasoning: finalParams.fullReasoning,
@@ -166,52 +164,45 @@ export class ProviderOrchestrator {
 				};
 			}
 
-			// Format messages using provider's custom formatter or default
 			const formattedMessages = this.provider.formatMessages
 				? this.provider.formatMessages(messages, separateSystemMessage)
 				: this.defaultFormatMessages(messages, separateSystemMessage);
 
-			// Format tools using provider's custom formatter or use processed tools
-			// Apply tool config customization
 			let toolsPayload = this.provider.formatTools
 				? this.provider.formatTools(nativeToolsObj.tools || [])
 				: nativeToolsObj;
 
-			// Disable native tools if provider config specifies
 			if (toolConfig.useNativeTools === false) {
 				toolsPayload = {};
 			}
 
-			// State for accumulating streaming data
+			/**
+			 * Accumulate streaming data across chunks to build complete responses.
+			 * Handles incremental tool call construction and reasoning assembly.
+			 */
 			let fullTextSoFar = "";
 			let fullReasoningSoFar = "";
 			let toolName = "";
 			let toolId = "";
 			let toolParamsStr = "";
 
-			// Transform the streaming callbacks
 			const onStreamChunk = (chunk: StreamChunk) => {
-				// Apply preprocessing hook if defined
 				const processedChunk = streamHooks.preprocessChunk?.(chunk) || chunk;
 
-				// Accumulate text
 				if (processedChunk.text) {
 					fullTextSoFar += processedChunk.text;
 				}
 
-				// Accumulate reasoning
 				if (processedChunk.reasoning) {
 					fullReasoningSoFar += processedChunk.reasoning;
 				}
 
-				// Accumulate tool calls
 				if (processedChunk.toolCall) {
 					toolName += processedChunk.toolCall.name || "";
 					toolId += processedChunk.toolCall.id || "";
 					toolParamsStr += processedChunk.toolCall.arguments || "";
 				}
 
-				// Apply custom tool parsing if configured
 				if (toolConfig.parseToolCall && fullTextSoFar) {
 					const parsedTool = toolConfig.parseToolCall(fullTextSoFar);
 					if (parsedTool) {
@@ -221,7 +212,6 @@ export class ProviderOrchestrator {
 					}
 				}
 
-				// Apply post-processing hook if defined
 				const finalContent = streamHooks.postprocessContent?.({
 					text: fullTextSoFar,
 					reasoning: fullReasoningSoFar,
@@ -236,7 +226,6 @@ export class ProviderOrchestrator {
 						: undefined,
 				};
 
-				// Call the wrapped onText with current state
 				wrappedOnText({
 					fullText: finalContent.text || "",
 					fullReasoning: finalContent.reasoning || "",
@@ -253,7 +242,6 @@ export class ProviderOrchestrator {
 			};
 
 			const onComplete = (result: CompletionResult) => {
-				// Handle final response
 				if (!result.text && !result.reasoning && !result.toolCall) {
 					onError({
 						message: `${this.provider.providerName}: Response was empty.`,
@@ -280,7 +268,6 @@ export class ProviderOrchestrator {
 			};
 
 			const handleError = (error: any) => {
-				// Use custom error handler if defined
 				if (streamHooks.handleError) {
 					streamHooks.handleError(error, (err) => {
 						if (err instanceof Error && err.message?.includes("401")) {
@@ -312,7 +299,6 @@ export class ProviderOrchestrator {
 				}
 			};
 
-			// Create provider params
 			const providerParams: ProviderSendChatParams = {
 				messages: formattedMessages,
 				systemMessage: separateSystemMessage,
@@ -326,7 +312,6 @@ export class ProviderOrchestrator {
 				setAborter: _setAborter,
 			};
 
-			// Call the provider's implementation
 			await this.provider.sendChat(providerParams);
 		} catch (error) {
 			onError({
@@ -338,7 +323,7 @@ export class ProviderOrchestrator {
 	}
 
 	/**
-	 * Handles a FIM request by doing all common setup and calling the provider's core logic
+	 * Handles FIM (Fill-in-Middle) requests for code completion scenarios.
 	 */
 	async sendFIM(params: SendFIMParams): Promise<void> {
 		if (!this.provider.sendFIM) {
@@ -352,10 +337,8 @@ export class ProviderOrchestrator {
 		const { messages, onError, onFinalMessage, _setAborter } = params;
 
 		try {
-			// Use existing convenience methods for common setup
 			const { thisConfig, modelCapabilities } = setupProviderForFIM(params);
 
-			// Validate provider settings before proceeding
 			const settingsSchema = this.provider.getSettingsSchema();
 			const settingsValidation = validateProviderSettings(
 				thisConfig,
@@ -389,7 +372,6 @@ export class ProviderOrchestrator {
 				});
 			};
 
-			// Create provider params
 			const providerParams: ProviderSendFIMParams = {
 				prefix: messages.prefix,
 				suffix: messages.suffix,
@@ -402,7 +384,6 @@ export class ProviderOrchestrator {
 				setAborter: _setAborter,
 			};
 
-			// Call the provider's implementation
 			await this.provider.sendFIM(providerParams);
 		} catch (error) {
 			onError({
@@ -414,7 +395,8 @@ export class ProviderOrchestrator {
 	}
 
 	/**
-	 * Default message formatting - can be overridden by providers
+	 * Default message formatting that extracts content from various message formats.
+	 * Handles both simple content strings and complex part-based messages.
 	 */
 	private defaultFormatMessages(
 		messages: LLMChatMessage[],
@@ -444,7 +426,6 @@ export class ProviderOrchestrator {
 	}
 }
 
-// Legacy interface that sendLLMMessage.ts expects
 export type LegacyModelProvider = {
 	sendChat: (params: SendChatParams) => Promise<void>;
 	sendFIM?: (params: SendFIMParams) => Promise<void>;
@@ -454,7 +435,8 @@ export type LegacyModelProvider = {
 };
 
 /**
- * Creates a ModelProvider from a legacy implementation - opposite of createOrchestratedProvider
+ * Creates a new ModelProvider from legacy implementation patterns.
+ * Bridges the gap between old sendLLMMessage patterns and new provider interface.
  */
 export function createAdaptedProvider(
 	providerName: ProviderName,
@@ -464,7 +446,6 @@ export function createAdaptedProvider(
 		list?: (params: ListModelsParams) => Promise<void>;
 	}
 ): ModelProvider {
-	// Create schema once to avoid calling it multiple times
 	const getSettingsSchemaFn = (): ProviderSettingsSchema => {
 		const settingNames = customSettingNamesOfProvider(providerName);
 		const schema: ProviderSettingsSchema = {};
@@ -478,7 +459,7 @@ export function createAdaptedProvider(
 				title: displayInfo.title,
 				placeholder: displayInfo.placeholder,
 				isPasswordField: displayInfo.isPasswordField,
-				isRequired: settingName === "apiKey", // Most providers require API key
+				isRequired: settingName === "apiKey",
 			};
 		}
 
@@ -489,7 +470,6 @@ export function createAdaptedProvider(
 		providerName,
 		capabilities: ["chat", "streaming"],
 
-		// NEW: Metadata methods using centralized functions
 		getDisplayInfo(): ProviderDisplayInfo {
 			const info = displayInfoOfProviderName(providerName);
 			return {
@@ -514,8 +494,11 @@ export function createAdaptedProvider(
 			return defaultModelsOfProvider[providerName] || [];
 		},
 
+		/**
+		 * Adapts new provider interface back to legacy SendChatParams format.
+		 * This bridge allows gradual migration of existing providers.
+		 */
 		async sendChat(params: ProviderSendChatParams): Promise<void> {
-			// Validate provider settings before proceeding
 			const settingsSchema = getSettingsSchemaFn();
 			const settingsValidation = validateProviderSettings(
 				params.providerConfig,
@@ -531,11 +514,9 @@ export function createAdaptedProvider(
 				return;
 			}
 
-			// Transform ProviderSendChatParams back to SendChatParams
-			// This is a bit hacky but needed for legacy providers
 			const legacyParams: SendChatParams = {
 				messages: params.messages,
-				modelName: "", // Will be filled by orchestrator
+				modelName: "",
 				providerName,
 				separateSystemMessage: params.systemMessage,
 				settingsOfProvider: {} as any,
@@ -544,8 +525,8 @@ export function createAdaptedProvider(
 				chatMode: null,
 				mcpTools: undefined,
 				_setAborter: params.setAborter,
-				onText: () => { }, // Stub
-				onFinalMessage: () => { }, // Stub
+				onText: () => { },
+				onFinalMessage: () => { },
 				onError: params.onError,
 			};
 
@@ -554,7 +535,6 @@ export function createAdaptedProvider(
 
 		sendFIM: legacyImpl.sendFIM
 			? async (params: ProviderSendFIMParams): Promise<void> => {
-				// Validate provider settings before proceeding
 				const settingsSchema = getSettingsSchemaFn();
 				const settingsValidation = validateProviderSettings(
 					params.providerConfig,
@@ -585,8 +565,8 @@ export function createAdaptedProvider(
 					modelSelectionOptions: undefined,
 					overridesOfModel: undefined,
 					_setAborter: params.setAborter,
-					onText: () => { }, // Stub
-					onFinalMessage: () => { }, // Stub
+					onText: () => { },
+					onFinalMessage: () => { },
 					onError: params.onError,
 				};
 

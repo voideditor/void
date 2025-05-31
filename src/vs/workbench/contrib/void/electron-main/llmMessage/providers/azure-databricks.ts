@@ -8,7 +8,9 @@ export type AzureDatabricksConfig = {
 };
 
 /**
- * Azure Databricks provider - uses OpenAI-compatible API
+ * Creates an Azure Databricks provider that uses OpenAI-compatible API endpoints.
+ * Automatically appends '/serving-endpoints' to workspace URLs and validates
+ * Databricks token format (must start with 'dapi').
  */
 export const azureDatabricksProvider = createOpenAICompatibleProvider({
 	providerName: "azureDatabricks",
@@ -38,16 +40,16 @@ Read more about Azure Databricks authentication [here](https://learn.microsoft.c
 			validation: {
 				minLength: 38,
 				pattern: "^dapi[a-zA-Z0-9-]+$",
-				noEmpty: true
-			}
+				noEmpty: true,
+			},
 		},
 		workspaceUrl: {
 			title: "Workspace URL",
 			placeholder: "https://adb-0000000000000000.0.azuredatabricks.net",
 			isRequired: true,
 			validation: {
-				pattern: "^https://adb-[0-9]+\\.[0-9]+\\.azuredatabricks\\.net$"
-			}
+				pattern: "^https://adb-[0-9]+\\.[0-9]+\\.azuredatabricks\\.net$",
+			},
 		},
 	},
 

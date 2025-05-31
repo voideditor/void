@@ -357,8 +357,23 @@ export class MCPChannel implements IServerChannel {
 
 			let errorMessage: string;
 
+			if (typeof err === 'object' && err !== null && err['code']) {
+				const code = err.code
+				let codeDescription = ''
+				if (code === -32700)
+					codeDescription = 'Parse Error';
+				if (code === -32600)
+					codeDescription = 'Invalid Request';
+				if (code === -32601)
+					codeDescription = 'Method Not Found';
+				if (code === -32602)
+					codeDescription = 'Invalid Parameters';
+				if (code === -32603)
+					codeDescription = 'Internal Error';
+				errorMessage = `${codeDescription}. Full response:\n${JSON.stringify(err, null, 2)}`
+			}
 			// Check if it's an MCP error with a code
-			if (typeof err === 'string') {
+			else if (typeof err === 'string') {
 				// String error
 				errorMessage = err;
 			} else {

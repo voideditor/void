@@ -23,6 +23,7 @@ export const sendLLMMessage = async ({
 	overridesOfModel,
 	chatMode,
 	separateSystemMessage,
+	mcpTools,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
@@ -117,6 +118,7 @@ export const sendLLMMessage = async ({
 			_setAborter,
 			providerName,
 			separateSystemMessage,
+			mcpTools,
 		};
 
 		if (messagesType === 'chatMessages') {

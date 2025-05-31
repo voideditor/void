@@ -173,15 +173,29 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
         if (part.type === 'text') {
             return { type: 'text' as const, text: part.text || EMPTY_MESSAGE };
         } else {
-            const imageData = part.image_url.url.startsWith('data:')
-                ? part.image_url.url.split(',')[1]
-                : part.image_url.url;
+            const url = part.image_url.url.trim()
+            let rawBase64Data = ''
+
+            const commaIndex = url.indexOf(',');
+
+            if (url.substring(0, url.indexOf(':')).toLowerCase() === 'data' && commaIndex !== -1) {
+
+                if (commaIndex + 1 < url.length) {
+                    rawBase64Data = url.substring(commaIndex + 1);
+                } else {
+                    rawBase64Data = ''
+                }
+            } else {
+                console.warn('Encountered image URL that is not a valid data URI or is empty after prefix:', part.image_url.url)
+                rawBase64Data = ''
+            }
+
             return {
                 type: 'image' as const,
                 source: {
                     type: 'base64' as const,
                     media_type: part.image_url.mimeType || 'image/jpeg',
-                    data: imageData
+                    data: rawBase64Data
                 }
             };
         }
@@ -570,15 +584,21 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 			else {
 				const parts: GeminiUserPart[] = m.content.map((c): GeminiUserPart | null => {
 					if (c.type === 'text') {
-						return { text: c.text }
+            return { text: c.text };
+        } else if (c.type === 'image') {
+            return { inlineData: { mimeType: c.source.media_type, data: c.source.data } }
+        } else if (c.type === 'tool_result') {
+            if (!latestToolName) return null
+            return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
 					}
-					else if (c.type === 'tool_result') {
-						if (!latestToolName) return null
-						return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
-					}
-					else return null
-				}).filter(m => !!m)
-				return { role: 'user', parts, }
+        else return null
+    }).filter(m => !!m)
+    if (parts.length === 0 && typeof m.content !== 'string' && m.content.length > 0) {
+        parts.push({ text: EMPTY_MESSAGE });
+    } else if (parts.length === 0 && (typeof m.content === 'string' || m.content.length === 0) ) {
+		parts.push({ text: EMPTY_MESSAGE });
+	}
+    return { role: 'user', parts };
 			}
 
 		}
@@ -733,20 +753,32 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				if (modelCaps.supportsImageInput) {
 					const contentParts: ({ type: 'text', text: string } | { type: 'image_url', image_url: { url: string, mimeType?: string } })[] = [{ type: 'text', text: textContent }];
 					for (const image of m.images) {
-						contentParts.push({ type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.data}`, mimeType: image.mimeType } });
+                        const imageUrl = typeof image.data === 'string' ? image.data : '';
+                        if (imageUrl) {
+                            contentParts.push({ type: 'image_url', image_url: { url: imageUrl, mimeType: image.mimeType } });
+                        }
 					}
-					simpleLLMMessages.push({
-						role: 'user',
-						content: contentParts
-					});
-				} else {
-					console.warn(`Model ${modelName} (provider: ${providerName}) does not support image input. Images from user message will be ignored.`);
+                    // If contentParts only has text + textContent was EMPTY_MESSAGE it means only images were present but failed to process.
+                    if (contentParts.length > 1 || (contentParts.length === 1 && textContent !== EMPTY_MESSAGE)) {
+                        simpleLLMMessages.push({
+                            role: 'user',
+                            content: contentParts
+                        });
+                    } else { // Fallback if images present but not processed + text empty
+                        simpleLLMMessages.push({
+                            role: 'user',
+                            content: textContent, // Which would be EMPTY_MESSAGE if images were the only content
+                        });
+                    }
+                } else {
+                    console.warn(`Model ${modelName} (provider: ${providerName}) does not support image input. Images from user message will be ignored.`);
+                    // When images not supported push only the text content
 					simpleLLMMessages.push({
 						role: 'user',
 						content: textContent,
 					});
 				}
-			} else {
+			} else { // This is for if (m.images && m.images.length > 0 && currentModelSelection)
 				simpleLLMMessages.push({
 					role: 'user',
 					content: textContent,

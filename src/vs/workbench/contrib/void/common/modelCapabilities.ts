@@ -574,6 +574,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	}
 } as const satisfies { [s: string]: VoidStaticModelInfo }
@@ -705,6 +706,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: false, // does not support any system
+		supportsImageInput: true,
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
 	},
 	'gpt-4o-mini': {
@@ -1016,6 +1018,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsFIM: true,
 		downloadable: { sizeGb: 13 },
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 
@@ -1026,6 +1029,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsFIM: false,
 		downloadable: { sizeGb: 14 }, //https://ollama.com/library/devstral
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 
@@ -1315,6 +1319,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'google/gemini-2.0-pro-exp-02-05:free': {
@@ -1324,6 +1329,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'google/gemini-2.0-flash-exp:free': {
@@ -1333,6 +1339,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'deepseek/deepseek-r1': {
@@ -1349,6 +1356,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'anthropic/claude-sonnet-4': {
@@ -1358,6 +1366,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'anthropic/claude-3.7-sonnet:thinking': {
@@ -1374,6 +1383,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 			reasoningReservedOutputTokenSpace: 8192,
 			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000.
 		},
+		supportsImageInput: true,
 	},
 	'anthropic/claude-3.7-sonnet': {
 		contextWindow: 200_000,
@@ -1382,6 +1392,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false, // stupidly, openrouter separates thinking from non-thinking
 	},
 	'anthropic/claude-3.5-sonnet': {
@@ -1391,6 +1402,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'mistralai/codestral-2501': {
@@ -1399,6 +1411,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		reservedOutputTokenSpace: null,
 		cost: { input: 0.3, output: 0.9 },
 		downloadable: false,
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'mistralai/devstral-small:free': {
@@ -1407,6 +1420,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
 		downloadable: false,
+		supportsImageInput: true,
 		reasoningCapabilities: false,
 	},
 	'qwen/qwen-2.5-coder-32b-instruct': {

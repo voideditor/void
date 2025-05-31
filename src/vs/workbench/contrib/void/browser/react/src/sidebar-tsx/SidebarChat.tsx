@@ -1086,7 +1086,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 					{chatMessage.images.map((image, index) => (
 						<img
 							key={index}
-							src={`data:${image.mimeType};base64,${image.data}`}
+							src={image.data}
 							alt={`User image ${index + 1}`}
 							style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
 							className="border border-void-border-2"
@@ -1378,7 +1378,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 							{chatMessage.images.map((image, index) => (
 								<img
 									key={index}
-									src={`data:${image.mimeType};base64,${image.data}`}
+									src={image.data}
 									alt={`Assistant image ${index + 1}`}
 									style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
 									className="border border-void-border-2"

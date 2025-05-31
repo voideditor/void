@@ -3,6 +3,15 @@ import {
 	getProviderCapabilities,
 	getSendableReasoningInfo,
 } from "../../common/modelCapabilities.js";
+import { InternalToolInfo } from "../../common/prompt/prompts.js";
+import { OnFinalMessage, OnText } from "../../common/sendLLMMessageTypes.js";
+import {
+	ChatMode,
+	ModelSelectionOptions,
+	OverridesOfModel,
+	ProviderName,
+	SettingsOfProvider,
+} from "../../common/voidSettingsTypes.js";
 import {
 	extractReasoningWrapper,
 	extractXMLToolsWrapper,
@@ -11,19 +20,10 @@ import { openAITools } from "./modelProvider.js";
 import {
 	ModelCapabilitiesSetup,
 	ReasoningSetup,
-	ToolsAndWrappersSetup,
 	SendChatParams,
 	SendFIMParams,
+	ToolsAndWrappersSetup,
 } from "./providerTypes.js";
-import {
-	ProviderName,
-	SettingsOfProvider,
-	ModelSelectionOptions,
-	OverridesOfModel,
-	ChatMode,
-} from "../../common/voidSettingsTypes.js";
-import { InternalToolInfo } from "../../common/prompt/prompts.js";
-import { OnText, OnFinalMessage } from "../../common/sendLLMMessageTypes.js";
 
 /**
  * Extracts the provider configuration from settings
@@ -123,9 +123,8 @@ export function setupToolsAndWrappers(
 	let wrappedOnFinalMessage = onFinalMessage;
 
 	// Setup reasoning wrapper for open source models
-	const {
-		needsManualParse: needsManualReasoningParse,
-	} = providerReasoningIOSettings?.output ?? {};
+	const { needsManualParse: needsManualReasoningParse } =
+		providerReasoningIOSettings?.output ?? {};
 
 	const manuallyParseReasoning =
 		needsManualReasoningParse && canIOReasoning && openSourceThinkTags;

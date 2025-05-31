@@ -8,10 +8,6 @@ import {
 	displayInfoOfProviderName,
 	ProviderName,
 } from "../../common/voidSettingsTypes.js";
-import {
-	CallFnOfProvider,
-	sendLLMMessageToProviderImplementation,
-} from "./sendLLMMessage.impl.js";
 import { createAdaptedProvider } from "./providerOrchestrator.js";
 import {
 	ModelProvider,
@@ -19,14 +15,18 @@ import {
 	ProviderSettingsSchema,
 	ProviderSetupInfo,
 } from "./providerTypes.js";
+import {
+	CallFnOfProvider,
+	sendLLMMessageToProviderImplementation,
+} from "./sendLLMMessage.impl.js";
 
 // Import specific providers
 import {
 	RawToolCallObj,
 	RawToolParamsObj,
 } from "../../common/sendLLMMessageTypes.js";
-import { azureAiFoundryProvider } from "./providers/azure-foundry.js";
 import { azureDatabricksProvider } from "./providers/azure-databricks.js";
+import { azureAiFoundryProvider } from "./providers/azure-foundry.js";
 
 // Create fallback providers for providers that don't have their own files yet
 const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
@@ -228,5 +228,6 @@ export type {
 	SendChatParams,
 	SendFIMParams,
 	StreamChunk,
-	ToolsAndWrappersSetup,
+	ToolsAndWrappersSetup
 } from "./providerTypes.js";
+

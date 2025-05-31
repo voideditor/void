@@ -1,36 +1,36 @@
 import {
-	SendChatParams,
-	SendFIMParams,
-	ModelProvider,
-	ProviderSendChatParams,
-	ProviderSendFIMParams,
-	StreamChunk,
-	CompletionResult,
-	ListModelsParams,
-	ProviderCapability,
-	ProviderDisplayInfo,
-	ProviderSetupInfo,
-	ProviderSettingsSchema,
-	ProviderDefaultSettings,
-} from "./providerTypes.js";
-import {
-	ProviderName,
-	displayInfoOfProviderName,
-	subTextMdOfProviderName,
-	displayInfoOfSettingName,
-	customSettingNamesOfProvider,
-} from "../../common/voidSettingsTypes.js";
-import {
-	defaultProviderSettings,
 	defaultModelsOfProvider,
+	defaultProviderSettings,
 } from "../../common/modelCapabilities.js";
-import { setupProviderForChat, setupProviderForFIM } from "./providerUtils.js";
-import {
-	rawToolCallObjOfParamsStr,
-	invalidApiKeyMessageForProvider,
-} from "./modelProvider.js";
 import { isABuiltinToolName } from "../../common/prompt/prompts.js";
 import { LLMChatMessage } from "../../common/sendLLMMessageTypes.js";
+import {
+	ProviderName,
+	customSettingNamesOfProvider,
+	displayInfoOfProviderName,
+	displayInfoOfSettingName,
+	subTextMdOfProviderName,
+} from "../../common/voidSettingsTypes.js";
+import {
+	invalidApiKeyMessageForProvider,
+	rawToolCallObjOfParamsStr,
+} from "./modelProvider.js";
+import {
+	CompletionResult,
+	ListModelsParams,
+	ModelProvider,
+	ProviderCapability,
+	ProviderDefaultSettings,
+	ProviderDisplayInfo,
+	ProviderSendChatParams,
+	ProviderSendFIMParams,
+	ProviderSettingsSchema,
+	ProviderSetupInfo,
+	SendChatParams,
+	SendFIMParams,
+	StreamChunk,
+} from "./providerTypes.js";
+import { setupProviderForChat, setupProviderForFIM } from "./providerUtils.js";
 
 /**
  * Orchestrates the interaction between the complex sendLLMMessage interface
@@ -44,7 +44,14 @@ export class ProviderOrchestrator {
 	 * Handles a chat request by doing all common setup and calling the provider's core logic
 	 */
 	async sendChat(params: SendChatParams): Promise<void> {
-		const { messages, separateSystemMessage, onError, _setAborter, chatMode, mcpTools } = params;
+		const {
+			messages,
+			separateSystemMessage,
+			onError,
+			_setAborter,
+			chatMode,
+			mcpTools,
+		} = params;
 
 		try {
 			// Use existing convenience methods for all common setup
@@ -61,37 +68,43 @@ export class ProviderOrchestrator {
 				toolsAndWrappers;
 
 			// Get provider-specific customization configs
-			const reasoningConfig = this.provider.getReasoningConfig?.(modelName) || {};
+			const reasoningConfig =
+				this.provider.getReasoningConfig?.(modelName) || {};
 			const toolConfig = this.provider.getToolConfig?.(modelName) || {};
-			const streamHooks = this.provider.getStreamProcessingHooks?.(modelName) || {};
+			const streamHooks =
+				this.provider.getStreamProcessingHooks?.(modelName) || {};
 
 			// Apply provider-specific callback wrapping if defined
 			if (this.provider.wrapCallbacks) {
 				// Create adapter functions to convert between callback types
 				const streamChunkToOnText = (chunk: StreamChunk) => {
 					wrappedOnText({
-						fullText: chunk.text || '',
-						fullReasoning: chunk.reasoning || '',
-						toolCall: chunk.toolCall ? {
-							name: chunk.toolCall.name || '',
-							rawParams: {},
-							isDone: false,
-							doneParams: [],
-							id: chunk.toolCall.id || '',
-						} : undefined,
+						fullText: chunk.text || "",
+						fullReasoning: chunk.reasoning || "",
+						toolCall: chunk.toolCall
+							? {
+								name: chunk.toolCall.name || "",
+								rawParams: {},
+								isDone: false,
+								doneParams: [],
+								id: chunk.toolCall.id || "",
+							}
+							: undefined,
 					});
 				};
 
 				const completionResultToOnFinalMessage = (result: CompletionResult) => {
-					const toolCall = result.toolCall ? rawToolCallObjOfParamsStr(
-						result.toolCall.name,
-						result.toolCall.arguments,
-						result.toolCall.id
-					) || undefined : undefined;
+					const toolCall = result.toolCall
+						? rawToolCallObjOfParamsStr(
+							result.toolCall.name,
+							result.toolCall.arguments,
+							result.toolCall.id
+						) || undefined
+						: undefined;
 
 					wrappedOnFinalMessage({
 						fullText: result.text,
-						fullReasoning: result.reasoning || '',
+						fullReasoning: result.reasoning || "",
 						anthropicReasoning: null,
 						toolCall,
 					});
@@ -114,11 +127,13 @@ export class ProviderOrchestrator {
 					wrapped.wrappedOnText({
 						text: textParams.fullText,
 						reasoning: textParams.fullReasoning,
-						toolCall: textParams.toolCall ? {
-							name: textParams.toolCall.name,
-							arguments: JSON.stringify(textParams.toolCall.rawParams),
-							id: textParams.toolCall.id,
-						} : undefined,
+						toolCall: textParams.toolCall
+							? {
+								name: textParams.toolCall.name,
+								arguments: JSON.stringify(textParams.toolCall.rawParams),
+								id: textParams.toolCall.id,
+							}
+							: undefined,
 					});
 				};
 
@@ -127,17 +142,20 @@ export class ProviderOrchestrator {
 					wrapped.wrappedOnComplete({
 						text: finalParams.fullText,
 						reasoning: finalParams.fullReasoning,
-						toolCall: finalParams.toolCall ? {
-							name: finalParams.toolCall.name,
-							arguments: JSON.stringify(finalParams.toolCall.rawParams),
-							id: finalParams.toolCall.id,
-						} : null,
+						toolCall: finalParams.toolCall
+							? {
+								name: finalParams.toolCall.name,
+								arguments: JSON.stringify(finalParams.toolCall.rawParams),
+								id: finalParams.toolCall.id,
+							}
+							: null,
 					});
 				};
 			}
 
 			// Get reasoning field name - use provider config or fallback to existing logic
-			const nameOfFieldInDelta = reasoningConfig.deltaFieldName ||
+			const nameOfFieldInDelta =
+				reasoningConfig.deltaFieldName ||
 				reasoningSetup.providerReasoningIOSettings?.output?.nameOfFieldInDelta;
 
 			// Format messages using provider's custom formatter or default
@@ -199,17 +217,21 @@ export class ProviderOrchestrator {
 				const finalContent = streamHooks.postprocessContent?.({
 					text: fullTextSoFar,
 					reasoning: fullReasoningSoFar,
-					toolCall: toolName ? { name: toolName, id: toolId, arguments: toolParamsStr } : undefined,
+					toolCall: toolName
+						? { name: toolName, id: toolId, arguments: toolParamsStr }
+						: undefined,
 				}) || {
 					text: fullTextSoFar,
 					reasoning: fullReasoningSoFar,
-					toolCall: toolName ? { name: toolName, id: toolId, arguments: toolParamsStr } : undefined,
+					toolCall: toolName
+						? { name: toolName, id: toolId, arguments: toolParamsStr }
+						: undefined,
 				};
 
 				// Call the wrapped onText with current state
 				wrappedOnText({
-					fullText: finalContent.text || '',
-					fullReasoning: finalContent.reasoning || '',
+					fullText: finalContent.text || "",
+					fullReasoning: finalContent.reasoning || "",
 					toolCall: isABuiltinToolName(toolName)
 						? {
 							name: toolName,
@@ -260,7 +282,8 @@ export class ProviderOrchestrator {
 							});
 						} else {
 							onError({
-								message: `${this.provider.providerName} error: ${err?.message || String(err)}`,
+								message: `${this.provider.providerName} error: ${err?.message || String(err)
+									}`,
 								fullError: err,
 							});
 						}
@@ -273,7 +296,8 @@ export class ProviderOrchestrator {
 						});
 					} else {
 						onError({
-							message: `${this.provider.providerName} error: ${error?.message || String(error)}`,
+							message: `${this.provider.providerName} error: ${error?.message || String(error)
+								}`,
 							fullError: error,
 						});
 					}

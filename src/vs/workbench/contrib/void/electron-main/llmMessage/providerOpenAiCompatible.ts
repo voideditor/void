@@ -1,20 +1,20 @@
 import OpenAI from "openai";
+import { InternalToolInfo } from "../../common/prompt/prompts.js";
+import { ChatMode } from "../../common/voidSettingsTypes.js";
 import {
-	OpenAICompatibleConfig,
 	CompletionResult,
 	ModelProvider,
+	OpenAICompatibleConfig,
+	ProviderCapability,
 	ProviderDefaultSettings,
 	ProviderDisplayInfo,
 	ProviderSettingsSchema,
 	ProviderSetupInfo,
-	StreamChunk,
-	ProviderCapability,
 	ReasoningExtractionConfig,
-	ToolExtractionConfig,
+	StreamChunk,
 	StreamProcessingHooks,
+	ToolExtractionConfig,
 } from "./providerTypes.js";
-import { InternalToolInfo } from "../../common/prompt/prompts.js";
-import { ChatMode } from "../../common/voidSettingsTypes.js";
 
 // Define OpenAI specific config type
 export type OpenAIConfig = OpenAICompatibleConfig & {
@@ -72,7 +72,9 @@ export interface OpenAICompatibleProviderConfig {
 /**
  * Factory function to create OpenAI-compatible model providers
  */
-export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderConfig): ModelProvider {
+export function createOpenAICompatibleProvider(
+	config: OpenAICompatibleProviderConfig
+): ModelProvider {
 	return {
 		providerName: config.providerName,
 		capabilities: config.capabilities,
@@ -141,11 +143,12 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderC
 
 				let fullText = "";
 				let fullReasoning = "";
-				let toolCall: { id: string; name: string; arguments: string } | null = null;
+				let toolCall: { id: string; name: string; arguments: string } | null =
+					null;
 
 				client.chat.completions
 					.create(options)
-					.then(async response => {
+					.then(async (response) => {
 						setAborter(() => response.controller.abort());
 
 						// Process the stream - simplified as orchestrator handles customization
@@ -161,7 +164,10 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderC
 								}
 
 								// Handle tool calls
-								if (choice.delta?.tool_calls && choice.delta.tool_calls.length > 0) {
+								if (
+									choice.delta?.tool_calls &&
+									choice.delta.tool_calls.length > 0
+								) {
 									const toolCallDelta = choice.delta.tool_calls[0];
 									if (!toolCall) {
 										toolCall = { id: "", name: "", arguments: "" };
@@ -199,7 +205,10 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderC
 
 						// on final
 						if (!fullText && !fullReasoning && !toolCall?.name) {
-							onError({ message: 'Void: Response from model was empty.', fullError: null });
+							onError({
+								message: "Void: Response from model was empty.",
+								fullError: null,
+							});
 						} else {
 							const result: CompletionResult = {
 								text: fullText,
@@ -209,11 +218,14 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderC
 							onComplete(result);
 						}
 					})
-					.catch(error => {
+					.catch((error) => {
 						if (error instanceof OpenAI.APIError && error.status === 401) {
-							onError({ message: `Invalid ${config.displayInfo.title} API key.`, fullError: error });
+							onError({
+								message: `Invalid ${config.displayInfo.title} API key.`,
+								fullError: error,
+							});
 						} else {
-							onError({ message: error + '', fullError: error });
+							onError({ message: error + "", fullError: error });
 						}
 					});
 			} catch (error) {
@@ -222,153 +234,3 @@ export function createOpenAICompatibleProvider(config: OpenAICompatibleProviderC
 		},
 	};
 }
-
-/**
- * Pre-configured OpenAI provider
- */
-export const openAiProvider = createOpenAICompatibleProvider({
-	providerName: "openAI",
-	capabilities: ["chat", "streaming", "tools", "reasoning"],
-
-	displayInfo: {
-		title: "OpenAI",
-		description: "OpenAI's GPT models including GPT-4, GPT-4 Turbo, and GPT-3.5",
-	},
-
-	setupInfo: {
-		subTextMd: "Get your API key from the [OpenAI Platform](https://platform.openai.com/api-keys). Read more about the API [here](https://platform.openai.com/docs/api-reference/chat).",
-	},
-
-	settingsSchema: {
-		apiKey: {
-			title: "API Key",
-			placeholder: "sk-...",
-			isPasswordField: true,
-			isRequired: true,
-		},
-		endpoint: {
-			title: "Base URL",
-			placeholder: "https://api.openai.com/v1",
-			isRequired: false,
-		},
-		organization: {
-			title: "Organization ID",
-			placeholder: "org-...",
-			isRequired: false,
-		},
-	},
-
-	defaultSettings: {
-		apiKey: "",
-		endpoint: "https://api.openai.com/v1",
-		organization: "",
-	},
-
-	defaultModels: [
-		"gpt-4o",
-		"gpt-4o-mini",
-		"gpt-4-turbo",
-		"gpt-4",
-		"gpt-3.5-turbo",
-		"o1-preview",
-		"o1-mini",
-	],
-
-	createClient: (config: OpenAIConfig) => {
-		return new OpenAI({
-			apiKey: config.apiKey,
-			baseURL: config.endpoint || "https://api.openai.com/v1",
-			organization: config.organization || undefined,
-			dangerouslyAllowBrowser: true,
-		});
-	},
-
-	// Configure reasoning extraction for o1 models
-	reasoningConfig: (modelName: string) => {
-		if (modelName.startsWith('o1-')) {
-			return {
-				deltaFieldName: 'reasoning', // OpenAI o1 models use 'reasoning' field
-			};
-		}
-		return {};
-	},
-});
-
-/**
- * Example: Provider with custom <think></think> reasoning markers
- */
-export const customReasoningProvider = createOpenAICompatibleProvider({
-	providerName: "customReasoning",
-	capabilities: ["chat", "streaming", "reasoning"],
-
-	displayInfo: {
-		title: "Custom Reasoning Provider",
-		description: "Example provider with custom <think></think> reasoning extraction",
-	},
-
-	setupInfo: {
-		subTextMd: "Example configuration for providers that use custom reasoning markers.",
-	},
-
-	settingsSchema: {
-		apiKey: { title: "API Key", placeholder: "key...", isPasswordField: true, isRequired: true },
-		endpoint: { title: "Endpoint", placeholder: "https://api.example.com/v1", isRequired: true },
-	},
-
-	defaultSettings: {
-		apiKey: "",
-		endpoint: "",
-	},
-
-	defaultModels: ["custom-model-v1"],
-
-	createClient: (config: any) => {
-		return new OpenAI({
-			baseURL: config.endpoint,
-			apiKey: config.apiKey,
-			dangerouslyAllowBrowser: true,
-		});
-	},
-
-	// Custom reasoning extraction for <think></think> tags
-	reasoningConfig: (modelName: string) => ({
-		tags: { open: '<think>', close: '</think>' },
-		needsManualParsing: true,
-	}),
-
-	// Custom callback wrapper that extracts reasoning from text content
-	wrapCallbacks: (onText, onComplete, modelName, chatMode, mcpTools) => {
-		let extractedReasoning = '';
-		let extractedText = '';
-
-		return {
-			wrappedOnText: (chunk: StreamChunk) => {
-				if (chunk.text) {
-					// Simple extraction logic - in practice you'd use the extractReasoningWrapper from sendLLMMessage.impl.ts
-					const thinkMatch = chunk.text.match(/<think>(.*?)<\/think>/s);
-					if (thinkMatch) {
-						extractedReasoning += thinkMatch[1];
-						extractedText += chunk.text.replace(/<think>.*?<\/think>/s, '');
-					} else {
-						extractedText += chunk.text;
-					}
-
-					onText({
-						...chunk,
-						text: extractedText,
-						reasoning: extractedReasoning,
-					});
-				} else {
-					onText(chunk);
-				}
-			},
-			wrappedOnComplete: (result: CompletionResult) => {
-				onComplete({
-					...result,
-					text: extractedText,
-					reasoning: extractedReasoning || result.reasoning,
-				});
-			},
-		};
-	},
-});

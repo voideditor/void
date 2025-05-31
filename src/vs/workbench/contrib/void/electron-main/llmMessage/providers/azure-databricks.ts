@@ -1,5 +1,5 @@
-import { createOpenAICompatibleProvider } from "../providerOpenAiCompatible.js";
 import OpenAI from "openai";
+import { createOpenAICompatibleProvider } from "../providerOpenAiCompatible.js";
 
 // Define Azure Databricks specific config type
 export type AzureDatabricksConfig = {
@@ -60,8 +60,8 @@ Read more about Azure Databricks authentication [here](https://learn.microsoft.c
 	createClient: (config: AzureDatabricksConfig) => {
 		// Ensure the workspace URL ends with /serving-endpoints
 		let baseURL = config.workspaceUrl;
-		if (!baseURL.endsWith('/serving-endpoints')) {
-			baseURL = baseURL.replace(/\/+$/, '') + '/serving-endpoints';
+		if (!baseURL.endsWith("/serving-endpoints")) {
+			baseURL = baseURL.replace(/\/+$/, "") + "/serving-endpoints";
 		}
 
 		return new OpenAI({

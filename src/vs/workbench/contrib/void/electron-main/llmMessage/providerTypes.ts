@@ -196,14 +196,20 @@ export type ToolExtractionConfig = {
 	/** Whether tools are handled natively by the API or need XML parsing */
 	useNativeTools?: boolean;
 	/** Custom tool call parsing logic */
-	parseToolCall?: (content: string) => { name: string; arguments: string; id: string } | null;
+	parseToolCall?: (
+		content: string
+	) => { name: string; arguments: string; id: string } | null;
 };
 
 export type StreamProcessingHooks = {
 	/** Process raw stream chunk before standard processing */
 	preprocessChunk?: (chunk: any) => any;
 	/** Post-process extracted content */
-	postprocessContent?: (content: { text?: string; reasoning?: string; toolCall?: any }) => { text?: string; reasoning?: string; toolCall?: any };
+	postprocessContent?: (content: {
+		text?: string;
+		reasoning?: string;
+		toolCall?: any;
+	}) => { text?: string; reasoning?: string; toolCall?: any };
 	/** Custom error handling */
 	handleError?: (error: any, defaultHandler: (error: any) => void) => void;
 };

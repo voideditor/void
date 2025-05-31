@@ -125,7 +125,6 @@ export function setupToolsAndWrappers(
 	// Setup reasoning wrapper for open source models
 	const {
 		needsManualParse: needsManualReasoningParse,
-		nameOfFieldInDelta: nameOfReasoningFieldInDelta,
 	} = providerReasoningIOSettings?.output ?? {};
 
 	const manuallyParseReasoning =

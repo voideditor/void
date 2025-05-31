@@ -24,7 +24,7 @@ export const azureDatabricksProvider = createOpenAICompatibleProvider({
 
 Your workspace URL should be in the format: \`https://adb-{workspace-id}.{region}.azuredatabricks.net\`
 
-Example: \`https://adb-000000000000.0.azuredatabricks.net\`
+Example: \`https://adb-0000000000000000.0.azuredatabricks.net\`
 
 Read more about Azure Databricks authentication [here](https://learn.microsoft.com/en-us/azure/databricks/dev-tools/auth/pat).`,
 	},
@@ -36,14 +36,14 @@ Read more about Azure Databricks authentication [here](https://learn.microsoft.c
 			isPasswordField: true,
 			isRequired: true,
 			validation: {
-				minLength: 40,
-				pattern: "^dapi[a-zA-Z0-9]+$",
+				minLength: 38,
+				pattern: "^dapi[a-zA-Z0-9-]+$",
 				noEmpty: true
 			}
 		},
 		workspaceUrl: {
 			title: "Workspace URL",
-			placeholder: "https://adb-000000000000.0.azuredatabricks.net",
+			placeholder: "https://adb-0000000000000000.0.azuredatabricks.net",
 			isRequired: true,
 			validation: {
 				pattern: "^https://adb-[0-9]+\\.[0-9]+\\.azuredatabricks\\.net$"

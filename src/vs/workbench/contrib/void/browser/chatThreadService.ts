@@ -277,7 +277,7 @@ export interface IChatThreadService {
 	dismissStreamError(threadId: string): void;
 
 	// call to edit a message
-	editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId }: { userMessage: string, messageIdx: number, threadId: string }): Promise<void>;
+	editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId, images }: { userMessage: string, messageIdx: number, threadId: string, images?: Array<{ data: string; mimeType: string }> }): Promise<void>;
 
 	// call to add a message
 	addUserMessageAndStreamResponse({ userMessage, threadId, images }: { userMessage: string, threadId: string, images?: Array<{ data: string; mimeType: string }> }): Promise<void>;
@@ -1302,7 +1302,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 
 	}
 
-	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId }) => {
+	editUserMessageAndStreamResponse: IChatThreadService['editUserMessageAndStreamResponse'] = async ({ userMessage, messageIdx, threadId, images }) => {
 
 		const thread = this.state.allThreads[threadId]
 		if (!thread) return // should never happen
@@ -1327,7 +1327,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		})
 
 		// re-add the message and stream it
-		this._addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId, images: undefined }) // TODO: Decide if edited messages should retain original image. For now, clearing.
+  this._addUserMessageAndStreamResponse({ userMessage, _chatSelections: currSelns, threadId, images: images ?? undefined })
 	}
 
 	// ---------- the rest ----------

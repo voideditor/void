@@ -1036,6 +1036,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 	const [isDisabled, setIsDisabled] = useState(false)
 	const [textAreaRefState, setTextAreaRef] = useState<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
+	const [editedImages, setEditedImages] = useState<Array<{ data: string; mimeType: string }>>([]);
 	// initialize on first render, and when edit was just enabled
 	const _mustInitialize = useRef(true)
 	const _justEnabledEdit = useRef(false)
@@ -1049,6 +1050,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 					else return s
 				})
 			)
+			setEditedImages(chatMessage.images || []);
 
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
@@ -1059,7 +1061,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			_mustInitialize.current = false
 		}
 
-	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current, setEditedImages])
 
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -1099,6 +1101,10 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 	}
 	else if (mode === 'edit') {
 
+		const handleRemoveEditedImage = (indexToRemove: number) => {
+			setEditedImages(prevImages => prevImages.filter((_, index) => index !== indexToRemove));
+		};
+
 		const onSubmit = async () => {
 
 			if (isDisabled) return;
@@ -1117,10 +1123,11 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			// stream the edit
 			const userMessage = textAreaRefState.value;
 			try {
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId, images: editedImages })
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
+			setEditedImages([]);
 			await chatThreadsService.focusCurrentChat()
 			requestAnimationFrame(() => _scrollToBottom?.())
 		}
@@ -1139,13 +1146,35 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			}
 		}
 
-		if (!chatMessage.content) { // don't show if empty and not loading (if loading, want to show).
+		if (!chatMessage.content && (!chatMessage.images || chatMessage.images.length === 0)) { // don't show if empty and not loading (if loading, want to show).
 			return null
 		}
 
-		chatbubbleContents = <VoidChatArea
-			featureName='Chat'
-			onSubmit={onSubmit}
+		chatbubbleContents = <>
+			{editedImages.length > 0 && (
+				<div className="flex flex-wrap gap-2 mt-0 mb-2">
+					{editedImages.map((image, index) => (
+						<div key={index} className="relative">
+							<img
+								src={image.data}
+								alt={`Edited image ${index + 1}`}
+								className="w-20 h-20 object-cover border border-void-border-2 rounded"
+							/>
+							<button
+								onClick={() => handleRemoveEditedImage(index)}
+								className="absolute top-0 right-0 bg-void-bg-1 rounded-full p-0.5 leading-none text-void-fg-1 hover:opacity-80"
+								aria-label={`Remove image ${index + 1}`}
+								style={{ width: '18px', height: '18px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+							>
+								×
+							</button>
+						</div>
+					))}
+				</div>
+			)}
+			<VoidChatArea
+				featureName='Chat'
+				onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={false}
 			isDisabled={isDisabled}
@@ -1159,7 +1188,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 				ref={setTextAreaRef}
 				className='min-h-[81px] max-h-[500px] px-0.5'
 				placeholder="Edit your message..."
-				onChangeText={(text) => setIsDisabled(!text)}
+				onChangeText={(text) => setIsDisabled(!text && editedImages.length === 0)}
 				onFocus={() => {
 					setIsFocused(true)
 					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
@@ -1170,8 +1199,13 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 				onKeyDown={onKeyDown}
 				fnsRef={textAreaFnsRef}
 				multiline={true}
+				onImagePasted={(base64Data, mimeType) => {
+					setEditedImages(prevImages => [...prevImages, { data: base64Data, mimeType: mimeType }]);
+					setIsDisabled(false);
+				}}
 			/>
 		</VoidChatArea>
+		</>
 	}
 
 	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1

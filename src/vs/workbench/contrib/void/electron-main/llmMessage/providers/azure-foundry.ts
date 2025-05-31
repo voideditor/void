@@ -11,13 +11,13 @@ import {
 	extractReasoningWrapper,
 	extractXMLToolsWrapper,
 } from "../extractGrammar.js";
-import { ModelProvider, SendChatParams } from "./types.js";
 import {
 	invalidApiKeyMessage,
 	openAITools,
-	rawToolCallObjOf,
+	rawToolCallObjOfParamsStr,
 } from "./index.js";
-import { isAToolName } from "../../../common/prompt/prompts.js";
+import { ModelProvider, SendChatParams } from "./types.js";
+import { isABuiltinToolName } from '../../../common/prompt/prompts.js';
 
 /*
  * Azure AI Foundry is a provider that uses the Azure AI Inference SDK to
@@ -36,6 +36,7 @@ export const azureAiFoundryProvider: ModelProvider = {
 			onError,
 			_setAborter,
 			messages,
+			mcpTools,
 		} = params;
 		let { onText, onFinalMessage } = params;
 
@@ -127,7 +128,8 @@ export const azureAiFoundryProvider: ModelProvider = {
 			const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(
 				onText,
 				onFinalMessage,
-				chatMode
+				chatMode,
+				mcpTools
 			);
 			onText = newOnText;
 			onFinalMessage = newOnFinalMessage;
@@ -200,7 +202,7 @@ export const azureAiFoundryProvider: ModelProvider = {
 						onText({
 							fullText: fullTextSoFar,
 							fullReasoning: fullReasoningSoFar,
-							toolCall: isAToolName(toolName)
+							toolCall: isABuiltinToolName(toolName)
 								? {
 									name: toolName,
 									rawParams: {},
@@ -223,7 +225,7 @@ export const azureAiFoundryProvider: ModelProvider = {
 					fullError: null,
 				});
 			} else {
-				const toolCall = rawToolCallObjOf(toolName, toolParamsStr, toolId);
+				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId);
 				const toolCallObj = toolCall ? { toolCall } : {};
 				onFinalMessage({
 					fullText: fullTextSoFar,

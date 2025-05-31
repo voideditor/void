@@ -1,3 +1,4 @@
+import { InternalToolInfo } from '../../../common/prompt/prompts.js';
 import {
 	LLMChatMessage,
 	LLMFIMMessage,
@@ -35,6 +36,7 @@ export type SendChatParams = {
 	providerName: ProviderName;
 	separateSystemMessage: string | undefined;
 	chatMode: ChatMode | null;
+	mcpTools: InternalToolInfo[] | undefined;
 };
 
 export type SendFIMParams = {

@@ -58,7 +58,7 @@ const createFallbackProvider = (providerName: ProviderName): ModelProvider => {
  * Extensible to accept any string key for custom providers beyond core ProviderName types.
  */
 export const providers: Record<ProviderName | string, ModelProvider> = {
-	// Newer provider implementations (cast to base type for registry compatibility)
+	// ModelProvider implementations
 	azureAiFoundry: azureAiFoundryProvider,
 	azureDatabricks: azureDatabricksProvider,
 

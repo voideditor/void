@@ -279,7 +279,7 @@ export type SettingFieldInfo = {
       if (value % 5 !== 0) {
         return "Value must be divisible by 5";
       }
-      return null;
+      return null; // Valid
     },
   }
 }
@@ -294,7 +294,8 @@ export type SettingFieldInfo = {
     options: ["option1", "option2", "option3"],
     custom: (value: string) => {
       // Additional validation logic
-      return null;
+
+	  return null; // Valid
     },
   }
 }
@@ -311,7 +312,8 @@ export type SettingFieldInfo = {
     maxSelections: 2,
     custom: (values: string[]) => {
       // Validation logic for array of values
-      return null;
+
+	  return null; // Valid
     },
   }
 }
@@ -341,7 +343,7 @@ endpoint: {
     custom: (value: string) => {
       try {
         new URL(value);
-        return null;
+        return null; // Valid
       } catch {
         return "Please enter a valid URL";
       }

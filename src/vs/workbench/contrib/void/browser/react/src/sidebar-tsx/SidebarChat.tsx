@@ -34,6 +34,7 @@ import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
+import { removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
 
 
 
@@ -1857,7 +1858,7 @@ const MCPToolWrapper = ({ toolMessage }: WrapperProps<string>) => {
 	const mcpService = accessor.get('IMCPService')
 
 	const title = getTitle(toolMessage)
-	const desc1 = toolMessage.name
+	const desc1 = removeMCPToolNamePrefix(toolMessage.name)
 	const icon = null
 
 

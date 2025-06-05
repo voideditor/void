@@ -1233,6 +1233,7 @@ const openaiCompatible: VoidStaticProviderInfo = {
 	providerReasoningIOSettings: {
 		// reasoning: we have no idea what endpoint they used, so we can't consistently parse out reasoning
 		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { nameOfFieldInDelta: 'reasoning_content' },
 	},
 }
 

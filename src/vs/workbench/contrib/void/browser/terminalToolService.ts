@@ -22,7 +22,12 @@ export interface ITerminalToolService {
 	readonly _serviceBrand: undefined;
 
 	listPersistentTerminalIds(): string[];
-	runCommand(command: string, opts: { type: 'persistent', persistentTerminalId: string } | { type: 'ephemeral', cwd: string | null, terminalId: string }): Promise<{ interrupt: () => void; resPromise: Promise<{ result: string, resolveReason: TerminalResolveReason }> }>;
+	runCommand(command: string, opts:
+		| { type: 'persistent', persistentTerminalId: string }
+		| { type: 'temporary', cwd: string | null, terminalId: string }
+		// | { type: 'apply', terminalId: string }
+	): Promise<{ interrupt: () => void; resPromise: Promise<{ result: string, resolveReason: TerminalResolveReason }> }>;
+
 	focusPersistentTerminal(terminalId: string): Promise<void>
 	persistentTerminalExists(terminalId: string): boolean
 
@@ -277,6 +282,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			terminal.dispose()
 			if (!isPersistent)
 				delete this.temporaryTerminalInstanceOfId[params.terminalId]
+			else
+				delete this.persistentTerminalInstanceOfId[params.persistentTerminalId]
 		}
 
 		const waitForResult = async () => {
@@ -290,11 +297,12 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 
 			const cmdCap = await this._waitForCommandDetectionCapability(terminal)
-			if (!cmdCap) throw new Error(`There was an error using the terminal: CommandDetection capability did not mount yet. Please try again in a few seconds or report this to the Void team.`)
+			// if (!cmdCap) throw new Error(`There was an error using the terminal: CommandDetection capability did not mount yet. Please try again in a few seconds or report this to the Void team.`)
 
 			// Prefer the structured command-detection capability when available
 
 			const waitUntilDone = new Promise<void>(resolve => {
+				if (!cmdCap) return
 				const l = cmdCap.onCommandFinished(cmd => {
 					if (resolveReason) return // already resolved
 					resolveReason = { type: 'done', exitCode: cmd.exitCode ?? 0 };
@@ -339,19 +347,19 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			await Promise.any([waitUntilDone, waitUntilInterrupt])
 				.finally(() => disposables.forEach(d => d.dispose()))
 
+
+
+			// read result if timed out, since we didn't get it (could clean this code up but it's ok)
+			if (resolveReason?.type === 'timeout') {
+				const terminalId = isPersistent ? params.persistentTerminalId : params.terminalId
+				result = await this.readTerminal(terminalId)
+			}
+
 			if (!isPersistent) {
 				interrupt()
 			}
 
 			if (!resolveReason) throw new Error('Unexpected internal error: Promise.any should have resolved with a reason.')
-
-			// read result if timed out, since we didn't get it (could clean this code up but it's ok)
-			if (resolveReason.type === 'timeout') {
-				const terminalId = isPersistent ? params.persistentTerminalId : params.terminalId
-				result = await this.readTerminal(terminalId)
-			}
-
-
 
 			if (!isPersistent) result = `$ ${command}\n${result}`
 			result = removeAnsiEscapeCodes(result)

@@ -26,7 +26,6 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 
 /* eslint-disable */ // Void
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
-import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
 import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remote/browser/remoteExplorer.js';
 /* eslint-enable */
 
@@ -306,21 +305,21 @@ export class EditorGroupWatermark extends Disposable {
 					label2.set(keys2);
 				this.currentDisposables.add(label2);
 
-				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
-				const button3 = append(recentsBox, $('button'));
-				button3.textContent = `Void Settings`
-				button3.style.display = 'block'
-				button3.style.marginLeft = 'auto'
-				button3.style.marginRight = 'auto'
-				button3.classList.add('void-settings-watermark-button')
+				// const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
+				// const button3 = append(recentsBox, $('button'));
+				// button3.textContent = `Void Settings`
+				// button3.style.display = 'block'
+				// button3.style.marginLeft = 'auto'
+				// button3.style.marginRight = 'auto'
+				// button3.classList.add('void-settings-watermark-button')
 
-				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
-				if (keys3)
-					label3.set(keys3);
-				button3.onclick = () => {
-					this.commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
-				}
-				this.currentDisposables.add(label3);
+				// const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
+				// if (keys3)
+				// 	label3.set(keys3);
+				// button3.onclick = () => {
+				// 	this.commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
+				// }
+				// this.currentDisposables.add(label3);
 
 			}
 

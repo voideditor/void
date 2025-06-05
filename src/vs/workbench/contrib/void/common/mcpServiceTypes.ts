@@ -234,3 +234,9 @@ export interface MCPToolCallParams {
 	toolName: string;
 	params: Record<string, unknown>;
 }
+
+
+
+export const removeMCPToolNamePrefix = (name: string) => {
+	return name.split('_').slice(1).join('_')
+}

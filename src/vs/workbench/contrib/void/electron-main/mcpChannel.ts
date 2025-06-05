@@ -13,7 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, RawMCPToolCall, MCPToolErrorResponse, MCPServerEventResponse, MCPToolCallParams } from '../common/mcpServiceTypes.js';
+import { MCPConfigFileJSON, MCPConfigFileEntryJSON, MCPServer, RawMCPToolCall, MCPToolErrorResponse, MCPServerEventResponse, MCPToolCallParams, removeMCPToolNamePrefix } from '../common/mcpServiceTypes.js';
 import { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MCPUserStateOfName } from '../common/voidSettingsTypes.js';
@@ -245,10 +245,6 @@ export class MCPChannel implements IServerChannel {
 		}
 	}
 
-	private _removeUniquePrefix(name: string) {
-		return name.split('_').slice(1).join('_')
-	}
-
 	private async _closeAllMCPServers() {
 		for (const serverName in this.infoOfClientId) {
 			await this._closeClient(serverName)
@@ -314,7 +310,7 @@ export class MCPChannel implements IServerChannel {
 
 		// Call the tool with the provided parameters
 		const response = await client.callTool({
-			name: this._removeUniquePrefix(toolName),
+			name: removeMCPToolNamePrefix(toolName),
 			arguments: params
 		})
 		const { content } = response as CallToolResult
@@ -357,41 +353,26 @@ export class MCPChannel implements IServerChannel {
 			const response = await this._callTool(serverName, toolName, params)
 			return response
 		} catch (err) {
+
 			let errorMessage: string;
 
+			if (typeof err === 'object' && err !== null && err['code']) {
+				const code = err.code
+				let codeDescription = ''
+				if (code === -32700)
+					codeDescription = 'Parse Error';
+				if (code === -32600)
+					codeDescription = 'Invalid Request';
+				if (code === -32601)
+					codeDescription = 'Method Not Found';
+				if (code === -32602)
+					codeDescription = 'Invalid Parameters';
+				if (code === -32603)
+					codeDescription = 'Internal Error';
+				errorMessage = `${codeDescription}. Full response:\n${JSON.stringify(err, null, 2)}`
+			}
 			// Check if it's an MCP error with a code
-			if (err && typeof err === 'object' && 'code' in err) {
-				const errorCode = err.code;
-				const errorName = err.name || 'Unknown Error';
-				const errorMsg = err.message || '';
-
-				// Map common JSON-RPC error codes to user-friendly messages
-				let codeDescription = '';
-				switch (errorCode) {
-					case -32700:
-						codeDescription = 'Parse Error';
-						break;
-					case -32600:
-						codeDescription = 'Invalid Request';
-						break;
-					case -32601:
-						codeDescription = 'Method Not Found';
-						break;
-					case -32602:
-						codeDescription = 'Invalid Parameters';
-						break;
-					case -32603:
-						codeDescription = 'Internal Error';
-						break;
-					default:
-						codeDescription = `Error Code ${errorCode}`;
-				}
-
-				errorMessage = `${errorName} (${codeDescription})${errorMsg ? ': ' + errorMsg : ''}`;
-			} else if (err && typeof err === 'object' && 'message' in err) {
-				// Standard error with message
-				errorMessage = err.message;
-			} else if (typeof err === 'string') {
+			else if (typeof err === 'string') {
 				// String error
 				errorMessage = err;
 			} else {

@@ -400,7 +400,6 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	private _onUpdate_syncApplyToChat() {
 		// if sync is turned on, sync (call this whenever Chat model or !!sync changes)
 		this.setModelSelectionOfFeature('Apply', deepClone(this.state.modelSelectionOfFeature['Chat']))
-
 	}
 
 	private _onUpdate_syncSCMToChat() {
@@ -421,7 +420,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		// hooks
 		if (this.state.globalSettings.syncApplyToChat) this._onUpdate_syncApplyToChat()
-		this._onUpdate_syncSCMToChat()
+		if (this.state.globalSettings.syncSCMToChat) this._onUpdate_syncSCMToChat()
+
 	}
 
 
@@ -441,7 +441,8 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 		// hooks
 		if (featureName === 'Chat') {
-			if (this.state.globalSettings.syncApplyToChat) this._onUpdate_syncApplyToChat()
+			// When Chat model changes, update synced features
+			this._onUpdate_syncApplyToChat()
 			this._onUpdate_syncSCMToChat()
 		}
 	}

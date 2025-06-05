@@ -8,7 +8,7 @@ import { QueryBuilder } from '../../../services/search/common/queryBuilder.js'
 import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
-import { LintErrorItem, ToolCallParams, ToolResultType } from '../common/toolsServiceTypes.js'
+import { LintErrorItem, BuiltinToolCallParams, BuiltinToolResultType, BuiltinToolName } from '../common/toolsServiceTypes.js'
 import { IVoidModelService } from '../common/voidModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
 import { IVoidCommandBarService } from './voidCommandBarService.js'
@@ -16,20 +16,15 @@ import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
-import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME, ToolName } from '../common/prompt/prompts.js'
+import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
 
 
 // tool use for AI
-
-
-
-
-type ValidateParams = { [T in ToolName]: (p: RawToolParamsObj) => ToolCallParams[T] }
-type CallTool = { [T in ToolName]: (p: ToolCallParams[T]) => Promise<{ result: ToolResultType[T] | Promise<ToolResultType[T]>, interruptTool?: () => void }> }
-type ToolResultToString = { [T in ToolName]: (p: ToolCallParams[T], result: Awaited<ToolResultType[T]>) => string }
-
+type ValidateBuiltinParams = { [T in BuiltinToolName]: (p: RawToolParamsObj) => BuiltinToolCallParams[T] }
+type CallBuiltinTool = { [T in BuiltinToolName]: (p: BuiltinToolCallParams[T]) => Promise<{ result: BuiltinToolResultType[T] | Promise<BuiltinToolResultType[T]>, interruptTool?: () => void }> }
+type BuiltinToolResultToString = { [T in BuiltinToolName]: (p: BuiltinToolCallParams[T], result: Awaited<BuiltinToolResultType[T]>) => string }
 
 
 const isFalsy = (u: unknown) => {
@@ -47,8 +42,16 @@ const validateStr = (argName: string, value: unknown) => {
 const validateURI = (uriStr: unknown) => {
 	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
 	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
-	const uri = URI.file(uriStr)
-	return uri
+	
+	// Try to parse as full URI first (for remote schemes like ssh://, wsl://, etc.)
+	try {
+		const uri = URI.parse(uriStr)
+		return uri
+	} catch (e) {
+		// If parsing as URI fails, treat as file path (backwards compatibility)
+		const uri = URI.file(uriStr)
+		return uri
+	}
 }
 
 const validateOptionalURI = (uriStr: unknown) => {
@@ -110,9 +113,9 @@ const checkIfIsFolder = (uriStr: string) => {
 
 export interface IToolsService {
 	readonly _serviceBrand: undefined;
-	validateParams: ValidateParams;
-	callTool: CallTool;
-	stringOfResult: ToolResultToString;
+	validateParams: ValidateBuiltinParams;
+	callTool: CallBuiltinTool;
+	stringOfResult: BuiltinToolResultToString;
 }
 
 export const IToolsService = createDecorator<IToolsService>('ToolsService');
@@ -121,9 +124,9 @@ export class ToolsService implements IToolsService {
 
 	readonly _serviceBrand: undefined;
 
-	public validateParams: ValidateParams;
-	public callTool: CallTool;
-	public stringOfResult: ToolResultToString;
+	public validateParams: ValidateBuiltinParams;
+	public callTool: CallBuiltinTool;
+	public stringOfResult: BuiltinToolResultToString;
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -446,7 +449,6 @@ export class ToolsService implements IToolsService {
 				await this.terminalToolService.killPersistentTerminal(persistentTerminalId)
 				return { result: {} }
 			},
-
 		}
 
 
@@ -550,7 +552,6 @@ export class ToolsService implements IToolsService {
 			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal "${params.persistentTerminalId}".`;
 			},
-
 		}
 
 

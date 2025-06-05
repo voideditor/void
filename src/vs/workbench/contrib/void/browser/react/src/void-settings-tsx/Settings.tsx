@@ -400,10 +400,17 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._didFillInProviderSettings })))
 	}
 
-	// sort by hidden
+	// sort by hidden, then by provider, then by model name
 	modelDump.sort((a, b) => {
-		return Number(b.providerEnabled) - Number(a.providerEnabled)
-	})
+		// localeCompare sorts ASC: enabled providers are 0, and disabled are 1
+		// eg: `0 ollama llama3.3:70b` vs `1 anthropic claude-3-5-haiku-latest`
+		const aKey = `${Number(!a.providerEnabled)} ${a.providerName} ${a.modelName}`;
+		const bKey = `${Number(!b.providerEnabled)} ${b.providerName} ${b.modelName}`;
+		return aKey.localeCompare(bKey, undefined, {
+			numeric: true,
+			sensitivity: 'base'
+		});
+	});
 
 	// Add model handler
 	const handleAddModel = () => {

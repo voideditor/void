@@ -20,9 +20,6 @@ import { createDecorator, ServicesAccessor } from '../../../../platform/instanti
 import { Disposable } from '../../../../base/common/lifecycle.js'
 import { INotificationService } from '../../../../platform/notification/common/notification.js'
 
-// this is OK, it's just a type
-import type { ISCMRepository } from '../../scm/common/scm.js'
-
 interface ModelOptions {
 	modelSelection: ModelSelection | null
 	modelSelectionOptions?: ModelSelectionOptions
@@ -104,7 +101,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 				if (!this.isCurrentRequest(requestId)) { throw new CancellationError() }
 
-				this.setCommitMessage(repo, commitMessage)
+				repo.input.setValue(commitMessage, false)
 			} catch (error) {
 				this.onError(error)
 			} finally {
@@ -171,10 +168,6 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 
 	/** UI Functions */
-
-	private setCommitMessage(repo: ISCMRepository, commitMessage: string) {
-		repo.input.setValue(commitMessage, false)
-	}
 
 	private onError(error: any) {
 		if (!isCancellationError(error)) {

@@ -43,15 +43,28 @@ const validateURI = (uriStr: unknown) => {
 	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
 	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
 
-	const uri = URI.file(uriStr)
-	return uri
-	// 	// Try to parse as full URI first (for remote schemes like ssh://, wsl://, etc.)
-	// 	try {
-	// 	const uri = URI.parse(uriStr)
-	// 	return uri
-	// } catch (e) {
-	// 	// If parsing as URI fails, treat as file path (backwards compatibility)
-	// }
+	// Check if it's already a full URI with scheme (e.g., vscode-remote://, file://, etc.)
+	// Look for :// pattern which indicates a scheme is present
+	// Examples of supported URIs:
+	// - vscode-remote://wsl+Ubuntu/home/user/file.txt (WSL)
+	// - vscode-remote://ssh-remote+myserver/home/user/file.txt (SSH)
+	// - file:///home/user/file.txt (local file with scheme)
+	// - /home/user/file.txt (local file path, will be converted to file://)
+	// - C:\Users\file.txt (Windows local path, will be converted to file://)
+	if (uriStr.includes('://')) {
+		try {
+			const uri = URI.parse(uriStr)
+			return uri
+		} catch (e) {
+			// If parsing fails, it's a malformed URI
+			throw new Error(`Invalid URI format: ${uriStr}. Error: ${e}`)
+		}
+	} else {
+		// No scheme present, treat as file path
+		// This handles regular file paths like /home/user/file.txt or C:\Users\file.txt
+		const uri = URI.file(uriStr)
+		return uri
+	}
 }
 
 const validateOptionalURI = (uriStr: unknown) => {

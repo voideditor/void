@@ -225,6 +225,6 @@ class LoadingGenerateCommitMessageAction extends Action2 {
 	}
 }
 
-registerSingleton(IGenerateCommitMessageService, GenerateCommitMessageService, InstantiationType.Delayed)
 registerAction2(GenerateCommitMessageAction)
 registerAction2(LoadingGenerateCommitMessageAction)
+registerSingleton(IGenerateCommitMessageService, GenerateCommitMessageService, InstantiationType.Delayed)

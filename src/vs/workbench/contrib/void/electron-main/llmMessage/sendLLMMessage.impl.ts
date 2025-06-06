@@ -563,8 +563,11 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	stream.on('finalMessage', (response) => {
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
 		const tools = response.content.filter(c => c.type === 'tool_use')
+		// console.log('TOOLS!!!!!!', JSON.stringify(tools, null, 2))
+		// console.log('TOOLS!!!!!!', JSON.stringify(response, null, 2))
 		const toolCall = tools[0] && rawToolCallObjOfAnthropicParams(tools[0])
 		const toolCallObj = toolCall ? { toolCall } : {}
+
 		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
 	// on error

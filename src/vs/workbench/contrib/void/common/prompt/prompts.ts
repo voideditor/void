@@ -980,3 +980,77 @@ Store Result: After computing fib(n), the result is stored in memo for future re
 ## END EXAMPLES
 
 */
+
+
+// ======================================================== scm ========================================================================
+
+export const gitCommitMessage_systemMessage = `
+You are an expert software engineer AI assistant responsible for writing clear and concise Git commit messages that summarize the **purpose** and **intent** of the change. Try to keep your commit messages to one sentence. If necessary, you can use two sentences.
+
+You always respond with:
+- The commit message wrapped in <output> tags
+- A brief explanation of the reasoning behind the message, wrapped in <reasoning> tags
+
+Example format:
+<output>Fix login bug and improve error handling</output>
+<reasoning>This commit updates the login handler to fix a redirect issue and improves frontend error messages for failed logins.</reasoning>
+
+Do not include anything else outside of these tags.
+Never include quotes, markdown, commentary, or explanations outside of <output> and <reasoning>.`.trim()
+
+
+/**
+ * Create a user message for the LLM to generate a commit message. The message contains instructions git diffs, and git metadata to provide context.
+ *
+ * @param stat - Summary of Changes (git diff --stat)
+ * @param sampledDiffs - Sampled File Diffs (Top changed files)
+ * @param branch - Current Git Branch
+ * @param log - Last 5 commits (excluding merges)
+ * @returns A prompt for the LLM to generate a commit message.
+ *
+ * @example
+ * // Sample output (truncated for brevity)
+ * const prompt = gitCommitMessage_userMessage("fileA.ts | 10 ++--", "diff --git a/fileA.ts...", "main", "abc123|Fix bug|2025-01-01\n...")
+ *
+ * // Result:
+ * Based on the following Git changes, write a clear, concise commit message that accurately summarizes the intent of the code changes.
+ *
+ * Section 1 - Summary of Changes (git diff --stat):
+ * fileA.ts | 10 ++--
+ *
+ * Section 2 - Sampled File Diffs (Top changed files):
+ * diff --git a/fileA.ts b/fileA.ts
+ * ...
+ *
+ * Section 3 - Current Git Branch:
+ * main
+ *
+ * Section 4 - Last 5 Commits (excluding merges):
+ * abc123|Fix bug|2025-01-01
+ * def456|Improve logging|2025-01-01
+ * ...
+ */
+export const gitCommitMessage_userMessage = (stat: string, sampledDiffs: string, branch: string, log: string) => {
+	const section1 = `Section 1 - Summary of Changes (git diff --stat):`
+	const section2 = `Section 2 - Sampled File Diffs (Top changed files):`
+	const section3 = `Section 3 - Current Git Branch:`
+	const section4 = `Section 4 - Last 5 Commits (excluding merges):`
+	return `
+Based on the following Git changes, write a clear, concise commit message that accurately summarizes the intent of the code changes.
+
+${section1}
+
+${stat}
+
+${section2}
+
+${sampledDiffs}
+
+${section3}
+
+${branch}
+
+${section4}
+
+${log}`.trim()
+}

@@ -290,10 +290,12 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	}
 
 	// tools
-	const potentialTools = openAITools(chatMode, mcpTools)
-	const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
-		{ tools: potentialTools } as const
-		: {}
+        const allowedToolsArr = availableTools(chatMode, mcpTools)
+        const allowedToolNames = new Set(allowedToolsArr?.map(t => t.name) ?? [])
+        const potentialTools = openAITools(chatMode, mcpTools)
+        const nativeToolsObj = potentialTools && specialToolFormat === 'openai-style' ?
+                { tools: potentialTools } as const
+                : {}
 
 	// instance
 	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
@@ -329,9 +331,10 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''
 
-	let toolName = ''
-	let toolId = ''
-	let toolParamsStr = ''
+        let toolName = ''
+        let toolId = ''
+        let toolParamsStr = ''
+        let isAllowedTool = false
 
 	openai.chat.completions
 		.create(options)
@@ -344,14 +347,17 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				fullTextSoFar += newText
 
 				// tool call
-				for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
-					const index = tool.index
-					if (index !== 0) continue
+                                for (const tool of chunk.choices[0]?.delta?.tool_calls ?? []) {
+                                        const index = tool.index
+                                        if (index !== 0) continue
 
-					toolName += tool.function?.name ?? ''
-					toolParamsStr += tool.function?.arguments ?? '';
-					toolId += tool.id ?? ''
-				}
+                                        const name = tool.function?.name ?? ''
+                                        if (!allowedToolNames.has(name)) continue
+                                        toolName += name
+                                        toolParamsStr += tool.function?.arguments ?? ''
+                                        toolId += tool.id ?? ''
+                                        isAllowedTool = true
+                                }
 
 
 				// reasoning
@@ -363,22 +369,22 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				}
 
 				// call onText
-				onText({
-					fullText: fullTextSoFar,
-					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
-				})
+                                onText({
+                                        fullText: fullTextSoFar,
+                                        fullReasoning: fullReasoningSoFar,
+                                        ...(isAllowedTool ? { toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } } : {})
+                                })
 
 			}
 			// on final
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
-			else {
-				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
-				const toolCallObj = toolCall ? { toolCall } : {}
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
-			}
+                        else {
+                                const toolCall = isAllowedTool ? rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId) : null
+                                const toolCallObj = toolCall ? { toolCall } : {}
+                                onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
+                        }
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
@@ -472,10 +478,12 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	const maxTokens = getReservedOutputTokenSpace(providerName, modelName_, { isReasoningEnabled: !!reasoningInfo?.isReasoningEnabled, overridesOfModel })
 
 	// tools
-	const potentialTools = anthropicTools(chatMode, mcpTools)
-	const nativeToolsObj = potentialTools && specialToolFormat === 'anthropic-style' ?
-		{ tools: potentialTools, tool_choice: { type: 'auto' } } as const
-		: {}
+        const allowedToolsArr2 = availableTools(chatMode, mcpTools)
+        const allowedToolNames2 = new Set(allowedToolsArr2?.map(t => t.name) ?? [])
+        const potentialTools = anthropicTools(chatMode, mcpTools)
+        const nativeToolsObj = potentialTools && specialToolFormat === 'anthropic-style' ?
+                { tools: potentialTools, tool_choice: { type: 'auto' } } as const
+                : {}
 
 
 	// instance
@@ -509,13 +517,13 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	let fullToolParams = ''
 
 
-	const runOnText = () => {
-		onText({
-			fullText,
-			fullReasoning,
-			toolCall: { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
-		})
-	}
+        const runOnText = () => {
+                onText({
+                        fullText,
+                        fullReasoning,
+                        ...(allowedToolNames2.has(fullToolName) ? { toolCall: { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' } } : {})
+                })
+        }
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
 		// start block
@@ -565,10 +573,10 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 		const tools = response.content.filter(c => c.type === 'tool_use')
 		// console.log('TOOLS!!!!!!', JSON.stringify(tools, null, 2))
 		// console.log('TOOLS!!!!!!', JSON.stringify(response, null, 2))
-		const toolCall = tools[0] && rawToolCallObjOfAnthropicParams(tools[0])
-		const toolCallObj = toolCall ? { toolCall } : {}
+                const toolCall = tools[0] && allowedToolNames2.has(tools[0].name) ? rawToolCallObjOfAnthropicParams(tools[0]) : null
+                const toolCallObj = toolCall ? { toolCall } : {}
 
-		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
+                onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
 	// on error
 	stream.on('error', (error) => {
@@ -753,10 +761,12 @@ const sendGeminiChat = async ({
 			: undefined
 
 	// tools
-	const potentialTools = geminiTools(chatMode, mcpTools)
-	const toolConfig = potentialTools && specialToolFormat === 'gemini-style' ?
-		potentialTools
-		: undefined
+        const allowedToolsArr3 = availableTools(chatMode, mcpTools)
+        const allowedToolNames3 = new Set(allowedToolsArr3?.map(t => t.name) ?? [])
+        const potentialTools = geminiTools(chatMode, mcpTools)
+        const toolConfig = potentialTools && specialToolFormat === 'gemini-style' ?
+                potentialTools
+                : undefined
 
 	// instance
 	const genAI = new GoogleGenAI({ apiKey: thisConfig.apiKey });
@@ -773,9 +783,10 @@ const sendGeminiChat = async ({
 	let fullReasoningSoFar = ''
 	let fullTextSoFar = ''
 
-	let toolName = ''
-	let toolParamsStr = ''
-	let toolId = ''
+        let toolName = ''
+        let toolParamsStr = ''
+        let toolId = ''
+        let isAllowedTool3 = false
 
 
 	genAI.models.generateContentStream({
@@ -797,32 +808,35 @@ const sendGeminiChat = async ({
 				fullTextSoFar += newText
 
 				// tool call
-				const functionCalls = chunk.functionCalls
-				if (functionCalls && functionCalls.length > 0) {
-					const functionCall = functionCalls[0] // Get the first function call
-					toolName = functionCall.name ?? ''
-					toolParamsStr = JSON.stringify(functionCall.args ?? {})
-					toolId = functionCall.id ?? ''
-				}
+                                const functionCalls = chunk.functionCalls
+                                if (functionCalls && functionCalls.length > 0) {
+                                        const functionCall = functionCalls[0]
+                                        if (allowedToolNames3.has(functionCall.name ?? '')) {
+                                                toolName = functionCall.name ?? ''
+                                                toolParamsStr = JSON.stringify(functionCall.args ?? {})
+                                                toolId = functionCall.id ?? ''
+                                                isAllowedTool3 = true
+                                        }
+                                }
 
 				// (do not handle reasoning yet)
 
 				// call onText
-				onText({
-					fullText: fullTextSoFar,
-					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
-				})
+                                onText({
+                                        fullText: fullTextSoFar,
+                                        fullReasoning: fullReasoningSoFar,
+                                        ...(isAllowedTool3 ? { toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId } } : {})
+                                })
 			}
 
 			// on final
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			} else {
-				if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
-				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
-				const toolCallObj = toolCall ? { toolCall } : {}
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
+                                if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
+                                const toolCall = isAllowedTool3 ? rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId) : null
+                                const toolCallObj = toolCall ? { toolCall } : {}
+                                onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
 		})
 		.catch(error => {

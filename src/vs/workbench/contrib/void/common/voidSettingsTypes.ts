@@ -399,7 +399,7 @@ export const modelSelectionsEqual = (m1: ModelSelection, m2: ModelSelection) => 
 }
 
 // this is a state
-export const featureNames = ['Chat', 'Ctrl+K', 'Autocomplete', 'Apply'] as const
+export const featureNames = ['Chat', 'Ctrl+K', 'Autocomplete', 'Apply', 'SCM'] as const
 export type ModelSelectionOfFeature = Record<(typeof featureNames)[number], ModelSelection | null>
 export type FeatureName = keyof ModelSelectionOfFeature
 
@@ -414,6 +414,9 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 		return 'Chat'
 	else if (featureName === 'Apply')
 		return 'Apply'
+	// source control:
+	else if (featureName === 'SCM')
+		return 'Commit Message Generator'
 	else
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
@@ -477,6 +480,7 @@ export type GlobalSettings = {
 	aiInstructions: string;
 	enableAutocomplete: boolean;
 	syncApplyToChat: boolean;
+	syncSCMToChat: boolean;
 	enableFastApply: boolean;
 	chatMode: ChatMode;
 	autoApprove: { [approvalType in ToolApprovalType]?: boolean };
@@ -484,6 +488,7 @@ export type GlobalSettings = {
 	includeToolLintErrors: boolean;
 	isOnboardingComplete: boolean;
 	disableSystemMessage: boolean;
+	autoAcceptLLMChanges: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -491,6 +496,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	aiInstructions: '',
 	enableAutocomplete: false,
 	syncApplyToChat: true,
+	syncSCMToChat: true,
 	enableFastApply: true,
 	chatMode: 'agent',
 	autoApprove: {},
@@ -498,6 +504,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	includeToolLintErrors: true,
 	isOnboardingComplete: false,
 	disableSystemMessage: false,
+	autoAcceptLLMChanges: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

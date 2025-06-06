@@ -1179,6 +1179,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 			this._refreshStylesAndDiffsInURI(uri)
 			onFinishEdit()
+
+			// auto accept
+			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
+				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept', _addToHistory: false })
+			}
 		}
 
 
@@ -1218,6 +1223,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 			this._refreshStylesAndDiffsInURI(uri)
 			onFinishEdit()
+
+			// auto accept
+			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
+				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept', _addToHistory: false })
+			}
 		}
 
 		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: true })
@@ -1448,6 +1458,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			this._refreshStylesAndDiffsInURI(uri)
 			onFinishEdit()
+
+			// auto accept
+			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
+				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept', _addToHistory: false })
+			}
 		}
 
 		// throws
@@ -1732,6 +1747,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				this._deleteTrackingZone(trackingZone)
 
 			onFinishEdit()
+
+			// auto accept
+			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
+				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept', _addToHistory: false })
+			}
 		}
 
 		const onError = (e: { message: string; fullError: Error | null; }) => {

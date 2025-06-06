@@ -454,6 +454,7 @@ export type GlobalSettings = {
 	includeToolLintErrors: boolean;
 	isOnboardingComplete: boolean;
 	disableSystemMessage: boolean;
+	autoAcceptLLMChanges: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -469,6 +470,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	includeToolLintErrors: true,
 	isOnboardingComplete: false,
 	disableSystemMessage: false,
+	autoAcceptLLMChanges: false,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

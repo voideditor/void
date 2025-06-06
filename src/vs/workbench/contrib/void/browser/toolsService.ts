@@ -42,16 +42,16 @@ const validateStr = (argName: string, value: unknown) => {
 const validateURI = (uriStr: unknown) => {
 	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
 	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
-	
-	// Try to parse as full URI first (for remote schemes like ssh://, wsl://, etc.)
-	try {
-		const uri = URI.parse(uriStr)
-		return uri
-	} catch (e) {
-		// If parsing as URI fails, treat as file path (backwards compatibility)
-		const uri = URI.file(uriStr)
-		return uri
-	}
+
+	const uri = URI.file(uriStr)
+	return uri
+	// 	// Try to parse as full URI first (for remote schemes like ssh://, wsl://, etc.)
+	// 	try {
+	// 	const uri = URI.parse(uriStr)
+	// 	return uri
+	// } catch (e) {
+	// 	// If parsing as URI fails, treat as file path (backwards compatibility)
+	// }
 }
 
 const validateOptionalURI = (uriStr: unknown) => {
@@ -141,7 +141,6 @@ export class ToolsService implements IToolsService {
 		@IMarkerService private readonly markerService: IMarkerService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
-
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {

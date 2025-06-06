@@ -1,3 +1,8 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { ThemeIcon } from '../../../../base/common/themables.js'
 import { localize2 } from '../../../../nls.js'
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js'
@@ -19,9 +24,6 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js'
 import { Disposable } from '../../../../base/common/lifecycle.js'
 import { INotificationService } from '../../../../platform/notification/common/notification.js'
-
-// this is OK, it's just a type
-import type { ISCMRepository } from '../../scm/common/scm.js'
 
 interface ModelOptions {
 	modelSelection: ModelSelection | null
@@ -58,7 +60,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 	) {
 		super()
 		this.loadingContextKey = this.contextKeyService.createKey(loadingContextKey, false)
-		this.voidSCM = ProxyChannel.toService<IVoidSCMService>(mainProcessService.getChannel('void-channel-scm'));
+		this.voidSCM = ProxyChannel.toService<IVoidSCMService>(mainProcessService.getChannel('void-channel-scm'))
 	}
 
 	override dispose() {
@@ -104,7 +106,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 				if (!this.isCurrentRequest(requestId)) { throw new CancellationError() }
 
-				this.setCommitMessage(repo, commitMessage)
+				repo.input.setValue(commitMessage, false)
 			} catch (error) {
 				this.onError(error)
 			} finally {
@@ -171,10 +173,6 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 
 	/** UI Functions */
-
-	private setCommitMessage(repo: ISCMRepository, commitMessage: string) {
-		repo.input.setValue(commitMessage, false)
-	}
 
 	private onError(error: any) {
 		if (!isCancellationError(error)) {

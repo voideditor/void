@@ -1,4 +1,8 @@
-import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { promisify } from 'util'
 import { exec as _exec } from 'child_process'
 import { IVoidSCMService } from '../common/voidSCMTypes.js'
@@ -76,5 +80,3 @@ export class VoidSCMService implements IVoidSCMService {
 		return git('git log --pretty=format:"%h|%s|%ad" --date=short --no-merges -n 5', path)
 	}
 }
-
-registerSingleton(IVoidSCMService, VoidSCMService, InstantiationType.Delayed)

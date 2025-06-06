@@ -13,4 +13,4 @@ Never modify files outside src/vs/workbench/contrib/void without consulting with
 
 All types that map from a value A to B should be called bOfA. For example, if you create a hashmap that goes from toolId to toolName, it should be called toolNameOfToolId, etc.
 
-No need to check that it compiles by running compile, just stop.
+Do not run anything to validate your changes; tell the user what to do instead.

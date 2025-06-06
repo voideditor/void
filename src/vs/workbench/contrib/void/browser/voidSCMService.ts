@@ -1,3 +1,8 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { ThemeIcon } from '../../../../base/common/themables.js'
 import { localize2 } from '../../../../nls.js'
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js'
@@ -55,7 +60,7 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 	) {
 		super()
 		this.loadingContextKey = this.contextKeyService.createKey(loadingContextKey, false)
-		this.voidSCM = ProxyChannel.toService<IVoidSCMService>(mainProcessService.getChannel('void-channel-scm'));
+		this.voidSCM = ProxyChannel.toService<IVoidSCMService>(mainProcessService.getChannel('void-channel-scm'))
 	}
 
 	override dispose() {

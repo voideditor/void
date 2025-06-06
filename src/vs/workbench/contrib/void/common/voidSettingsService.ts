@@ -281,6 +281,9 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			if (typeof readS.globalSettings.autoApprove === 'boolean') readS.globalSettings.autoApprove = {}
 
 			if (readS.globalSettings.disableSystemMessage === undefined) readS.globalSettings.disableSystemMessage = false;
+			
+			// add autoAcceptLLMChanges feature
+			if (readS.globalSettings.autoAcceptLLMChanges === undefined) readS.globalSettings.autoAcceptLLMChanges = false;
 		}
 		catch (e) {
 			readS = defaultState()

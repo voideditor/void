@@ -1318,6 +1318,18 @@ export const Settings = () => {
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 													</div>
 												</ErrorBoundary>
+
+												{/* Auto Accept LLM Changes Switch */}
+												<ErrorBoundary>
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.autoAcceptLLMChanges}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('autoAcceptLLMChanges', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>Auto-accept LLM changes</span>
+													</div>
+												</ErrorBoundary>
 											</div>
 										</div>
 

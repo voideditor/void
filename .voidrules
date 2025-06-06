@@ -12,3 +12,5 @@ Do not add or remove semicolons to any of my files. Just go with convention and 
 Never modify files outside src/vs/workbench/contrib/void without consulting with the user first.
 
 All types that map from a value A to B should be called bOfA. For example, if you create a hashmap that goes from toolId to toolName, it should be called toolNameOfToolId, etc.
+
+No need to check that it compiles by running compile, just stop.

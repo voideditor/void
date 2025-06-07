@@ -42,14 +42,10 @@ beforeEach(async function () {
 	});
 
 	pageErrors.length = 0;
-	page.on('pageerror', (e) => {
-		console.log(e);
-		pageErrors.push(e);
-	});
-	page.on('pageerror', (e) => {
-		console.log(e);
-		pageErrors.push(e);
-	});
+       page.on('pageerror', (e) => {
+               console.log(e);
+               pageErrors.push(e);
+       });
 });
 
 afterEach(async () => {

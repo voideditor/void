@@ -100,7 +100,7 @@ const tabNames = ['Free', 'Paid', 'Local'] as const;
 type TabName = typeof tabNames[number] | 'Cloud/Other';
 
 // Data for cloud providers tab
-const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'openAICompatible'];
+const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'awsBedrock', 'openAICompatible'];
 
 // Data structures for provider tabs
 const providerNamesOfTab: Record<TabName, ProviderName[]> = {
@@ -123,6 +123,7 @@ const featureNameMap: { display: string, featureName: FeatureName }[] = [
 	{ display: 'Quick Edit', featureName: 'Ctrl+K' },
 	{ display: 'Autocomplete', featureName: 'Autocomplete' },
 	{ display: 'Fast Apply', featureName: 'Apply' },
+	{ display: 'Source Control', featureName: 'SCM' },
 ];
 
 const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setPageIndex: (index: number) => void }) => {

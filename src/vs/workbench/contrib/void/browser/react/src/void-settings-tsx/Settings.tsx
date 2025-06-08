@@ -695,6 +695,7 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 // 	</div >
 // }
 
+
 export const SettingsForProvider = ({ providerName, showProviderTitle, showProviderSuggestions }: { providerName: ProviderName, showProviderTitle: boolean, showProviderSuggestions: boolean }) => {
 	const voidSettingsState = useSettingsState()
 
@@ -1325,6 +1326,18 @@ export const Settings = () => {
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 													</div>
 												</ErrorBoundary>
+
+												{/* Auto Accept LLM Changes Switch */}
+												<ErrorBoundary>
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.autoAcceptLLMChanges}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('autoAcceptLLMChanges', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>Auto-accept LLM changes</span>
+													</div>
+												</ErrorBoundary>
 											</div>
 										</div>
 
@@ -1348,6 +1361,33 @@ export const Settings = () => {
 												</ErrorBoundary>
 											</div>
 										</div>
+
+										{/* SCM */}
+										<ErrorBoundary>
+
+											<div className='w-full'>
+												<h4 className={`text-base`}>{displayInfoOfFeatureName('SCM')}</h4>
+												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the commit message generator.</div>
+
+												<div className='my-2'>
+													{/* Sync to Chat Switch */}
+													<div className='flex items-center gap-x-2 my-2'>
+														<VoidSwitch
+															size='xs'
+															value={settingsState.globalSettings.syncSCMToChat}
+															onChange={(newVal) => voidSettingsService.setGlobalSetting('syncSCMToChat', newVal)}
+														/>
+														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncSCMToChat ? 'Same as Chat model' : 'Different model'}</span>
+													</div>
+
+													{/* Model Dropdown */}
+													<div className={`my-2 ${settingsState.globalSettings.syncSCMToChat ? 'hidden' : ''}`}>
+														<ModelDropdown featureName={'SCM'} className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1' />
+													</div>
+												</div>
+
+											</div>
+										</ErrorBoundary>
 									</div>
 								</ErrorBoundary>
 							</div>

@@ -30,7 +30,7 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { truncate } from '../../../../base/common/strings.js';
-import { THREAD_STORAGE_KEY } from '../common/storageKeys.js';
+import { THREAD_STORAGE_KEY_III, THREAD_STORAGE_KEY_II } from '../common/storageKeys.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 import { timeout } from '../../../../base/common/async.js';
 import { deepClone } from '../../../../base/common/objects.js';
@@ -331,6 +331,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
 
+		this._migrateThreads()
 		const readThreads = this._readAllThreads() || {}
 
 		const allThreads = readThreads
@@ -393,7 +394,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 	// !!! this is important for properly restoring URIs from storage
 	// should probably re-use code from void/src/vs/base/common/marshalling.ts instead. but this is simple enough
-	private _convertThreadDataFromStorage(threadsStr: string): ChatThreads {
+	private _convertThreadDataFromStorage<T>(threadsStr: string): T {
 		return JSON.parse(threadsStr, (key, value) => {
 			if (value && typeof value === 'object' && value.$mid === 1) { // $mid is the MarshalledId. $mid === 1 means it is a URI
 				return URI.from(value); // TODO URI.revive instead of this?
@@ -402,24 +403,82 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		});
 	}
 
-	private _readAllThreads(): ChatThreads | null {
-		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY, StorageScope.APPLICATION);
+	private _readAllThreadsV2(): ChatThreads | null {
+		const threadsStr = this._storageService.get(THREAD_STORAGE_KEY_II, StorageScope.APPLICATION);
 		if (!threadsStr) {
 			return null
 		}
-		const threads = this._convertThreadDataFromStorage(threadsStr);
+		const threads = this._convertThreadDataFromStorage<ChatThreads>(threadsStr);
 
 		return threads
 	}
 
-	private _storeAllThreads(threads: ChatThreads) {
-		const serializedThreads = JSON.stringify(threads);
+	private _readThreadIds(): string[] {
+		const threadIdsStr = this._storageService.get(this._threadIdsStorageKey(), StorageScope.APPLICATION)
+		return threadIdsStr ? JSON.parse(threadIdsStr) : []
+	}
+
+	private _readAllThreads(): ChatThreads | null {
+		const threadIds = this._readThreadIds()
+		const threads = threadIds
+			.map(id => this._storageService.get(this._storageKey(id), StorageScope.APPLICATION))
+			.filter(t => t)
+			.map(t => this._convertThreadDataFromStorage<ThreadType>(t!))
+		if (!threads.length) {
+			return null
+		}
+		return threads.reduce((acc, t) => {
+			acc[t.id] = t
+			return acc
+		}, {} as ChatThreads)
+	}
+
+	private _migrateThreads() {
+		const threads = this._readAllThreadsV2()
+		if (!threads) return
+		const threadsToStore = Object.values(threads).filter(t => t)
+		const threadIds = threadsToStore.map(t => t!.id)
+		this._storeThreadIds(threadIds)
+		threadsToStore.forEach(t => this._storeThread(t!))
+		this._storageService.remove(THREAD_STORAGE_KEY_II, StorageScope.APPLICATION)
+	}
+
+	private _storeThreadIds(threadIds: string[]) {
 		this._storageService.store(
-			THREAD_STORAGE_KEY,
-			serializedThreads,
+			this._threadIdsStorageKey(),
+			JSON.stringify(threadIds),
+			StorageScope.APPLICATION,
+			StorageTarget.USER
+		)
+	}
+
+	/**
+	 * Store a thread using the storage service. Provide the new thread IDs if they have changed (i.e. new thread, duplicated thread, removed thread)
+	 */
+	private _storeThread(thread: ThreadType, newThreadIds?: string[]) {
+		if (newThreadIds) {
+			this._storeThreadIds(newThreadIds)
+		}
+		const serializedThread = JSON.stringify(thread);
+		this._storageService.store(
+			this._storageKey(thread.id),
+			serializedThread,
 			StorageScope.APPLICATION,
 			StorageTarget.USER
 		);
+	}
+
+	private _removeThreadFromStorage(threadId: string, threadIds: string[]) {
+		this._storeThreadIds(threadIds)
+		this._storageService.remove(this._storageKey(threadId), StorageScope.APPLICATION)
+	}
+
+	private _threadIdsStorageKey() {
+		return `${THREAD_STORAGE_KEY_III}.threadIds`
+	}
+
+	private _storageKey(threadId: string) {
+		return `${THREAD_STORAGE_KEY_III}.${threadId}`
 	}
 
 
@@ -939,7 +998,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				],
 			}
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[oldThread.id]!)
 		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 
@@ -1286,7 +1345,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 					messages: newMessages,
 				}
 			};
-			this._storeAllThreads(newThreads);
+			this._storeThread(newThreads[threadId]!)
 			this._setState({ allThreads: newThreads });
 		}
 
@@ -1643,7 +1702,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[newThread.id]!, Object.keys(newThreads))
 		this._setState({ allThreads: newThreads, currentThreadId: newThread.id })
 	}
 
@@ -1656,7 +1715,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 		delete newThreads[threadId];
 
 		// store the updated threads
-		this._storeAllThreads(newThreads);
+		this._removeThreadFromStorage(threadId, Object.keys(newThreads))
 		this._setState({ ...this.state, allThreads: newThreads })
 	}
 
@@ -1672,7 +1731,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 			...currentThreads,
 			[newThread.id]: newThread,
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[newThread.id]!, Object.keys(newThreads))
 		this._setState({ allThreads: newThreads })
 	}
 
@@ -1693,7 +1752,7 @@ We only need to do it for files that were edited since `from`, ie files between 
 				],
 			}
 		}
-		this._storeAllThreads(newThreads)
+		this._storeThread(newThreads[oldThread.id]!)
 		this._setState({ allThreads: newThreads }) // the current thread just changed (it had a message added to it)
 	}
 

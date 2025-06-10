@@ -187,7 +187,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	// const chatMode = settingsState.globalSettings.chatMode
 	// const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
 	// const copyChatButton = <CopyButton
-	// 	codeStr={async () => {
+	// 	text={async () => {
 	// 		const { messages } = await convertService.prepareLLMChatMessages({
 	// 			chatMessages: currentThread.messages,
 	// 			chatMode,
@@ -201,7 +201,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 
 	// const currentThread = chatThreadsService.getCurrentThread()
 	// const copyChatButton2 = <CopyButton
-	// 	codeStr={async () => {
+	// 	text={async () => {
 	// 		return JSON.stringify(currentThread.messages, null, 2)
 	// 	}}
 	// 	toolTipName={`Copy As Void Chat`}

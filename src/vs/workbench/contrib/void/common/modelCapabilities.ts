@@ -985,7 +985,24 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-
+	'magistral-medium-latest': {
+		contextWindow: 256_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.30, output: 0.90 }, // TODO: check this
+		supportsFIM: true,
+		downloadable: { sizeGb: 13 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'magistral-small-latest': {
+		contextWindow: 40_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.30, output: 0.90 }, // TODO: check this
+		supportsFIM: true,
+		downloadable: { sizeGb: 13 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
 	'devstral-small-latest': { //https://openrouter.ai/mistralai/devstral-small:free
 		contextWindow: 131_000,
 		reservedOutputTokenSpace: 8_192,
@@ -995,7 +1012,6 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-
 	'ministral-8b-latest': { // ollama 'mistral'
 		contextWindow: 131_000,
 		reservedOutputTokenSpace: 4_096,

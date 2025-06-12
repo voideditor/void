@@ -992,7 +992,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsFIM: true,
 		downloadable: { sizeGb: 13 },
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'magistral-small-latest': {
 		contextWindow: 40_000,
@@ -1001,7 +1001,7 @@ const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#prici
 		supportsFIM: true,
 		downloadable: { sizeGb: 13 },
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'devstral-small-latest': { //https://openrouter.ai/mistralai/devstral-small:free
 		contextWindow: 131_000,

@@ -33,6 +33,11 @@ export const defaultProviderSettings = {
 		apiKey: '',
 		headersJSON: '{}', // default to {}
 	},
+	openAICompatible2: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
 	gemini: {
 		apiKey: '',
 	},
@@ -149,6 +154,7 @@ export const defaultModelsOfProvider = {
 		'ministral-8b-latest',
 	],
 	openAICompatible: [], // fallback
+	openAICompatible2: [], // fallback
 	googleVertex: [],
 	microsoftAzure: [],
 	awsBedrock: [],
@@ -1450,6 +1456,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	vLLM: vLLMSettings,
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
+	openAICompatible2: openaiCompatible,
 	mistral: mistralSettings,
 
 	liteLLM: liteLLMSettings,

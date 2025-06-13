@@ -465,7 +465,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 			>
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
-					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
+					<span className='w-full max-w-32 whitespace-normal shrink'>{isNewProviderName ? providerTitle : ''}</span>
 					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 

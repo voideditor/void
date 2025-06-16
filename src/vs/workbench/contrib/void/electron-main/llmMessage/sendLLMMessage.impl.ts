@@ -366,7 +366,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
+					toolCall: !toolName ? undefined : { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 
 			}
@@ -513,7 +513,7 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 		onText({
 			fullText,
 			fullReasoning,
-			toolCall: { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
+			toolCall: !fullToolName ? undefined : { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
 		})
 	}
 	// there are no events for tool_use, it comes in at the end
@@ -563,8 +563,11 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	stream.on('finalMessage', (response) => {
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
 		const tools = response.content.filter(c => c.type === 'tool_use')
+		// console.log('TOOLS!!!!!!', JSON.stringify(tools, null, 2))
+		// console.log('TOOLS!!!!!!', JSON.stringify(response, null, 2))
 		const toolCall = tools[0] && rawToolCallObjOfAnthropicParams(tools[0])
 		const toolCallObj = toolCall ? { toolCall } : {}
+
 		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
 	// on error
@@ -808,7 +811,7 @@ const sendGeminiChat = async ({
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
+					toolCall: !toolName ? undefined : { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 			}
 

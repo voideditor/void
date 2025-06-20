@@ -75,22 +75,22 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 	}
 
 	// just to see if there are ever multiple machineIDs per userID (instead of this, we should just track by the user's email)
-	private get userId() {
-		return this._memoStorage('void.app.userMachineId', StorageTarget.USER)
-	}
-
-	constructor(
-		@IProductService private readonly _productService: IProductService,
-		@IEnvironmentMainService private readonly _envMainService: IEnvironmentMainService,
-		@IApplicationStorageMainService private readonly _appStorage: IApplicationStorageMainService,
-	) {
-		super()
-		this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
-			host: 'https://us.i.posthog.com',
-		})
-
-		this.initialize() // async
-	}
+	//private get userId() {
+	//	return this._memoStorage('void.app.userMachineId', StorageTarget.USER)
+	//}
+	//
+	//constructor(
+	//	@IProductService private readonly _productService: IProductService,
+	//	@IEnvironmentMainService private readonly _envMainService: IEnvironmentMainService,
+	//	@IApplicationStorageMainService private readonly _appStorage: IApplicationStorageMainService,
+	//) {
+	//	super()
+	//	this.client = new PostHog('phc_UanIdujHiLp55BkUTjB1AuBXcasVkdqRwgnwRlWESH2', {
+	//		host: 'https://us.i.posthog.com',
+	//	})
+	//
+	//	this.initialize() // async
+	//}
 
 	async initialize() {
 		// very important to await whenReady!

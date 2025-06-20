@@ -799,33 +799,38 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					| { type: 'llmError', error?: { message: string; fullError: Error | null; } }
 					| { type: 'llmAborted' }
 
-				let resMessageIsDonePromise: (res: ResTypes) => void // resolves when user approves this tool use (or if tool doesn't require approval)
+				let resMessageIsDonePromise: (res: ResTypes) => void = () => { } // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<ResTypes>((res, rej) => { resMessageIsDonePromise = res })
 
-				const llmCancelToken = this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					chatMode,
-					messages: messages,
-					modelSelection,
-					modelSelectionOptions,
-					overridesOfModel,
-					logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
-					separateSystemMessage: separateSystemMessage,
-					onText: ({ fullText, fullReasoning, toolCall }) => {
-						this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall ?? null }, interrupt: Promise.resolve(() => { if (llmCancelToken) this._llmMessageService.abort(llmCancelToken) }) })
-					},
-					onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
-						resMessageIsDonePromise({ type: 'llmDone', toolCall, info: { fullText, fullReasoning, anthropicReasoning } }) // resolve with tool calls
-					},
-					onError: async (error) => {
-						resMessageIsDonePromise({ type: 'llmError', error: error })
-					},
-					onAbort: () => {
-						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						resMessageIsDonePromise({ type: 'llmAborted' })
-						this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
-					},
-				})
+				let llmCancelToken: string | null = null;
+				try {
+					llmCancelToken = await this._llmMessageService.sendLLMMessage({
+						messagesType: 'chatMessages',
+						chatMode,
+						messages: messages,
+						modelSelection,
+						modelSelectionOptions,
+						overridesOfModel,
+						logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
+						separateSystemMessage: separateSystemMessage,
+						onText: ({ fullText, fullReasoning, toolCall }) => {
+							this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall ?? null }, interrupt: Promise.resolve(() => { if (llmCancelToken) this._llmMessageService.abort(llmCancelToken) }) })
+						},
+						onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
+							resMessageIsDonePromise({ type: 'llmDone', toolCall, info: { fullText, fullReasoning, anthropicReasoning } }) // resolve with tool calls
+						},
+						onError: async (error) => {
+							resMessageIsDonePromise({ type: 'llmError', error: error })
+						},
+						onAbort: () => {
+							// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+							resMessageIsDonePromise({ type: 'llmAborted' })
+							this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
+						},
+					})
+				} catch (error) {
+					resMessageIsDonePromise({ type: 'llmError', error: { message: `Rate limit check failed: ${error}`, fullError: error } })
+				}
 
 				// mark as streaming
 				if (!llmCancelToken) {

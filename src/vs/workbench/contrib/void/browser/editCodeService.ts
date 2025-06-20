@@ -1503,54 +1503,59 @@ class EditCodeService extends Disposable implements IEditCodeService {
 				let aborted = false
 				let weAreAborting = false
 
+				try {
+					streamRequestIdRef.current = await this._llmMessageService.sendLLMMessage({
+						messagesType: 'chatMessages',
+						logging: { loggingName: `Edit (Writeover) - ${from}` },
+						messages,
+						modelSelection,
+						modelSelectionOptions,
+						overridesOfModel,
+						separateSystemMessage,
+						chatMode: null, // not chat
+						onText: (params) => {
+							const { fullText: fullText_ } = params
+							const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
 
-				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					logging: { loggingName: `Edit (Writeover) - ${from}` },
-					messages,
-					modelSelection,
-					modelSelectionOptions,
-					overridesOfModel,
-					separateSystemMessage,
-					chatMode: null, // not chat
-					onText: (params) => {
-						const { fullText: fullText_ } = params
-						const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
+							const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
+							fullTextSoFar += newText // full text, including ```, etc
 
-						const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-						fullTextSoFar += newText // full text, including ```, etc
+							const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
+							const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamLocationMutable)
+							diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
 
-						const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
-						const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamLocationMutable)
-						diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
+							this._refreshStylesAndDiffsInURI(uri)
 
-						this._refreshStylesAndDiffsInURI(uri)
+							prevIgnoredSuffix = croppedSuffix
+						},
+						onFinalMessage: (params) => {
+							const { fullText } = params
+							// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
+							// at the end, re-write whole thing to make sure no sync errors
+							const [croppedText, _1, _2] = extractText(fullText, 0)
+							this._writeURIText(uri, croppedText,
+								{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
+								{ shouldRealignDiffAreas: true }
+							)
 
-						prevIgnoredSuffix = croppedSuffix
-					},
-					onFinalMessage: (params) => {
-						const { fullText } = params
-						// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-						// at the end, re-write whole thing to make sure no sync errors
-						const [croppedText, _1, _2] = extractText(fullText, 0)
-						this._writeURIText(uri, croppedText,
-							{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-							{ shouldRealignDiffAreas: true }
-						)
+							onDone()
+							resMessageDonePromise()
+						},
+						onError: (e) => {
+							onError(e)
+						},
+						onAbort: () => {
+							if (weAreAborting) return
+							// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+							aborted = true
+							resMessageDonePromise()
+						},
+					})
+				} catch (error) {
+					onError({ message: `Rate limit check failed: ${error}`, fullError: error })
+					return
+				}
 
-						onDone()
-						resMessageDonePromise()
-					},
-					onError: (e) => {
-						onError(e)
-					},
-					onAbort: () => {
-						if (weAreAborting) return
-						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						aborted = true
-						resMessageDonePromise()
-					},
-				})
 				// should never happen, just for safety
 				if (streamRequestIdRef.current === null) { return }
 
@@ -1950,7 +1955,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					this._refreshStylesAndDiffsInURI(uri)
 				}
 
-				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
+				streamRequestIdRef.current = await this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
 					messages,

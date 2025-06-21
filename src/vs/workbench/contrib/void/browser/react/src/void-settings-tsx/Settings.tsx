@@ -1219,7 +1219,7 @@ export const Settings = () => {
 											{/* FIM */}
 											<div>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>
+												<div className='text-sm text-void-fg-3 mt-1'>
 													<span>
 														Experimental.{' '}
 													</span>
@@ -1263,7 +1263,7 @@ export const Settings = () => {
 
 											<div className='w-full'>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
+												<div className='text-sm text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
 
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
@@ -1299,7 +1299,7 @@ export const Settings = () => {
 										{/* Tools Section */}
 										<div>
 											<h4 className={`text-base`}>Tools</h4>
-											<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+											<div className='text-sm text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
 											<div className='my-2'>
 												{/* Auto Accept Switch */}
@@ -1343,7 +1343,7 @@ export const Settings = () => {
 
 										<div className='w-full'>
 											<h4 className={`text-base`}>Editor</h4>
-											<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+											<div className='text-sm text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
 
 											<div className='my-2'>
 												{/* Auto Accept Switch */}
@@ -1365,7 +1365,7 @@ export const Settings = () => {
 
 											<div className='w-full'>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('SCM')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the commit message generator.</div>
+												<div className='text-sm text-void-fg-3 mt-1'>Settings that control the behavior of the commit message generator.</div>
 
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
@@ -1392,32 +1392,6 @@ export const Settings = () => {
 
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
-								{/* Metrics section */}
-								<div className='w-full mt-8'>
-									<h4 className={`text-base`}>Metrics</h4>
-									<div className='text-sm italic text-void-fg-3 mt-1'>(Very) basic usage tracking helps us understand whether people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.</div>
-
-									<div className='my-2'>
-										{/* Disable All Metrics Switch */}
-										<ErrorBoundary>
-											<div className='flex items-center gap-x-2 my-2'>
-												<VoidSwitch
-													size='xs'
-													value={isOptedOut}
-													onChange={(newVal) => {
-														storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)
-														metricsService.capture(`Set metrics to ${newVal}`, {}) // this only fires if it's enabled, so it's fine to have here
-													}}
-												/>
-												<span className='text-void-fg-3 text-xs pointer-events-none'>{isOptedOut ? 'Disabled' : 'Enabled'}</span>
-											</div>
-											<div className='text-xs text-void-fg-3 mt-1 max-w-[500px]'>
-												Void only tracks basic anonymous usage, like whether you've opened the app, or the number of messages you sent. Opting out is optional (requires a restart).
-											</div>
-										</ErrorBoundary>
-									</div>
-								</div>
-
 								{/* One-Click Switch section */}
 								<div>
 									<ErrorBoundary>
@@ -1450,8 +1424,9 @@ export const Settings = () => {
 												Reset Settings
 											</ConfirmButton>
 										</div>
+
 										{/* Chats Subcategory */}
-										<div className='flex flex-col gap-2 w-full max-w-48'>
+										<div className='flex flex-col gap-2 max-w-48 w-full'>
 											<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
 											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
 												Import Chats
@@ -1492,6 +1467,29 @@ export const Settings = () => {
 								</div>
 
 
+								{/* Metrics section */}
+								<div className='w-full mt-8'>
+									<h4 className={`text-base`}>Metrics</h4>
+									<div className='text-sm text-void-fg-3 mt-1'>Very basic usage tracking helps us understand whether people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.</div>
+
+									<div className='my-2'>
+										{/* Disable All Metrics Switch */}
+										<ErrorBoundary>
+											<div className='flex items-center gap-x-2 my-2'>
+												<VoidSwitch
+													size='xs'
+													value={isOptedOut}
+													onChange={(newVal) => {
+														storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)
+														metricsService.capture(`Set metrics opt-out to ${newVal}`, {}) // this only fires if it's enabled, so it's fine to have here
+													}}
+												/>
+												<span className='text-void-fg-3 text-xs pointer-events-none'>{'Opt-out (requires restart)'}</span>
+											</div>
+										</ErrorBoundary>
+									</div>
+								</div>
+
 								{/* AI Instructions section */}
 								<div className='max-w-[600px]'>
 									<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
@@ -1525,6 +1523,7 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 										</div>
 									</div>
 								</div>
+
 							</div>
 
 

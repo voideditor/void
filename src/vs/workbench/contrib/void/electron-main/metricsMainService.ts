@@ -123,8 +123,9 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 			properties: this._initProperties,
 		}
 
-		const didOptOut = this._appStorage.get(OPT_OUT_KEY, StorageScope.APPLICATION) !== undefined
+		const didOptOut = this._appStorage.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false)
 
+		console.log('User is opted out of basic Void metrics?', didOptOut)
 		if (didOptOut) {
 			this.client.optOut()
 		}

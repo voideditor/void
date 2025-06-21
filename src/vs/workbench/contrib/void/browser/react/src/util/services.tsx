@@ -418,9 +418,7 @@ export const useIsOptedOut = () => {
 	useEffect(() => {
 		const disposables = new DisposableStore();
 		const d = storageService.onDidChangeValue(StorageScope.APPLICATION, OPT_OUT_KEY, disposables)(e => {
-			console.log('VALUE!!!!!!!!', e.target, getVal())
 			ss(getVal())
-
 		})
 		disposables.add(d)
 		return () => disposables.clear()

@@ -1038,7 +1038,7 @@ export const Settings = () => {
 	const navItems: { tab: Tab; label: string }[] = [
 		{ tab: 'models', label: 'Models' },
 		{ tab: 'localProviders', label: 'Local Providers' },
-		{ tab: 'providers', label: 'Other Providers' },
+		{ tab: 'providers', label: 'Main Providers' },
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'mcp', label: 'MCP' },
@@ -1199,10 +1199,10 @@ export const Settings = () => {
 								</ErrorBoundary>
 							</div>
 
-							{/* Other Providers section */}
+							{/* Main Providers section */}
 							<div className={shouldShowTab('providers') ? `` : 'hidden'}>
 								<ErrorBoundary>
-									<h2 className={`text-3xl mb-2`}>Other Providers</h2>
+									<h2 className={`text-3xl mb-2`}>Main Providers</h2>
 									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
 									<VoidProviderSettings providerNames={nonlocalProviderNames} />

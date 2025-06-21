@@ -141,7 +141,7 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 
 	capture: IMetricsService['capture'] = (event, params) => {
 		const capture = { distinctId: this.distinctId, event, properties: params } as const
-		// console.log('full capture:', capture)
+		// console.log('full capture:', this.distinctId)
 		this.client.capture(capture)
 	}
 

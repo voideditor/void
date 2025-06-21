@@ -29,6 +29,18 @@ This repo contains the full sourcecode for Void. If you're new, welcome!
 2. Feel free to attend a casual weekly meeting in our Discord channel!
 
 
+
+### Install the .deb Package (amd64)
+
+We’ve added a `.deb` installer for amd64 architecture.  
+You can download it from: 👉 [Download .deb installer](https://drive.google.com/drive/folders/17VgKzzv001_Y0hcrELfpBvIJp_8-KBqz?usp=drive_link)
+
+#### Install it with:
+
+```bash
+sudo dpkg -i void-editor.deb
+
+
 ## Reference
 
 Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the codebase, see [VOID_CODEBASE_GUIDE](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).

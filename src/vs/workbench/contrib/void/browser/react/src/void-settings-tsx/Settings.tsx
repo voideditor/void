@@ -1468,9 +1468,9 @@ export const Settings = () => {
 
 
 								{/* Metrics section */}
-								<div className='w-full mt-8'>
-									<h4 className={`text-base`}>Metrics</h4>
-									<div className='text-sm text-void-fg-3 mt-1'>Very basic usage tracking helps us understand whether people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.</div>
+								<div className='max-w-[600px]'>
+									<h2 className={`text-3xl mb-2`}>Metrics</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>Very basic usage tracking helps us understand whether people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.</h4>
 
 									<div className='my-2'>
 										{/* Disable All Metrics Switch */}

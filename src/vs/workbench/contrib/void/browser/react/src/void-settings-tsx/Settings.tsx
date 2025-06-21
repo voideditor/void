@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
-import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
+import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -21,6 +21,8 @@ import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../.
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
 import { MCPServer } from '../../../../common/mcpServiceTypes.js';
 import { useMCPServiceState } from '../util/services.js';
+import { OPT_OUT_KEY } from '../../../../common/storageKeys.js';
+import { StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
 
 type Tab =
 	| 'models'
@@ -215,10 +217,10 @@ const SimpleModelSettingsDialog = ({
 	if (!isOpen || !modelInfo) return null;
 
 	const { modelName, providerName, type } = modelInfo;
-	const accessor = useAccessor();
-	const settingsState = useSettingsState();
+	const accessor = useAccessor()
+	const settingsState = useSettingsState()
 	const mouseDownInsideModal = useRef(false); // Ref to track mousedown origin
-	const settingsStateService = accessor.get('IVoidSettingsService');
+	const settingsStateService = accessor.get('IVoidSettingsService')
 
 	// current overrides and defaults
 	const defaultModelCapabilities = getModelCapabilities(providerName, modelName, undefined);
@@ -1052,6 +1054,8 @@ export const Settings = () => {
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
 	const mcpService = accessor.get('IMCPService')
+	const storageService = accessor.get('IStorageService')
+	const isOptedOut = useIsOptedOut()
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
 		let dataStr: string
@@ -1387,6 +1391,29 @@ export const Settings = () => {
 
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
+								{/* Telemetry section */}
+								<div className='w-full mt-8'>
+									<h4 className={`text-base`}>Telemetry</h4>
+									<div className='text-sm italic text-void-fg-3 mt-1'>Control what usage data Void collects.</div>
+
+									<div className='my-2'>
+										{/* Disable All Telemetry Switch */}
+										<ErrorBoundary>
+											<div className='flex items-center gap-x-2 my-2'>
+												<VoidSwitch
+													size='xs'
+													value={isOptedOut}
+													onChange={(newVal) => storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)}
+												/>
+												<span className='text-void-fg-3 text-xs pointer-events-none'>{storageService.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false) ? 'Disabled' : 'Enabled'}</span>
+											</div>
+											<div className='text-xs text-void-fg-3 mt-1 max-w-[500px]'>
+												Void only tracks basic usage like whether you've opened the app today so we can understand usage. Opting out is optional (requires a restart), but without this we cannot see how many people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.
+											</div>
+										</ErrorBoundary>
+									</div>
+								</div>
+
 								{/* One-Click Switch section */}
 								<div>
 									<ErrorBoundary>

@@ -14,6 +14,7 @@ import { INotificationService } from '../../../../platform/notification/common/n
 export interface IMetricsService {
 	readonly _serviceBrand: undefined;
 	capture(event: string, params: Record<string, any>): void;
+	setOptOut(val: boolean): void;
 	getDebuggingProperties(): Promise<object>;
 }
 
@@ -37,6 +38,11 @@ export class MetricsService implements IMetricsService {
 	capture(...params: Parameters<IMetricsService['capture']>) {
 		this.metricsService.capture(...params);
 	}
+
+	setOptOut(...params: Parameters<IMetricsService['setOptOut']>) {
+		this.metricsService.setOptOut(...params);
+	}
+
 
 	// anything transmitted over a channel must be async even if it looks like it doesn't have to be
 	async getDebuggingProperties(): Promise<object> {

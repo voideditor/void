@@ -378,7 +378,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
+					toolCall: !toolName ? undefined : { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 
 			}
@@ -525,7 +525,7 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 		onText({
 			fullText,
 			fullReasoning,
-			toolCall: { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
+			toolCall: !fullToolName ? undefined : { name: fullToolName, rawParams: {}, isDone: false, doneParams: [], id: 'dummy' },
 		})
 	}
 	// there are no events for tool_use, it comes in at the end
@@ -823,7 +823,7 @@ const sendGeminiChat = async ({
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
-					toolCall: { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
+					toolCall: !toolName ? undefined : { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
 				})
 			}
 

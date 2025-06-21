@@ -16,4 +16,8 @@ export const VOID_SETTINGS_STORAGE_KEY = 'void.settingsServiceStorageII'
 // 'void.chatThreadStorageI' // 1.0.2
 
 // 1.0.3
-export const THREAD_STORAGE_KEY = 'void.chatThreadStorageII'
+// This key is used for migrating from version II to III
+export const THREAD_STORAGE_KEY_II = 'void.chatThreadStorageII'
+
+// 1.3.10
+export const THREAD_STORAGE_KEY_III = 'void.chatThreadStorageIII'

@@ -1055,6 +1055,7 @@ export const Settings = () => {
 	const notificationService = accessor.get('INotificationService')
 	const mcpService = accessor.get('IMCPService')
 	const storageService = accessor.get('IStorageService')
+	const metricsService = accessor.get('IMetricsService')
 	const isOptedOut = useIsOptedOut()
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
@@ -1391,24 +1392,27 @@ export const Settings = () => {
 
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
-								{/* Telemetry section */}
+								{/* Metrics section */}
 								<div className='w-full mt-8'>
-									<h4 className={`text-base`}>Telemetry</h4>
-									<div className='text-sm italic text-void-fg-3 mt-1'>Control what usage data Void collects.</div>
+									<h4 className={`text-base`}>Metrics</h4>
+									<div className='text-sm italic text-void-fg-3 mt-1'>(Very) basic usage tracking helps us understand whether people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.</div>
 
 									<div className='my-2'>
-										{/* Disable All Telemetry Switch */}
+										{/* Disable All Metrics Switch */}
 										<ErrorBoundary>
 											<div className='flex items-center gap-x-2 my-2'>
 												<VoidSwitch
 													size='xs'
 													value={isOptedOut}
-													onChange={(newVal) => storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)}
+													onChange={(newVal) => {
+														storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)
+														metricsService.capture(`Set metrics to ${newVal}`, {}) // this only fires if it's enabled, so it's fine to have here
+													}}
 												/>
-												<span className='text-void-fg-3 text-xs pointer-events-none'>{storageService.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false) ? 'Disabled' : 'Enabled'}</span>
+												<span className='text-void-fg-3 text-xs pointer-events-none'>{isOptedOut ? 'Disabled' : 'Enabled'}</span>
 											</div>
 											<div className='text-xs text-void-fg-3 mt-1 max-w-[500px]'>
-												Void only tracks basic usage like whether you've opened the app today so we can understand usage. Opting out is optional (requires a restart), but without this we cannot see how many people are using Void. Regardless of this setting, Void never sees your code, messages, or API keys.
+												Void only tracks basic anonymous usage, like whether you've opened the app, or the number of messages you sent. Opting out is optional (requires a restart).
 											</div>
 										</ErrorBoundary>
 									</div>

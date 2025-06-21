@@ -130,8 +130,8 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 			this.client.optOut()
 		}
 		else {
-			this.client.identify(identifyMessage)
 			this.client.optIn()
+			this.client.identify(identifyMessage)
 		}
 
 

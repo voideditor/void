@@ -137,7 +137,7 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		minWidth: WindowMinimumSize.WIDTH,
 		minHeight: WindowMinimumSize.HEIGHT,
 		title: productService.nameLong,
-		show: windowState.mode !== WindowMode.Maximized && windowState.mode !== WindowMode.Fullscreen, // reduce flicker by showing later
+		show: false, // Always start hidden to prevent blank windows, will be shown via ready-to-show event
 		x: windowState.x,
 		y: windowState.y,
 		width: windowState.width,

@@ -6,7 +6,7 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IEnvironmentMainService } from '../../../../platform/environment/electron-main/environmentMainService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-import { IUpdateService, StateType } from '../../../../platform/update/common/update.js';
+import { IUpdateService, State, StateType } from '../../../../platform/update/common/update.js';
 import { IVoidUpdateService } from '../common/voidUpdateService.js';
 import { VoidCheckUpdateRespose } from '../common/voidUpdateServiceTypes.js';
 
@@ -77,7 +77,10 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 		}
 
 		if (this._updateService.state.type === StateType.Disabled) {
-			return await this._manualCheckGHTagIfDisabled(explicit)
+			if (explicit)
+				return await this._manualCheckGHTagIfDisabled(explicit)
+			else
+				return { message: null, } as const
 		}
 		return null
 	}

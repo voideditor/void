@@ -1,8 +1,8 @@
 {
 	"nameShort": "Void",
 	"nameLong": "Void",
-	"voidVersion": "1.4.5",
-	"voidRelease": "0040",
+	"voidVersion": "1.4.6",
+	"voidRelease": "0041",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
 	"win32MutexName": "voideditor",

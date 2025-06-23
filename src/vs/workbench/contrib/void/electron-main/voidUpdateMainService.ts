@@ -32,6 +32,12 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 			return { message: null } as const
 		}
 
+		// if disabled and not explicitly checking, return early
+		if (this._updateService.state.type === StateType.Disabled) {
+			if (!explicit)
+				return { message: null } as const
+		}
+
 		this._updateService.checkForUpdates(false) // implicity check, then handle result ourselves
 
 		console.log('updateState', this._updateService.state)
@@ -77,10 +83,7 @@ export class VoidMainUpdateService extends Disposable implements IVoidUpdateServ
 		}
 
 		if (this._updateService.state.type === StateType.Disabled) {
-			if (explicit)
-				return await this._manualCheckGHTagIfDisabled(explicit)
-			else
-				return { message: null, } as const
+			return await this._manualCheckGHTagIfDisabled(explicit)
 		}
 		return null
 	}

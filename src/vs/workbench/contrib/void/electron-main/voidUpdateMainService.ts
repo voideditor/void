@@ -6,7 +6,7 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IEnvironmentMainService } from '../../../../platform/environment/electron-main/environmentMainService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-import { IUpdateService, State, StateType } from '../../../../platform/update/common/update.js';
+import { IUpdateService, StateType } from '../../../../platform/update/common/update.js';
 import { IVoidUpdateService } from '../common/voidUpdateService.js';
 import { VoidCheckUpdateRespose } from '../common/voidUpdateServiceTypes.js';
 

@@ -9,7 +9,7 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IFileService, IFileStat } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { ShallowDirectoryItem, ToolCallParams, ToolResultType } from './toolsServiceTypes.js';
+import { ShallowDirectoryItem, BuiltinToolCallParams, BuiltinToolResultType } from './toolsServiceTypes.js';
 import { MAX_CHILDREN_URIs_PAGE, MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from './prompt/prompts.js';
 
 
@@ -76,7 +76,7 @@ export const computeDirectoryTree1Deep = async (
 	fileService: IFileService,
 	rootURI: URI,
 	pageNumber: number = 1,
-): Promise<ToolResultType['ls_dir']> => {
+): Promise<BuiltinToolResultType['ls_dir']> => {
 	const stat = await fileService.resolve(rootURI, { resolveMetadata: false });
 	if (!stat.isDirectory) {
 		return { children: null, hasNextPage: false, hasPrevPage: false, itemsRemaining: 0 };
@@ -107,7 +107,7 @@ export const computeDirectoryTree1Deep = async (
 	};
 };
 
-export const stringifyDirectoryTree1Deep = (params: ToolCallParams['ls_dir'], result: ToolResultType['ls_dir']): string => {
+export const stringifyDirectoryTree1Deep = (params: BuiltinToolCallParams['ls_dir'], result: BuiltinToolResultType['ls_dir']): string => {
 	if (!result.children) {
 		return `Error: ${params.uri} is not a directory`;
 	}

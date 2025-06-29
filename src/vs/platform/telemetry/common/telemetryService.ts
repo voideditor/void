@@ -163,38 +163,35 @@ export class TelemetryService implements ITelemetryService {
 }
 
 function getTelemetryLevelSettingDescription(): string {
-	const telemetryText = localize('telemetry.telemetryLevelMd', "Controls {0} telemetry, first-party extension telemetry, and participating third-party extension telemetry. Some third party extensions might not respect this setting. Consult the specific extension's documentation to be sure. Telemetry helps us better understand how {0} is performing, where improvements need to be made, and how features are being used.", product.nameLong);
-	const externalLinksStatement = !product.privacyStatementUrl ?
-		localize("telemetry.docsStatement", "Read more about the [data we collect]({0}).", 'https://aka.ms/vscode-telemetry') :
-		localize("telemetry.docsAndPrivacyStatement", "Read more about the [data we collect]({0}) and our [privacy statement]({1}).", 'https://aka.ms/vscode-telemetry', product.privacyStatementUrl);
-	const restartString = !isWeb ? localize('telemetry.restart', 'A full restart of the application is necessary for crash reporting changes to take effect.') : '';
+	const telemetryText = localize('telemetry.telemetryLevelMd', "The default telemetry setting for VS Code (Microsoft). {0} recommends keeping this off.", product.nameLong);
+	// const externalLinksStatement = !product.privacyStatementUrl ?
+	// 	localize("telemetry.docsStatement", "Read more about the [data we collect]({0}).", 'https://aka.ms/vscode-telemetry') :
+	// 	localize("telemetry.docsAndPrivacyStatement", "Read more about the [data we collect]({0}) and our [privacy statement]({1}).", 'https://aka.ms/vscode-telemetry', product.privacyStatementUrl);
+	const restartString = !isWeb ? localize('telemetry.restart', 'Microsoft says \"Some third party extensions might not respect this setting. Consult the specific extension\'s documentation to be sure. A full restart of the application is necessary for crash reporting changes to take effect.\"') : '';
 
-	const crashReportsHeader = localize('telemetry.crashReports', "Crash Reports");
-	const errorsHeader = localize('telemetry.errors', "Error Telemetry");
-	const usageHeader = localize('telemetry.usage', "Usage Data");
 
-	const telemetryTableDescription = localize('telemetry.telemetryLevel.tableDescription', "The following table outlines the data sent with each setting:");
-	const telemetryTable = `
-|       | ${crashReportsHeader} | ${errorsHeader} | ${usageHeader} |
-|:------|:-------------:|:---------------:|:----------:|
-| all   |       ✓       |        ✓        |     ✓      |
-| error |       ✓       |        ✓        |     -      |
-| crash |       ✓       |        -        |     -      |
-| off   |       -       |        -        |     -      |
-`;
+	// Void removed these
+	// const crashReportsHeader = localize('telemetry.crashReports', "Crash Reports");
+	// const errorsHeader = localize('telemetry.errors', "Error Telemetry");
+	// const usageHeader = localize('telemetry.usage', "Usage Data");
 
-	const deprecatedSettingNote = localize('telemetry.telemetryLevel.deprecated', "****Note:*** If this setting is 'off', no telemetry will be sent regardless of other telemetry settings. If this setting is set to anything except 'off' and telemetry is disabled with deprecated settings, no telemetry will be sent.*");
+	// const telemetryTableDescription = localize('telemetry.telemetryLevel.tableDescription', "The following table outlines the data sent with each setting:");
+	// 	const telemetryTable = `
+	// |       | ${crashReportsHeader} | ${errorsHeader} | ${usageHeader} |
+	// |:------|:-------------:|:---------------:|:----------:|
+	// | all   |       ✓       |        ✓        |     ✓      |
+	// | error |       ✓       |        ✓        |     -      |
+	// | crash |       ✓       |        -        |     -      |
+	// | off   |       -       |        -        |     -      |
+	// `;
+
+	// const deprecatedSettingNote = localize('telemetry.telemetryLevel.deprecated', "****Note:*** If this setting is 'off', no telemetry will be sent regardless of other telemetry settings. If this setting is set to anything except 'off' and telemetry is disabled with deprecated settings, no telemetry will be sent.*");
 	const telemetryDescription = `
-${telemetryText} ${externalLinksStatement} ${restartString}
+${telemetryText}
 
-&nbsp;
+${restartString}
 
-${telemetryTableDescription}
-${telemetryTable}
-
-&nbsp;
-
-${deprecatedSettingNote}
+Void separately records basic usage like the number of messages people are sending. If you'd like to disable Void metrics, you may do so in Void's Settings.
 `;
 
 	return telemetryDescription;

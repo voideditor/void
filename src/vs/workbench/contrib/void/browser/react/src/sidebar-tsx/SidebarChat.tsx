@@ -669,6 +669,7 @@ export const SelectedFiles = (
 						data-tooltip-id='void-tooltip'
 						data-tooltip-content={getRelative(selection.uri, accessor)}
 						data-tooltip-place='top'
+						data-tooltip-delay-show={3000}
 					>
 						{/* summarybox */}
 						<div

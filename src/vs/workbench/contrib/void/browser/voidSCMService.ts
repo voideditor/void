@@ -135,32 +135,36 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 	/** LLM Functions */
 
-	private sendLLMMessage(messages: LLMChatMessage[], separateSystemMessage: string, modelOptions: ModelOptions): Promise<string> {
-		return new Promise((resolve, reject) => {
+	private async sendLLMMessage(messages: LLMChatMessage[], separateSystemMessage: string, modelOptions: ModelOptions): Promise<string> {
+		return new Promise(async (resolve, reject) => {
 
-			this.llmRequestId = this.llmMessageService.sendLLMMessage({
-				messagesType: 'chatMessages',
-				messages,
-				separateSystemMessage,
-				chatMode: null,
-				modelSelection: modelOptions.modelSelection,
-				modelSelectionOptions: modelOptions.modelSelectionOptions,
-				overridesOfModel: modelOptions.overridesOfModel,
-				onText: () => { },
-				onFinalMessage: (params: { fullText: string }) => {
-					const match = params.fullText.match(/<output>([\s\S]*?)<\/output>/i)
-					const commitMessage = match ? match[1].trim() : ''
-					resolve(commitMessage)
-				},
-				onError: (error) => {
-					console.error(error)
-					reject(error)
-				},
-				onAbort: () => {
-					reject(new CancellationError())
-				},
-				logging: { loggingName: 'VoidSCM - Commit Message' },
-			})
+			try {
+				this.llmRequestId = await this.llmMessageService.sendLLMMessage({
+					messagesType: 'chatMessages',
+					messages,
+					separateSystemMessage,
+					chatMode: null,
+					modelSelection: modelOptions.modelSelection,
+					modelSelectionOptions: modelOptions.modelSelectionOptions,
+					overridesOfModel: modelOptions.overridesOfModel,
+					onText: () => { },
+					onFinalMessage: (params: { fullText: string }) => {
+						const match = params.fullText.match(/<output>([\s\S]*?)<\/output>/i)
+						const commitMessage = match ? match[1].trim() : ''
+						resolve(commitMessage)
+					},
+					onError: (error) => {
+						console.error(error)
+						reject(error)
+					},
+					onAbort: () => {
+						reject(new CancellationError())
+					},
+					logging: { loggingName: 'VoidSCM - Commit Message' },
+				})
+			} catch (error) {
+				reject(error)
+			}
 		})
 	}
 

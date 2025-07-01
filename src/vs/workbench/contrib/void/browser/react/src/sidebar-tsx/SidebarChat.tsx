@@ -288,10 +288,9 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 
 const DragAndDropWrapper: React.FC<{
 	children: React.ReactNode;
-	selections: StagingSelectionItem[];
-	setSelections: (newSelections: StagingSelectionItem[]) => void;
-  }> = ({ children, selections, setSelections }) => {
+  }> = ({ children}) => {
 	const accessor = useAccessor();
+	const chatThreadService = accessor.get('IChatThreadService');
 	const modelReferenceService = accessor.get('IVoidModelService');
 	const fileService = accessor.get('IFileService');
 	const [isDragOver, setIsDragOver] = useState(false);
@@ -303,26 +302,23 @@ const DragAndDropWrapper: React.FC<{
 		const filesData = event.dataTransfer.getData(CodeDataTransfers.FILES);
 		const filePathsFromFiles = filesData ? JSON.parse(filesData) : [];
 
-
 		// Extract file paths from CodeDataTransfers.EDITORS (open editor drags)
 		const editorData = event.dataTransfer.getData(CodeDataTransfers.EDITORS);
 		const filePathsFromEditors = editorData
-		? JSON.parse(editorData).map((editor:any) => editor.resource.fsPath)
-		: [];
+			? JSON.parse(editorData).map((editor:any) => editor.resource.fsPath)
+			: [];
 		const allFilePaths = [...new Set([...filePathsFromFiles, ...filePathsFromEditors])];
 		if (allFilePaths.length > 0) {
 			try {
-				console.log(allFilePaths)
 				if (Array.isArray(allFilePaths)) {
-					const newSelections: StagingSelectionItem[] = [];
 					for (const path of allFilePaths) {
-					const uri = URI.file(path);
-					if (!selections.some((s) => (s.type === 'File' || s.type === 'Folder') && s.uri.fsPath === uri.fsPath)) {
+						if(!path) continue;
+						const uri = URI.file(path);
 						try {
 							const stat = await fileService.stat(uri);
 							if (stat.isDirectory) {
 								// Folder case: no language or state
-								newSelections.push({
+								chatThreadService.addNewStagingSelection({
 									type: 'Folder',
 									uri,
 								});
@@ -330,7 +326,7 @@ const DragAndDropWrapper: React.FC<{
 								// File case: include language and state
 								const model = await modelReferenceService.getModelSafe(uri);
 								const language = model.model?.getLanguageId() || 'plaintext';
-								newSelections.push({
+								chatThreadService.addNewStagingSelection({
 									type: 'File',
 									uri,
 									language,
@@ -341,13 +337,9 @@ const DragAndDropWrapper: React.FC<{
 							console.error(`Failed to process dropped item: ${path}`, error);
 						}
 					}
-					}
-					if (newSelections.length > 0) {
-					setSelections([...selections, ...newSelections]);
-					}
 				}
 			} catch (error) {
-			console.error('Failed to parse dropped files data', error);
+				console.error('Failed to parse dropped files data', error);
 			}
 	    }
 	};
@@ -502,7 +494,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 		</div>
 	);
 	return setSelections && showSelections ? (
-		<DragAndDropWrapper selections={selections ?? []} setSelections={setSelections}>
+		<DragAndDropWrapper>
 		  {content}
 		</DragAndDropWrapper>
 	  ) : (

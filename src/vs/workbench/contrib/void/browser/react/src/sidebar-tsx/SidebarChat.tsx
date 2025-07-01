@@ -35,6 +35,7 @@ import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
 import { removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
+import { CodeDataTransfers } from '../../../../../../../platform/dnd/browser/dnd.js'
 
 
 
@@ -285,6 +286,95 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 
 }
 
+const DragAndDropWrapper: React.FC<{
+	children: React.ReactNode;
+	selections: StagingSelectionItem[];
+	setSelections: (newSelections: StagingSelectionItem[]) => void;
+  }> = ({ children, selections, setSelections }) => {
+	const accessor = useAccessor();
+	const modelReferenceService = accessor.get('IVoidModelService');
+	const fileService = accessor.get('IFileService');
+	const [isDragOver, setIsDragOver] = useState(false);
+
+	const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		setIsDragOver(false);
+		// Extract file paths from CodeDataTransfers.FILES (file explorer drags)
+		const filesData = event.dataTransfer.getData(CodeDataTransfers.FILES);
+		const filePathsFromFiles = filesData ? JSON.parse(filesData) : [];
+
+
+		// Extract file paths from CodeDataTransfers.EDITORS (open editor drags)
+		const editorData = event.dataTransfer.getData(CodeDataTransfers.EDITORS);
+		const filePathsFromEditors = editorData
+		? JSON.parse(editorData).map((editor:any) => editor.resource.fsPath)
+		: [];
+		const allFilePaths = [...new Set([...filePathsFromFiles, ...filePathsFromEditors])];
+		if (allFilePaths.length > 0) {
+			try {
+				console.log(allFilePaths)
+				if (Array.isArray(allFilePaths)) {
+					const newSelections: StagingSelectionItem[] = [];
+					for (const path of allFilePaths) {
+					const uri = URI.file(path);
+					if (!selections.some((s) => (s.type === 'File' || s.type === 'Folder') && s.uri.fsPath === uri.fsPath)) {
+						try {
+							const stat = await fileService.stat(uri);
+							if (stat.isDirectory) {
+								// Folder case: no language or state
+								newSelections.push({
+									type: 'Folder',
+									uri,
+								});
+							} else {
+								// File case: include language and state
+								const model = await modelReferenceService.getModelSafe(uri);
+								const language = model.model?.getLanguageId() || 'plaintext';
+								newSelections.push({
+									type: 'File',
+									uri,
+									language,
+									state: { wasAddedAsCurrentFile: false },
+								});
+							}
+						} catch (error) {
+							console.error(`Failed to process dropped item: ${path}`, error);
+						}
+					}
+					}
+					if (newSelections.length > 0) {
+					setSelections([...selections, ...newSelections]);
+					}
+				}
+			} catch (error) {
+			console.error('Failed to parse dropped files data', error);
+			}
+	    }
+	};
+
+	return (
+	  <div
+		onDragOver={(event) => {
+			event.stopPropagation();
+			event.preventDefault();
+			if(event.dataTransfer.effectAllowed === 'copyMove') {
+				setIsDragOver(true);
+			}
+		}}
+		onDragLeave={() => setIsDragOver(false)}
+		onDrop={handleDrop}
+		className={`pointer-events-auto relative`}
+	  >
+		{isDragOver && (
+		  <div
+			className="absolute inset-0 z-10 opacity-75 bg-void-bg-1 rounded-md"
+		  />
+		)}
+		{children}
+	  </div>
+	);
+  };
+
 
 
 
@@ -337,7 +427,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	featureName,
 	loadingIcon,
 }) => {
-	return (
+
+	const content = (
 		<div
 			ref={divRef}
 			className={`
@@ -410,6 +501,14 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			</div>
 		</div>
 	);
+	return setSelections && showSelections ? (
+		<DragAndDropWrapper selections={selections ?? []} setSelections={setSelections}>
+		  {content}
+		</DragAndDropWrapper>
+	  ) : (
+		content
+	  );
+
 };
 
 

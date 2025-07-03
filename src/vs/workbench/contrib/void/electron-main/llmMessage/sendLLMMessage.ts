@@ -59,15 +59,43 @@ export const sendLLMMessage = async ({
 	let _didAbort = false
 
 	const onText: OnText = (params) => {
-		const { fullText } = params
+		const { fullText, fullReasoning, toolCall } = params
 		if (_didAbort) return
+		// 日志：显示流式响应（只显示最新的增量部分）
+		const newText = fullText.substring(_fullTextSoFar.length)
+		if (newText) {
+			console.log('📝 [LLM Streaming]', newText)
+		}
+		if (fullReasoning && fullReasoning.length > 0) {
+			console.log('🧠 [LLM Reasoning]', fullReasoning.substring(fullReasoning.length - 100))
+		}
+		if (toolCall) {
+			console.log('🔧 [Tool Call]', toolCall)
+		}
 		onText_(params)
 		_fullTextSoFar = fullText
 	}
 
 	const onFinalMessage: OnFinalMessage = (params) => {
-		const { fullText, fullReasoning, toolCall } = params
+		const { fullText, fullReasoning, toolCall, anthropicReasoning } = params
 		if (_didAbort) return
+
+		// 日志：显示完整的最终响应
+		console.log('✅ [LLM Final Response] =====================================')
+		console.log('✅ [LLM Final Response] Provider:', providerName, 'Model:', modelName)
+		console.log('✅ [LLM Final Response] Full Text:', fullText)
+		if (fullReasoning) {
+			console.log('✅ [LLM Final Response] Reasoning:', fullReasoning)
+		}
+		if (anthropicReasoning) {
+			console.log('✅ [LLM Final Response] Anthropic Reasoning:', anthropicReasoning)
+		}
+		if (toolCall) {
+			console.log('✅ [LLM Final Response] Tool Call:', toolCall)
+		}
+		console.log('✅ [LLM Final Response] Duration:', new Date().getTime() - submit_time.getTime(), 'ms')
+		console.log('✅ [LLM Final Response] =====================================')
+
 		captureLLMEvent(`${loggingName} - Received Full Message`, { messageLength: fullText.length, reasoningLength: fullReasoning?.length, duration: new Date().getMilliseconds() - submit_time.getMilliseconds(), toolCallName: toolCall?.name })
 		onFinalMessage_(params)
 	}
@@ -94,10 +122,21 @@ export const sendLLMMessage = async ({
 	abortRef_.current = onAbort
 
 
-	if (messagesType === 'chatMessages')
+	if (messagesType === 'chatMessages') {
 		captureLLMEvent(`${loggingName} - Sending Message`, {})
-	else if (messagesType === 'FIMMessage')
+		// 日志：显示发送给大模型的消息
+		console.log('🚀 [LLM Request] Provider:', providerName, 'Model:', modelName)
+		console.log('🚀 [LLM Request] System Message:', separateSystemMessage)
+		console.log('🚀 [LLM Request] Messages:', JSON.stringify(messages_, null, 2))
+		console.log('🚀 [LLM Request] Chat Mode:', chatMode)
+	}
+	else if (messagesType === 'FIMMessage') {
 		captureLLMEvent(`${loggingName} - Sending FIM`, { prefixLen: messages_?.prefix?.length, suffixLen: messages_?.suffix?.length })
+		// 日志：显示FIM请求
+		console.log('🚀 [FIM Request] Provider:', providerName, 'Model:', modelName)
+		console.log('🚀 [FIM Request] Prefix:', messages_?.prefix?.substring(0, 200) + (messages_?.prefix?.length > 200 ? '...' : ''))
+		console.log('🚀 [FIM Request] Suffix:', messages_?.suffix?.substring(0, 200) + (messages_?.suffix?.length > 200 ? '...' : ''))
+	}
 
 
 	try {

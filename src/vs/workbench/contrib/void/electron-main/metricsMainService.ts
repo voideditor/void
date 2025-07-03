@@ -13,6 +13,7 @@ import { IApplicationStorageMainService } from '../../../../platform/storage/ele
 
 import { IMetricsService } from '../common/metricsService.js';
 import { PostHog } from 'posthog-node'
+import { OPT_OUT_KEY } from '../common/storageKeys.js';
 
 
 const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
@@ -28,6 +29,8 @@ const _getOSInfo = () => {
 const osInfo = _getOSInfo()
 
 // we'd like to use devDeviceId on telemetryService, but that gets sanitized by the time it gets here as 'someValue.devDeviceId'
+
+
 
 export class MetricsMainService extends Disposable implements IMetricsService {
 	_serviceBrand: undefined;
@@ -119,7 +122,18 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 			distinctId: this.distinctId,
 			properties: this._initProperties,
 		}
-		this.client.identify(identifyMessage)
+
+		const didOptOut = this._appStorage.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false)
+
+		console.log('User is opted out of basic Void metrics?', didOptOut)
+		if (didOptOut) {
+			this.client.optOut()
+		}
+		else {
+			this.client.optIn()
+			this.client.identify(identifyMessage)
+		}
+
 
 		console.log('Void posthog metrics info:', JSON.stringify(identifyMessage, null, 2))
 	}
@@ -127,10 +141,18 @@ export class MetricsMainService extends Disposable implements IMetricsService {
 
 	capture: IMetricsService['capture'] = (event, params) => {
 		const capture = { distinctId: this.distinctId, event, properties: params } as const
-		// console.log('full capture:', capture)
+		// console.log('full capture:', this.distinctId)
 		this.client.capture(capture)
 	}
 
+	setOptOut: IMetricsService['setOptOut'] = (newVal: boolean) => {
+		if (newVal) {
+			this._appStorage.store(OPT_OUT_KEY, 'true', StorageScope.APPLICATION, StorageTarget.MACHINE)
+		}
+		else {
+			this._appStorage.remove(OPT_OUT_KEY, StorageScope.APPLICATION)
+		}
+	}
 
 	async getDebuggingProperties() {
 		return this._initProperties

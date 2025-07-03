@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { MCPUserState, RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
-import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
+import { DisposableStore, IDisposable } from '../../../../../../../base/common/lifecycle.js'
 import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
 import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
@@ -52,6 +52,8 @@ import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
 import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
 import { IMCPService } from '../../../../common/mcpService.js';
+import { IStorageService, StorageScope } from '../../../../../../../platform/storage/common/storage.js'
+import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -226,6 +228,8 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
 		IMCPService: accessor.get(IMCPService),
 
+		IStorageService: accessor.get(IStorageService),
+
 	} as const
 	return reactAccessor
 }
@@ -399,3 +403,26 @@ export const useMCPServiceState = () => {
 	return s
 }
 
+
+
+export const useIsOptedOut = () => {
+	const accessor = useAccessor()
+	const storageService = accessor.get('IStorageService')
+
+	const getVal = useCallback(() => {
+		return storageService.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false)
+	}, [storageService])
+
+	const [s, ss] = useState(getVal())
+
+	useEffect(() => {
+		const disposables = new DisposableStore();
+		const d = storageService.onDidChangeValue(StorageScope.APPLICATION, OPT_OUT_KEY, disposables)(e => {
+			ss(getVal())
+		})
+		disposables.add(d)
+		return () => disposables.clear()
+	}, [storageService, getVal])
+
+	return s
+}

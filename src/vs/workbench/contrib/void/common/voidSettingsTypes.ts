@@ -231,10 +231,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 
 	throw new Error(`displayInfo: Unknown setting name: "${settingName}"`)
-
 }
-
-
 
 
 const defaultCustomSettings: Record<CustomSettingName, undefined> = {

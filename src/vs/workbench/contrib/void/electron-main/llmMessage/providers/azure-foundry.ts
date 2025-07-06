@@ -1,0 +1,204 @@
+import { default as ModelClient } from "@azure-rest/ai-inference";
+import { AzureKeyCredential } from "@azure/core-auth";
+import { createSseStream } from "@azure/core-sse";
+import {
+	BaseProviderConfig,
+	CompletionResult,
+	ModelProvider,
+	ProviderDefaultSettings,
+	ProviderDisplayInfo,
+	ProviderSettingsSchema,
+	ProviderSetupInfo,
+	StreamChunk,
+} from "../providerTypes.js";
+
+// Define Azure AI Foundry specific config type
+export type AzureConfig = BaseProviderConfig & {
+	apiKey: string;
+	endpoint: string;
+	azureApiVersion?: string;
+};
+
+/**
+ * Azure AI Foundry provider implementation using Microsoft's AI Inference REST API.
+ * Handles Azure-specific formatting requirements (e.g., stop parameter as array)
+ * and processes streaming responses with reasoning capabilities.
+ */
+export const azureAiFoundryProvider: ModelProvider = {
+	providerName: "azureAiFoundry",
+	capabilities: ["chat", "streaming", "tools", "reasoning"],
+
+	// Metadata methods
+	getDisplayInfo(): ProviderDisplayInfo {
+		return {
+			title: "Azure AI Foundry",
+			description: "Microsoft's Azure AI Foundry service for model inference",
+		};
+	},
+
+	getSetupInfo(): ProviderSetupInfo {
+		return {
+			subTextMd:
+				"Read more about endpoints [here](https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP), and get your API key [here](https://learn.microsoft.com/en-us/azure/search/search-security-api-keys?tabs=rest-use%2Cportal-find%2Cportal-query#find-existing-keys).",
+		};
+	},
+
+	getSettingsSchema(): ProviderSettingsSchema {
+		return {
+			endpoint: {
+				title: "baseURL",
+				placeholder: "https://my-foundry-resource.services.ai.azure.com/models",
+				isRequired: true,
+				validation: {
+					pattern:
+						"^https://[^\\s/$.?#]*\\.services\\.ai\\.azure\\.com/models$",
+				},
+			},
+			apiKey: {
+				title: "API Key",
+				placeholder: "12e9gi278TYe1bguiiNe2....",
+				isPasswordField: true,
+				isRequired: true,
+				validation: {
+					minLength: 20,
+					pattern: "^[a-zA-Z0-9]+$",
+					noEmpty: true,
+				},
+			},
+		};
+	},
+
+	getDefaultSettings(): ProviderDefaultSettings {
+		return {
+			apiKey: "",
+			endpoint: "",
+		};
+	},
+
+	getDefaultModels(): string[] {
+		return [];
+	},
+
+	async sendChat(params): Promise<void> {
+		const {
+			messages,
+			modelName,
+			providerConfig,
+			toolsPayload,
+			additionalPayload,
+			onStreamChunk,
+			onComplete,
+			onError,
+			setAborter,
+		} = params;
+
+		try {
+			// Cast to our specific config type for better DX
+			const config = providerConfig as AzureConfig;
+
+			const client = ModelClient(
+				config.endpoint,
+				new AzureKeyCredential(config.apiKey)
+			);
+
+			/**
+			 * Azure AI Foundry expects stop parameter as array format,
+			 * unlike OpenAI which accepts either string or array
+			 */
+			const requestBody = {
+				messages,
+				model: modelName,
+				stream: true,
+				...toolsPayload,
+				...Object.fromEntries(
+					Object.entries(additionalPayload).map(([key, value]) => {
+						if (key === "stop" && typeof value === "string") {
+							return [key, [value]];
+						}
+						return [key, value];
+					})
+				),
+			};
+
+			const response = await client
+				.path("/chat/completions")
+				.post({ body: requestBody })
+				.asNodeStream();
+
+			if (!response.body) {
+				throw new Error(
+					"No response body was received from Azure AI Inference"
+				);
+			}
+
+			setAborter(() => response.body?.destroy());
+
+			const sseStream = createSseStream(response.body);
+
+			let fullText = "";
+			let fullReasoning = "";
+			let toolCall: { id: string; name: string; arguments: string } | null =
+				null;
+
+			for await (const event of sseStream) {
+				if (event.data === "[DONE]") break;
+
+				try {
+					const data = JSON.parse(event.data);
+					for (const choice of data.choices || []) {
+						const chunk: StreamChunk = {};
+
+						if (choice.delta?.content) {
+							chunk.text = choice.delta.content;
+							fullText += choice.delta.content;
+						}
+
+						/**
+						 * Azure tool calls accumulate across multiple chunks,
+						 * requiring state management to reconstruct complete calls
+						 */
+						if (choice.delta?.tool_calls?.length > 0) {
+							const toolCallDelta = choice.delta.tool_calls[0];
+							if (!toolCall) {
+								toolCall = { id: "", name: "", arguments: "" };
+							}
+							if (toolCallDelta.function?.name) {
+								toolCall.name += toolCallDelta.function.name;
+							}
+							if (toolCallDelta.function?.arguments) {
+								toolCall.arguments += toolCallDelta.function.arguments;
+							}
+							if (toolCallDelta.id) {
+								toolCall.id += toolCallDelta.id;
+							}
+							chunk.toolCall = {
+								id: toolCallDelta.id,
+								name: toolCallDelta.function?.name,
+								arguments: toolCallDelta.function?.arguments,
+							};
+						}
+
+						if (choice.delta?.reasoning) {
+							chunk.reasoning = choice.delta.reasoning;
+							fullReasoning += choice.delta.reasoning;
+						}
+
+						onStreamChunk(chunk);
+					}
+				} catch (parseError) {
+					console.error("Error parsing SSE event:", parseError);
+				}
+			}
+
+			const result: CompletionResult = {
+				text: fullText,
+				reasoning: fullReasoning || undefined,
+				toolCall,
+			};
+
+			onComplete(result);
+		} catch (error) {
+			onError(error);
+		}
+	},
+};

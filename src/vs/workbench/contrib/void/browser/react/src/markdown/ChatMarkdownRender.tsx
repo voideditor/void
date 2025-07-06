@@ -288,7 +288,7 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 		if (!contents) return null
 
-		// figure out langauge and URI
+                // figure out language and URI
 		let uri: URI | null
 		let language: string
 		if (codeURI) {

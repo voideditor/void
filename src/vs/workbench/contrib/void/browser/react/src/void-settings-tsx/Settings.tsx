@@ -1392,6 +1392,21 @@ export const Settings = () => {
 
 							{/* General section */}
 							<div className={`${shouldShowTab('general') ? `` : 'hidden'} flex flex-col gap-12`}>
+								{/* API Rate Limiting */}
+								<div>
+									<h2 className='text-3xl mb-2'>API Rate Limiting</h2>
+									<h4 className='text-void-fg-3 mb-4'>
+										Control the maximum number of API requests per minute to manage usage and costs.
+									</h4>
+
+									<ErrorBoundary>
+										<div className='flex items-center gap-x-2 my-2'>
+											<span className='text-void-fg-3 text-xs'>Max Requests per Minute:</span>
+											<RateLimitSlider />
+										</div>
+									</ErrorBoundary>
+								</div>
+
 								{/* One-Click Switch section */}
 								<div>
 									<ErrorBoundary>
@@ -1560,4 +1575,33 @@ Use Model Context Protocol to provide Agent mode with more tools.
 			</div>
 		</div>
 	);
+}
+
+const RateLimitSlider = () => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const settingsState = useSettingsState()
+
+
+	// console.log('RateLimitSlider value:', settingsState.globalSettings.maxRequestsPerMinute)
+
+	const onChangeValue = useCallback((newVal: number) => {
+		voidSettingsService.setGlobalSetting('maxRequestsPerMinute', newVal)
+	}, [voidSettingsService])
+
+	return (
+		<div className='flex items-center gap-x-2 my-2'>
+			<input
+				type="range"
+				min="1"
+				max="120"
+				value={settingsState.globalSettings.maxRequestsPerMinute}
+				onChange={(e) => onChangeValue(parseInt(e.target.value))}
+				className="w-32 bg-void-bg-2"
+			/>
+			<span className='text-void-fg-3 text-xs pointer-events-none'>
+				{settingsState.globalSettings.maxRequestsPerMinute} requests/min
+			</span>
+		</div>
+	)
 }

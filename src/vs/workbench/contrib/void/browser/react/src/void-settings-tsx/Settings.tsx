@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
-import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
+import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
 import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { ModelDropdown } from './ModelDropdown.js'
@@ -21,6 +21,8 @@ import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../.
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
 import { MCPServer } from '../../../../common/mcpServiceTypes.js';
 import { useMCPServiceState } from '../util/services.js';
+import { OPT_OUT_KEY } from '../../../../common/storageKeys.js';
+import { StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
 
 type Tab =
 	| 'models'
@@ -215,10 +217,10 @@ const SimpleModelSettingsDialog = ({
 	if (!isOpen || !modelInfo) return null;
 
 	const { modelName, providerName, type } = modelInfo;
-	const accessor = useAccessor();
-	const settingsState = useSettingsState();
+	const accessor = useAccessor()
+	const settingsState = useSettingsState()
 	const mouseDownInsideModal = useRef(false); // Ref to track mousedown origin
-	const settingsStateService = accessor.get('IVoidSettingsService');
+	const settingsStateService = accessor.get('IVoidSettingsService')
 
 	// current overrides and defaults
 	const defaultModelCapabilities = getModelCapabilities(providerName, modelName, undefined);
@@ -1036,7 +1038,7 @@ export const Settings = () => {
 	const navItems: { tab: Tab; label: string }[] = [
 		{ tab: 'models', label: 'Models' },
 		{ tab: 'localProviders', label: 'Local Providers' },
-		{ tab: 'providers', label: 'Other Providers' },
+		{ tab: 'providers', label: 'Main Providers' },
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'mcp', label: 'MCP' },
@@ -1052,6 +1054,9 @@ export const Settings = () => {
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
 	const mcpService = accessor.get('IMCPService')
+	const storageService = accessor.get('IStorageService')
+	const metricsService = accessor.get('IMetricsService')
+	const isOptedOut = useIsOptedOut()
 
 	const onDownload = (t: 'Chats' | 'Settings') => {
 		let dataStr: string
@@ -1194,10 +1199,10 @@ export const Settings = () => {
 								</ErrorBoundary>
 							</div>
 
-							{/* Other Providers section */}
+							{/* Main Providers section */}
 							<div className={shouldShowTab('providers') ? `` : 'hidden'}>
 								<ErrorBoundary>
-									<h2 className={`text-3xl mb-2`}>Other Providers</h2>
+									<h2 className={`text-3xl mb-2`}>Main Providers</h2>
 									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
 									<VoidProviderSettings providerNames={nonlocalProviderNames} />
@@ -1214,7 +1219,7 @@ export const Settings = () => {
 											{/* FIM */}
 											<div>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('Autocomplete')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>
+												<div className='text-sm text-void-fg-3 mt-1'>
 													<span>
 														Experimental.{' '}
 													</span>
@@ -1258,7 +1263,7 @@ export const Settings = () => {
 
 											<div className='w-full'>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('Apply')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
+												<div className='text-sm text-void-fg-3 mt-1'>Settings that control the behavior of the Apply button.</div>
 
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
@@ -1294,7 +1299,7 @@ export const Settings = () => {
 										{/* Tools Section */}
 										<div>
 											<h4 className={`text-base`}>Tools</h4>
-											<div className='text-sm italic text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
+											<div className='text-sm text-void-fg-3 mt-1'>{`Tools are functions that LLMs can call. Some tools require user approval.`}</div>
 
 											<div className='my-2'>
 												{/* Auto Accept Switch */}
@@ -1338,7 +1343,7 @@ export const Settings = () => {
 
 										<div className='w-full'>
 											<h4 className={`text-base`}>Editor</h4>
-											<div className='text-sm italic text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+											<div className='text-sm text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
 
 											<div className='my-2'>
 												{/* Auto Accept Switch */}
@@ -1360,7 +1365,7 @@ export const Settings = () => {
 
 											<div className='w-full'>
 												<h4 className={`text-base`}>{displayInfoOfFeatureName('SCM')}</h4>
-												<div className='text-sm italic text-void-fg-3 mt-1'>Settings that control the behavior of the commit message generator.</div>
+												<div className='text-sm text-void-fg-3 mt-1'>Settings that control the behavior of the commit message generator.</div>
 
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
@@ -1419,8 +1424,9 @@ export const Settings = () => {
 												Reset Settings
 											</ConfirmButton>
 										</div>
+
 										{/* Chats Subcategory */}
-										<div className='flex flex-col gap-2 w-full max-w-48'>
+										<div className='flex flex-col gap-2 max-w-48 w-full'>
 											<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
 											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
 												Import Chats
@@ -1461,6 +1467,29 @@ export const Settings = () => {
 								</div>
 
 
+								{/* Metrics section */}
+								<div className='max-w-[600px]'>
+									<h2 className={`text-3xl mb-2`}>Metrics</h2>
+									<h4 className={`text-void-fg-3 mb-4`}>Very basic anonymous usage tracking helps us keep Void running smoothly. You may opt out below. Regardless of this setting, Void never sees your code, messages, or API keys.</h4>
+
+									<div className='my-2'>
+										{/* Disable All Metrics Switch */}
+										<ErrorBoundary>
+											<div className='flex items-center gap-x-2 my-2'>
+												<VoidSwitch
+													size='xs'
+													value={isOptedOut}
+													onChange={(newVal) => {
+														storageService.store(OPT_OUT_KEY, newVal, StorageScope.APPLICATION, StorageTarget.MACHINE)
+														metricsService.capture(`Set metrics opt-out to ${newVal}`, {}) // this only fires if it's enabled, so it's fine to have here
+													}}
+												/>
+												<span className='text-void-fg-3 text-xs pointer-events-none'>{'Opt-out (requires restart)'}</span>
+											</div>
+										</ErrorBoundary>
+									</div>
+								</div>
+
 								{/* AI Instructions section */}
 								<div className='max-w-[600px]'>
 									<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
@@ -1494,6 +1523,7 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 										</div>
 									</div>
 								</div>
+
 							</div>
 
 

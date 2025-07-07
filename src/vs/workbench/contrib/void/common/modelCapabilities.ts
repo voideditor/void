@@ -28,16 +28,6 @@ export const defaultProviderSettings = {
 	openRouter: {
 		apiKey: '',
 	},
-	openAICompatible: {
-		endpoint: '',
-		apiKey: '',
-		headersJSON: '{}', // default to {}
-	},
-	openAICompatible2: {
-		endpoint: '',
-		apiKey: '',
-		headersJSON: '{}', // default to {}
-	},
 	gemini: {
 		apiKey: '',
 	},
@@ -70,7 +60,31 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
-
+	openAICompatible: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
+	openAICompatible2: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
+	openAICompatible3: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
+	openAICompatible4: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
+	openAICompatible5: {
+		endpoint: '',
+		apiKey: '',
+		headersJSON: '{}', // default to {}
+	},
 } as const
 
 
@@ -153,12 +167,15 @@ export const defaultModelsOfProvider = {
 		'ministral-3b-latest',
 		'ministral-8b-latest',
 	],
-	openAICompatible: [], // fallback
-	openAICompatible2: [], // fallback
 	googleVertex: [],
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	openAICompatible: [], // fallback
+	openAICompatible2: [], // fallback
+	openAICompatible3: [], // fallback
+	openAICompatible4: [], // fallback
+	openAICompatible5: [], // fallback
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1473,6 +1490,9 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	ollama: ollamaSettings,
 	openAICompatible: openaiCompatible,
 	openAICompatible2: openaiCompatible,
+	openAICompatible3: openaiCompatible,
+	openAICompatible4: openaiCompatible,
+	openAICompatible5: openaiCompatible,
 	mistral: mistralSettings,
 
 	liteLLM: liteLLMSettings,

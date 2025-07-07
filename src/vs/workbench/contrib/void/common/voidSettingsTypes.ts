@@ -17,7 +17,8 @@ export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
 export const localProviderNames = ['ollama', 'vLLM', 'lmStudio'] satisfies ProviderName[] // all local names
-export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
+export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name) && !name.startsWith('openAICompatible')) // all non-local, non-openAICompatible names
+export const openAICompatibleProviderNames = providerNames.filter((name) => name.startsWith('openAICompatible')) // all openAICompatible names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -87,6 +88,15 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	}
 	else if (providerName === 'openAICompatible2') {
 		return { title: 'OpenAI-Compatible (2nd provider)', }
+	}
+	else if (providerName === 'openAICompatible3') {
+		return { title: 'OpenAI-Compatible (3rd provider)', }
+	}
+	else if (providerName === 'openAICompatible4') {
+		return { title: 'OpenAI-Compatible (4th provider)', }
+	}
+	else if (providerName === 'openAICompatible5') {
+		return { title: 'OpenAI-Compatible (5th provider)', }
 	}
 	else if (providerName === 'gemini') {
 		return { title: 'Gemini', }
@@ -329,6 +339,24 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.openAICompatible2,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible2),
+		_didFillInProviderSettings: undefined,
+	},
+	openAICompatible3: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.openAICompatible3,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible3),
+		_didFillInProviderSettings: undefined,
+	},
+	openAICompatible4: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.openAICompatible4,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible4),
+		_didFillInProviderSettings: undefined,
+	},
+	openAICompatible5: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.openAICompatible5,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.openAICompatible5),
 		_didFillInProviderSettings: undefined,
 	},
 	ollama: { // aggregator (serves models from multiple providers)

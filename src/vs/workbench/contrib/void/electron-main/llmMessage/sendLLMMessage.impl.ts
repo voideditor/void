@@ -310,6 +310,16 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		// max_completion_tokens: maxTokens,
 	}
 
+	// 日志：显示发送给OpenAI API的完整请求
+	console.log('🔄 [OpenAI-Compatible API Request] =====================================')
+	console.log('🔄 [OpenAI-Compatible API Request] Provider:', providerName)
+	console.log('🔄 [OpenAI-Compatible API Request] Model:', modelName)
+	console.log('🔄 [OpenAI-Compatible API Request] Options:', JSON.stringify(options, null, 2))
+	if (separateSystemMessage) {
+		console.log('🔄 [OpenAI-Compatible API Request] System Message:', separateSystemMessage)
+	}
+	console.log('🔄 [OpenAI-Compatible API Request] =====================================')
+
 	// open source models - manually parse think tokens
 	const { needsManualParse: needsManualReasoningParse, nameOfFieldInDelta: nameOfReasoningFieldInDelta } = providerReasoningIOSettings?.output ?? {}
 	const manuallyParseReasoning = needsManualReasoningParse && canIOReasoning && openSourceThinkTags
@@ -333,12 +343,22 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	let toolId = ''
 	let toolParamsStr = ''
 
+	// 日志：记录即将发起的API调用
+	console.log('🌐 [API Call Starting] OpenAI Chat Completions Create')
+	console.log('🌐 [API Call] Endpoint: chat/completions')
+	console.log('🌐 [API Call] Full Request Options:', JSON.stringify(options, null, 2))
+
 	openai.chat.completions
 		.create(options)
 		.then(async response => {
 			_setAborter(() => response.controller.abort())
+
+			console.log('🌐 [API Response] OpenAI stream started successfully')
+
 			// when receive text
 			for await (const chunk of response) {
+				// 日志：记录每个流式响应块
+				console.log('🔄 [API Stream Chunk]', JSON.stringify(chunk, null, 2))
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
 				fullTextSoFar += newText
@@ -370,18 +390,41 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 				})
 
 			}
+
+			// 日志：记录OpenAI流结束
+			console.log('🌐 [API Response] OpenAI stream completed')
+
 			// on final
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
+				console.log('❌ [OpenAI Error] Empty response from model')
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			}
 			else {
 				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
+
+				// 日志：记录OpenAI最终响应
+				console.log('✅ [OpenAI Final Message] =====================================')
+				console.log('✅ [OpenAI Final Message] Full Text:', fullTextSoFar)
+				console.log('✅ [OpenAI Final Message] Full Reasoning:', fullReasoningSoFar)
+				console.log('✅ [OpenAI Final Message] Tool Name:', toolName)
+				console.log('✅ [OpenAI Final Message] Tool Params:', toolParamsStr)
+				console.log('✅ [OpenAI Final Message] Tool Call Object:', toolCall)
+				console.log('✅ [OpenAI Final Message] =====================================')
+
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
 		})
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
+			// 日志：记录OpenAI错误
+			console.log('❌ [OpenAI Error] =====================================')
+			console.log('❌ [OpenAI Error] Error Object:', error)
+			console.log('❌ [OpenAI Error] Error Status:', error instanceof OpenAI.APIError ? error.status : 'N/A')
+			console.log('❌ [OpenAI Error] Error Message:', error.message || error.toString())
+			console.log('❌ [OpenAI Error] Error Stack:', error.stack)
+			console.log('❌ [OpenAI Error] =====================================')
+
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
 			else { onError({ message: error + '', fullError: error }); }
 		})
@@ -484,15 +527,28 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 		dangerouslyAllowBrowser: true
 	});
 
-	const stream = anthropic.messages.stream({
+	const anthropicRequestOptions = {
 		system: separateSystemMessage ?? undefined,
 		messages: messages as AnthropicLLMChatMessage[],
 		model: modelName,
 		max_tokens: maxTokens ?? 4_096, // anthropic requires this
 		...includeInPayload,
 		...nativeToolsObj,
+	}
 
-	})
+	// 日志：显示发送给Anthropic API的完整请求
+	console.log('🤖 [Anthropic API Request] =====================================')
+	console.log('🤖 [Anthropic API Request] Provider:', providerName)
+	console.log('🤖 [Anthropic API Request] Model:', modelName)
+	console.log('🤖 [Anthropic API Request] Options:', JSON.stringify(anthropicRequestOptions, null, 2))
+	console.log('🤖 [Anthropic API Request] =====================================')
+
+	console.log('🌐 [API Call Starting] Anthropic Messages Stream')
+	console.log('🌐 [API Call] Endpoint: messages (streaming)')
+
+	const stream = anthropic.messages.stream(anthropicRequestOptions)
+
+	console.log('🌐 [API Response] Anthropic stream created successfully')
 
 	// manually parse out tool results if XML
 	if (!specialToolFormat) {
@@ -518,6 +574,8 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 	}
 	// there are no events for tool_use, it comes in at the end
 	stream.on('streamEvent', e => {
+		// 日志：记录每个Anthropic流事件
+		console.log('🔄 [Anthropic Stream Event]', JSON.stringify(e, null, 2))
 		// start block
 		if (e.type === 'content_block_start') {
 			if (e.content_block.type === 'text') {
@@ -561,17 +619,31 @@ const sendAnthropicChat = async ({ messages, providerName, onText, onFinalMessag
 
 	// on done - (or when error/fail) - this is called AFTER last streamEvent
 	stream.on('finalMessage', (response) => {
+		// 日志：记录Anthropic最终响应
+		console.log('✅ [Anthropic Final Message] =====================================')
+		console.log('✅ [Anthropic Final Message] Raw Response:', JSON.stringify(response, null, 2))
+
 		const anthropicReasoning = response.content.filter(c => c.type === 'thinking' || c.type === 'redacted_thinking')
 		const tools = response.content.filter(c => c.type === 'tool_use')
-		// console.log('TOOLS!!!!!!', JSON.stringify(tools, null, 2))
-		// console.log('TOOLS!!!!!!', JSON.stringify(response, null, 2))
 		const toolCall = tools[0] && rawToolCallObjOfAnthropicParams(tools[0])
 		const toolCallObj = toolCall ? { toolCall } : {}
+
+		console.log('✅ [Anthropic Final Message] Processed - Full Text:', fullText)
+		console.log('✅ [Anthropic Final Message] Processed - Full Reasoning:', fullReasoning)
+		console.log('✅ [Anthropic Final Message] Processed - Tool Call:', toolCall)
+		console.log('✅ [Anthropic Final Message] =====================================')
 
 		onFinalMessage({ fullText, fullReasoning, anthropicReasoning, ...toolCallObj })
 	})
 	// on error
 	stream.on('error', (error) => {
+		// 日志：记录Anthropic错误
+		console.log('❌ [Anthropic Error] =====================================')
+		console.log('❌ [Anthropic Error] Error Object:', error)
+		console.log('❌ [Anthropic Error] Error Status:', error instanceof Anthropic.APIError ? error.status : 'N/A')
+		console.log('❌ [Anthropic Error] Error Message:', error.message || error.toString())
+		console.log('❌ [Anthropic Error] =====================================')
+
 		if (error instanceof Anthropic.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }) }
 		else { onError({ message: error + '', fullError: error }) }
 	})
@@ -777,8 +849,7 @@ const sendGeminiChat = async ({
 	let toolParamsStr = ''
 	let toolId = ''
 
-
-	genAI.models.generateContentStream({
+	const geminiRequestOptions = {
 		model: modelName,
 		config: {
 			systemInstruction: separateSystemMessage,
@@ -786,12 +857,28 @@ const sendGeminiChat = async ({
 			tools: toolConfig,
 		},
 		contents: messages as GeminiLLMChatMessage[],
-	})
+	}
+
+	// 日志：显示发送给Gemini API的完整请求
+	console.log('🧠 [Gemini API Request] =====================================')
+	console.log('🧠 [Gemini API Request] Provider:', providerName)
+	console.log('🧠 [Gemini API Request] Model:', modelName)
+	console.log('🧠 [Gemini API Request] Options:', JSON.stringify(geminiRequestOptions, null, 2))
+	console.log('🧠 [Gemini API Request] =====================================')
+
+	console.log('🌐 [API Call Starting] Gemini Generate Content Stream')
+	console.log('🌐 [API Call] Endpoint: generateContentStream')
+
+	genAI.models.generateContentStream(geminiRequestOptions)
 		.then(async (stream) => {
 			_setAborter(() => { stream.return(fullTextSoFar); });
 
+			console.log('🌐 [API Response] Gemini stream created successfully')
+
 			// Process the stream
 			for await (const chunk of stream) {
+				// 日志：记录每个Gemini流响应块
+				console.log('🔄 [Gemini Stream Chunk]', JSON.stringify(chunk, null, 2))
 				// message
 				const newText = chunk.text ?? ''
 				fullTextSoFar += newText
@@ -815,17 +902,38 @@ const sendGeminiChat = async ({
 				})
 			}
 
+			// 日志：记录Gemini流结束
+			console.log('🌐 [API Response] Gemini stream completed')
+
 			// on final
 			if (!fullTextSoFar && !fullReasoningSoFar && !toolName) {
+				console.log('❌ [Gemini Error] Empty response from model')
 				onError({ message: 'Void: Response from model was empty.', fullError: null })
 			} else {
 				if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
 				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
+
+				// 日志：记录Gemini最终响应
+				console.log('✅ [Gemini Final Message] =====================================')
+				console.log('✅ [Gemini Final Message] Full Text:', fullTextSoFar)
+				console.log('✅ [Gemini Final Message] Full Reasoning:', fullReasoningSoFar)
+				console.log('✅ [Gemini Final Message] Tool Name:', toolName)
+				console.log('✅ [Gemini Final Message] Tool Params:', toolParamsStr)
+				console.log('✅ [Gemini Final Message] Tool Call Object:', toolCall)
+				console.log('✅ [Gemini Final Message] =====================================')
+
 				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
 			}
 		})
 		.catch(error => {
+			// 日志：记录Gemini错误
+			console.log('❌ [Gemini Error] =====================================')
+			console.log('❌ [Gemini Error] Error Object:', error)
+			console.log('❌ [Gemini Error] Error Message:', error?.message || error.toString())
+			console.log('❌ [Gemini Error] Error Stack:', error?.stack)
+			console.log('❌ [Gemini Error] =====================================')
+
 			const message = error?.message
 			if (typeof message === 'string') {
 

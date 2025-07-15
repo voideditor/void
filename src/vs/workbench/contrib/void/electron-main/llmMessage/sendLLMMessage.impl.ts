@@ -357,8 +357,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 
 			// when receive text
 			for await (const chunk of response) {
-				// 日志：记录每个流式响应块
-				console.log('🔄 [API Stream Chunk]', JSON.stringify(chunk, null, 2))
+				// 处理流式响应，不打印chunk日志
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
 				fullTextSoFar += newText

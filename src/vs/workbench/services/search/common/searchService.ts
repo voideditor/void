@@ -80,6 +80,7 @@ export class SearchService extends Disposable implements ISearchService {
 	}
 
 	async textSearch(query: ITextQuery, token?: CancellationToken, onProgress?: (item: ISearchProgressItem) => void): Promise<ISearchComplete> {
+		console.log('[searchService] textSearch called', query);
 		const results = this.textSearchSplitSyncAsync(query, token, onProgress);
 		const openEditorResults = results.syncResults;
 		const otherResults = await results.asyncResults;
@@ -91,6 +92,8 @@ export class SearchService extends Disposable implements ISearchService {
 	}
 
 	async aiTextSearch(query: IAITextQuery, token?: CancellationToken, onProgress?: (item: ISearchProgressItem) => void): Promise<ISearchComplete> {
+		this.logService.info('SearchService#aiTextSearch called', query.contentPattern);
+
 		const onProviderProgress = (progress: ISearchProgressItem) => {
 			// Match
 			if (onProgress) { // don't override open editor results
@@ -171,6 +174,7 @@ export class SearchService extends Disposable implements ISearchService {
 	}
 
 	private doSearch(query: ISearchQuery, token?: CancellationToken, onProgress?: (item: ISearchProgressItem) => void): Promise<ISearchComplete> {
+		console.log('[searchService] doSearch called', JSON.stringify(query));
 		this.logService.trace('SearchService#search', JSON.stringify(query));
 
 		const schemesInQuery = this.getSchemesInQuery(query);

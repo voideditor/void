@@ -203,6 +203,7 @@ export class ToolsService implements IToolsService {
 					is_regex: isRegexUnknown,
 					page_number: pageNumberUnknown
 				} = params
+				console.log('[toolsService] validateParams.search_for_files called', { queryUnknown, searchInFolderUnknown, isRegexUnknown, pageNumberUnknown });
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				const searchInFolder = validateOptionalURI(searchInFolderUnknown)
@@ -295,27 +296,37 @@ export class ToolsService implements IToolsService {
 
 		this.callTool = {
 			read_file: async ({ uri, startLine, endLine, pageNumber }) => {
+				console.log('[read_file] callTool entry', { uri: uri.toString(), startLine, endLine, pageNumber });
 				await voidModelService.initializeModel(uri)
+				console.log('[read_file] after initializeModel');
 				const { model } = await voidModelService.getModelSafe(uri)
-				if (model === null) { throw new Error(`No contents; File does not exist.`) }
+				console.log('[read_file] got model', { hasModel: !!model });
+				if (model === null) {
+					console.error('[read_file] No contents; File does not exist.', uri);
+					throw new Error(`No contents; File does not exist.`)
+				}
 
 				let contents: string
 				if (startLine === null && endLine === null) {
 					contents = model.getValue(EndOfLinePreference.LF)
+					console.log('[read_file] getValue full', { length: contents.length });
 				}
 				else {
 					const startLineNumber = startLine === null ? 1 : startLine
 					const endLineNumber = endLine === null ? model.getLineCount() : endLine
 					contents = model.getValueInRange({ startLineNumber, startColumn: 1, endLineNumber, endColumn: Number.MAX_SAFE_INTEGER }, EndOfLinePreference.LF)
+					console.log('[read_file] getValueInRange', { startLineNumber, endLineNumber, length: contents.length });
 				}
 
 				const totalNumLines = model.getLineCount()
+				console.log('[read_file] totalNumLines', totalNumLines);
 
 				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
 				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
 				const fileContents = contents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (contents.length - 1) - toIdx >= 1
 				const totalFileLen = contents.length
+				console.log('[read_file] pagination', { fromIdx, toIdx, fileContentsLen: fileContents.length, hasNextPage, totalFileLen });
 				return { result: { fileContents, totalFileLen, hasNextPage, totalNumLines } }
 			},
 
@@ -349,6 +360,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			search_for_files: async ({ query: queryStr, isRegex, searchInFolder, pageNumber }) => {
+				console.log('[toolsService] search_for_files called', { queryStr, isRegex, searchInFolder, pageNumber });
 				const searchFolders = searchInFolder === null ?
 					workspaceContextService.getWorkspace().folders.map(f => f.uri)
 					: [searchInFolder]

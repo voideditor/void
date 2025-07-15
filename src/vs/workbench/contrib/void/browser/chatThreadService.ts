@@ -307,9 +307,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 	readonly streamState: ThreadStreamState = {}
 	state: ThreadsState // allThreads is persisted, currentThread is not
 
-	// used for tracking text length in streaming responses
-	private _lastTextLength: number = 0
-
 	// used in checkpointing
 	// private readonly _userModifiedFilesToCheckInCheckpoints = new LRUCache<string, null>(50)
 
@@ -825,15 +822,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
 					separateSystemMessage: separateSystemMessage,
 					onText: ({ fullText, fullReasoning, toolCall }) => {
-						// 日志：Browser端 - 流式响应
-
-						if (fullReasoning) {
-							console.log('🔥 [Browser] Reasoning Update:', fullReasoning.substring(Math.max(0, fullReasoning.length - 100)))
-						}
-						if (toolCall) {
-							console.log('🔥 [Browser] Tool Call Update:', toolCall)
-						}
-						this._lastTextLength = fullText.length
+						// 更新状态，不打印流式日志
 						this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall ?? null }, interrupt: Promise.resolve(() => { if (llmCancelToken) this._llmMessageService.abort(llmCancelToken) }) })
 					},
 					onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
@@ -845,7 +834,6 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						console.log('🔥 [Browser] Final Tool Call:', toolCall)
 						console.log('🔥 [Browser] Anthropic Reasoning:', anthropicReasoning)
 						console.log('🔥 [Browser] =====================================')
-						this._lastTextLength = 0
 						resMessageIsDonePromise({ type: 'llmDone', toolCall, info: { fullText, fullReasoning, anthropicReasoning } }) // resolve with tool calls
 					},
 					onError: async (error) => {
@@ -853,13 +841,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						console.log('🔥 [Browser] LLM Error =====================================')
 						console.error('🔥 [Browser] Error:', error)
 						console.log('🔥 [Browser] =====================================')
-						this._lastTextLength = 0
 						resMessageIsDonePromise({ type: 'llmError', error: error })
 					},
 					onAbort: () => {
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
 						console.log('🔥 [Browser] LLM Request Aborted')
-						this._lastTextLength = 0
 						resMessageIsDonePromise({ type: 'llmAborted' })
 						this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
 					},

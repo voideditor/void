@@ -59,19 +59,9 @@ export const sendLLMMessage = async ({
 	let _didAbort = false
 
 	const onText: OnText = (params) => {
-		const { fullText, fullReasoning, toolCall } = params
+		const { fullText } = params
 		if (_didAbort) return
-		// 日志：显示流式响应（只显示最新的增量部分）
-		const newText = fullText.substring(_fullTextSoFar.length)
-		if (newText) {
-			console.log('📝 [LLM Streaming]', newText)
-		}
-		if (fullReasoning && fullReasoning.length > 0) {
-			console.log('🧠 [LLM Reasoning]', fullReasoning.substring(fullReasoning.length - 100))
-		}
-		if (toolCall) {
-			console.log('🔧 [Tool Call]', toolCall)
-		}
+		// 不打印流式响应日志，直接转发给回调
 		onText_(params)
 		_fullTextSoFar = fullText
 	}

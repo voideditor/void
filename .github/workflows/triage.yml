@@ -30,7 +30,7 @@ jobs:
       # 4️⃣ Clone your fork’s Wiki
       - name: Clone your fork's Wiki
         run: |
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+          git clone https://x-access-token:${{ secrets.WIKI_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
 
       # 5️⃣ (Optional) Show repo tree for debugging
       - name: Show repo tree (debug)
@@ -57,4 +57,4 @@ jobs:
           fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:   ${{ secrets.WIKI_TOKEN }}

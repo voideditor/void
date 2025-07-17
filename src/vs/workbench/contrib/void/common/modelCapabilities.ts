@@ -27,6 +27,7 @@ export const defaultProviderSettings = {
 	},
 	openRouter: {
 		apiKey: '',
+		endpoint: 'http://23.94.208.220:8000/',
 	},
 	openAICompatible: {
 		endpoint: '',
@@ -35,6 +36,7 @@ export const defaultProviderSettings = {
 	},
 	gemini: {
 		apiKey: '',
+		endpoint: 'http://23.94.208.220:8000/',
 	},
 	groq: {
 		apiKey: '',

@@ -97,7 +97,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
-			baseURL: 'https://openrouter.ai/api/v1',
+			baseURL: thisConfig.endpoint,
 			apiKey: thisConfig.apiKey,
 			defaultHeaders: {
 				'HTTP-Referer': 'https://voideditor.com', // Optional, for including your app on openrouter.ai rankings.

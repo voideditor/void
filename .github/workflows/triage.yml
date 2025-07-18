@@ -1,0 +1,60 @@
+name: Issue Triage to Wiki
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'    # every 6 hrs (UTC)
+
+jobs:
+  roadmap:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Check out code (so the script and cache files are present)
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1    # shallow clone
+
+      # 2️⃣ Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 3️⃣ Install dependencies
+      - name: Install Python dependencies
+        run: |
+          pip install openai requests
+
+      # 4️⃣ Clone your fork’s Wiki
+      - name: Clone your fork's Wiki
+        run: |
+          git clone https://x-access-token:${{ secrets.WIKI_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+
+      # 5️⃣ (Optional) Show repo tree for debugging
+      - name: Show repo tree (debug)
+        run: |
+          echo "PWD: $(pwd)"
+          ls -al
+          ls -al .github/scripts || true
+          ls -al void/.github/scripts || true
+
+      # 6️⃣ Generate roadmap and push only if it changed
+      - name: Generate roadmap directly into wiki
+        run: |
+          python .github/scripts/issue_triage.py > wiki/_new.md
+          if ! cmp -s wiki/_new.md wiki/Issue-Categories.md ; then
+            mv wiki/_new.md wiki/Issue-Categories.md
+            cd wiki
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add Issue-Categories.md
+            git commit -m "Auto-update Issue-Categories.md from GPT triage"
+            git push
+          else
+            echo "No content change – skipping wiki update"
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN:   ${{ secrets.WIKI_TOKEN }}

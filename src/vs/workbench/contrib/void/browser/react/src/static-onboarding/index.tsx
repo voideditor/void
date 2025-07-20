@@ -4,6 +4,6 @@
  *--------------------------------------------------------------------------------------*/
 
 import { mountFnGenerator } from '../util/mountFnGenerator.js'
-import { VoidOnboarding } from './VoidOnboarding.js'
+import { StaticOnboarding } from './StaticOnboarding.js'
 
-// export const mountVoidOnboarding = mountFnGenerator(VoidOnboarding)
+export const mountStaticOnboarding = mountFnGenerator(StaticOnboarding)

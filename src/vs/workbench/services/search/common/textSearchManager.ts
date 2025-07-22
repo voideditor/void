@@ -177,7 +177,9 @@ export class TextSearchManager {
 
 		let result;
 		if (this.queryProviderPair.query.type === QueryType.aiText) {
+			console.log('[TextSearchManager] Calling provideAITextSearchResults with query:', this.queryProviderPair.query.contentPattern);
 			result = await (this.queryProviderPair as IAITextQueryProviderPair).provider.provideAITextSearchResults(this.queryProviderPair.query.contentPattern, searchOptions, progress, token);
+			console.log('[TextSearchManager] provideAITextSearchResults returned result:', result);
 		} else {
 			result = await (this.queryProviderPair as ITextQueryProviderPair).provider.provideTextSearchResults(patternInfoToQuery(this.queryProviderPair.query.contentPattern), searchOptions, progress, token);
 		}

@@ -19,6 +19,7 @@ export class RipgrepSearchProvider implements TextSearchProvider2 {
 	}
 
 	async provideTextSearchResults(query: TextSearchQuery2, options: TextSearchProviderOptions, progress: Progress<TextSearchResult2>, token: CancellationToken): Promise<TextSearchComplete2> {
+		console.log('[RipgrepSearchProvider] provideTextSearchResults called', { query, options });
 		const numThreads = await this.getNumThreads();
 		const engine = new RipgrepTextSearchEngine(this.outputChannel, numThreads);
 

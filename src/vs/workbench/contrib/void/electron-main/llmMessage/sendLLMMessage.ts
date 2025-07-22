@@ -7,7 +7,7 @@ import { SendLLMMessageParams, OnText, OnFinalMessage, OnError } from '../../com
 import { IMetricsService } from '../../common/metricsService.js';
 import { displayInfoOfProviderName } from '../../common/voidSettingsTypes.js';
 import { sendLLMMessageToProviderImplementation } from './sendLLMMessage.impl.js';
-
+import { llmRequestProxy } from './llmRequestProxy.js';
 
 export const sendLLMMessage = async ({
 	messagesType,
@@ -24,11 +24,17 @@ export const sendLLMMessage = async ({
 	chatMode,
 	separateSystemMessage,
 	mcpTools,
+	proxyRequest,
 }: SendLLMMessageParams,
 
 	metricsService: IMetricsService
 ) => {
 
+	if (proxyRequest) {
+		llmRequestProxy.enableProxy()
+	} else {
+		llmRequestProxy.disableProxy()
+	}
 
 	const { providerName, modelName } = modelSelection
 

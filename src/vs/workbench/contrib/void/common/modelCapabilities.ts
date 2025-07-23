@@ -1111,11 +1111,161 @@ const googleVertexSettings: VoidStaticProviderInfo = {
 }
 
 // ---------------- MICROSOFT AZURE ----------------
-const microsoftAzureModelOptions = {
+const microsoftAzureModelOptions = { // Azure OpenAI follows same pricing as OpenAI
+	'o3': {
+		contextWindow: 1_047_576,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 10.00, output: 40.00, cache_read: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+	},
+	'o4-mini': {
+		contextWindow: 1_047_576,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 1.10, output: 4.40, cache_read: 0.275 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+	},
+	'gpt-4.1': {
+		contextWindow: 1_047_576,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 2.00, output: 8.00, cache_read: 0.50 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-4.1-mini': {
+		contextWindow: 1_047_576,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.40, output: 1.60, cache_read: 0.10 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-4.1-nano': {
+		contextWindow: 1_047_576,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.10, output: 0.40, cache_read: 0.03 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: false,
+	},
+	'o1': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 100_000,
+		cost: { input: 15.00, cache_read: 7.50, output: 60.00, },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+	},
+	'o3-mini': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: 100_000,
+		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+	},
+	'gpt-4o': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 16_384,
+		cost: { input: 2.50, cache_read: 1.25, output: 10.00, },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'o1-mini': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 65_536,
+		cost: { input: 1.10, cache_read: 0.55, output: 4.40, },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: false, // does not support any system
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+	},
+	'gpt-4o-mini': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 16_384,
+		cost: { input: 0.15, cache_read: 0.075, output: 0.60, },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	// Azure-specific naming variations
+	'gpt-4': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 30.00, output: 60.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-4-turbo': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 10.00, output: 30.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'gpt-35-turbo': {
+		contextWindow: 16_385,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 1.50, output: 2.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
 } as const satisfies Record<string, VoidStaticModelInfo>
+
 const microsoftAzureSettings: VoidStaticProviderInfo = {
 	modelOptions: microsoftAzureModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof microsoftAzureModelOptions | null = null
+		if (lower.includes('o1-mini')) { fallbackName = 'o1-mini' }
+		if (lower.includes('o1')) { fallbackName = 'o1' }
+		if (lower.includes('o3-mini')) { fallbackName = 'o3-mini' }
+		if (lower.includes('o3')) { fallbackName = 'o3' }
+		if (lower.includes('o4-mini')) { fallbackName = 'o4-mini' }
+		if (lower.includes('gpt-4.1-nano')) { fallbackName = 'gpt-4.1-nano' }
+		if (lower.includes('gpt-4.1-mini')) { fallbackName = 'gpt-4.1-mini' }
+		if (lower.includes('gpt-4.1')) { fallbackName = 'gpt-4.1' }
+		if (lower.includes('gpt-4o-mini') || lower.includes('gpt4o-mini')) { fallbackName = 'gpt-4o-mini' }
+		if (lower.includes('gpt-4o') || lower.includes('gpt4o')) { fallbackName = 'gpt-4o' }
+		if (lower.includes('gpt-4-turbo')) { fallbackName = 'gpt-4-turbo' }
+		if (lower.includes('gpt-4')) { fallbackName = 'gpt-4' }
+		if (lower.includes('gpt-35') || lower.includes('gpt-3.5')) { fallbackName = 'gpt-35-turbo' }
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...microsoftAzureModelOptions[fallbackName] }
+		return null
+	},
 	providerReasoningIOSettings: {
 		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
 	},

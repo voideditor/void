@@ -1,0 +1,226 @@
+{
+  "name": "ml-engineer-tools",
+  "displayName": "ML Engineer Tools",
+  "description": "Comprehensive tools for machine learning engineers with tensor shape inspection, GPU toggling, and smart ML workflows",
+  "version": "1.0.0",
+  "publisher": "vscode",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Data Science",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "machine learning",
+    "pytorch",
+    "tensorflow",
+    "numpy",
+    "jupyter",
+    "tensor",
+    "gpu",
+    "ml"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:jupyter",
+    "workspaceContains:**/*.py",
+    "workspaceContains:**/*.ipynb"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mlTools.toggleGPU",
+        "title": "Toggle GPU/CPU",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "mlTools.cleanImports",
+        "title": "Clean Unused Imports"
+      },
+      {
+        "command": "mlTools.showLossPlot",
+        "title": "Show Loss Plot",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "mlTools.syncSeeds",
+        "title": "Sync All Seeds to 42",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "mlTools.visualizeGradients",
+        "title": "Visualize Gradients"
+      },
+      {
+        "command": "mlTools.addTypeHints",
+        "title": "Add Type Hints"
+      },
+      {
+        "command": "mlTools.generateTest",
+        "title": "Generate pytest"
+      },
+      {
+        "command": "mlTools.convertFramework",
+        "title": "Convert TF ↔ PyTorch"
+      },
+      {
+        "command": "mlTools.deployModel",
+        "title": "Deploy to Cloud"
+      },
+      {
+        "command": "mlTools.showArchitecture",
+        "title": "Show Model Architecture"
+      },
+      {
+        "command": "mlTools.estimateTrainingTime",
+        "title": "Estimate Training Time"
+      },
+      {
+        "command": "mlTools.checkMemoryUsage",
+        "title": "Check GPU Memory"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mlTools.toggleGPU",
+        "key": "ctrl+shift+g",
+        "when": "editorTextFocus && resourceExtname == .py"
+      },
+      {
+        "command": "mlTools.syncSeeds",
+        "key": "ctrl+shift+s",
+        "when": "editorTextFocus && resourceExtname == .py"
+      },
+      {
+        "command": "mlTools.cleanImports",
+        "key": "ctrl+shift+i",
+        "when": "editorTextFocus && resourceExtname == .py"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "mlTools.visualizeGradients",
+          "when": "resourceExtname == .py",
+          "group": "ml@1"
+        },
+        {
+          "command": "mlTools.addTypeHints",
+          "when": "resourceExtname == .py",
+          "group": "ml@2"
+        },
+        {
+          "command": "mlTools.generateTest",
+          "when": "resourceExtname == .py",
+          "group": "ml@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "mlTools.toggleGPU",
+          "when": "resourceExtname == .py",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mlTools.showLossPlot",
+          "when": "resourceExtname == .py",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ML Engineer Tools",
+      "properties": {
+        "mlTools.enableShapeInspection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable tensor shape inspection on hover"
+        },
+        "mlTools.enableGPUToggle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GPU/CPU toggle functionality"
+        },
+        "mlTools.enableAutoImportClean": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically clean unused imports on save"
+        },
+        "mlTools.enableNaNDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight layers prone to NaN explosions"
+        },
+        "mlTools.enableMemoryMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show GPU memory usage beside operations"
+        },
+        "mlTools.defaultSeed": {
+          "type": "number",
+          "default": 42,
+          "description": "Default seed value for synchronization"
+        },
+        "mlTools.enableSmartPaste": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable smart paste with auto-imports"
+        },
+        "mlTools.enableShapeMatching": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn about dimension mismatches when pasting"
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "mlTools.tensorVariable",
+        "description": "Color for tensor variables",
+        "defaults": {
+          "dark": "#FF6B35",
+          "light": "#FF6B35"
+        }
+      },
+      {
+        "id": "mlTools.dataOperation",
+        "description": "Color for data operations",
+        "defaults": {
+          "dark": "#FFA500",
+          "light": "#FF8C00"
+        }
+      },
+      {
+        "id": "mlTools.nanWarning",
+        "description": "Color for NaN warnings",
+        "defaults": {
+          "dark": "#FF4444",
+          "light": "#CC0000"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "python",
+        "path": "./snippets/ml-snippets.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "ast-types": "^0.14.2",
+    "recast": "^0.23.4"
+  }
+}

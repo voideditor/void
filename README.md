@@ -21,6 +21,8 @@ This repo contains the full sourcecode for Void. If you're new, welcome!
 
 - 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
 
+- 🌌 [Download](https://voideditor.com/download-beta)
+
 
 ## Contributing
 

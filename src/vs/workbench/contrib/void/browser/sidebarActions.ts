@@ -17,7 +17,7 @@ import { IRange } from '../../../../editor/common/core/range.js';
 import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
 import { IMetricsService } from '../common/metricsService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+// import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js'; // Commented out - not needed since settings action is removed
 import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
 import { localize2 } from '../../../../nls.js';
 import { IChatThreadService } from './chatThreadService.js';
@@ -235,21 +235,22 @@ registerAction2(class extends Action2 {
 })
 
 
-// Settings gear
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'void.settingsAction',
-			title: `Void's Settings`,
-			icon: { id: 'settings-gear' },
-			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const commandService = accessor.get(ICommandService)
-		commandService.executeCommand(VOID_TOGGLE_SETTINGS_ACTION_ID)
-	}
-})
+// Settings gear - Commented out to remove redundant settings icon in the AI chat panel
+// The main settings gear in the IDE's top bar remains functional
+// registerAction2(class extends Action2 {
+// 	constructor() {
+// 		super({
+// 			id: 'void.settingsAction',
+// 			title: `Void's Settings`,
+// 			icon: { id: 'settings-gear' },
+// 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', VOID_VIEW_ID), }]
+// 		});
+// 	}
+// 	async run(accessor: ServicesAccessor): Promise<void> {
+// 		const commandService = accessor.get(ICommandService)
+// 		commandService.executeCommand('VOID_TOGGLE_SETTINGS_ACTION_ID')
+// 	}
+// })
 
 
 

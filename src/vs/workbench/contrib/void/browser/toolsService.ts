@@ -19,6 +19,8 @@ import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
+import { Schemas } from '../../../../base/common/network.js';
+import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 
 
 // tool use for AI
@@ -35,41 +37,6 @@ const validateStr = (argName: string, value: unknown) => {
 	if (value === null) throw new Error(`Invalid LLM output: ${argName} was null.`)
 	if (typeof value !== 'string') throw new Error(`Invalid LLM output format: ${argName} must be a string, but its type is "${typeof value}". Full value: ${JSON.stringify(value)}.`)
 	return value
-}
-
-
-// We are NOT checking to make sure in workspace
-const validateURI = (uriStr: unknown) => {
-	if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
-	if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
-
-	// Check if it's already a full URI with scheme (e.g., vscode-remote://, file://, etc.)
-	// Look for :// pattern which indicates a scheme is present
-	// Examples of supported URIs:
-	// - vscode-remote://wsl+Ubuntu/home/user/file.txt (WSL)
-	// - vscode-remote://ssh-remote+myserver/home/user/file.txt (SSH)
-	// - file:///home/user/file.txt (local file with scheme)
-	// - /home/user/file.txt (local file path, will be converted to file://)
-	// - C:\Users\file.txt (Windows local path, will be converted to file://)
-	if (uriStr.includes('://')) {
-		try {
-			const uri = URI.parse(uriStr)
-			return uri
-		} catch (e) {
-			// If parsing fails, it's a malformed URI
-			throw new Error(`Invalid URI format: ${uriStr}. Error: ${e}`)
-		}
-	} else {
-		// No scheme present, treat as file path
-		// This handles regular file paths like /home/user/file.txt or C:\Users\file.txt
-		const uri = URI.file(uriStr)
-		return uri
-	}
-}
-
-const validateOptionalURI = (uriStr: unknown) => {
-	if (isFalsy(uriStr)) return null
-	return validateURI(uriStr)
 }
 
 const validateOptionalStr = (argName: string, str: unknown) => {
@@ -153,13 +120,15 @@ export class ToolsService implements IToolsService {
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@IWorkbenchEnvironmentService private readonly _workbenchEnvironmentService: IWorkbenchEnvironmentService,
+
 	) {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
 		this.validateParams = {
 			read_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, start_line: startLineUnknown, end_line: endLineUnknown, page_number: pageNumberUnknown } = params
-				const uri = validateURI(uriStr)
+				const uri = this.validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 
 				let startLine = validateNumber(startLineUnknown, { default: null })
@@ -173,13 +142,13 @@ export class ToolsService implements IToolsService {
 			ls_dir: (params: RawToolParamsObj) => {
 				const { uri: uriStr, page_number: pageNumberUnknown } = params
 
-				const uri = validateURI(uriStr)
+				const uri = this.validateURI(uriStr)
 				const pageNumber = validatePageNum(pageNumberUnknown)
 				return { uri, pageNumber }
 			},
 			get_dir_tree: (params: RawToolParamsObj) => {
 				const { uri: uriStr, } = params
-				const uri = validateURI(uriStr)
+				const uri = this.validateURI(uriStr)
 				return { uri }
 			},
 			search_pathnames_only: (params: RawToolParamsObj) => {
@@ -205,7 +174,7 @@ export class ToolsService implements IToolsService {
 				} = params
 				const queryStr = validateStr('query', queryUnknown)
 				const pageNumber = validatePageNum(pageNumberUnknown)
-				const searchInFolder = validateOptionalURI(searchInFolderUnknown)
+				const searchInFolder = this.validateOptionalURI(searchInFolderUnknown)
 				const isRegex = validateBoolean(isRegexUnknown, { default: false })
 				return {
 					query: queryStr,
@@ -216,7 +185,7 @@ export class ToolsService implements IToolsService {
 			},
 			search_in_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, query: queryUnknown, is_regex: isRegexUnknown } = params;
-				const uri = validateURI(uriStr);
+				const uri = this.validateURI(uriStr);
 				const query = validateStr('query', queryUnknown);
 				const isRegex = validateBoolean(isRegexUnknown, { default: false });
 				return { uri, query, isRegex };
@@ -226,7 +195,7 @@ export class ToolsService implements IToolsService {
 				const {
 					uri: uriUnknown,
 				} = params
-				const uri = validateURI(uriUnknown)
+				const uri = this.validateURI(uriUnknown)
 				return { uri }
 			},
 
@@ -234,7 +203,7 @@ export class ToolsService implements IToolsService {
 
 			create_file_or_folder: (params: RawToolParamsObj) => {
 				const { uri: uriUnknown } = params
-				const uri = validateURI(uriUnknown)
+				const uri = this.validateURI(uriUnknown)
 				const uriStr = validateStr('uri', uriUnknown)
 				const isFolder = checkIfIsFolder(uriStr)
 				return { uri, isFolder }
@@ -242,7 +211,7 @@ export class ToolsService implements IToolsService {
 
 			delete_file_or_folder: (params: RawToolParamsObj) => {
 				const { uri: uriUnknown, is_recursive: isRecursiveUnknown } = params
-				const uri = validateURI(uriUnknown)
+				const uri = this.validateURI(uriUnknown)
 				const isRecursive = validateBoolean(isRecursiveUnknown, { default: false })
 				const uriStr = validateStr('uri', uriUnknown)
 				const isFolder = checkIfIsFolder(uriStr)
@@ -251,14 +220,14 @@ export class ToolsService implements IToolsService {
 
 			rewrite_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, new_content: newContentUnknown } = params
-				const uri = validateURI(uriStr)
+				const uri = this.validateURI(uriStr)
 				const newContent = validateStr('newContent', newContentUnknown)
 				return { uri, newContent }
 			},
 
 			edit_file: (params: RawToolParamsObj) => {
 				const { uri: uriStr, search_replace_blocks: searchReplaceBlocksUnknown } = params
-				const uri = validateURI(uriStr)
+				const uri = this.validateURI(uriStr)
 				const searchReplaceBlocks = validateStr('searchReplaceBlocks', searchReplaceBlocksUnknown)
 				return { uri, searchReplaceBlocks }
 			},
@@ -587,6 +556,44 @@ export class ToolsService implements IToolsService {
 		return { lintErrors, }
 	}
 
+	private validateURI(uriStr: unknown): URI {
+		if (uriStr === null) throw new Error(`Invalid LLM output: uri was null.`)
+		if (typeof uriStr !== 'string') throw new Error(`Invalid LLM output format: Provided uri must be a string, but it's a(n) ${typeof uriStr}. Full value: ${JSON.stringify(uriStr)}.`)
+
+		// Check if it's already a full URI with scheme (e.g., vscode-remote://, file://, etc.)
+		// Look for :// pattern which indicates a scheme is present
+		// Examples of supported URIs:
+		// - vscode-remote://wsl+Ubuntu/home/user/file.txt (WSL)
+		// - vscode-remote://ssh-remote+myserver/home/user/file.txt (SSH)
+		// - file:///home/user/file.txt (local file with scheme)
+		// - /home/user/file.txt (local file path, will be converted to file://)
+		// - C:\Users\file.txt (Windows local path, will be converted to file://)
+		if (uriStr.includes('://')) {
+			try {
+				const uri = URI.parse(uriStr)
+				return uri
+			} catch (e) {
+				// If parsing fails, it's a malformed URI
+				throw new Error(`Invalid URI format: ${uriStr}. Error: ${e}`)
+			}
+		} else {
+			// Depending on the current workspace, point to a local file, or to a remote file
+			const remoteAuthority = this._workbenchEnvironmentService.remoteAuthority;
+			let uri: URI
+			if (remoteAuthority === undefined) {
+				uri = URI.file(uriStr)
+			}
+			else {
+				uri = URI.from({ scheme: Schemas.vscodeRemote, path: uriStr, authority: remoteAuthority })
+			}
+			return uri
+		}
+	}
+
+	private validateOptionalURI(uriStr: unknown): URI | null {
+		if (isFalsy(uriStr)) return null
+		return this.validateURI(uriStr)
+	}
 
 }
 

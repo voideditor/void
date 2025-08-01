@@ -797,7 +797,10 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				if (e.key === 'Enter') {
 					// Shift + Enter when multiline = newline
 					const shouldAddNewline = e.shiftKey && multiline
-					if (!shouldAddNewline) e.preventDefault(); // prevent newline from being created
+					// 只有在非输入法组合状态下才阻止默认行为
+					if (!shouldAddNewline && !e.nativeEvent.isComposing) {
+						e.preventDefault(); // prevent newline from being created
+					}
 				}
 				onKeyDown?.(e)
 			}, [onKeyDown, onMenuKeyDown, multiline])}

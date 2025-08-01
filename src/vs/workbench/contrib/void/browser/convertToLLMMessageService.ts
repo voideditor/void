@@ -594,6 +594,16 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
 		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
+
+		// 日志：显示生成的系统消息
+		console.log('📋 [System Message Generated] =====================================')
+		console.log('📋 [System Message Generated] Chat Mode:', chatMode)
+		console.log('📋 [System Message Generated] Workspace Folders:', workspaceFolders)
+		console.log('📋 [System Message Generated] Active URI:', activeURI)
+		console.log('📋 [System Message Generated] System Message Length:', systemMessage?.length || 0)
+		console.log('📋 [System Message Generated] System Message Preview:', systemMessage?.substring(0, 500) + (systemMessage?.length > 500 ? '...' : ''))
+		console.log('📋 [System Message Generated] =====================================')
+
 		return systemMessage
 	}
 

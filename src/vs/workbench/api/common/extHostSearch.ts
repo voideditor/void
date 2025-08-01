@@ -158,6 +158,7 @@ export class ExtHostSearch implements IExtHostSearch {
 	}
 
 	$provideTextSearchResults(handle: number, session: number, rawQuery: IRawTextQuery, token: vscode.CancellationToken): Promise<ISearchCompleteStats> {
+		console.log('[ExtHostSearch] $provideTextSearchResults called', { handle, session, rawQuery });
 		const provider = this._textSearchProvider.get(handle);
 		if (!provider || !provider.provideTextSearchResults) {
 			throw new Error(`Unknown Text Search Provider ${handle}`);
@@ -169,11 +170,15 @@ export class ExtHostSearch implements IExtHostSearch {
 	}
 
 	$provideAITextSearchResults(handle: number, session: number, rawQuery: IRawAITextQuery, token: vscode.CancellationToken): Promise<ISearchCompleteStats> {
+		this._logService.info('[ExtHostSearch] $provideAITextSearchResults called', handle, session);
+
 		const provider = this._aiTextSearchProvider.get(handle);
 		if (!provider || !provider.provideAITextSearchResults) {
+			this._logService.error(`Unknown AI Text Search Provider ${handle}`);
 			throw new Error(`Unknown AI Text Search Provider ${handle}`);
 		}
 
+		this._logService.info('[ExtHostSearch] Provider found, creating TextSearchManager');
 		const query = reviveQuery(rawQuery);
 		const engine = this.createAITextSearchManager(query, provider);
 		return engine.search(progress => this._proxy.$handleTextMatch(handle, session, progress), token);

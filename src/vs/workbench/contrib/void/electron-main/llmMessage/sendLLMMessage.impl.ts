@@ -150,7 +150,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
-	else if (providerName === 'openAICompatible') {
+	else if (providerName.startsWith('openAICompatible')) {
 		const thisConfig = settingsOfProvider[providerName]
 		const headers = parseHeadersJSON(thisConfig.headersJSON)
 		return new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, defaultHeaders: headers, ...commonPayloadOpts })
@@ -886,6 +886,26 @@ export const sendLLMMessageToProviderImplementation = {
 		list: ollamaList,
 	},
 	openAICompatible: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params), // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: null,
+	},
+	openAICompatible2: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params), // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: null,
+	},
+	openAICompatible3: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params), // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: null,
+	},
+	openAICompatible4: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params), // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: null,
+	},
+	openAICompatible5: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params), // using openai's SDK is not ideal (your implementation might not do tools, reasoning, FIM etc correctly), talk to us for a custom integration
 		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
 		list: null,

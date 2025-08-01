@@ -116,7 +116,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 
-		const { settingsOfProvider, } = this.voidSettingsService.state
+		const { settingsOfProvider, globalSettings } = this.voidSettingsService.state
 
 		const mcpTools = this.mcpService.getMCPTools()
 
@@ -134,6 +134,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			settingsOfProvider,
 			modelSelection,
 			mcpTools,
+			proxyRequest: globalSettings.enableNetworkProxy,
 		} satisfies MainSendLLMMessageParams);
 
 		return requestId

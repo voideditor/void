@@ -1243,7 +1243,7 @@ export class CodeApplication extends Disposable {
 		const voidUpdatesChannel = ProxyChannel.fromService(accessor.get(IVoidUpdateService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-update', voidUpdatesChannel);
 
-		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService), this.configurationService);
 		mainProcessElectronServer.registerChannel('void-channel-llmMessage', sendLLMMessageChannel);
 
 		// Void added this

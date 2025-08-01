@@ -135,6 +135,7 @@ export type SendLLMMessageParams = {
 
 	settingsOfProvider: SettingsOfProvider;
 	mcpTools: InternalToolInfo[] | undefined;
+	proxyRequest: boolean;
 } & SendLLMType
 
 

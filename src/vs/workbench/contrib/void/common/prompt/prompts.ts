@@ -577,16 +577,21 @@ export const messageOfSelection = async (
 
 	if (s.type === 'CodeSelection') {
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
-		const lineNumAdd = lineNumAddition(s.range)
 		const lines = val?.split('\n')
-		const selection = `${tripleTick[0]}${s.language}\n${lines?.slice(s.range[0] - 1, s.range[1]).join('\n')}\n${tripleTick[1]}`
-		const content = selection ?? 'null'
-		const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`
+
+		const innerVal = lines?.slice(s.range[0] - 1, s.range[1]).join('\n')
+		const content = !lines ? ''
+			: `${tripleTick[0]}${s.language}\n${innerVal}\n${tripleTick[1]}`
+		const str = `${s.uri.fsPath}${lineNumAddition(s.range)}:\n${content}`
 		return str
 	}
 	else if (s.type === 'File') {
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
-		const content = val === null ? 'null' : `${tripleTick[0]}${s.language}\n${val}\n${tripleTick[1]}`
+
+		const innerVal = val
+		const content = val === null ? ''
+			: `${tripleTick[0]}${s.language}\n${innerVal}\n${tripleTick[1]}`
+
 		const str = `${s.uri.fsPath}:\n${content}`
 		return str
 	}

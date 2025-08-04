@@ -577,7 +577,7 @@ export const messageOfSelection = async (
 
 	if (s.type === 'CodeSelection') {
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
-		const lineNumAdd = s.type === 'CodeSelection' ? lineNumAddition(s.range) : ''
+		const lineNumAdd = lineNumAddition(s.range)
 		const lines = val?.split('\n')
 		const selection = lines?.slice(s.range[0] - 1, s.range[1]).join('\n')
 		const content = selection ?? 'null'

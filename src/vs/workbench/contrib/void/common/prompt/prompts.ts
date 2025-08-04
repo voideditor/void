@@ -579,7 +579,7 @@ export const messageOfSelection = async (
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
 		const lineNumAdd = lineNumAddition(s.range)
 		const lines = val?.split('\n')
-		const selection = lines?.slice(s.range[0] - 1, s.range[1]).join('\n')
+		const selection = `${tripleTick[0]}${s.language}\n${lines?.slice(s.range[0] - 1, s.range[1]).join('\n')}\n${tripleTick[1]}`
 		const content = selection ?? 'null'
 		const str = `${s.uri.fsPath}${lineNumAdd}:\n${content}`
 		return str

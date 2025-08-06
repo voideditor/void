@@ -1,0 +1,16 @@
+{
+	"name": "Code - OSS Minimal",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:20-bookworm",
+	"overrideCommand": false,
+	"mounts": [
+		{
+			"source": "vscode-dev",
+			"target": "/vscode-dev",
+			"type": "volume"
+		}
+	],
+	"postCreateCommand": "echo 'Container ready'",
+	"hostRequirements": {
+		"memory": "4gb"
+	}
+}

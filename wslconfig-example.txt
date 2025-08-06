@@ -1,0 +1,21 @@
+# WSL2 메모리 설정 파일
+# 이 파일을 C:\Users\[사용자명]\.wslconfig 으로 저장하세요
+
+[wsl2]
+# 메모리 설정 (Void Editor는 최소 9GB 필요)
+memory=10GB
+
+# CPU 코어 수 (선택사항)
+processors=4
+
+# 스왑 파일 크기 (선택사항)
+swap=8GB
+
+# 스왑 파일 경로 (선택사항)
+# swapFile=C:\\temp\\wsl-swap.vhdx
+
+# localhost 포워딩 활성화
+localhostForwarding=true
+
+# 중첩 가상화 활성화 (Docker in Docker 지원)
+nestedVirtualization=true

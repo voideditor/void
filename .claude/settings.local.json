@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(echo $APPDATA)",
+      "Bash(echo $LOCALAPPDATA)",
+      "Bash(docker:*)",
+      "Bash(cat:*)",
+      "Bash(wsl:*)",
+      "Bash(sc query:*)"
+    ],
+    "deny": []
+  }
+}

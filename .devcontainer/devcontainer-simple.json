@@ -1,0 +1,8 @@
+{
+	"name": "Code - OSS Simple",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"overrideCommand": false,
+	"postCreateCommand": "./.devcontainer/post-create.sh"
+}

@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  void-editor:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: void-editor
+    privileged: true
+    environment:
+      - DISPLAY=:1
+    volumes:
+      - .:/workspaces/void:cached
+      - vscode-dev:/vscode-dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    ports:
+      - "6080:6080"  # noVNC web client
+      - "5901:5901"  # VNC TCP port
+      - "3000:3000"  # Dev server (if needed)
+      - "9229:9229"  # Node.js debugger
+    command: |
+      bash -c "
+        cd /workspaces/void &&
+        npm install &&
+        npm run watch &
+        tail -f /dev/null
+      "
+    stdin_open: true
+    tty: true
+    mem_limit: 9g
+    memswap_limit: 9g
+
+volumes:
+  vscode-dev:

@@ -21,13 +21,17 @@ This repo contains the full sourcecode for Void. If you're new, welcome!
 
 - 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
 
-
 ## Contributing
 
 1. To get started working on Void, check out our Project Board! You can also see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 2. Feel free to attend a casual weekly meeting in our Discord channel!
 
+## Model Provider Development
+Want to add support for a new LLM provider? We've made it easy to submit new providers:
+
+📖 **[Provider Development Guide](PROVIDER_DEVELOPMENT_GUIDE.md)** - Complete guide for implementing providers
+for Void, allowing you to bring your own models, agents, and more. You can also use our `scaffold-provider.js` script to quickly get started with an OpenAI-compatible provider or something more custom.
 
 ## Reference
 

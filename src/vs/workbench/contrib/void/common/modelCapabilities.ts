@@ -65,6 +65,10 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
+	dify: {
+		endpoint: 'http://ok-ai.okfngroup.com', // Dify API endpoint
+		apiKey: '', // Dify API key (Bearer token)
+	},
 
 } as const
 
@@ -153,6 +157,9 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	dify: [ // Dify workflow models
+		'dify-workflow',
+	],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1451,6 +1458,25 @@ const openRouterSettings: VoidStaticProviderInfo = {
 
 // ---------------- model settings of everything above ----------------
 
+// ---------------- DIFY WORKFLOW ----------------
+const difyModelOptions = {
+	'dify-workflow': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const difySettings: VoidStaticProviderInfo = {
+	modelOptions: difyModelOptions,
+	modelOptionsFallback: (modelName) => { return null },
+}
+
+
 const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProviderInfo } = {
 	openAI: openAISettings,
 	anthropic: anthropicSettings,
@@ -1474,6 +1500,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+	dify: difySettings,
 } as const
 
 

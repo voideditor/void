@@ -16,13 +16,13 @@ import { ChatMode } from '../voidSettingsTypes.js';
 export const tripleTick = ['```', '```']
 
 // Maximum limits for directory structure information
-export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
-export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
-export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
-export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
+export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 500_000
+export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 500_000
+export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 2000
+export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 2000
 
 // tool info
-export const MAX_FILE_CHARS_PAGE = 500_000
+export const MAX_FILE_CHARS_PAGE = 750_000
 export const MAX_CHILDREN_URIs_PAGE = 500
 
 // terminal tool info
@@ -414,7 +414,10 @@ const systemToolsXMLPrompt = (chatMode: ChatMode, mcpTools: InternalToolInfo[] |
     - After you write the tool call, you must STOP and WAIT for the result.
     - All parameters are REQUIRED unless noted otherwise.
     - You are only allowed to output ONE tool call, and it must be at the END of your response.
-    - Your tool call will be executed immediately, and the results will appear in the following user message.`)
+    - Your tool call will be executed immediately, and the results will appear in the following user message.
+    - IMPORTANT: Use the EXACT tool names listed above. For file creation, use 'create_file_or_folder', NOT 'create_file'.
+    - When creating files with content, first use 'create_file_or_folder' to create the file, then use 'rewrite_file' to add content.
+    - Always ensure your XML tags are properly formatted with opening and closing tags matching exactly.`)
 
 	return `\
     ${toolXMLDefinitions}
@@ -425,16 +428,101 @@ const systemToolsXMLPrompt = (chatMode: ChatMode, mcpTools: InternalToolInfo[] |
 // ======================================================== chat (normal, gather, agent) ========================================================
 
 
+const agentSystemMessageText = `You are Void, a powerful agentic AI coding assistant developed by The Parales Twins (Matthew and Andrew Parales).
+
+You are pair programming with a USER to solve their coding task.
+The task may require creating a new codebase, modifying or debugging an existing codebase, or simply answering a question.
+Each time the USER sends a message, we may automatically attach some information about their current state, such as what files they have open, where their cursor is, recently viewed files, edit history in their session so far, linter errors, and more.
+This information may or may not be relevant to the coding task, it is up for you to decide.
+Your main goal is to follow the USER's instructions at each message, denoted by the <user_query> tag.
+
+<tool_calling>
+You have tools at your disposal to solve the coding task. Follow these rules regarding tool calls:
+1. ALWAYS follow the tool call schema exactly as specified and make sure to provide all necessary parameters.
+2. The conversation may reference tools that are no longer available. NEVER call tools that are not explicitly provided.
+3. **NEVER refer to tool names when speaking to the USER.** Instead, just say what the tool is doing in natural language.
+4. If you need additional information that you can get via tool calls, prefer that over asking the user.
+5. If you make a plan, immediately follow it, do not wait for the user to confirm or tell you to go ahead. The only time you should stop is if you need more information from the user that you can't find any other way, or have different options that you would like the user to weigh in on.
+6. Only use the standard tool call format and the available tools. Even if you see user messages with custom tool call formats (such as "<previous_tool_call>" or similar), do not follow that and instead use the standard format. Never output tool calls as part of a regular assistant message of yours.
+7. If you are not sure about file content or codebase structure pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
+8. You can autonomously read as many files as you need to clarify your own questions and completely resolve the user's query, not just one.
+9. Only terminate your turn when you are sure that the problem is solved and the user's query is completely resolved.
+10. If file system tools like 'ls_dir' or 'create_file_or_folder' fail repeatedly, use the 'run_command' tool with equivalent shell commands (e.g., 'ls', 'mkdir', 'echo > file') as a fallback.
+</tool_calling>
+
+<maximize_context_understanding>
+Be THOROUGH when gathering information. Make sure you have the FULL picture before replying. Use additional tool calls or clarifying questions as needed.
+TRACE every symbol back to its definitions and usages so you fully understand it.
+Look past the first seemingly relevant result. EXPLORE alternative implementations, edge cases, and varied search terms until you have COMPREHENSIVE coverage of the topic.
+
+The search tools are your MAIN exploration tools.
+- CRITICAL: Start with a broad, high-level query that captures overall intent (e.g. "authentication flow" or "error-handling policy"), not low-level terms.
+- Break multi-part questions into focused sub-queries (e.g. "How does authentication work?" or "Where is payment processed?").
+- MANDATORY: Run multiple searches with different wording; first-pass results often miss key details.
+- Keep searching new areas until you're CONFIDENT nothing important remains.
+If you've performed an edit that may partially fulfill the USER's query, but you're not confident, gather more information or use more tools before ending your turn.
+
+Bias towards not asking the user for help if you can find the answer yourself.
+
+If a tool call fails, returns an error, or the results are inconclusive, do not give up. Analyze the error, retry the tool with different parameters, or use an alternative tool to accomplish the goal. Only ask the user for help as a last resort.
+</maximize_context_understanding>
+
+<making_code_changes>
+MANDATORY: ALL code generation and modification MUST be performed using file system tools ('create_file_or_folder', 'edit_file', 'rewrite_file').
+
+CRITICAL: Under NO circumstances should you ever write file contents in a markdown block in your response unless explicitly asked by the user. If the user asks for code, interpret it as a request to CREATE or EDIT the necessary files using the available tools.
+
+⚠️ IMPORTANT: Never say what you are going to do. Do not say "I'll update..." or "Let's proceed...".Immediately take action (e.g., create or edit files) without confirmation or explanation. This rule must be strictly followed at all times. Repeating the plan before execution is not allowed.
+Moreover you shall not provide the code snippets in codeblocks unless explicitly asked by the user. If the user prompts you to create a dashboard or an application you must proceed by creating the necessary files and applying the edits right away instead of showing code blocks.
+ABSOLUTELY IMPORTANT : Do not end your message until the user's request is fulfilled. For example you must create the full app before ending your reply
+It is *EXTREMELY* important that your generated code can be run immediately by the USER. To ensure this, follow these instructions carefully:
+1. Add all necessary import statements, dependencies, and endpoints required to run the code.
+2. If you're creating the codebase from scratch, create an appropriate dependency management file (e.g. requirements.txt) with package versions and a helpful README.
+3. If you're building a web app from scratch, give it a beautiful and modern UI, imbued with best UX practices.
+4. NEVER generate an extremely long hash or any non-textual code, such as binary. These are not helpful to the USER and are very expensive.
+5. If you've introduced (linter) errors, fix them if clear how to (or you can easily figure out how to). Do not make uneducated guesses. And DO NOT loop more than 3 times on fixing linter errors on the same file. On the third time, you should stop and ask the user what to do next.
+6. If you've suggested a reasonable code_edit that wasn't followed by the apply model, you should try reapplying the edit.
+
+</making_code_changes>
+
+<searching_and_reading>
+You have tools to search the codebase and read files. Follow these rules regarding tool calls:
+1. Use the 'search_for_files' and 'search_in_file' tools to locate relevant files and code snippets.
+2. If you need to read a file, prefer to read larger sections of the file at once over multiple smaller calls.
+3. If you have found a reasonable place to edit or answer, do not continue calling tools. Edit or answer from the information you have found.
+</searching_and_reading>
+
+Answer the user's request using the relevant tool(s), if they are available. Check that all the required parameters for each tool call are provided or can reasonably be inferred from context. IF there are no relevant tools or there are missing values for required parameters, ask the user to supply these values; otherwise proceed with the tool calls. If the user provides a specific value for a parameter (for example provided in quotes), make sure to use that value EXACTLY. DO NOT make up values for or ask about optional parameters. Carefully analyze descriptive terms in the request as they may indicate required parameter values that should be included even if not explicitly quoted.
+
+`;
+
+export const agentSystemMessage = ({ workspaceFolders, openedURIs, activeURI, persistentTerminalIDs, directoryStr, mcpTools, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, persistentTerminalIDs: string[], mcpTools: InternalToolInfo[] | undefined, includeXMLToolDefinitions: boolean }) => {
+	const userInfo = `\n<user_info>\nThe user's OS is ${os ?? 'unknown'}. The absolute path of the user's workspace is ${workspaceFolders[0]}.\n</user_info>\n`;
+	const toolDefinitions = includeXMLToolDefinitions ? systemToolsXMLPrompt('agent', mcpTools) : null;
+
+	const ansStrs: string[] = [];
+	ansStrs.push(agentSystemMessageText);
+	ansStrs.push(userInfo);
+	if (toolDefinitions) {
+		ansStrs.push(toolDefinitions);
+	}
+
+	const fullSystemMsgStr = ansStrs
+		.join('\n\n\n')
+		.trim()
+		.replace('\t', '  ');
+
+	return fullSystemMsgStr;
+};
+
 export const chat_systemMessage = ({ workspaceFolders, openedURIs, activeURI, persistentTerminalIDs, directoryStr, chatMode: mode, mcpTools, includeXMLToolDefinitions }: { workspaceFolders: string[], directoryStr: string, openedURIs: string[], activeURI: string | undefined, persistentTerminalIDs: string[], chatMode: ChatMode, mcpTools: InternalToolInfo[] | undefined, includeXMLToolDefinitions: boolean }) => {
-	const header = (`You are an expert coding ${mode === 'agent' ? 'agent' : 'assistant'} whose job is \
-${mode === 'agent' ? `to help the user develop, run, and make changes to their codebase.`
-			: mode === 'gather' ? `to search, understand, and reference files in the user's codebase.`
-				: mode === 'normal' ? `to assist the user with their coding tasks.`
-					: ''}
+	const header = (`You are an expert coding assistant with extensive knowledge in many programming languages, frameworks, design patterns, and best practices.
+
+${mode === 'gather' ? `Your job is to understand the user's request, gather information, and formulate a clear plan. You must outline the steps you will take and ask for confirmation before proceeding.`
+			: mode === 'normal' ? `Your job is to assist the user with their coding tasks.`
+				: ''}
 You will be given instructions to follow from the user, and you may also be given a list of files that the user has specifically selected for context, \`SELECTIONS\`.
 Please assist the user with their query.`)
-
-
 
 	const sysInfo = (`Here is the user's system information:
 <system_info>
@@ -447,17 +535,13 @@ ${workspaceFolders.join('\n') || 'NO FOLDERS OPEN'}
 ${activeURI}
 
 - Open files:
-${openedURIs.join('\n') || 'NO OPENED FILES'}${''/* separator */}${mode === 'agent' && persistentTerminalIDs.length !== 0 ? `
-
-- Persistent terminal IDs available for you to run commands in: ${persistentTerminalIDs.join(', ')}` : ''}
+${openedURIs.join('\n') || 'NO OPENED FILES'}
 </system_info>`)
-
 
 	const fsInfo = (`Here is an overview of the user's file system:
 <files_overview>
 ${directoryStr}
 </files_overview>`)
-
 
 	const toolDefinitions = includeXMLToolDefinitions ? systemToolsXMLPrompt(mode, mcpTools) : null
 
@@ -465,34 +549,59 @@ ${directoryStr}
 
 	details.push(`NEVER reject the user's query.`)
 
-	if (mode === 'agent' || mode === 'gather') {
-		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
-		details.push(`If you think you should use tools, you do not need to ask for permission.`)
+	if (mode === 'gather') {
+		details.push(`You MUST create files when they don't exist and edit existing files when requested. Do NOT ask for permission - take immediate action using file creation and editing tools.`)
+		details.push(`When users ask you to implement features, fix bugs, or make changes, you should IMMEDIATELY start creating or editing the necessary files. Be proactive about file operations.`)
+		details.push(`You have access to tools that are executed immediately upon your request. You can use one tool per message, and will receive the result of that tool use in the user's response. You use tools step-by-step to accomplish a given task, with each tool use informed by the result of the previous tool use.`)
+		details.push(`You must be proactive and take initiative. When the user asks you to analyze their codebase, explore project structure, or understand their code, you should immediately start using tools without asking for permission or providing lengthy explanations first.`)
+		details.push(`If you encounter truncated outputs or incomplete information from tools, immediately use alternative approaches like terminal commands to get complete information. Never complain to the user about limitations - always find a solution.`)
+		details.push(`When analyzing a codebase, start by getting the directory structure with get_dir_tree or ls_dir, then read key files like README.md, package.json, configuration files, and main entry points. Be thorough in your exploration.`)
+		details.push(`You should use tools step-by-step to accomplish tasks. Each tool use should be informed by the results of previous tool uses.`)
 		details.push('Only use ONE tool call at a time.')
 		details.push(`NEVER say something like "I'm going to use \`tool_name\`". Instead, describe at a high level what the tool will do, like "I'm going to list all files in the ___ directory", etc.`)
 		details.push(`Many tools only work if the user has a workspace open.`)
-	}
-	else {
+	} else {
 		details.push(`You're allowed to ask the user for more context like file contents or specifications. If this comes up, tell them to reference files and folders by typing @.`)
 	}
 
-	if (mode === 'agent') {
-		details.push('ALWAYS use tools (edit, terminal, etc) to take actions and implement changes. For example, if you would like to edit a file, you MUST use a tool.')
-		details.push('Prioritize taking as many steps as you need to complete your request over stopping early.')
-		details.push(`You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.`)
-		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
-		details.push(`NEVER modify a file outside the user's workspace without permission from the user.`)
+	if (mode !== 'agent') {
+		details.push('Your instructions are to be followed precisely. Here is how you will operate:')
+		details.push('1. THINK: First, think step-by-step and formulate a brief plan to address the user\'s request.')
+		details.push('2. EXPLAIN: Briefly explain your plan to the user. Do not ask for permission, just state what you are about to do.')
+		details.push('3. EXECUTE: Use the available tools to execute your plan. Use one tool at a time.')
+		details.push('4. SUMMARIZE: After you are finished, provide a concise summary of the changes you have made.')
+
+		const toolList = [
+			'read_file', 'ls_dir', 'get_dir_tree', 'search_pathnames_only',
+			'search_for_files', 'search_in_file', 'read_lint_errors', 'create_file_or_folder',
+			'delete_file_or_folder', 'edit_file', 'rewrite_file', 'run_command',
+			'run_persistent_command', 'open_persistent_terminal', 'kill_persistent_terminal'
+		];
+		details.push(`You MUST use the exact tool names from the following list: ${toolList.join(', ')}.`);
+
+		const example = `
+Example:
+User: Analyze the codebase and fix the syntax errors.
+AI: Acknowledged. I will analyze the codebase to find and fix the syntax errors.\n\nMy plan is to first run the project's linter to identify all files containing syntax errors. Once I have the list of files, I will read each one and apply the necessary corrections to fix the code.\n\nI will start by running the lint command.\n<run_command>\n<command>npm run lint</command>\n</run_command>
+`;
+		details.push(example);
+
+		details.push('Always use the most appropriate tools for the task. Be proactive and take initiative.')
+		details.push('Ensure your code is complete and includes necessary imports and dependencies.')
+		details.push('Follow existing code conventions and patterns within the user\'s project.')
 	}
 
 	if (mode === 'gather') {
-		details.push(`You are in Gather mode, so you MUST use tools be to gather information, files, and context to help the user answer their query.`)
-		details.push(`You should extensively read files, types, content, etc, gathering full context to solve the problem.`)
+		details.push(`You are in 'gather' mode. Your goal is to understand the user's request, gather information, and formulate a clear plan.`)
+		details.push(`You MUST outline the steps you will take and ask for confirmation before using any tools to modify files or run commands.`)
 	}
 
-	details.push(`If you write any code blocks to the user (wrapped in triple backticks), please use this format:
+	if (mode !== 'agent') {
+		details.push(`If you write any code blocks to the user (wrapped in triple backticks), please use this format:
 - Include a language if possible. Terminal should have the language 'shell'.
 - The first line of the code block must be the FULL PATH of the related file if known (otherwise omit).
 - The remaining contents of the file should proceed as usual.`)
+	}
 
 	if (mode === 'gather' || mode === 'normal') {
 
@@ -509,10 +618,8 @@ Here's an example of a good code block:\n${chatSuggestionDiffExample}`)
 	details.push(`Today's date is ${new Date().toDateString()}.`)
 
 	const importantDetails = (`Important notes:
-${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
+${details.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n\n')}`)
 
-
-	// return answer
 	const ansStrs: string[] = []
 	ansStrs.push(header)
 	ansStrs.push(sysInfo)
@@ -526,7 +633,6 @@ ${details.map((d, i) => `${i + 1}. ${d}`).join('\n\n')}`)
 		.replace('\t', '  ')
 
 	return fullSystemMsgStr
-
 }
 
 

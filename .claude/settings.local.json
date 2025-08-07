@@ -5,7 +5,19 @@
       "Bash(npm uninstall:*)",
       "Bash(npm install:*)",
       "Bash(git add:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "Bash(mkdir:*)",
+      "Bash(copy \".build\\electron\\Void.exe\" \".build\\electron\\OKDS-AI-Assistant.exe\")",
+      "Bash(cp:*)",
+      "Bash(npm run buildreact:*)",
+      "Bash(.scriptscode.bat --user-data-dir=%TEMP%okds-test --extensions-dir=%TEMP%okds-ext)",
+      "Bash(cmd /c:*)",
+      "Bash(python:*)",
+      "Bash(powershell:*)",
+      "Bash(npm run compile:*)",
+      "Bash(del buildnul)",
+      "Bash(Remove-Item -Force \"build\\nul\" -ErrorAction SilentlyContinue)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

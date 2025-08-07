@@ -146,7 +146,8 @@ npm run test-extension   # Extension tests
   - `okds/patches/chatDragAndDrop.patch.cjs` - Applies the override
   - `okds/runtime-patches/void-dragdrop-attachment.js` - Quick testing
 
-## Remember
+## Important Rules
+- NEVER create .bat files - use PowerShell commands or direct commands instead
 - okds = "OK's Customizations" 
 - This keeps customizations separate from upstream Void updates
 - Always run `npm run buildreact` after fresh clone or when UI appears broken

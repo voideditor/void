@@ -123,7 +123,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: VOID_TOGGLE_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettings', "Void: Toggle Settings"),
+			title: nls.localize2('voidSettings', "OKDS AI Assistant: Toggle Settings"),
 			icon: Codicon.settingsGear,
 			menu: [
 				{

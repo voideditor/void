@@ -205,7 +205,7 @@ MenuRegistry.appendMenuItems([{
 		group: '3_workbench_layout_move',
 		command: {
 			id: ToggleSidebarPositionAction.ID,
-			title: localize('move second sidebar left', "Move Void Side Bar Left")
+			title: localize('move second sidebar left', "Move OKDS AI Assistant Side Bar Left")
 		},
 		when: ContextKeyExpr.and(ContextKeyExpr.notEquals('config.workbench.sideBar.location', 'right'), ContextKeyExpr.equals('viewContainerLocation', ViewContainerLocationToString(ViewContainerLocation.AuxiliaryBar))),
 		order: 1
@@ -216,7 +216,7 @@ MenuRegistry.appendMenuItems([{
 		group: '3_workbench_layout_move',
 		command: {
 			id: ToggleSidebarPositionAction.ID,
-			title: localize('move second sidebar right', "Move Void Side Bar Right")
+			title: localize('move second sidebar right', "Move OKDS AI Assistant Side Bar Right")
 		},
 		when: ContextKeyExpr.and(ContextKeyExpr.equals('config.workbench.sideBar.location', 'right'), ContextKeyExpr.equals('viewContainerLocation', ViewContainerLocationToString(ViewContainerLocation.AuxiliaryBar))),
 		order: 1

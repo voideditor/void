@@ -1,4 +1,4 @@
-# Welcome to Void.
+# Welcome to OKDS AI Assistant.
 
 <div align="center">
 	<img
@@ -9,7 +9,7 @@
 	/>
 </div>
 
-Void is the open-source Cursor alternative.
+OKDS AI Assistant is an AI-powered code editor based on Void.
 
 Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data.
 

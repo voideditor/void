@@ -105,7 +105,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 		// throw an error if no model/provider selected (this should usually never be reached, the UI should check this first, but might happen in cases like Apply where we haven't built much UI/checks yet, good practice to have check logic on backend)
 		if (modelSelection === null) {
-			const message = `Please add a provider in Void's Settings.`
+			const message = `Please add a provider in OKDS AI Assistant Settings.`
 			onError({ message, fullError: null })
 			return null
 		}

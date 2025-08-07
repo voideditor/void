@@ -22,6 +22,21 @@ This repo contains the full sourcecode for Void. If you're new, welcome!
 - 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
 
 
+## Installation
+
+### Windows and MacOS
+
+You can easily download Void from here: [https://voideditor.com/download-beta]
+
+### Linux
+
+You can download Void for Linux from here: [https://github.com/voideditor/binaries/releases]. Please make sure to select the right release for your version of Linux.
+
+### Install from Source
+
+You can install Void from source by following the steps explained inside this page: [https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md#developer-mode-instructions]
+
+
 ## Contributing
 
 1. To get started working on Void, check out our Project Board! You can also see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).

@@ -29,6 +29,7 @@ export class RipgrepTextSearchEngine {
 	constructor(private outputChannel: IOutputChannel, private readonly _numThreads?: number | undefined) { }
 
 	provideTextSearchResults(query: TextSearchQuery2, options: TextSearchProviderOptions, progress: Progress<TextSearchResult2>, token: CancellationToken): Promise<TextSearchComplete2> {
+		console.log('[RipgrepTextSearchEngine] provideTextSearchResults called', { query, options });
 		return Promise.all(options.folderOptions.map(folderOption => {
 			const extendedOptions: RipgrepTextSearchOptions = {
 				folderOptions: folderOption,

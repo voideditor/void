@@ -543,14 +543,41 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 }
 
 
-export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
-	string = string.replaceAll('\n•', '\n\n•')
+export const ChatMarkdownRender = ({
+	string,
+	inPTag = false,
+	chatMessageLocation,
+	image,
+	...options
+}: {
+	string: string,
+	inPTag?: boolean,
+	codeURI?: URI,
+	chatMessageLocation: ChatMessageLocation | undefined,
+	image?: {
+		imgData: string;
+		// mimeType: string;
+	}
+} & RenderTokenOptions
+
+) => {
+	string = string.replaceAll('\n•',
+		'\n\n•')
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
 	return (
 		<>
 			{tokens.map((token, index) => (
 				<RenderToken key={index} token={token} inPTag={inPTag} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
 			))}
+			{image && (
+				<div className="void-image-preview-container">
+					<img
+						src={image.imgData}
+						alt="Chat image"
+						className="void-pasted-image-preview"
+					/>
+				</div>
+			)}
 		</>
 	)
 }

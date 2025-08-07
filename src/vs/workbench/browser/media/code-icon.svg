@@ -1,1 +1,22 @@
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><style>.st0{fill:#f6f6f6;fill-opacity:0}.st1{fill:#fff}.st2{fill:#167abf}</style><path class="st0" d="M1024 1024H0V0h1024v1024z"/><path class="st1" d="M1024 85.333v853.333H0V85.333h1024z"/><path class="st2" d="M0 85.333h298.667v853.333H0V85.333zm1024 0v853.333H384V85.333h640zm-554.667 160h341.333v-64H469.333v64zm341.334 533.334H469.333v64h341.333l.001-64zm128-149.334H597.333v64h341.333l.001-64zm0-149.333H597.333v64h341.333l.001-64zm0-149.333H597.333v64h341.333l.001-64z"/></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(1.0485,0,0,1.0485,-24.8342,-24.8342)">
+        <circle cx="512" cy="512" r="488.315" style="fill:white;"/>
+    </g>
+    <g transform="matrix(1.62598,0,0,1.38738,-436.423,-178.428)">
+        <path d="M583.293,198.365L783.817,333.473L583.293,468.581L382.769,333.473L583.293,198.365Z" style="fill:rgb(55,55,55);"/>
+    </g>
+    <g transform="matrix(0.976421,0,0,0.976421,12.0725,-28.2541)">
+        <path d="M512,512L512,898.704L178.078,705.448L178.078,320.027L512,512Z" style="fill:rgb(46,46,46);"/>
+    </g>
+    <g transform="matrix(-0.976356,0,0,0.976421,1011.89,-28.2541)">
+        <path d="M512,512L512,898.704L178.078,705.448L178.078,320.027L512,512Z" style="fill:rgb(39,39,39);"/>
+    </g>
+    <g transform="matrix(0.976421,0,0,0.976421,12.0725,-28.2541)">
+        <path d="M178.078,320.027L512,512L845.922,320.027" style="fill:none;stroke:white;stroke-width:3.07px;"/>
+    </g>
+    <g transform="matrix(0.976421,0,0,0.976421,12.0725,-28.2541)">
+        <path d="M512,512L512,898.704" style="fill:none;stroke:white;stroke-width:3.07px;"/>
+    </g>
+</svg>

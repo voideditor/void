@@ -1,0 +1,34 @@
+{
+  "windows": {
+    "main_icon": "resources/win32/code.ico",
+    "large_png": "resources/win32/code_150x150.png",
+    "small_png": "resources/win32/code_70x70.png",
+    "installer_bmps": [
+      "resources/win32/inno-big-100.bmp",
+      "resources/win32/inno-big-125.bmp",
+      "resources/win32/inno-big-150.bmp",
+      "resources/win32/inno-big-175.bmp",
+      "resources/win32/inno-big-200.bmp",
+      "resources/win32/inno-big-225.bmp",
+      "resources/win32/inno-big-250.bmp",
+      "resources/win32/inno-small-100.bmp",
+      "resources/win32/inno-small-125.bmp",
+      "resources/win32/inno-small-150.bmp",
+      "resources/win32/inno-small-175.bmp",
+      "resources/win32/inno-small-200.bmp",
+      "resources/win32/inno-small-225.bmp",
+      "resources/win32/inno-small-250.bmp"
+    ]
+  },
+  "macos": {
+    "main_icon": "resources/darwin/code.icns"
+  },
+  "linux": {
+    "main_icon": "resources/linux/code.png"
+  },
+  "server": {
+    "favicon": "resources/server/favicon.ico",
+    "pwa_192": "resources/server/code-192.png",
+    "pwa_512": "resources/server/code-512.png"
+  }
+}

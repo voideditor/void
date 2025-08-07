@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Remove-Item -Recurse -Force node_modules)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git clean:*)"
+    ],
+    "deny": []
+  }
+}

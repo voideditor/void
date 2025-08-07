@@ -48,7 +48,6 @@
     "jsonc-parser": "^2.3.0",
     "jws": "^4.0.0",
     "mime": "^1.4.1",
-    "source-map": "0.6.1",
     "ternary-stream": "^3.0.0",
     "through2": "^4.0.2",
     "tree-sitter": "^0.22.4",
@@ -65,5 +64,8 @@
   "optionalDependencies": {
     "tree-sitter-typescript": "^0.23.2",
     "vscode-gulp-watch": "^5.0.3"
+  },
+  "dependencies": {
+    "source-map": "^0.6.1"
   }
 }

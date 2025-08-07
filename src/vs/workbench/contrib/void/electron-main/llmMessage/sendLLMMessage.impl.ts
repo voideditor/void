@@ -12,14 +12,15 @@ import { MistralCore } from '@mistralai/mistralai/core.js';
 import { fimComplete } from '@mistralai/mistralai/funcs/fimComplete.js';
 import { Tool as GeminiTool, FunctionDeclaration, GoogleGenAI, ThinkingConfig, Schema, Type } from '@google/genai';
 import { GoogleAuth } from 'google-auth-library'
-/* eslint-enable */
-
 import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
+import * as https from 'https';
+import * as http from 'http';
+import * as os from 'os';
 
 const getGoogleApiKey = async () => {
 	// module‑level singleton
@@ -29,6 +30,23 @@ const getGoogleApiKey = async () => {
 	return key
 }
 
+const getUserIP = () => {
+	// Get local IP address of the user
+	const networkInterfaces = os.networkInterfaces();
+	for (const interfaceName in networkInterfaces) {
+		const addresses = networkInterfaces[interfaceName];
+		if (addresses) {
+			for (const address of addresses) {
+				// Skip internal/loopback addresses and IPv6
+				if (!address.internal && address.family === 'IPv4') {
+					return address.address;
+				}
+			}
+		}
+	}
+	// Fallback to localhost if no external IP found
+	return '127.0.0.1';
+}
 
 
 
@@ -337,7 +355,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		.create(options)
 		.then(async response => {
 			_setAborter(() => response.controller.abort())
-			// when receive text
+			// when receive te/fix '@anthropic-ai/sdk' 모듈 또는 해당 형식 선언을 찾을 수 없습니다.xt
 			for await (const chunk of response) {
 				// message
 				const newText = chunk.choices[0]?.delta?.content ?? ''
@@ -844,6 +862,163 @@ const sendGeminiChat = async ({
 		})
 };
 
+// Implementation for Dify chat API
+const sendDifyChat = async ({
+	messages,
+	separateSystemMessage,
+	onText,
+	onFinalMessage,
+	onError,
+	settingsOfProvider,
+	modelName: modelName_,
+	_setAborter,
+	providerName,
+}: SendChatParams_Internal) => {
+	try {
+		const { apiKey, endpoint } = settingsOfProvider.dify;
+
+		if (!apiKey || !endpoint) {
+			onError({ message: 'Dify configuration is incomplete. Please check API key and endpoint.', fullError: null });
+			return;
+		}
+
+		// Convert Void messages to Dify chat format
+		const difyMessages = [];
+
+		// Add system message if present
+		if (separateSystemMessage) {
+			difyMessages.push({
+				role: 'system',
+				content: separateSystemMessage
+			});
+		}
+
+		// Convert conversation messages
+		for (const msg of messages) {
+			if ('content' in msg && typeof msg.content === 'string') {
+				difyMessages.push({
+					role: msg.role === 'assistant' ? 'assistant' : 'user',
+					content: msg.content
+				});
+			}
+		}
+
+		// Get the last user message as query
+		const lastUserMessage = difyMessages.filter(m => m.role === 'user').pop();
+		const query = lastUserMessage?.content || 'Hello';
+
+		// Prepare Dify API request
+		const requestBody = {
+			inputs: {},
+			query: query,
+			response_mode: 'streaming',
+			conversation_id: '',
+			user: getUserIP(),
+		};
+
+		const url = new URL('/v1/chat-messages', endpoint);
+		const isHttps = url.protocol === 'https:';
+		const httpModule = isHttps ? https : http;
+
+		const postData = JSON.stringify(requestBody);
+		const options = {
+			hostname: url.hostname,
+			port: url.port || (isHttps ? 443 : 80),
+			path: url.pathname,
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${apiKey}`,
+				'Content-Length': Buffer.byteLength(postData),
+			},
+		};
+
+		let fullText = '';
+		let isAborted = false;
+
+		const req = httpModule.request(options, (res) => {
+			if (res.statusCode !== 200) {
+				onError({
+					message: `Dify API error: ${res.statusCode} ${res.statusMessage}`,
+					fullError: null
+				});
+				return;
+			}
+
+			res.setEncoding('utf8');
+			res.on('data', (chunk) => {
+				if (isAborted) return;
+
+				try {
+					// Handle Dify streaming response format (Server-Sent Events)
+					const lines = chunk.toString().split('\n').filter((line: string) => line.trim());
+
+					for (const line of lines) {
+						if (line.startsWith('data: ')) {
+							const jsonData = line.slice(6);
+							if (jsonData === '[DONE]') {
+								onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+								return;
+							}
+
+							try {
+								const data = JSON.parse(jsonData);
+
+								// Handle different event types from Dify
+								if (data.event === 'message' && data.answer) {
+									fullText += data.answer;
+									onText({ fullText, fullReasoning: '' });
+								} else if (data.event === 'message_end') {
+									onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+									return;
+								} else if (data.event === 'agent_message' && data.answer) {
+									fullText += data.answer;
+									onText({ fullText, fullReasoning: '' });
+								}
+							} catch (parseError) {
+								// Continue processing other lines if one fails to parse
+								console.warn('Failed to parse Dify response chunk:', parseError);
+							}
+						}
+					}
+				} catch (error) {
+					onError({
+						message: `Error processing Dify response: ${error}`,
+						fullError: error instanceof Error ? error : null
+					});
+				}
+			});
+
+			res.on('end', () => {
+				if (!isAborted && fullText) {
+					onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+				}
+			});
+		});
+
+		req.on('error', (error) => {
+			onError({
+				message: `Dify request error: ${error.message}`,
+				fullError: error
+			});
+		});
+
+		// Set abort handler
+		_setAborter(() => {
+			isAborted = true;
+			req.destroy();
+		});
+
+		req.write(postData);
+		req.end();
+
+	} catch (error) {
+		onError({
+			message: `Dify chat error: ${error}`,
+			fullError: error instanceof Error ? error : null
+		});
+	}
+};
 
 
 type CallFnOfProvider = {
@@ -934,6 +1109,11 @@ export const sendLLMMessageToProviderImplementation = {
 	},
 	awsBedrock: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: null,
+	},
+	dify: {
+		sendChat: sendDifyChat,
 		sendFIM: null,
 		list: null,
 	},

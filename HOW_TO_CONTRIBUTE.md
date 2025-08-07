@@ -115,7 +115,7 @@ We don't usually recommend building a local executible of Void - typically you s
 	<summary> Building Locally (not recommended)</summary>
 If you're certain you want to build a local executible of Void, follow these steps. It can take ~25 minutes.
 
-Make sure you've already built Void first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). 
+Make sure you've already entered Developer Mode with Void first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). 
 
 
 ##### Mac

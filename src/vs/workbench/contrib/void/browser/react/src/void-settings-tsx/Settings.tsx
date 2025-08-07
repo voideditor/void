@@ -31,6 +31,7 @@ type Tab =
 	| 'featureOptions'
 	| 'mcp'
 	| 'general'
+	| 'network'
 	| 'all';
 
 
@@ -1042,6 +1043,7 @@ export const Settings = () => {
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'mcp', label: 'MCP' },
+		{ tab: 'network', label: 'Network' },
 		{ tab: 'all', label: 'All Settings' },
 	];
 	const shouldShowTab = (tab: Tab) => selectedSection === 'all' || selectedSection === tab;
@@ -1550,8 +1552,41 @@ Use Model Context Protocol to provide Agent mode with more tools.
 							</div>
 
 
+							{/* Network section */}
+							<div className={shouldShowTab('network') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<h2 className={`text-3xl mb-2`}>Network</h2>
 
+									<div className='flex flex-col gap-y-8 my-4'>
+										<ErrorBoundary>
+											{/* LLM Proxy */}
+											<div>
+												<h4 className={`text-base`}>Use Proxy</h4>
+												<div className='text-sm text-void-fg-3 mt-1'>
+													<span>
+														Use proxy setting in LLM.{' '}
+													</span>
+												</div>
 
+												<div className='my-2'>
+													{/* Enable Switch */}
+													<ErrorBoundary>
+														<div className='flex items-center gap-x-2 my-2'>
+															<VoidSwitch
+																size='xs'
+																value={settingsState.globalSettings.enableNetworkProxy}
+																onChange={(newVal) => voidSettingsService.setGlobalSetting('enableNetworkProxy', newVal)}
+															/>
+															<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableNetworkProxy ? 'Enabled' : 'Disabled'}</span>
+														</div>
+													</ErrorBoundary>
+												</div>
+
+											</div>
+										</ErrorBoundary>
+									</div>
+								</ErrorBoundary>
+							</div>
 
 						</div>
 

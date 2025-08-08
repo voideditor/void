@@ -11,28 +11,11 @@ import { os } from '../helpers/systemInfo.js';
 import { RawToolParamsObj } from '../sendLLMMessageTypes.js';
 import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, BuiltinToolName, BuiltinToolResultType, ToolName } from '../toolsServiceTypes.js';
 import { ChatMode } from '../voidSettingsTypes.js';
+import { IVoidSettingsService } from '../voidSettingsService.js';
 
 // Triple backtick wrapper used throughout the prompts for code blocks
 export const tripleTick = ['```', '```']
 
-// Maximum limits for directory structure information
-export const MAX_DIRSTR_CHARS_TOTAL_BEGINNING = 20_000
-export const MAX_DIRSTR_CHARS_TOTAL_TOOL = 20_000
-export const MAX_DIRSTR_RESULTS_TOTAL_BEGINNING = 100
-export const MAX_DIRSTR_RESULTS_TOTAL_TOOL = 100
-
-// tool info
-export const MAX_FILE_CHARS_PAGE = 500_000
-export const MAX_CHILDREN_URIs_PAGE = 500
-
-// terminal tool info
-export const MAX_TERMINAL_CHARS = 100_000
-export const MAX_TERMINAL_INACTIVE_TIME = 8 // seconds
-export const MAX_TERMINAL_BG_COMMAND_TIME = 5
-
-
-// Maximum character limits for prefix and suffix context
-export const MAX_PREFIX_SUFFIX_CHARS = 20_000
 
 
 export const ORIGINAL = `<<<<<<< ORIGINAL`
@@ -305,7 +288,7 @@ export const builtinTools: {
 	},
 	run_command: {
 		name: 'run_command',
-		description: `Runs a terminal command and waits for the result (times out after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity). ${terminalDescHelper}`,
+		description: `Runs a terminal command and waits for the result (times out after inactivity). ${terminalDescHelper}`,
 		params: {
 			command: { description: 'The terminal command to run.' },
 			cwd: { description: cwdHelper },
@@ -314,7 +297,7 @@ export const builtinTools: {
 
 	run_persistent_command: {
 		name: 'run_persistent_command',
-		description: `Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after ${MAX_TERMINAL_BG_COMMAND_TIME} are returned, and command continues running in background). ${terminalDescHelper}`,
+		description: `Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after specified command time is returned, and command continues running in background). ${terminalDescHelper}`,
 		params: {
 			command: { description: 'The terminal command to run.' },
 			persistent_terminal_id: { description: 'The ID of the terminal created using open_persistent_terminal.' },
@@ -695,7 +678,7 @@ ${tripleTick[1]}`
 
 
 
-export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullFileStr: string, startLine: number, endLine: number }) => {
+export const voidPrefixAndSuffix = ({ settingsService, fullFileStr, startLine, endLine }: { settingsService: IVoidSettingsService, fullFileStr: string, startLine: number, endLine: number }) => {
 
 	const fullFileLines = fullFileStr.split('\n')
 
@@ -719,7 +702,7 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 	// we'll include fullFileLines[i...(startLine-1)-1].join('\n') in the prefix.
 	while (i !== 0) {
 		const newLine = fullFileLines[i - 1]
-		if (newLine.length + 1 + prefix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + prefix.length <= settingsService.state.globalSettings.maxPrefixSuffixChars) { // +1 to include the \n
 			prefix = `${newLine}\n${prefix}`
 			i -= 1
 		}
@@ -730,7 +713,7 @@ export const voidPrefixAndSuffix = ({ fullFileStr, startLine, endLine }: { fullF
 	let j = endLine - 1
 	while (j !== fullFileLines.length - 1) {
 		const newLine = fullFileLines[j + 1]
-		if (newLine.length + 1 + suffix.length <= MAX_PREFIX_SUFFIX_CHARS) { // +1 to include the \n
+		if (newLine.length + 1 + suffix.length <= settingsService.state.globalSettings.maxPrefixSuffixChars) { // +1 to include the \n
 			suffix = `${suffix}\n${newLine}`
 			j += 1
 		}

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName, GlobalSettings, defaultGlobalSettings, displayNameAndDescriptionOfSetting } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -23,6 +23,7 @@ import { MCPServer } from '../../../../common/mcpServiceTypes.js';
 import { useMCPServiceState } from '../util/services.js';
 import { OPT_OUT_KEY } from '../../../../common/storageKeys.js';
 import { StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
+import { VoidSettingsState } from '../../../../common/voidSettingsService.js';
 
 type Tab =
 	| 'models'
@@ -30,6 +31,7 @@ type Tab =
 	| 'providers'
 	| 'featureOptions'
 	| 'mcp'
+	| 'limits'
 	| 'general'
 	| 'all';
 
@@ -796,6 +798,61 @@ export const AIInstructionsBox = () => {
 	/>
 }
 
+export const LimitComponent = ({ setting, onVoidSettingsInit, onVoidDefaultSettingsInit }: {
+  setting: GlobalSettingName
+  onVoidSettingsInit: (state: VoidSettingsState) => number
+  onVoidDefaultSettingsInit: (settings: GlobalSettings) => number
+}) => {
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const voidSettingsState = useSettingsState()
+	const [name, description] = displayNameAndDescriptionOfSetting(setting)
+  return (
+    <div className="flex flex-col gap-1">
+      <h4 className="text-base">{name}</h4>
+      {description && (
+        <div className="text-sm text-void-fg-3 mt-1">
+          <span>{description}</span>
+        </div>
+      )}
+      <VoidSimpleInputBox
+        value={onVoidSettingsInit(voidSettingsState)?.toString() ?? onVoidDefaultSettingsInit(defaultGlobalSettings)}
+        placeholder={`Default: ${onVoidDefaultSettingsInit(defaultGlobalSettings)}`}
+        onChangeValue={(newVal) => {
+					const parsed = parseInt(newVal)
+					if (!parsed || isNaN(parsed)) {
+						return
+					}
+
+					voidSettingsService.setGlobalSetting(setting, parsed >= 0 ? parsed : 0)
+				}}
+      />
+    </div>
+  )
+}
+
+
+export const LimitsList = ({ settings }: { settings: GlobalSettingName[] }) => {
+  let content: React.ReactNode
+  if (settings.length === 0) {
+    content = <div className="text-void-fg-3 text-sm mt-2">N/A</div>
+  } else {
+    content = (
+			<div className="flex flex-col gap-2">
+				{settings.map((setting) => (
+					<LimitComponent
+						key={setting}
+						setting={setting}
+						onVoidSettingsInit={(state: VoidSettingsState) => state.globalSettings[setting] as number}
+						onVoidDefaultSettingsInit={(settings: GlobalSettings) => settings[setting] as number}
+					/>
+				))}
+			</div>
+		)
+  }
+  return <div className="my-2">{content}</div>
+}
+
 const FastApplyMethodDropdown = () => {
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
@@ -1042,6 +1099,7 @@ export const Settings = () => {
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'mcp', label: 'MCP' },
+		{ tab: 'limits', label: 'Limits' },
 		{ tab: 'all', label: 'All Settings' },
 	];
 	const shouldShowTab = (tab: Tab) => selectedSection === 'all' || selectedSection === tab;
@@ -1551,10 +1609,44 @@ Use Model Context Protocol to provide Agent mode with more tools.
 
 
 
+							{/* Limits section */}
+							<div className={shouldShowTab('limits') ? `` : 'hidden'}>
+								<div className='flex flex-col gap-8'>
+									<div>
+										<h2 className='text-3xl mb-2'>Directory Structure</h2>
+										<h4 className='text-void-fg-3 mb-4'>Define the maximum allowable limits for directory queries.</h4>
+										<ErrorBoundary>
+											<LimitsList settings={['maxDirstrCharsTotalBeginning', 'maxDirstrCharsTotalTool', 'maxDirstrResultsTotalBeginning', 'maxDirstrResultsTotalTool']} />
+										</ErrorBoundary>
+									</div>
+									<div>
+										<h2 className='text-3xl mb-2'>Tool Info</h2>
+										<h4 className='text-void-fg-3 mb-4'>Define the maximum limits regarding the tool itself.</h4>
+										<ErrorBoundary>
+											<LimitsList settings={['maxFileCharsPage', 'maxChildrenUrisPage']} />
+										</ErrorBoundary>
+									</div>
+									<div>
+										<h2 className='text-3xl mb-2'>Terminal Info</h2>
+										<h4 className='text-void-fg-3 mb-4'>Define the maximum allowed characters for terminal related activities.</h4>
+										<ErrorBoundary>
+											<LimitsList settings={['maxTerminalChars', 'maxTerminalInactiveTime', 'maxTerminalBgCommandTime']} />
+										</ErrorBoundary>
+									</div>
+									<div>
+										<h2 className='text-3xl mb-2'>Context</h2>
+										<h4 className='text-void-fg-3 mb-4'>Define the maximum how long context strings can be.</h4>
+										<ErrorBoundary>
+											<LimitsList settings={['maxPrefixSuffixChars']} />
+										</ErrorBoundary>
+									</div>
+								</div>
+							</div>
+
+
 
 
 						</div>
-
 					</div>
 				</main>
 			</div>

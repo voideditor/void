@@ -12,9 +12,9 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { ITerminalService, ITerminalInstance, ICreateTerminalOptions } from '../../../../workbench/contrib/terminal/browser/terminal.js';
-import { MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_CHARS, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js';
 import { TerminalResolveReason } from '../common/toolsServiceTypes.js';
 import { timeout } from '../../../../base/common/async.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
 
 
 
@@ -74,6 +74,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 	constructor(
 		@ITerminalService private readonly terminalService: ITerminalService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
 		super();
 
@@ -229,8 +230,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 		let result = removeAnsiEscapeCodes(lines.join('\n'));
 
-		if (result.length > MAX_TERMINAL_CHARS) {
-			const half = MAX_TERMINAL_CHARS / 2;
+		if (result.length > this.voidSettingsService.state.globalSettings.maxTerminalChars) {
+			const half = this.voidSettingsService.state.globalSettings.maxTerminalChars / 2;
 			result = result.slice(0, half) + '\n...\n' + result.slice(result.length - half);
 		}
 
@@ -323,7 +324,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 					setTimeout(() => {
 						resolveReason = { type: 'timeout' };
 						res()
-					}, MAX_TERMINAL_BG_COMMAND_TIME * 1000)
+					}, this.voidSettingsService.state.globalSettings.maxTerminalBgCommandTime * 1000)
 				})
 				// inactivity-based timeout
 				: new Promise<void>(res => {
@@ -335,7 +336,7 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 
 							resolveReason = { type: 'timeout' };
 							res();
-						}, MAX_TERMINAL_INACTIVE_TIME * 1000);
+						}, this.voidSettingsService.state.globalSettings.maxTerminalInactiveTime * 1000);
 					};
 
 					const dTimeout = terminal.onData(() => { resetTimer(); });
@@ -364,8 +365,8 @@ export class TerminalToolService extends Disposable implements ITerminalToolServ
 			if (!isPersistent) result = `$ ${command}\n${result}`
 			result = removeAnsiEscapeCodes(result)
 			// trim
-			if (result.length > MAX_TERMINAL_CHARS) {
-				const half = MAX_TERMINAL_CHARS / 2
+			if (result.length > this.voidSettingsService.state.globalSettings.maxTerminalChars) {
+				const half = this.voidSettingsService.state.globalSettings.maxTerminalChars / 2
 				result = result.slice(0, half)
 					+ '\n...\n'
 					+ result.slice(result.length - half, Infinity)

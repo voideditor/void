@@ -39,6 +39,9 @@ export const defaultProviderSettings = {
 	groq: {
 		apiKey: '',
 	},
+	githubModels: {
+		apiKey: '',
+	},
 	xAI: {
 		apiKey: '',
 	},
@@ -147,6 +150,18 @@ export const defaultModelsOfProvider = {
 		'mistral-medium-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
+	],
+	githubModels: [
+		'openai/gpt-4.1',
+		'openai/gpt-4.1-mini',
+		'openai/gpt-4.1-nano',
+		'openai/o3',
+		'openai/o4-mini',
+		'deepseek/deepseek-r1',
+		'deepseek/deepseek-r1-0528',
+		'xai/grok-3',
+		'xai/grok-3-mini',
+		// Add other models as needed
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
@@ -1446,7 +1461,96 @@ const openRouterSettings: VoidStaticProviderInfo = {
 	},
 }
 
+// ---------------- GITHUB MODELS API ----------------
+// ---------------- Lógica dos Modelos do GitHub ----------------
 
+const githubModelOptions = {
+	'openai/gpt-4.1': {
+		contextWindow: 8000,
+		reservedOutputTokenSpace: 4000,
+		cost: { input: 0, output: 0 }, // Free tier, with rate limits
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'openai/o3': {
+		contextWindow: 8000,
+		reservedOutputTokenSpace: 4000,
+		cost: { input: 0, output: 0 }, // Free tier, with rate limits
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'deepseek/deepseek-r1': {
+		contextWindow: 4000,
+		reservedOutputTokenSpace: 4000,
+		cost: { input: 0, output: 0 }, // Free tier, with rate limits
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'deepseek/DeepSeek-R1-0528': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role', // Confirme o suporte real na documentação
+		reasoningCapabilities: false,
+		contextWindow: 32768, // Exemplo, verifique o valor correto
+		reservedOutputTokenSpace: 4096, // Exemplo
+		cost: { input: 0, output: 0 }, // Gratuito para a camada de prototipagem
+		downloadable: false,
+	},
+	'openai/gpt-4o': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+		contextWindow: 128000,
+		reservedOutputTokenSpace: 16384,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+	},
+	'openai/gpt-4o-mini': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+		contextWindow: 128000,
+		reservedOutputTokenSpace: 16384,
+		cost: { input: 0, output: 0 },
+		downloadable: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo };
+
+const gitHubModelsSettings: VoidStaticProviderInfo = {
+	modelOptions: githubModelOptions,
+	modelOptionsFallback: (modelName) => {
+		// Handle different models based on their prefixes
+		const lowercaseModelName = modelName.toLowerCase();
+
+		if (lowercaseModelName.startsWith('openai/')) {
+			// For OpenAI models
+			if (lowercaseModelName.includes('gpt-4.1')) {
+				return { modelName, recognizedModelName: 'openai/gpt-4.1', ...githubModelOptions['openai/gpt-4.1'] };
+			} else if (lowercaseModelName.includes('o3')) {
+				return { modelName, recognizedModelName: 'openai/o3', ...githubModelOptions['openai/o3'] };
+			}
+		} else if (lowercaseModelName.startsWith('deepseek/')) {
+			return { modelName, recognizedModelName: 'deepseek/deepseek-r1', ...githubModelOptions['deepseek/deepseek-r1'] };
+		}
+
+		// Default fallback for unknown models
+		return null;
+	},
+	providerReasoningIOSettings: {
+		// reasoning: OAICompat + response.choices[0].delta.reasoning_content // https://docs.github.com/en/rest/ai/models?apiVersion=2024-10-01#reasoning
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
+};
+
+// ...
 
 
 // ---------------- model settings of everything above ----------------
@@ -1474,6 +1578,8 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+
+	githubModels: gitHubModelsSettings,
 } as const
 
 

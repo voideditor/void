@@ -51,7 +51,7 @@ function code() {
 	exec "$CODE" . $DISABLE_TEST_EXTENSION "$@"
 }
 
-function code-wsl()
+function code_wsl()
 {
 	HOST_IP=$(echo "" | powershell.exe -noprofile -Command "& {(Get-NetIPAddress | Where-Object {\$_.InterfaceAlias -like '*WSL*' -and \$_.AddressFamily -eq 'IPv4'}).IPAddress | Write-Host -NoNewline}")
 	export DISPLAY="$HOST_IP:0"
@@ -77,7 +77,7 @@ function code-wsl()
 }
 
 if [ "$IN_WSL" == "true" ] && [ -z "$DISPLAY" ]; then
-	code-wsl "$@"
+	code_wsl "$@"
 elif [ -f /mnt/wslg/versions.txt ]; then
 	code --disable-gpu "$@"
 elif [ -f /.dockerenv ]; then

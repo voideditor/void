@@ -799,26 +799,26 @@ export const AIInstructionsBox = () => {
 }
 
 export const LimitComponent = ({ setting, onVoidSettingsInit, onVoidDefaultSettingsInit }: {
-  setting: GlobalSettingName
-  onVoidSettingsInit: (state: VoidSettingsState) => number
-  onVoidDefaultSettingsInit: (settings: GlobalSettings) => number
+  	setting: GlobalSettingName
+  	onVoidSettingsInit: (state: VoidSettingsState) => number
+  	onVoidDefaultSettingsInit: (settings: GlobalSettings) => number
 }) => {
 	const accessor = useAccessor()
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const voidSettingsState = useSettingsState()
 	const [name, description] = displayNameAndDescriptionOfSetting(setting)
-  return (
-    <div className="flex flex-col gap-1">
-      <h4 className="text-base">{name}</h4>
-      {description && (
-        <div className="text-sm text-void-fg-3 mt-1">
-          <span>{description}</span>
-        </div>
-      )}
-      <VoidSimpleInputBox
-        value={onVoidSettingsInit(voidSettingsState)?.toString() ?? onVoidDefaultSettingsInit(defaultGlobalSettings)}
-        placeholder={`Default: ${onVoidDefaultSettingsInit(defaultGlobalSettings)}`}
-        onChangeValue={(newVal) => {
+  	return (
+		<div className="flex flex-col gap-1">
+			<h4 className="text-base">{name}</h4>
+			{description && (
+				<div className="text-sm text-void-fg-3 mt-1">
+				<span>{description}</span>
+				</div>
+			)}
+			<VoidSimpleInputBox
+				value={onVoidSettingsInit(voidSettingsState)?.toString() ?? onVoidDefaultSettingsInit(defaultGlobalSettings)}
+				placeholder={`Default: ${onVoidDefaultSettingsInit(defaultGlobalSettings)}`}
+				onChangeValue={(newVal) => {
 					const parsed = parseInt(newVal)
 					if (!parsed || isNaN(parsed)) {
 						return
@@ -826,18 +826,15 @@ export const LimitComponent = ({ setting, onVoidSettingsInit, onVoidDefaultSetti
 
 					voidSettingsService.setGlobalSetting(setting, parsed >= 0 ? parsed : 0)
 				}}
-      />
-    </div>
-  )
+			/>
+    	</div>
+  	)
 }
 
 
 export const LimitsList = ({ settings }: { settings: GlobalSettingName[] }) => {
-  let content: React.ReactNode
-  if (settings.length === 0) {
-    content = <div className="text-void-fg-3 text-sm mt-2">N/A</div>
-  } else {
-    content = (
+  	return (
+		<div className="my-2">
 			<div className="flex flex-col gap-2">
 				{settings.map((setting) => (
 					<LimitComponent
@@ -848,9 +845,8 @@ export const LimitsList = ({ settings }: { settings: GlobalSettingName[] }) => {
 					/>
 				))}
 			</div>
-		)
-  }
-  return <div className="my-2">{content}</div>
+		</div>
+	)
 }
 
 const FastApplyMethodDropdown = () => {

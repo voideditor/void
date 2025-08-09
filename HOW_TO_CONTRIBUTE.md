@@ -20,14 +20,15 @@ Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
 
 
 
+## Editing Void's Code
 
-## Building Void
+If you're making changes to Void's code as a contributor, you'll want to run a local version of Void to make sure your changes worked. Developer mode lets you do this. Here's how to use it.
 
-### a. Mac - Build Prerequisites
+### a. Mac - Prerequisites
 
 If you're using a Mac, you need Python and XCode. You probably have these by default.
 
-### b. Windows - Build Prerequisites
+### b. Windows - Prerequisites
 
 If you're using a Windows computer, first get [Visual Studio 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community) (recommended) or [VS Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools) (not recommended). If you already have both, you might need to run the next few steps on both of them.
 
@@ -42,7 +43,7 @@ Go to the "Individual Components" tab and select:
 
 Finally, click Install.
 
-### c. Linux - Build Prerequisites
+### c. Linux - Prerequisites
 
 First, run `npm install -g node-gyp`. Then:
 
@@ -51,25 +52,42 @@ First, run `npm install -g node-gyp`. Then:
 - SUSE (openSUSE, etc): `sudo zypper install patterns-devel-C-C++-devel_C_C++  krb5-devel libsecret-devel libxkbfile-devel libX11-devel`.
 - Others: see [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute).
 
-### d. Building Void from inside VSCode
+### Developer Mode Instructions
+
+Here's how to start changing Void's code. These steps cover everything from cloning Void, to opening a Developer Mode window where you can play around with your updates.
 
 1. `git clone https://github.com/voideditor/void` to clone the repo.
 2. `npm install` to install all dependencies.
-3. To build Void, open VSCode. Then:
+3. Open Void or VSCode, and initialize Developer Mode (this can take ~5 min to finish, it's done when 2 of the 3 spinners turn to check marks):
    - Windows: Press <kbd>Ctrl+Shift+B</kbd>.
    - Mac: Press <kbd>Cmd+Shift+B</kbd>.
    - Linux: Press <kbd>Ctrl+Shift+B</kbd>.
-   - This step can take ~5 min. The build is done when you see two check marks (one of the items will continue spinning indefinitely - it compiles our React code).
-4. To run Void:
+4. Open the Void Developer Mode window:
    - Windows: `./scripts/code.bat`.
    - Mac: `./scripts/code.sh`.
    - Linux: `./scripts/code.sh`.
-5. Nice-to-knows.
-   - You can always press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload and see your new changes. It's faster than <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
-   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the above run command, which lets you delete the `.tmp` folder to reset any IDE changes you made when testing.
-	- You can kill any of the build scripts by pressing `Ctrl+D` in VSCode terminal. If you press `Ctrl+C` the script will close but will keep running in the background (to open all background scripts, just re-build).
+5. You're good to start editing Void's code! 
+   - You won't see your changes unless you press <kbd>Ctrl+R</kbd> (<kbd>Cmd+R</kbd>) inside the new window to reload. Alternatively, press <kbd>Ctrl+Shift+P</kbd> and `Reload Window`.
+   - You might want to add the flags `--user-data-dir ./.tmp/user-data --extensions-dir ./.tmp/extensions` to the command in step 4, which lets you reset any IDE changes you made by deleting the `.tmp` folder.
+	- You can kill any of the build scripts by pressing `Ctrl+D` in its terminal. If you press `Ctrl+C` the script will close but will keep running in the background.
 
 If you get any errors, scroll down for common fixes.
+
+#### Common Fixes
+
+- Make sure you followed the prerequisite steps above.
+- Make sure you have Node version `20.18.2` (the version in `.nvmrc`).
+    - You can do this without changing your global Node version using [nvm](https://github.com/nvm-sh/nvm): run `nvm install`, followed by `nvm use` to install the version in `.nvmrc` locally.
+- Make sure the path to your Void folder does not have any spaces in it.
+- If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
+- If you get an error with React, try running `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
+- If you see missing styles, wait a few seconds and then reload.
+- If you get errors like `npm error libtool:   error: unrecognised option: '-static'`,  when running ./scripts/code.sh, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
+- If you get errors like `The SUID sandbox helper binary was found, but is not configured correctly` when running ./scripts/code.sh, run
+`sudo chown root:root .build/electron/chrome-sandbox && sudo chmod 4755 .build/electron/chrome-sandbox` and then run `./scripts/code.sh` again.
+- If you have any other questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+
+
 
 #### Building Void from Terminal
 
@@ -83,50 +101,47 @@ To build Void from the terminal instead of from inside VSCode, follow the steps 
 ```
 
 
-#### Common Fixes
 
-- Make sure you followed the prerequisite steps above.
-- Make sure you have Node version `20.18.2` (the version in `.nvmrc`)!
-    - You can do this easily without touching your base installation with [nvm](https://github.com/nvm-sh/nvm). Simply run `nvm install`, followed by `nvm use` and it will automatically install and use the version specified in `nvmrc`.
-- Make sure that the path to your Void folder does not have any spaces in it.
-- If you get `"TypeError: Failed to fetch dynamically imported module"`, make sure all imports end with `.js`.
-- If you get an error with React, try running `NODE_OPTIONS="--max-old-space-size=8192" npm run buildreact`.
-- If you see missing styles, wait a few seconds and then reload.
-- If you get errors like `npm error libtool:   error: unrecognised option: '-static'`,  when running ./scripts/code.sh, make sure you have GNU libtool instead of BSD libtool (BSD is the default in macos)
-- If you get erorrs like `The SUID sandbox helper binary was found, but is not configured correctly` when running ./scripts/code.sh, run
-`sudo chown root:root .build/electron/chrome-sandbox && sudo chmod 4755 .build/electron/chrome-sandbox` and then run `./scripts/code.sh` again.
-- If you have any other questions, feel free to [submit an issue](https://github.com/voideditor/void/issues/new). You can also refer to VSCode's complete [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute) page.
+### Distributing
+Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor/void-builder).
+
+If you want to completely control Void's build pipeline for your own internal usage, which comes with a lot of time cost (and is typically not recommended), see our [`void-builder`](https://github.com/voideditor/void-builder) repo which builds Void and contains a few important notes about auto-updating and rebasing.
 
 
-## Packaging
+#### Building a Local Executible
+We don't usually recommend building a local executible of Void - typically you should follow the steps above to distribute a complete executible with the advantages of VSCodium baked-in, or you should just use Developer Mode to run Void locally which is much faster. If you're certain this is what you want, see details below.
 
-We don't usually recommend packaging. Instead, you should probably just build. If you're sure you want to package Void into an executable app, make sure you've built first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). Be patient - packaging can take ~25 minutes.
+<details>
+	<summary> Building Locally (not recommended)</summary>
+If you're certain you want to build a local executible of Void, follow these steps. It can take ~25 minutes.
+
+Make sure you've already entered Developer Mode with Void first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). 
 
 
-### Mac
+##### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
 - `npm run gulp vscode-darwin-x64` (Intel)
 
-### Windows
+##### Windows
 - `npm run gulp vscode-win32-x64` - most common
 - `npm run gulp vscode-win32-arm64`
 
-### Linux
+##### Linux
 - `npm run gulp vscode-linux-x64` - most common
 - `npm run gulp vscode-linux-arm64`
 
 
-### Output
+##### Local Executible Output
 
-This will generate a folder outside of `void/`:
+The local executible will be located in a folder outside of `void/`:
 ```bash
 workspace/
 ├── void/   # Your Void fork
 └── VSCode-darwin-arm64/ # Generated output
 ```
 
-### Distributing
-Void's maintainers distribute Void on our website and in releases. Our build pipeline is a fork of VSCodium, and it works by running GitHub Actions which create the downloadables. The build repo with more instructions lives [here](https://github.com/voideditor/void-builder).
+</details>
+
 
 ## Pull Request Guidelines
 
@@ -138,32 +153,3 @@ Void's maintainers distribute Void on our website and in releases. Our build pip
 
 
 
-
-<!--
-# Relevant files
-
-We keep track of all the files we've changed with Void so it's easy to rebase:
-
-Edit: far too many changes to track... this is old
-
-- README.md
-- CONTRIBUTING.md
-- VOID_USEFUL_LINKS.md
-- product.json
-- package.json
-
-- src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
-- src/vs/workbench/workbench.common.main.ts
-- src/vs/workbench/contrib/void/\*
-- extensions/void/\*
-
-- .github/\*
-- .vscode/settings/\*
-- .eslintrc.json
-- build/hygiene.js
-- build/lib/i18n.resources.json
-- build/npm/dirs.js
-
-- vscode.proposed.editorInsets.d.ts - not modified, but code copied
-
--->

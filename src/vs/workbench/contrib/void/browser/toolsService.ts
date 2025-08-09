@@ -16,7 +16,6 @@ import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
-import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
 
@@ -311,8 +310,8 @@ export class ToolsService implements IToolsService {
 
 				const totalNumLines = model.getLineCount()
 
-				const fromIdx = MAX_FILE_CHARS_PAGE * (pageNumber - 1)
-				const toIdx = MAX_FILE_CHARS_PAGE * pageNumber - 1
+				const fromIdx = this.voidSettingsService.state.globalSettings.maxFileCharsPage * (pageNumber - 1)
+				const toIdx = this.voidSettingsService.state.globalSettings.maxFileCharsPage * pageNumber - 1
 				const fileContents = contents.slice(fromIdx, toIdx + 1) // paginate
 				const hasNextPage = (contents.length - 1) - toIdx >= 1
 				const totalFileLen = contents.length
@@ -320,7 +319,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			ls_dir: async ({ uri, pageNumber }) => {
-				const dirResult = await computeDirectoryTree1Deep(fileService, uri, pageNumber)
+				const dirResult = await computeDirectoryTree1Deep(fileService, voidSettingsService, uri, pageNumber)
 				return { result: dirResult }
 			},
 
@@ -338,8 +337,8 @@ export class ToolsService implements IToolsService {
 				})
 				const data = await searchService.fileSearch(query, CancellationToken.None)
 
-				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
-				const toIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1
+				const fromIdx = this.voidSettingsService.state.globalSettings.maxChildrenUrisPage * (pageNumber - 1)
+				const toIdx = this.voidSettingsService.state.globalSettings.maxChildrenUrisPage * pageNumber - 1
 				const uris = data.results
 					.slice(fromIdx, toIdx + 1) // paginate
 					.map(({ resource, results }) => resource)
@@ -360,8 +359,8 @@ export class ToolsService implements IToolsService {
 
 				const data = await searchService.textSearch(query, CancellationToken.None)
 
-				const fromIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1)
-				const toIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1
+				const fromIdx = this.voidSettingsService.state.globalSettings.maxChildrenUrisPage * (pageNumber - 1)
+				const toIdx = this.voidSettingsService.state.globalSettings.maxChildrenUrisPage * pageNumber - 1
 				const uris = data.results
 					.slice(fromIdx, toIdx + 1) // paginate
 					.map(({ resource, results }) => resource)
@@ -470,7 +469,7 @@ export class ToolsService implements IToolsService {
 			return lintErrors
 				.map((e, i) => `Error ${i + 1}:\nLines Affected: ${e.startLineNumber}-${e.endLineNumber}\nError message:${e.message}`)
 				.join('\n\n')
-				.substring(0, MAX_FILE_CHARS_PAGE)
+				.substring(0, this.voidSettingsService.state.globalSettings.maxFileCharsPage)
 		}
 
 		// given to the LLM after the call for successful tool calls
@@ -538,7 +537,7 @@ export class ToolsService implements IToolsService {
 				}
 				// normal command
 				if (resolveReason.type === 'timeout') {
-					return `${result_}\nTerminal command ran, but was automatically killed by Void after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity and did not finish successfully. To try with more time, open a persistent terminal and run the command there.`
+					return `${result_}\nTerminal command ran, but was automatically killed by Void after ${this.voidSettingsService.state.globalSettings.maxTerminalInactiveTime}s of inactivity and did not finish successfully. To try with more time, open a persistent terminal and run the command there.`
 				}
 				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},
@@ -552,7 +551,7 @@ export class ToolsService implements IToolsService {
 				}
 				// bg command
 				if (resolveReason.type === 'timeout') {
-					return `${result_}\nTerminal command is running in terminal ${persistentTerminalId}. The given outputs are the results after ${MAX_TERMINAL_BG_COMMAND_TIME} seconds.`
+					return `${result_}\nTerminal command is running in terminal ${persistentTerminalId}. The given outputs are the results after ${this.voidSettingsService.state.globalSettings.maxTerminalBgCommandTime} seconds.`
 				}
 				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},

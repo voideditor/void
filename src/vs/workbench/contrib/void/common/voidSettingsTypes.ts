@@ -384,6 +384,66 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 		throw new Error(`Feature Name ${featureName} not allowed`)
 }
 
+export function displayNameAndDescriptionOfSetting(
+	setting: string
+): [name: string, description: string] {
+	const settingsMap: Record<string, [name: string, description: string]> = {
+		// directoryStructureLimits
+		maxDirstrCharsTotalBeginning: [
+			'Max Directory Structure Chars (Beginning)',
+			'Maximum number of characters from the beginning of the directory structure representation to include in initial context.',
+		],
+		maxDirstrCharsTotalTool: [
+			'Max Directory Structure Chars (Tool)',
+			'Maximum number of characters from the directory structure representation to include when using the directory listing tool.',
+		],
+		maxDirstrResultsTotalBeginning: [
+			'Max Directory Structure Results (Beginning)',
+			'Maximum number of directory entries (files/folders) to include in the initial context before truncation.',
+		],
+		maxDirstrResultsTotalTool: [
+			'Max Directory Structure Results (Tool)',
+			'Maximum number of directory entries (files/folders) to return when explicitly listing directory contents via tool.',
+		],
+
+		// toolInfoLimits
+		maxFileCharsPage: [
+			'Max File Characters per Page',
+			'Maximum number of characters allowed when reading file content in a single tool call or page.',
+		],
+		maxChildrenUrisPage: [
+			'Max Children URIs per Page',
+			'Maximum number of child URIs (e.g. files in a directory) that can be listed in a single page.',
+		],
+
+		// terminalInfoLimits
+		maxTerminalChars: [
+			'Max Terminal Characters',
+			'Maximum number of characters to capture from terminal output before truncation.',
+		],
+		maxTerminalInactiveTime: [
+			'Max Terminal Inactive Time',
+			'Maximum time (in seconds) a terminal session can remain inactive before being terminated.',
+		],
+		maxTerminalBgCommandTime: [
+			'Max Terminal Background Command Time',
+			'Maximum time (in seconds) a background terminal command can run before timing out.',
+		],
+
+		// contextLimits
+		maxPrefixSuffixChars: [
+			'Max Prefix Suffix Characters',
+			'Maximum number of characters to include as prefix/suffix context around edits or suggestions.',
+		],
+	};
+
+	if (!(setting in settingsMap)) {
+		throw new Error(`Unknown setting: "${setting}". Valid settings are: ${Object.keys(settingsMap).join(', ')}`);
+	}
+
+	return settingsMap[setting];
+}
+
 
 // the models of these can be refreshed (in theory all can, but not all should)
 export const refreshableProviderNames = localProviderNames
@@ -452,6 +512,16 @@ export type GlobalSettings = {
 	isOnboardingComplete: boolean;
 	disableSystemMessage: boolean;
 	autoAcceptLLMChanges: boolean;
+	maxDirstrCharsTotalBeginning: number;
+	maxDirstrCharsTotalTool: number;
+	maxDirstrResultsTotalBeginning: number;
+	maxDirstrResultsTotalTool: number;
+	maxFileCharsPage: number;
+	maxChildrenUrisPage: number;
+	maxTerminalChars: number;
+	maxTerminalInactiveTime: number;
+	maxTerminalBgCommandTime: number;
+	maxPrefixSuffixChars: number;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -468,6 +538,16 @@ export const defaultGlobalSettings: GlobalSettings = {
 	isOnboardingComplete: false,
 	disableSystemMessage: false,
 	autoAcceptLLMChanges: false,
+	maxDirstrCharsTotalBeginning: 20_000,
+	maxDirstrCharsTotalTool: 20_000,
+	maxDirstrResultsTotalBeginning: 100,
+	maxDirstrResultsTotalTool: 100,
+	maxFileCharsPage: 500_000,
+	maxChildrenUrisPage: 500,
+	maxTerminalChars: 100_000,
+	maxTerminalInactiveTime: 8,
+	maxTerminalBgCommandTime: 5,
+	maxPrefixSuffixChars: 20_000,
 }
 
 export type GlobalSettingName = keyof GlobalSettings

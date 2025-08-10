@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, openAICompatibleProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -467,7 +467,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 			>
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
-					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
+					<span className='w-full max-w-32 whitespace-normal shrink'>{isNewProviderName ? providerTitle : ''}</span>
 					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 
@@ -741,6 +741,38 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 				: null}
 		</div>
 	</div >
+}
+
+export const VoidOpenAICompatibleProviderSettings = ({ providerNames }: { providerNames: ProviderName[] }) => {
+	const voidSettingsState = useSettingsState()
+	const usingMultipleProviders = voidSettingsState.settingsOfProvider.openAICompatible2.endpoint !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible2.apiKey !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible3.endpoint !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible3.apiKey !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible4.endpoint !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible4.apiKey !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible5.endpoint !== ''
+		|| voidSettingsState.settingsOfProvider.openAICompatible5.apiKey !== '';
+	const [expanded, setExpanded] = useState(usingMultipleProviders)
+	const displayProviderNames = expanded ? providerNames : [providerNames[0]]
+
+	return (
+		<>
+			{displayProviderNames.map(providerName =>
+				<SettingsForProvider key={providerName} providerName={providerName} showProviderTitle={true} showProviderSuggestions={true} />
+			)}
+			{!expanded &&
+			<div className="text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer mt-4"
+				onClick={() => setExpanded(true)}
+			>
+				<div className="flex items-center gap-1">
+					<Plus size={16} />
+					<span>Add more OpenAI-Compatible providers</span>
+				</div>
+			</div>
+			}
+		</>
+	);
 }
 
 
@@ -1206,6 +1238,7 @@ export const Settings = () => {
 									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
 									<VoidProviderSettings providerNames={nonlocalProviderNames} />
+									<VoidOpenAICompatibleProviderSettings providerNames={openAICompatibleProviderNames} />
 								</ErrorBoundary>
 							</div>
 

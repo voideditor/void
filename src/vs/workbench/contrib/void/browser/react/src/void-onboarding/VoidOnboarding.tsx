@@ -73,7 +73,6 @@ const FadeIn = ({ children, className, delayMs = 0, durationMs, ...props }: { ch
 	const effectiveDurationMs = durationMs ?? FADE_DURATION_MS
 
 	useEffect(() => {
-
 		const timeout = setTimeout(() => {
 			setOpacity(1)
 		}, delayMs)
@@ -104,9 +103,9 @@ const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzu
 
 // Data structures for provider tabs
 const providerNamesOfTab: Record<TabName, ProviderName[]> = {
-	Free: ['gemini', 'openRouter'],
+	Free: ['gemini', 'openRouter', 'groq'],
 	Local: localProviderNames,
-	Paid: providerNames.filter(pn => !(['gemini', 'openRouter', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
+	Paid: providerNames.filter(pn => !(['gemini', 'openRouter', 'groq', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
 	'Cloud/Other': cloudProviders,
 };
 
@@ -209,7 +208,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								data-tooltip-id="void-tooltip-provider-info"
 								data-tooltip-content="Gemini 2.5 Pro offers 25 free messages a day, and Gemini 2.5 Flash offers 500. We recommend using models down the line as you run out of free credits."
 								data-tooltip-place="right"
-								className="ml-1 text-xs align-top text-blue-400"
+								className="underline ml-1 text-xs align-top text-blue-400"
 							>*</span>
 						)}
 						{providerName === 'openRouter' && (
@@ -217,7 +216,15 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 								data-tooltip-id="void-tooltip-provider-info"
 								data-tooltip-content="OpenRouter offers 50 free messages a day, and 1000 if you deposit $10. Only applies to models labeled ':free'."
 								data-tooltip-place="right"
-								className="ml-1 text-xs align-top text-blue-400"
+								className="underline ml-1 text-xs align-top text-blue-400"
+							>*</span>
+						)}
+						{providerName === 'groq' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="Groq has a pretty generous free tier, see console.groq.com/docs/rate-limits for more."
+								data-tooltip-place="right"
+								className="underline ml-1 text-xs align-top text-blue-400"
 							>*</span>
 						)}
 					</div>

@@ -1,0 +1,241 @@
+import {
+	getModelCapabilities,
+	getProviderCapabilities,
+	getSendableReasoningInfo,
+} from "../../common/modelCapabilities.js";
+import { InternalToolInfo } from "../../common/prompt/prompts.js";
+import { OnFinalMessage, OnText } from "../../common/sendLLMMessageTypes.js";
+import {
+	ChatMode,
+	ModelSelectionOptions,
+	OverridesOfModel,
+	ProviderName,
+	SettingsOfProvider,
+} from "../../common/voidSettingsTypes.js";
+import {
+	extractReasoningWrapper,
+	extractXMLToolsWrapper,
+} from "./extractGrammar.js";
+import { openAITools } from "./modelProvider.js";
+import {
+	ModelCapabilitiesSetup,
+	ReasoningSetup,
+	SendChatParams,
+	SendFIMParams,
+	ToolsAndWrappersSetup,
+} from "./providerTypes.js";
+
+/**
+ * Extracts the provider configuration from settings
+ */
+export function getProviderConfig<T = any>(
+	settingsOfProvider: SettingsOfProvider,
+	providerName: ProviderName
+): T {
+	return settingsOfProvider[providerName] as T;
+}
+
+/**
+ * Sets up model capabilities for a provider
+ */
+export function setupModelCapabilities(
+	providerName: ProviderName,
+	modelName: string,
+	overridesOfModel: OverridesOfModel | undefined
+): ModelCapabilitiesSetup {
+	const {
+		modelName: resolvedModelName,
+		specialToolFormat,
+		reasoningCapabilities,
+		additionalOpenAIPayload,
+	} = getModelCapabilities(providerName, modelName, overridesOfModel);
+
+	return {
+		modelName: resolvedModelName,
+		specialToolFormat,
+		reasoningCapabilities,
+		additionalOpenAIPayload,
+	};
+}
+
+/**
+ * Configures reasoning capabilities and payload based on provider and model support.
+ * Determines if manual parsing is needed for open-source models vs native reasoning support.
+ */
+export function setupReasoning(
+	providerName: ProviderName,
+	modelName: string,
+	modelSelectionOptions: ModelSelectionOptions | undefined,
+	overridesOfModel: OverridesOfModel | undefined,
+	reasoningCapabilities: any
+): ReasoningSetup {
+	const { providerReasoningIOSettings } = getProviderCapabilities(providerName);
+
+	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {};
+	const reasoningInfo = getSendableReasoningInfo(
+		"Chat",
+		providerName,
+		modelName,
+		modelSelectionOptions,
+		overridesOfModel
+	);
+
+	const includeInPayload = {
+		...providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo),
+	};
+
+	return {
+		canIOReasoning,
+		openSourceThinkTags,
+		reasoningInfo,
+		includeInPayload,
+		providerReasoningIOSettings,
+	};
+}
+
+/**
+ * Sets up tools and wraps callbacks with reasoning and XML tool extraction layers.
+ * Applies different wrapping strategies based on model capabilities:
+ * - Native tool support (OpenAI-style) vs XML tool parsing
+ * - Native reasoning support vs manual tag extraction
+ */
+export function setupToolsAndWrappers(
+	chatMode: ChatMode | null,
+	mcpTools: InternalToolInfo[] | undefined,
+	specialToolFormat: string | null | undefined,
+	onText: OnText,
+	onFinalMessage: OnFinalMessage,
+	providerReasoningIOSettings: any,
+	canIOReasoning: boolean | undefined,
+	openSourceThinkTags: any,
+	additionalOpenAIPayload: any = {}
+): ToolsAndWrappersSetup {
+	const potentialTools = chatMode !== null ? openAITools(chatMode) : null;
+
+	let nativeToolsObj: any;
+	if (potentialTools && specialToolFormat === "openai-style") {
+		nativeToolsObj = {
+			tools: potentialTools,
+			...additionalOpenAIPayload,
+		};
+	} else {
+		nativeToolsObj = additionalOpenAIPayload;
+	}
+
+	let wrappedOnText = onText;
+	let wrappedOnFinalMessage = onFinalMessage;
+
+	const { needsManualParse: needsManualReasoningParse } =
+		providerReasoningIOSettings?.output ?? {};
+
+	const manuallyParseReasoning =
+		needsManualReasoningParse && canIOReasoning && openSourceThinkTags;
+
+	if (manuallyParseReasoning) {
+		const { newOnText, newOnFinalMessage } = extractReasoningWrapper(
+			wrappedOnText,
+			wrappedOnFinalMessage,
+			openSourceThinkTags
+		);
+		wrappedOnText = newOnText;
+		wrappedOnFinalMessage = newOnFinalMessage;
+	}
+
+	if (!specialToolFormat) {
+		const { newOnText, newOnFinalMessage } = extractXMLToolsWrapper(
+			wrappedOnText,
+			wrappedOnFinalMessage,
+			chatMode,
+			mcpTools
+		);
+		wrappedOnText = newOnText;
+		wrappedOnFinalMessage = newOnFinalMessage;
+	}
+
+	return {
+		nativeToolsObj,
+		wrappedOnText,
+		wrappedOnFinalMessage,
+	};
+}
+
+/**
+ * Orchestrates all chat-related setup by combining provider config, model capabilities,
+ * reasoning configuration, and tool/wrapper setup into a single coordinated result.
+ */
+export function setupProviderForChat(params: SendChatParams) {
+	const {
+		providerName,
+		modelName: modelName_,
+		overridesOfModel,
+		modelSelectionOptions,
+		settingsOfProvider,
+		chatMode,
+		onText,
+		onFinalMessage,
+		mcpTools,
+	} = params;
+
+	const thisConfig = getProviderConfig(settingsOfProvider, providerName);
+
+	const modelCapabilities = setupModelCapabilities(
+		providerName,
+		modelName_,
+		overridesOfModel
+	);
+
+	const reasoningSetup = setupReasoning(
+		providerName,
+		modelName_,
+		modelSelectionOptions,
+		overridesOfModel,
+		modelCapabilities.reasoningCapabilities
+	);
+
+	const toolsAndWrappers = setupToolsAndWrappers(
+		chatMode,
+		mcpTools,
+		modelCapabilities.specialToolFormat,
+		onText,
+		onFinalMessage,
+		reasoningSetup.providerReasoningIOSettings,
+		reasoningSetup.canIOReasoning,
+		reasoningSetup.openSourceThinkTags,
+		modelCapabilities.additionalOpenAIPayload
+	);
+
+	return {
+		thisConfig,
+		modelCapabilities,
+		reasoningSetup,
+		toolsAndWrappers,
+	};
+}
+
+/**
+ * Extracts all common setup from SendFIMParams
+ */
+export function setupProviderForFIM(params: SendFIMParams) {
+	const {
+		providerName,
+		modelName: modelName_,
+		overridesOfModel,
+		modelSelectionOptions,
+		settingsOfProvider,
+	} = params;
+
+	// Get provider config
+	const thisConfig = getProviderConfig(settingsOfProvider, providerName);
+
+	// Setup model capabilities
+	const modelCapabilities = setupModelCapabilities(
+		providerName,
+		modelName_,
+		overridesOfModel
+	);
+
+	return {
+		thisConfig,
+		modelCapabilities,
+	};
+}

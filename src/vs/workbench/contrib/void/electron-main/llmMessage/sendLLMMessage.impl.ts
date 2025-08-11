@@ -846,7 +846,7 @@ const sendGeminiChat = async ({
 
 
 
-type CallFnOfProvider = {
+export type CallFnOfProvider = {
 	[providerName in ProviderName]: {
 		sendChat: (params: SendChatParams_Internal) => Promise<void>;
 		sendFIM: ((params: SendFIMParams_Internal) => void) | null;

@@ -99,11 +99,11 @@ export const defaultModelsOfProvider = {
 		'grok-3-mini-fast'
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
-		'gemini-2.5-pro-exp-03-25',
-		'gemini-2.5-flash-preview-04-17',
+		'gemini-2.5-pro',
+		'gemini-2.5-flash',
+		'gemini-2.5-flash-lite',
 		'gemini-2.0-flash',
 		'gemini-2.0-flash-lite',
-		'gemini-2.5-pro-preview-05-06',
 	],
 	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
 		'deepseek-chat',
@@ -125,14 +125,6 @@ export const defaultModelsOfProvider = {
 		'deepseek/deepseek-r1',
 		'deepseek/deepseek-r1-zero:free',
 		'mistralai/devstral-small:free'
-		// 'openrouter/quasar-alpha',
-		// 'google/gemini-2.5-pro-preview-03-25',
-		// 'mistralai/codestral-2501',
-		// 'qwen/qwen-2.5-coder-32b-instruct',
-		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
-		// 'google/gemini-2.0-pro-exp-02-05:free',
-		// 'google/gemini-2.0-flash-exp:free',
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
@@ -414,7 +406,8 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 		};
 	}
 
-	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro-exp-03-25')
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro')
+	if (lower.includes('gemini') && (lower.includes('2.0') || lower.includes('2-0'))) return toFallback(geminiModelOptions, 'gemini-2.0-flash')
 
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')
 	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-3-7-sonnet-20250219')
@@ -807,10 +800,10 @@ const xAISettings: VoidStaticProviderInfo = {
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	// https://ai.google.dev/gemini-api/docs/thinking#set-budget
-	'gemini-2.5-pro-preview-05-06': {
+	'gemini-2.5-pro': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0, output: 0 },
+		cost: { input: 1.25, output: 10.00 }, // TODO: check this
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -823,17 +816,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 			reasoningReservedOutputTokenSpace: 8192,
 		},
 	},
-	'gemini-2.0-flash-lite': {
-		contextWindow: 1_048_576,
-		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0, output: 0 },
-		downloadable: false,
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false, // no reasoning
-	},
-	'gemini-2.5-flash-preview-04-17': {
+	'gemini-2.5-flash': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.15, output: .60 }, // TODO $3.50 output with thinking not included
@@ -849,10 +832,10 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 			reasoningReservedOutputTokenSpace: 8192,
 		},
 	},
-	'gemini-2.5-pro-exp-03-25': {
+	'gemini-2.5-flash-lite': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0, output: 0 },
+		cost: { input: 0.15, output: .60 }, // TODO $3.50 output with thinking not included
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -875,46 +858,17 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 		specialToolFormat: 'gemini-style',
 		reasoningCapabilities: false,
 	},
-	'gemini-2.0-flash-lite-preview-02-05': {
-		contextWindow: 1_048_576,
-		reservedOutputTokenSpace: 8_192, // 8_192,
-		cost: { input: 0.075, output: 0.30 },
-		downloadable: false,
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
-	},
-	'gemini-1.5-flash': {
-		contextWindow: 1_048_576,
-		reservedOutputTokenSpace: 8_192, // 8_192,
-		cost: { input: 0.075, output: 0.30 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
-		downloadable: false,
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
-	},
-	'gemini-1.5-pro': {
-		contextWindow: 2_097_152,
-		reservedOutputTokenSpace: 8_192,
-		cost: { input: 1.25, output: 5.00 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
-		downloadable: false,
-		supportsFIM: false,
-		supportsSystemMessage: 'separated',
-		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
-	},
-	'gemini-1.5-flash-8b': {
+	'gemini-2.0-flash-lite': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0.0375, output: 0.15 },  // TODO!!! price doubles after 128K tokens, we are NOT encoding that info right now
+		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
 		specialToolFormat: 'gemini-style',
-		reasoningCapabilities: false,
+		reasoningCapabilities: false, // no reasoning
 	},
+
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 const geminiSettings: VoidStaticProviderInfo = {

@@ -39,6 +39,9 @@ export const defaultProviderSettings = {
 	groq: {
 		apiKey: '',
 	},
+	together: {
+		apiKey: '',
+	},
 	xAI: {
 		apiKey: '',
 	},
@@ -136,6 +139,13 @@ export const defaultModelsOfProvider = {
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
+		'gemma2-9b-it',
+		'llama3-70b-8192',
+		'whisper-large-v3',
+		'whisper-large-v3-turbo',
+		'deepseek-r1-distill-llama-70b',
+		'qwen-qwq-32b',
+		'mistral-saba-24b',
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
@@ -147,6 +157,15 @@ export const defaultModelsOfProvider = {
 		'mistral-medium-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
+	],
+	together: [
+		'deepseek-ai/DeepSeek-R1',
+		'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+		'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+		'meta-llama/Llama-Vision-Free',
+		'qwen/Qwen-QwQ-32B-Instruct',
+		'qwen/Qwen-2.5-Coder-32B-Instruct',
+		'mistralai/Mistral-7B-Instruct-v0.2'
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
@@ -1098,6 +1117,82 @@ const groqSettings: VoidStaticProviderInfo = {
 	},
 }
 
+//--------------------together-ai--------------------
+const togetherModelOptions = {
+	// Match the actual model names from Together AI
+	'deepseek-ai/DeepSeek-R1': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.14, output: 0.28 }, // Check current pricing
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canIOReasoning: true,
+			canTurnOffReasoning: false,
+			openSourceThinkTags: ['<think>', '</think>']
+		},
+	},
+	'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canIOReasoning: true,
+			canTurnOffReasoning: false,
+			openSourceThinkTags: ['<think>', '</think>']
+		},
+	},
+	'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'meta-llama/Llama-Vision-Free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'mistralai/Mistral-7B-Instruct-v0.2': {
+		contextWindow: 32_768,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 0.2, output: 0.2 }, // Check current pricing
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+const togetherSettings: VoidStaticProviderInfo = {
+	modelOptions: togetherModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof togetherModelOptions | null = null
+		if (lower.includes('deepseek-r1')) fallbackName = 'deepseek-ai/DeepSeek-R1'
+		if (lower.includes('deepseek-r1-distill')) fallbackName = 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free'
+		if (lower.includes('llama-3.3-70b')) fallbackName = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free'
+		if (lower.includes('llama-vision')) fallbackName = 'meta-llama/Llama-Vision-Free'
+		if (lower.includes('mistral-7b-instruct')) fallbackName = 'mistralai/Mistral-7B-Instruct-v0.2'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...togetherModelOptions[fallbackName] }
+		return null
+	},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+	},
+}
 
 // ---------------- GOOGLE VERTEX ----------------
 const googleVertexModelOptions = {
@@ -1460,6 +1555,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,
+	together: togetherSettings,
 
 	// open source models + providers (mixture of everything)
 	openRouter: openRouterSettings,

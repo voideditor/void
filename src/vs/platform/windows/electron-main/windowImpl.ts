@@ -737,8 +737,104 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 			cb({ cancel: false, requestHeaders: Object.assign(details.requestHeaders, headers) });
 		});
+		this.registerSwipeToNavigate();
 	}
+	private registerSwipeToNavigate(): void {
+		const configurationKey = 'workbench.editor.swipeToNavigate';
+		type SwipeToNavigationConfigOption = 'disabled' | 'editor' | 'editorInGroup' | 'history' | 'historyInGroup' | 'group' | 'navigation' | 'edit' | 'navigationEdit';
+		type SwipeToNavigationConfig = {
+			horizontal: SwipeToNavigationConfigOption | { previous?: string; next?: string };
+			vertical: SwipeToNavigationConfigOption | { previous?: string; next?: string };
+		} | SwipeToNavigationConfigOption;
 
+		const mapDirectionsToConfig = (conf: SwipeToNavigationConfig | undefined): undefined | { left?: string; right?: string; up?: string; down?: string } => {
+			if (conf === 'disabled' || conf === undefined || conf === null) {
+				return undefined; // no swipe navigation
+			}
+			if (typeof conf === 'object' && conf.horizontal === 'disabled' && conf.vertical === 'disabled') {
+				return undefined; // no swipe navigation
+			}
+
+			if (typeof conf === 'string') {
+				conf = { horizontal: conf, vertical: 'disabled' };
+			}
+			const mapSwipeAxisToOptions = <A extends 'vertical' | 'horizontal'>(
+				axis: A,
+				selectedConfig: Extract<SwipeToNavigationConfig, { horizontal: unknown }>['horizontal']
+			): A extends 'horizontal' ? { left?: string; right?: string } : { up?: string; down?: string } => {
+				const prevNext = ((section: string) => {
+					if (typeof selectedConfig === 'object') {
+						return { prev: selectedConfig.previous, next: selectedConfig.next };
+					}
+					switch (selectedConfig) {
+						case 'disabled':
+							return {};
+						case 'editor':
+							return { prev: `${section}.previousEditor`, next: `${section}.nextEditor` };
+						case 'editorInGroup':
+							return { prev: `${section}.previousEditorInGroup`, next: `${section}.nextEditorInGroup` };
+						case 'history':
+							return { prev: `${section}.openPreviousRecentlyUsedEditor`, next: `${section}.openNextRecentlyUsedEditor` };
+						case 'historyInGroup':
+							return { prev: `${section}.openPreviousRecentlyUsedEditorInGroup`, next: `${section}.openNextRecentlyUsedEditorInGroup` };
+						case 'group':
+							return { prev: `${section}.navigate${axis === 'horizontal' ? 'Left' : 'Up'}`, next: `${section}.navigate${axis === 'horizontal' ? 'Right' : 'Down'}` };
+						case 'navigation':
+							return { prev: `${section}.navigateBackInNavigationLocations`, next: `${section}.navigateForwardInNavigationLocations` };
+						case 'edit':
+							return { prev: `${section}.navigateBackInEditLocations`, next: `${section}.navigateForwardInEditLocations` };
+						case 'navigationEdit':
+							return { prev: `${section}.navigateBack`, next: `${section}.navigateForward` };
+					}
+				})('workbench.action');
+
+				return (
+					axis === 'horizontal'
+						? { left: prevNext?.prev, right: prevNext?.next }
+						: { up: prevNext?.prev, down: prevNext?.next }
+				) as A extends 'horizontal' ? { left?: string; right?: string } : { up?: string; down?: string };
+			};
+
+
+			const horizontalOptions = mapSwipeAxisToOptions('horizontal', conf.horizontal);
+
+			const verticalOptions = mapSwipeAxisToOptions('vertical', conf.vertical);
+
+			return { ...horizontalOptions, ...verticalOptions };
+		};
+
+		const navigationSwipeListener = this._register(new DisposableStore());
+		const registerSwipe = (electronWindow: electron.BrowserWindow) => {
+			navigationSwipeListener.clear();
+			const config = this.configurationService.getValue<SwipeToNavigationConfig | undefined>(configurationKey) ?? 'disabled';
+
+			const mappedConfig = mapDirectionsToConfig(config);
+			if (mappedConfig === undefined) {
+				return;
+			}
+			const disposable = this._register(
+				Event.fromNodeEventEmitter(electronWindow, 'swipe',
+					(event: Electron.Event, direction: 'left' | 'right' | 'up' | 'down') => ({ event, direction }))((e) => {
+						const action = mappedConfig[e.direction];
+						if (action) {
+							this.sendWhenReady('vscode:runAction', CancellationToken.None, { id: action });
+						}
+					}));
+			navigationSwipeListener.add(disposable);
+
+		};
+
+		if (this.win !== null && isMacintosh) {
+			const win = this.win;
+			this._register(this.configurationService.onDidChangeConfiguration(event => {
+				if (event.affectsConfiguration(configurationKey)) {
+					registerSwipe(win);
+				}
+			}));
+			registerSwipe(win);
+		}
+
+	}
 	private marketplaceHeadersPromise: Promise<object> | undefined;
 	private getMarketplaceHeaders(): Promise<object> {
 		if (!this.marketplaceHeadersPromise) {

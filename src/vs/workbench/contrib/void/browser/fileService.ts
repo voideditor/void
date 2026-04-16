@@ -17,7 +17,7 @@ class FilePromptActionService extends Action2 {
 	constructor() {
 		super({
 			id: FilePromptActionService.VOID_COPY_FILE_PROMPT_ID,
-			title: localize2('voidCopyPrompt', 'Void: Copy Prompt'),
+			title: localize2('voidCopyPrompt', 'Orcide: Copy Prompt'),
 			menu: [{
 				id: MenuId.ExplorerContext,
 				group: '8_void',

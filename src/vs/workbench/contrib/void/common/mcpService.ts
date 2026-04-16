@@ -6,6 +6,7 @@
 import { URI } from '../../../../base/common/uri.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { isWeb } from '../../../../base/common/platform.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
@@ -357,4 +358,19 @@ class MCPService extends Disposable implements IMCPService {
 	// }
 }
 
-registerSingleton(IMCPService, MCPService, InstantiationType.Eager);
+if (!isWeb) {
+	registerSingleton(IMCPService, MCPService, InstantiationType.Eager);
+} else {
+	class MCPServiceWeb extends Disposable implements IMCPService {
+		_serviceBrand: undefined;
+		state: { mcpServerOfName: MCPServerOfName; error: string | undefined } = { mcpServerOfName: {}, error: undefined };
+		private readonly _onDidChangeState = this._register(new Emitter<void>());
+		onDidChangeState = this._onDidChangeState.event;
+		async revealMCPConfigFile() { }
+		async toggleServerIsOn() { }
+		getMCPTools() { return undefined; }
+		async callMCPTool(): Promise<{ result: RawMCPToolCall }> { return { result: { type: 'text', text: 'MCP not available in web mode' } as any }; }
+		stringifyResult() { return ''; }
+	}
+	registerSingleton(IMCPService, MCPServiceWeb, InstantiationType.Eager);
+}

@@ -21,6 +21,7 @@ import { generateUuid } from '../../../../base/common/uuid.js'
 import { ThrottledDelayer } from '../../../../base/common/async.js'
 import { CancellationError, isCancellationError } from '../../../../base/common/errors.js'
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js'
+import { isWeb } from '../../../../base/common/platform.js'
 import { createDecorator, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js'
 import { Disposable } from '../../../../base/common/lifecycle.js'
 import { INotificationService } from '../../../../platform/notification/common/notification.js'
@@ -227,4 +228,13 @@ class LoadingGenerateCommitMessageAction extends Action2 {
 
 registerAction2(GenerateCommitMessageAction)
 registerAction2(LoadingGenerateCommitMessageAction)
-registerSingleton(IGenerateCommitMessageService, GenerateCommitMessageService, InstantiationType.Delayed)
+if (!isWeb) {
+	registerSingleton(IGenerateCommitMessageService, GenerateCommitMessageService, InstantiationType.Delayed)
+} else {
+	class GenerateCommitMessageServiceWeb implements IGenerateCommitMessageService {
+		readonly _serviceBrand: undefined;
+		async generateCommitMessage() { }
+		abort() { }
+	}
+	registerSingleton(IGenerateCommitMessageService, GenerateCommitMessageServiceWeb, InstantiationType.Delayed)
+}

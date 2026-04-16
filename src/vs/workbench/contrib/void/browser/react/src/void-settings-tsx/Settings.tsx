@@ -283,7 +283,7 @@ const SimpleModelSettingsDialog = ({
 		onClose();
 	};
 
-	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/2e5ecb291d33afbe4565921664fb7e183189c1c5/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L146-L172`
+	const sourcecodeOverridesLink = `https://github.com/orcest-ai/Orcide/blob/2e5ecb291d33afbe4565921664fb7e183189c1c5/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L146-L172`
 
 	return (
 		<div // Backdrop
@@ -1459,7 +1459,7 @@ export const Settings = () => {
 											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 												Theme Settings
 											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService?.showItemInFolder(environmentService.logsHome.fsPath) }}>
 												Open Logs
 											</VoidButtonBgDarken>
 										</div>

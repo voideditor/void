@@ -6,6 +6,7 @@
 import { createDecorator, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { isWeb } from '../../../../base/common/platform.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { localize2 } from '../../../../nls.js';
 import { registerAction2, Action2 } from '../../../../platform/actions/common/actions.js';
@@ -50,7 +51,17 @@ export class MetricsService implements IMetricsService {
 	}
 }
 
-registerSingleton(IMetricsService, MetricsService, InstantiationType.Eager);
+if (!isWeb) {
+	registerSingleton(IMetricsService, MetricsService, InstantiationType.Eager);
+} else {
+	class MetricsServiceWeb implements IMetricsService {
+		readonly _serviceBrand: undefined;
+		capture() { }
+		setOptOut() { }
+		async getDebuggingProperties() { return {} }
+	}
+	registerSingleton(IMetricsService, MetricsServiceWeb, InstantiationType.Eager);
+}
 
 
 // debugging action
@@ -59,7 +70,7 @@ registerAction2(class extends Action2 {
 		super({
 			id: 'voidDebugInfo',
 			f1: true,
-			title: localize2('voidMetricsDebug', 'Void: Log Debug Info'),
+			title: localize2('voidMetricsDebug', 'Orcide: Log Debug Info'),
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
@@ -68,6 +79,6 @@ registerAction2(class extends Action2 {
 
 		const debugProperties = await metricsService.getDebuggingProperties()
 		console.log('Metrics:', debugProperties)
-		notifService.info(`Void Debug info:\n${JSON.stringify(debugProperties, null, 2)}`)
+		notifService.info(`Orcide Debug info:\n${JSON.stringify(debugProperties, null, 2)}`)
 	}
 })

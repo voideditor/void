@@ -1,0 +1,19 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer hexagonal frame -->
+  <path d="M100 10 L180 50 L180 140 L100 180 L20 140 L20 50 Z" stroke="#888888" stroke-width="2" fill="none" opacity="0.25"/>
+  <!-- Inner hexagonal frame -->
+  <path d="M100 30 L165 60 L165 130 L100 160 L35 130 L35 60 Z" stroke="#888888" stroke-width="1.5" fill="none" opacity="0.15"/>
+  <!-- Central O circle -->
+  <circle cx="100" cy="95" r="36" stroke="#60a5fa" stroke-width="2.5" fill="none"/>
+  <circle cx="100" cy="95" r="26" stroke="#60a5fa" stroke-width="1.2" fill="none" opacity="0.4"/>
+  <!-- Connection nodes -->
+  <circle cx="100" cy="59" r="2.5" fill="#60a5fa"/>
+  <circle cx="136" cy="95" r="2.5" fill="#60a5fa"/>
+  <circle cx="100" cy="131" r="2.5" fill="#60a5fa"/>
+  <circle cx="64" cy="95" r="2.5" fill="#60a5fa"/>
+  <!-- Connecting lines to hexagon -->
+  <line x1="100" y1="59" x2="100" y2="30" stroke="#60a5fa" stroke-width="0.8" opacity="0.35"/>
+  <line x1="136" y1="95" x2="165" y2="95" stroke="#60a5fa" stroke-width="0.8" opacity="0.35"/>
+  <line x1="100" y1="131" x2="100" y2="160" stroke="#60a5fa" stroke-width="0.8" opacity="0.35"/>
+  <line x1="64" y1="95" x2="35" y2="95" stroke="#60a5fa" stroke-width="0.8" opacity="0.35"/>
+</svg>

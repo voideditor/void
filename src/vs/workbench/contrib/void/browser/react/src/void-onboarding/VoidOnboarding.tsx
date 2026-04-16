@@ -3,15 +3,13 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
 import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
 import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
-import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
-import { isLinux } from '../../../../../../../base/common/platform.js';
 
 const OVERRIDE_VALUE = false
 
@@ -39,29 +37,32 @@ export const VoidOnboarding = () => {
 	)
 }
 
-const VoidIcon = () => {
-	const accessor = useAccessor()
-	const themeService = accessor.get('IThemeService')
+const OrcideIcon = () => {
+	const isDark = useIsDark()
 
-	const divRef = useRef<HTMLDivElement | null>(null)
-
-	useEffect(() => {
-		// void icon style
-		const updateTheme = () => {
-			const theme = themeService.getColorTheme().type
-			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
-			if (divRef.current) {
-				divRef.current.style.maxWidth = '220px'
-				divRef.current.style.opacity = '50%'
-				divRef.current.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
-			}
-		}
-		updateTheme()
-		const d = themeService.onDidColorThemeChange(updateTheme)
-		return () => d.dispose()
-	}, [])
-
-	return <div ref={divRef} className='@@void-void-icon' />
+	return (
+		<svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.7 }}>
+			{/* Outer hexagonal frame */}
+			<path d="M110 10 L195 55 L195 145 L110 190 L25 145 L25 55 Z" stroke={isDark ? '#ffffff' : '#1a1a2e'} strokeWidth="2" fill="none" opacity="0.3" />
+			{/* Inner hexagonal frame */}
+			<path d="M110 35 L175 68 L175 132 L110 165 L45 132 L45 68 Z" stroke={isDark ? '#ffffff' : '#1a1a2e'} strokeWidth="1.5" fill="none" opacity="0.2" />
+			{/* Central "O" letterform with circuit-like details */}
+			<circle cx="110" cy="100" r="38" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="3" fill="none" />
+			<circle cx="110" cy="100" r="28" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="1.5" fill="none" opacity="0.5" />
+			{/* Connection nodes */}
+			<circle cx="110" cy="62" r="3" fill={isDark ? '#60a5fa' : '#2563eb'} />
+			<circle cx="148" cy="100" r="3" fill={isDark ? '#60a5fa' : '#2563eb'} />
+			<circle cx="110" cy="138" r="3" fill={isDark ? '#60a5fa' : '#2563eb'} />
+			<circle cx="72" cy="100" r="3" fill={isDark ? '#60a5fa' : '#2563eb'} />
+			{/* Connecting lines to hexagon */}
+			<line x1="110" y1="62" x2="110" y2="35" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="1" opacity="0.4" />
+			<line x1="148" y1="100" x2="175" y2="100" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="1" opacity="0.4" />
+			<line x1="110" y1="138" x2="110" y2="165" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="1" opacity="0.4" />
+			<line x1="72" y1="100" x2="45" y2="100" stroke={isDark ? '#60a5fa' : '#2563eb'} strokeWidth="1" opacity="0.4" />
+			{/* Brand text */}
+			<text x="110" y="200" textAnchor="middle" fill={isDark ? '#ffffff' : '#1a1a2e'} fontSize="18" fontWeight="300" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="4" opacity="0.6">ORCIDE</text>
+		</svg>
+	)
 }
 
 const FADE_DURATION_MS = 2000
@@ -104,14 +105,14 @@ const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzu
 
 // Data structures for provider tabs
 const providerNamesOfTab: Record<TabName, ProviderName[]> = {
-	Free: ['gemini', 'openRouter'],
+	Free: ['orcestAI', 'gemini', 'openRouter'],
 	Local: localProviderNames,
-	Paid: providerNames.filter(pn => !(['gemini', 'openRouter', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
+	Paid: providerNames.filter(pn => !(['orcestAI', 'gemini', 'openRouter', ...localProviderNames, ...cloudProviders] as string[]).includes(pn)) as ProviderName[],
 	'Cloud/Other': cloudProviders,
 };
 
 const descriptionOfTab: Record<TabName, string> = {
-	Free: `Providers with a 100% free tier. Add as many as you'd like!`,
+	Free: `Free providers — Orcest AI works out of the box with no API key!`,
 	Paid: `Connect directly with any provider (bring your own key).`,
 	Local: `Active providers should appear automatically. Add as many as you'd like! `,
 	'Cloud/Other': `Add as many as you'd like! Reach out for custom configuration requests.`,
@@ -204,6 +205,14 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 				<div key={providerName} className="w-full max-w-xl mb-10">
 					<div className="text-xl mb-2">
 						Add {displayInfoOfProviderName(providerName).title}
+						{providerName === 'orcestAI' && (
+							<span
+								data-tooltip-id="void-tooltip-provider-info"
+								data-tooltip-content="Orcest AI provides 650+ free models via OllamaFreeAPI. No API key required — just works out of the box."
+								data-tooltip-place="right"
+								className="ml-1 text-xs align-top text-blue-400"
+							>*</span>
+						)}
 						{providerName === 'gemini' && (
 							<span
 								data-tooltip-id="void-tooltip-provider-info"
@@ -484,10 +493,10 @@ const VoidOnboardingContent = () => {
 
 	// Replace the single selectedProviderName with four separate states
 	// page 2 state - each tab gets its own state
-	const [selectedIntelligentProvider, setSelectedIntelligentProvider] = useState<ProviderName>('anthropic');
+	const [selectedIntelligentProvider, setSelectedIntelligentProvider] = useState<ProviderName>('orcestAI');
 	const [selectedPrivateProvider, setSelectedPrivateProvider] = useState<ProviderName>('ollama');
-	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('gemini');
-	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('anthropic');
+	const [selectedAffordableProvider, setSelectedAffordableProvider] = useState<ProviderName>('orcestAI');
+	const [selectedAllProvider, setSelectedAllProvider] = useState<ProviderName>('orcestAI');
 
 	// Helper function to get the current selected provider based on active tab
 	const getSelectedProvider = (): ProviderName => {
@@ -510,9 +519,9 @@ const VoidOnboardingContent = () => {
 	}
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
-		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
+		smart: ['orcestAI', 'anthropic', 'openAI', 'gemini', 'openRouter'],
 		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio'],
-		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
+		cheap: ['orcestAI', 'gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
 		all: providerNames,
 	}
 
@@ -547,7 +556,7 @@ const VoidOnboardingContent = () => {
 					voidMetricsService.capture('Completed Onboarding', { selectedProviderName, wantToUseOption })
 				}}
 				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
-			>Enter the Void</PrimaryActionButton>
+			>Enter Orcide</PrimaryActionButton>
 		</div>
 	</div>
 
@@ -563,7 +572,7 @@ const VoidOnboardingContent = () => {
 	// can be md
 	const detailedDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Most intelligent and best for agent mode.",
-		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:founders@voideditor.com) for help setting up at your company.",
+		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:support@orcest.ai) for help setting up at your company.",
 		cheap: "Use great deals like Gemini 2.5 Pro, or self-host a model with Ollama or vLLM for free.",
 		all: "",
 	}
@@ -596,11 +605,11 @@ const VoidOnboardingContent = () => {
 		0: <OnboardingPageShell
 			content={
 				<div className='flex flex-col items-center gap-8'>
-					<div className="text-5xl font-light text-center">Welcome to Void</div>
+					<div className="text-5xl font-light text-center">Welcome to Orcide</div>
 
-					{/* Slice of Void image */}
+					{/* Orcide logo */}
 					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
-						{!isLinux && <VoidIcon />}
+						<OrcideIcon />
 					</div>
 
 

@@ -7,6 +7,7 @@ import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMess
 
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { isWeb } from '../../../../base/common/platform.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -195,5 +196,130 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 }
 
-registerSingleton(ILLMMessageService, LLMMessageService, InstantiationType.Eager);
+if (!isWeb) {
+	registerSingleton(ILLMMessageService, LLMMessageService, InstantiationType.Eager);
+} else {
+	const _baseUrls: Partial<Record<string, string>> = {
+		openRouter: 'https://openrouter.ai/api/v1',
+		openAI: 'https://api.openai.com/v1',
+		deepseek: 'https://api.deepseek.com/v1',
+		groq: 'https://api.groq.com/openai/v1',
+		xAI: 'https://api.x.ai/v1',
+		mistral: 'https://api.mistral.ai/v1',
+		orcestAI: 'https://ollamafreeapi.orcest.ai/v1',
+	};
+
+	class LLMMessageServiceWeb extends Disposable implements ILLMMessageService {
+		readonly _serviceBrand: undefined;
+		private readonly _abortControllers = new Map<string, AbortController>();
+
+		constructor(
+			@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		) { super(); }
+
+		sendLLMMessage = (params: ServiceSendLLMMessageParams): string | null => {
+			const { onText, onFinalMessage, onError, modelSelection } = params;
+			if (modelSelection === null) {
+				onError({ message: `Please add a provider in Orcide's Settings.`, fullError: null });
+				return null;
+			}
+			const requestId = generateUuid();
+			const abort = new AbortController();
+			this._abortControllers.set(requestId, abort);
+
+			const { settingsOfProvider } = this.voidSettingsService.state;
+			const providerSettings = settingsOfProvider[modelSelection.providerName];
+			const apiKey = (providerSettings as any).apiKey as string | undefined;
+			const endpoint = (providerSettings as any).endpoint as string | undefined;
+			const baseUrl = endpoint || _baseUrls[modelSelection.providerName] || 'https://openrouter.ai/api/v1';
+
+			const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+			if (apiKey) { headers['Authorization'] = `Bearer ${apiKey}`; }
+			if (modelSelection.providerName === 'openRouter') {
+				headers['HTTP-Referer'] = 'https://ide.orcest.ai';
+				headers['X-Title'] = 'ide.orcest.ai';
+			}
+
+			let messages: any[];
+			let systemMessage: string | undefined;
+			if (params.messagesType === 'chatMessages') {
+				messages = params.messages.map((m: any) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: typeof m.content === 'string' ? m.content : (m.parts ? m.parts.map((p: any) => p.text).join('') : JSON.stringify(m.content)) }));
+				systemMessage = params.separateSystemMessage;
+			} else {
+				messages = [{ role: 'user', content: params.messages.prefix }];
+				systemMessage = undefined;
+			}
+
+			const body: any = { model: modelSelection.modelName, messages: systemMessage ? [{ role: 'system', content: systemMessage }, ...messages] : messages, stream: true };
+
+			(async () => {
+				try {
+					const res = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body), signal: abort.signal });
+					if (!res.ok) {
+						const errText = await res.text().catch(() => res.statusText);
+						onError({ message: `${res.status}: ${errText}`, fullError: null });
+						return;
+					}
+					const reader = res.body!.getReader();
+					const decoder = new TextDecoder();
+					let fullText = '';
+					let buffer = '';
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) break;
+						buffer += decoder.decode(value, { stream: true });
+						const lines = buffer.split('\n');
+						buffer = lines.pop()!;
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed.startsWith('data:')) continue;
+							const data = trimmed.slice(5).trim();
+							if (data === '[DONE]') continue;
+							try {
+								const json = JSON.parse(data);
+								const delta = json.choices?.[0]?.delta;
+								if (delta?.content) {
+									fullText += delta.content;
+									onText({ fullText, fullReasoning: '' });
+								}
+							} catch { }
+						}
+					}
+					onFinalMessage({ fullText, fullReasoning: '', anthropicReasoning: null });
+				} catch (e: any) {
+					if (e?.name !== 'AbortError') {
+						onError({ message: e?.message || String(e), fullError: null });
+					}
+				} finally {
+					this._abortControllers.delete(requestId);
+				}
+			})();
+			return requestId;
+		}
+
+		abort = (requestId: string) => {
+			this._abortControllers.get(requestId)?.abort();
+			this._abortControllers.delete(requestId);
+		}
+
+		ollamaList = (params: ServiceModelListParams<OllamaModelResponse>) => {
+			params.onError({ error: 'Ollama not available in web mode' });
+		}
+
+		openAICompatibleList = (params: ServiceModelListParams<OpenaiCompatibleModelResponse>) => {
+			const { settingsOfProvider } = this.voidSettingsService.state;
+			const providerSettings = settingsOfProvider[params.providerName];
+			const apiKey = (providerSettings as any).apiKey as string | undefined;
+			const endpoint = (providerSettings as any).endpoint as string | undefined;
+			const baseUrl = endpoint || _baseUrls[params.providerName] || '';
+			if (!baseUrl) { params.onError({ error: 'No endpoint configured' }); return; }
+			const headers: Record<string, string> = {};
+			if (apiKey) { headers['Authorization'] = `Bearer ${apiKey}`; }
+			fetch(`${baseUrl}/models`, { headers }).then(r => r.json()).then(json => {
+				params.onSuccess({ models: json.data || [] });
+			}).catch(e => { params.onError({ error: e?.message || String(e) }); });
+		}
+	}
+	registerSingleton(ILLMMessageService, LLMMessageServiceWeb, InstantiationType.Eager);
+}
 

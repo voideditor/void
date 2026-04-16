@@ -1,4 +1,4 @@
-This is a fork of the VSCode repo called Void.
+This is the Orcide IDE repository, a fork of VSCode.
 
 Most code we care about lives in src/vs/workbench/contrib/void.
 

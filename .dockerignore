@@ -1,0 +1,31 @@
+# Git
+.git
+.github
+.gitignore
+.gitattributes
+
+# Node (rebuilt in Docker)
+node_modules
+
+# IDE
+.idea
+
+# Documentation
+README.md
+HOW_TO_CONTRIBUTE.md
+VOID_CODEBASE_GUIDE.md
+LICENSE*.txt
+ThirdPartyNotices.txt
+
+# CI/CD
+CodeQL.yml
+
+# Build output (rebuilt in Docker)
+out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright browsers (not needed for server)
+.playwright

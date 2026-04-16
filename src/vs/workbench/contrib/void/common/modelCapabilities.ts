@@ -65,6 +65,9 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
+	orcestAI: {
+		endpoint: 'https://ollamafreeapi.orcest.ai/v1',
+	},
 
 } as const
 
@@ -115,24 +118,15 @@ export const defaultModelsOfProvider = {
 	],
 	lmStudio: [], // autodetected
 
-	openRouter: [ // https://openrouter.ai/models
-		// 'anthropic/claude-3.7-sonnet:thinking',
-		'anthropic/claude-opus-4',
+	openRouter: [ // https://openrouter.ai/models (keep <=9 to avoid all-hidden default)
 		'anthropic/claude-sonnet-4',
-		'qwen/qwen3-235b-a22b',
-		'anthropic/claude-3.7-sonnet',
-		'anthropic/claude-3.5-sonnet',
+		'anthropic/claude-opus-4',
 		'deepseek/deepseek-r1',
-		'deepseek/deepseek-r1-zero:free',
-		'mistralai/devstral-small:free'
-		// 'openrouter/quasar-alpha',
-		// 'google/gemini-2.5-pro-preview-03-25',
-		// 'mistralai/codestral-2501',
-		// 'qwen/qwen-2.5-coder-32b-instruct',
-		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
-		// 'google/gemini-2.0-pro-exp-02-05:free',
-		// 'google/gemini-2.0-flash-exp:free',
+		'mistralai/codestral-2501',
+		'qwen/qwen3-235b-a22b',
+		'mistralai/devstral-small:free',
+		'google/gemini-2.0-flash-exp:free',
+		'microsoft/phi-4-reasoning-plus:free',
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
@@ -153,6 +147,15 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	orcestAI: [
+		'llama3.2:latest',
+		'llama3.1:latest',
+		'llama3.3:latest',
+		'mistral:latest',
+		'deepseek-r1:latest',
+		'qwen2.5-coder:7b',
+		'gemma:latest',
+	],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1449,6 +1452,23 @@ const openRouterSettings: VoidStaticProviderInfo = {
 
 
 
+// ---------------- ORCEST AI (OllamaFreeAPI) ----------------
+const orcestAIModelOptions = {
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const orcestAISettings: VoidStaticProviderInfo = {
+	modelOptions: orcestAIModelOptions,
+	modelOptionsFallback: (modelName) => {
+		// OllamaFreeAPI serves 650+ open-source models, use extensive fallback for capability detection
+		return extensiveModelOptionsFallback(modelName, { cost: { input: 0, output: 0 } })
+	},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
+	},
+}
+
+
 // ---------------- model settings of everything above ----------------
 
 const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProviderInfo } = {
@@ -1474,6 +1494,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+	orcestAI: orcestAISettings,
 } as const
 
 

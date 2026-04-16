@@ -5,6 +5,7 @@
 
 import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+import { isWeb } from '../../../../base/common/platform.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { VoidCheckUpdateRespose } from './voidUpdateServiceTypes.js';
@@ -41,6 +42,14 @@ export class VoidUpdateService implements IVoidUpdateService {
 	}
 }
 
-registerSingleton(IVoidUpdateService, VoidUpdateService, InstantiationType.Eager);
+if (!isWeb) {
+	registerSingleton(IVoidUpdateService, VoidUpdateService, InstantiationType.Eager);
+} else {
+	class VoidUpdateServiceWeb implements IVoidUpdateService {
+		readonly _serviceBrand: undefined;
+		check = async () => ({ type: 'noUpdate' }) as any;
+	}
+	registerSingleton(IVoidUpdateService, VoidUpdateServiceWeb, InstantiationType.Eager);
+}
 
 

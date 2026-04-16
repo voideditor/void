@@ -1,6 +1,6 @@
 /*--------------------------------------------------------------------------------------
- *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
- *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *  Copyright 2025 Orcest AI. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
 
@@ -64,12 +64,17 @@ import './fileService.js'
 // register source control management
 import './voidSCMService.js'
 
-// ---------- common (unclear if these actually need to be imported, because they're already imported wherever they're used) ----------
+// ---------- Orcide SSO & Profile services ----------
+
+// SSO authentication service (browser-side)
+import './orcideSSOBrowserService.js'
+
+// ---------- common ----------
 
 // llmMessage
 import '../common/sendLLMMessageService.js'
 
-// voidSettings
+// orcideSettings (previously voidSettings)
 import '../common/voidSettingsService.js'
 
 // refreshModel
@@ -83,3 +88,12 @@ import '../common/voidUpdateService.js'
 
 // model service
 import '../common/voidModelService.js'
+
+// Orcide SSO service
+import '../common/orcideSSOService.js'
+
+// Orcide user profile service
+import '../common/orcideUserProfileService.js'
+
+// Orcide collaboration service
+import '../common/orcideCollaborationService.js'

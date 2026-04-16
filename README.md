@@ -1,41 +1,70 @@
-# Welcome to Void.
+<a name="readme-top"></a>
 
 <div align="center">
-	<img
-		src="./src/vs/workbench/browser/parts/editor/media/slice_of_void.png"
-	 	alt="Void Welcome"
-		width="300"
-	 	height="300"
-	/>
+  <h1 align="center" style="border-bottom: none">Orcide: Cloud IDE</h1>
+  <p align="center"><b>Part of the Orcest AI Ecosystem</b></p>
 </div>
 
-Void is the open-source Cursor alternative.
+<div align="center">
+  <a href="https://github.com/orcest-ai/Orcide/blob/main/LICENSE"><img src="https://img.shields.io/badge/LICENSE-MIT-20B2AA?style=for-the-badge" alt="MIT License"></a>
+</div>
 
-Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data.
+<hr>
 
-This repo contains the full sourcecode for Void. If you're new, welcome!
+Orcide is an AI-powered cloud IDE that provides intelligent code editing, autocomplete, and refactoring capabilities. It is a core component of the **Orcest AI** ecosystem, integrated with **RainyModel** (rm.orcest.ai) for intelligent LLM routing.
 
-- 🧭 [Website](https://voideditor.com)
+### Orcest AI Ecosystem
 
-- 👋 [Discord](https://discord.gg/RSNjgaugJs)
+| Service | Domain | Role |
+|---------|--------|------|
+| **Lamino** | llm.orcest.ai | LLM Workspace |
+| **RainyModel** | rm.orcest.ai | LLM Routing Proxy |
+| **Maestrist** | agent.orcest.ai | AI Agent Platform |
+| **Orcide** | ide.orcest.ai | Cloud IDE |
+| **Login** | login.orcest.ai | SSO Authentication |
 
-- 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
+## Features
 
+- **AI-Powered Code Editing**: Intelligent code suggestions and completions
+- **Chat Interface**: Built-in AI chat for code assistance
+- **Autocomplete**: Context-aware code completion powered by RainyModel
+- **Code Refactoring**: AI-assisted code improvements
+- **RainyModel Integration**: Smart LLM routing with automatic fallback (Free → Internal → Premium)
+- **SSO Authentication**: Enterprise-grade access control via login.orcest.ai
+- **VS Code Compatible**: Full VS Code extension ecosystem support
 
-## Note
+## RainyModel Configuration
 
-We've paused work on the Void IDE (this repo) to explore a few novel coding ideas. We want to focus on innovation over feature-parity. Void will continue running, but without maintenance some existing features might stop working over time. Depending on the direction of our new work, we might not resume Void as an IDE.
+Configure Orcide to use RainyModel as its AI backend:
 
-We won't be actively reviewing Issues and PRs, but we will respond to all [email](mailto:hello@voideditor.com) inquiries on building and maintaining your own version of Void while we're paused. 
+1. Open Settings (Ctrl+,)
+2. Navigate to AI / LLM settings
+3. Set:
+   - **API Provider**: OpenAI-Compatible
+   - **Base URL**: `https://rm.orcest.ai/v1`
+   - **API Key**: Your RainyModel API key
+   - **Chat Model**: `rainymodel/chat`
+   - **Autocomplete Model**: `rainymodel/code`
 
-## Reference
+## Development
 
-Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the codebase, see [VOID_CODEBASE_GUIDE](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
+```bash
+# Install dependencies
+yarn install
 
-For a guide on how to develop your own version of Void, see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md) and [void-builder](https://github.com/voideditor/void-builder).
+# Build
+yarn build
 
+# Run in development mode
+yarn watch
+```
 
+## Contributing
 
+See [HOW_TO_CONTRIBUTE.md](HOW_TO_CONTRIBUTE.md) for contribution guidelines.
 
-## Support
-You can always reach us in our Discord server or contact us via email: hello@voideditor.com.
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+Part of the [Orcest AI](https://orcest.ai) ecosystem.

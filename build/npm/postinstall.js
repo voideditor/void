@@ -46,7 +46,12 @@ function npmInstall(dir, opts) {
 		shell: true
 	};
 
-	const command = process.env['npm_command'] || 'install';
+	// When parent runs "npm rebuild", npm_command=rebuild causes subdirs to run "npm rebuild"
+	// which doesn't install packages. Subdirs need "npm install" to populate node_modules.
+	const rawCommand = opts.npmCommandOverride != null
+		? opts.npmCommandOverride
+		: (process.env['npm_command'] || 'install');
+	const command = (rawCommand === 'rebuild' ? 'install' : rawCommand);
 
 	if (process.env['VSCODE_REMOTE_DEPENDENCIES_CONTAINER_NAME'] && /^(.build\/distro\/npm\/)?remote$/.test(dir)) {
 		const userinfo = os.userInfo();
@@ -128,6 +133,10 @@ for (let dir of dirs) {
 				...process.env
 			},
 		}
+		// When set, use --ignore-scripts for build to skip @vscode/ripgrep postinstall (403 from GitHub).
+		if (process.env['VSCODE_USE_SYSTEM_RIPGREP']) {
+			opts.npmCommandOverride = 'install --ignore-scripts';
+		}
 		if (process.env['CC']) { opts.env['CC'] = 'gcc'; }
 		if (process.env['CXX']) { opts.env['CXX'] = 'g++'; }
 		if (process.env['CXXFLAGS']) { opts.env['CXXFLAGS'] = ''; }
@@ -144,6 +153,11 @@ for (let dir of dirs) {
 			env: {
 				...process.env
 			},
+		}
+		// When set, use --ignore-scripts for remote to skip @vscode/ripgrep postinstall (403 from GitHub).
+		// Caller must then copy system ripgrep into remote/node_modules/@vscode/ripgrep/bin and run npm rebuild in remote.
+		if (process.env['VSCODE_USE_SYSTEM_RIPGREP']) {
+			opts.npmCommandOverride = 'install --ignore-scripts';
 		}
 		if (process.env['VSCODE_REMOTE_CC']) {
 			opts.env['CC'] = process.env['VSCODE_REMOTE_CC'];
@@ -188,5 +202,8 @@ for (let dir of dirs) {
 	npmInstall(dir, opts);
 }
 
-cp.execSync('git config pull.rebase merges');
-cp.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
+// Skip git config if not in a git repo (e.g. Docker build where .git is not copied)
+if (fs.existsSync(path.join(root, '.git'))) {
+	cp.execSync('git config pull.rebase merges');
+	cp.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
+}

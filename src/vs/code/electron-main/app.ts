@@ -133,6 +133,7 @@ import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/se
 import { VoidSCMService } from '../../workbench/contrib/void/electron-main/voidSCMMainService.js';
 import { IVoidSCMService } from '../../workbench/contrib/void/common/voidSCMTypes.js';
 import { MCPChannel } from '../../workbench/contrib/void/electron-main/mcpChannel.js';
+import { startAfmIfNeeded } from '../../workbench/contrib/void/electron-main/afmBackendService.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -1389,6 +1390,9 @@ export class CodeApplication extends Disposable {
 
 	private afterWindowOpen(): void {
 
+		// Void: start afm (Apple Foundation Model) backend if available
+		this.startAfmBackend();
+
 		// Windows: mutex
 		this.installMutex();
 
@@ -1413,6 +1417,13 @@ export class CodeApplication extends Disposable {
 		if (isMacintosh && app.runningUnderARM64Translation) {
 			this.windowsMainService?.sendToFocused('vscode:showTranslatedBuildWarning');
 		}
+	}
+
+	private startAfmBackend(): void {
+		startAfmIfNeeded(
+			(cb) => Event.once(this.lifecycleMainService.onWillShutdown)(() => cb()),
+			(msg) => this.logService.info(msg),
+		).catch((err) => this.logService.error(`[Void] afm: unexpected error: ${err}`));
 	}
 
 	private async installMutex(): Promise<void> {

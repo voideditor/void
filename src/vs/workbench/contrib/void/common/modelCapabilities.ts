@@ -61,6 +61,9 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
+	macLocalAFM: {
+		endpoint: 'http://localhost:9999',
+	},
 
 } as const
 
@@ -152,6 +155,7 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	macLocalAFM: [], // autodetected via afm list endpoint
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1459,6 +1463,22 @@ const openRouterSettings: VoidStaticProviderInfo = {
 
 
 
+// ---------------- MAC LOCAL AFM (Apple Foundation Model / MLX via afm) ----------------
+const macLocalAFMSettings: VoidStaticProviderInfo = {
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: false }),
+	modelOptions: {
+		'foundation': {
+			contextWindow: 4_096,
+			reservedOutputTokenSpace: 2_048,
+			cost: { input: 0, output: 0 },
+			downloadable: false,
+			supportsFIM: false,
+			supportsSystemMessage: 'system-role',
+			reasoningCapabilities: false,
+		},
+	},
+}
+
 // ---------------- model settings of everything above ----------------
 
 const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProviderInfo } = {
@@ -1484,6 +1504,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+	macLocalAFM: macLocalAFMSettings,
 } as const
 
 

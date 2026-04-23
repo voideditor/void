@@ -167,7 +167,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
-	else if (providerName === 'macLocalAFM') {
+	else if (providerName === 'apple') {
 		const thisConfig = settingsOfProvider[providerName]
 		const endpoint = thisConfig.endpoint || 'http://localhost:9999'
 		return new OpenAI({ baseURL: `${endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
@@ -942,7 +942,7 @@ export const sendLLMMessageToProviderImplementation = {
 		sendFIM: null,
 		list: null,
 	},
-	macLocalAFM: {
+	apple: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: (params) => _openaiCompatibleList(params),

@@ -16,11 +16,11 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama', 'vLLM', 'lmStudio', 'macLocalAFM'] satisfies ProviderName[] // all local names (no API key, endpoint-based)
+export const localProviderNames = ['ollama', 'vLLM', 'lmStudio', 'apple'] satisfies ProviderName[] // all local names (no API key, endpoint-based)
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 // providers whose model list can be fetched and auto-refreshed (local + cloud providers with a /v1/models endpoint)
-export const refreshableProviderNames = ['ollama', 'vLLM', 'lmStudio', 'macLocalAFM', 'mistral'] satisfies ProviderName[]
+export const refreshableProviderNames = ['ollama', 'vLLM', 'lmStudio', 'apple', 'mistral'] satisfies ProviderName[]
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -109,7 +109,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'awsBedrock') {
 		return { title: 'AWS Bedrock', }
 	}
-	else if (providerName === 'macLocalAFM') {
+	else if (providerName === 'apple') {
 		return { title: 'Apple & MLX', }
 	}
 
@@ -134,7 +134,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
-	if (providerName === 'macLocalAFM') return 'Run Apple\'s on-device Foundation Model or any MLX model locally. Install [afm](https://github.com/scouzi1966/maclocal-api) and start with `afm` (Foundation Model) or `afm mlx -m <model>` (MLX). Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled.'
+	if (providerName === 'apple') return 'Run Apple\'s on-device Foundation Model or any MLX model locally. Install [afm](https://github.com/scouzi1966/maclocal-api) and start with `afm` (Foundation Model) or `afm mlx -m <model>` (MLX). Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled.'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -173,7 +173,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 		title: providerName === 'ollama' ? 'Endpoint' :
 			providerName === 'vLLM' ? 'Endpoint' :
 				providerName === 'lmStudio' ? 'Endpoint' :
-					providerName === 'macLocalAFM' ? 'Endpoint' :
+					providerName === 'apple' ? 'Endpoint' :
 						providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
 							providerName === 'googleVertex' ? 'baseURL' :
 								providerName === 'microsoftAzure' ? 'baseURL' :
@@ -185,7 +185,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
 				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 					: providerName === 'lmStudio' ? defaultProviderSettings.lmStudio.endpoint
-						: providerName === 'macLocalAFM' ? defaultProviderSettings.macLocalAFM.endpoint
+						: providerName === 'apple' ? defaultProviderSettings.apple.endpoint
 							: providerName === 'liteLLM' ? 'http://localhost:4000'
 								: providerName === 'awsBedrock' ? 'http://localhost:4000/v1'
 									: '(never)',
@@ -361,10 +361,10 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.awsBedrock),
 		_didFillInProviderSettings: undefined,
 	},
-	macLocalAFM: {
+	apple: {
 		...defaultCustomSettings,
-		...defaultProviderSettings.macLocalAFM,
-		...modelInfoOfDefaultModelNames([...defaultModelsOfProvider.macLocalAFM]),
+		...defaultProviderSettings.apple,
+		...modelInfoOfDefaultModelNames([...defaultModelsOfProvider.apple]),
 		_didFillInProviderSettings: undefined,
 	},
 }

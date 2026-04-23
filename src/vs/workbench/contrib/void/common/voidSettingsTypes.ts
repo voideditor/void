@@ -110,7 +110,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 		return { title: 'AWS Bedrock', }
 	}
 	else if (providerName === 'macLocalAFM') {
-		return { title: 'Apple Foundation Model', }
+		return { title: 'Apple & MLX', }
 	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)

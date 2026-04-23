@@ -1474,6 +1474,7 @@ const macLocalAFMSettings: VoidStaticProviderInfo = {
 			downloadable: false,
 			supportsFIM: false,
 			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
 			reasoningCapabilities: false,
 		},
 	},

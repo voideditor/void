@@ -167,6 +167,11 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'macLocalAFM') {
+		const thisConfig = settingsOfProvider[providerName]
+		const endpoint = thisConfig.endpoint || 'http://localhost:9999'
+		return new OpenAI({ baseURL: `${endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -878,7 +883,7 @@ export const sendLLMMessageToProviderImplementation = {
 	mistral: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: (params) => sendMistralFIM(params),
-		list: null,
+		list: (params) => _openaiCompatibleList(params),
 	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
@@ -936,6 +941,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,
+	},
+	macLocalAFM: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
+		list: (params) => _openaiCompatibleList(params),
 	},
 
 } satisfies CallFnOfProvider

@@ -169,6 +169,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'apple') {
 		const thisConfig = settingsOfProvider[providerName]
+		// endpoint may have been pre-patched by _appleSettingsForModel to point to the right port
 		const endpoint = thisConfig.endpoint || 'http://localhost:9999'
 		return new OpenAI({ baseURL: `${endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
@@ -400,6 +401,54 @@ type OpenAIModel = {
 	object: 'model';
 	owned_by: string;
 }
+// Returns settingsOfProvider with apple.endpoint patched to the right URL based on model name.
+// - 'foundation' → endpoint (port 9999, Apple Foundation Model)
+// - anything else → mlxEndpoint (port 8080, MLX models) with fallback to endpoint
+const _appleSettingsForModel = (settingsOfProvider: SettingsOfProvider, modelName: string): SettingsOfProvider => {
+	const config = settingsOfProvider.apple
+	const isFoundation = modelName === 'foundation'
+	const targetEndpoint = isFoundation
+		? (config.endpoint || 'http://localhost:9999')
+		: (config.mlxEndpoint || config.endpoint || 'http://localhost:8080')
+	return { ...settingsOfProvider, apple: { ...config, endpoint: targetEndpoint } }
+}
+
+// Lists models from both AFM endpoints and merges them.
+const _appleList = async ({ onSuccess, onError, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
+	const config = settingsOfProvider.apple
+	const mainEndpoint = config.endpoint || 'http://localhost:9999'
+	const mlxEndpoint = config.mlxEndpoint || 'http://localhost:8080'
+
+	const fetchModels = async (baseURL: string): Promise<OpenAIModel[]> => {
+		const openai = new OpenAI({ baseURL: `${baseURL}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true })
+		const response = await openai.models.list()
+		const models: OpenAIModel[] = [...response.data]
+		while (response.hasNextPage()) {
+			models.push(...(await response.getNextPage()).data)
+		}
+		return models
+	}
+
+	// Query both endpoints in parallel; ignore failures from either one
+	const [mainResult, mlxResult] = await Promise.allSettled([
+		fetchModels(mainEndpoint),
+		mainEndpoint !== mlxEndpoint ? fetchModels(mlxEndpoint) : Promise.resolve([]),
+	])
+
+	const allModels: OpenAIModel[] = []
+	if (mainResult.status === 'fulfilled') allModels.push(...mainResult.value)
+	if (mlxResult.status === 'fulfilled') allModels.push(...mlxResult.value)
+
+	if (allModels.length === 0 && mainResult.status === 'rejected') {
+		onError({ error: mainResult.reason + '' })
+	} else {
+		// Deduplicate by model id
+		const seen = new Set<string>()
+		const unique = allModels.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true })
+		onSuccess({ models: unique })
+	}
+}
+
 const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
 	const onSuccess = ({ models }: { models: OpenAIModel[] }) => {
 		onSuccess_({ models })
@@ -943,9 +992,12 @@ export const sendLLMMessageToProviderImplementation = {
 		list: null,
 	},
 	apple: {
-		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendChat: (params) => _sendOpenAICompatibleChat({
+			...params,
+			settingsOfProvider: _appleSettingsForModel(params.settingsOfProvider, params.modelName),
+		}),
 		sendFIM: null,
-		list: (params) => _openaiCompatibleList(params),
+		list: (params) => _appleList(params),
 	},
 
 } satisfies CallFnOfProvider

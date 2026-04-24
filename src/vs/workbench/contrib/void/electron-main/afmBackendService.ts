@@ -8,7 +8,23 @@ import { createServer } from 'net';
 import { promisify } from 'util';
 
 const exec = promisify(execCb);
-const AFM_DEFAULT_PORT = 9999;
+const AFM_FOUNDATION_PORT = 9999; // Apple Foundation Model
+const AFM_MLX_PORT = 8080;        // MLX models (afm mlx -m <model> -p 8080)
+
+// Electron apps don't source the shell, so PATH is minimal (/usr/bin:/bin).
+// We enrich it with common Homebrew paths so `afm` and `brew` can be found.
+const HOMEBREW_PATHS = [
+	'/opt/homebrew/bin',    // Apple Silicon
+	'/usr/local/bin',       // Intel Mac
+	'/opt/homebrew/sbin',
+	'/usr/local/sbin',
+];
+
+const enrichedEnv = (): NodeJS.ProcessEnv => {
+	const currentPath = process.env.PATH ?? '';
+	const extra = HOMEBREW_PATHS.filter(p => !currentPath.includes(p)).join(':');
+	return { ...process.env, PATH: extra ? `${extra}:${currentPath}` : currentPath };
+};
 
 /**
  * Returns true if something is already listening on the given port.
@@ -25,11 +41,11 @@ const isPortInUse = (port: number): Promise<boolean> => {
 };
 
 /**
- * Returns true if the given command is available in PATH.
+ * Returns true if the given command is available in PATH (including Homebrew paths).
  */
 const isCommandAvailable = async (cmd: string): Promise<boolean> => {
 	try {
-		await exec(`which ${cmd}`);
+		await exec(`which ${cmd}`, { env: enrichedEnv() });
 		return true;
 	} catch {
 		return false;
@@ -49,7 +65,7 @@ const installAfmViaBrew = async (log: (msg: string) => void): Promise<boolean> =
 
 	log('[Void] afm: not found — installing via Homebrew (this may take a moment)…');
 	try {
-		await exec('brew install scouzi1966/afm/afm');
+		await exec('brew install scouzi1966/afm/afm', { env: enrichedEnv() });
 		log('[Void] afm: installed successfully via Homebrew');
 		return true;
 	} catch (e) {
@@ -75,10 +91,16 @@ export const startAfmIfNeeded = async (
 		return; // afm is macOS-only
 	}
 
-	const portInUse = await isPortInUse(AFM_DEFAULT_PORT);
+	const portInUse = await isPortInUse(AFM_FOUNDATION_PORT);
 	if (portInUse) {
 		log('[Void] afm: port 9999 already in use — using existing afm instance');
 		return;
+	}
+
+	// Check if an MLX model is already running on port 8080
+	const mlxPortInUse = await isPortInUse(AFM_MLX_PORT);
+	if (mlxPortInUse) {
+		log('[Void] afm: MLX model detected on port 8080');
 	}
 
 	// Auto-install if afm is not in PATH
@@ -97,7 +119,7 @@ export const startAfmIfNeeded = async (
 		afmProcess = spawn('afm', ['-g'], {
 			detached: false,
 			stdio: 'ignore',
-			env: { ...process.env },
+			env: enrichedEnv(),
 		});
 	} catch (e) {
 		log(`[Void] afm: could not start: ${e}`);

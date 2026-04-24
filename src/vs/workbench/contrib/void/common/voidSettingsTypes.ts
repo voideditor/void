@@ -134,7 +134,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
-	if (providerName === 'apple') return 'Run Apple\'s on-device Foundation Model or any MLX model locally. Install [afm](https://github.com/scouzi1966/maclocal-api) and start with `afm` (Foundation Model) or `afm mlx -m <model>` (MLX). Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled.'
+	if (providerName === 'apple') return 'Run Apple\'s on-device Foundation Model or any MLX model locally via [afm](https://github.com/scouzi1966/maclocal-api). Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled.\n\n**Foundation Model** (on-device, no download): `afm`\n\n**MLX models for code** (recommended for 8 GB RAM):\n- `afm mlx -m mlx-community/Qwen2.5-Coder-7B-Instruct-4bit` (~4 GB, best for code + autocomplete)\n- `afm mlx -m mlx-community/devstral-small-2505-4bit` (~4 GB, agentic coding)'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -191,6 +191,12 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 									: '(never)',
 
 
+		}
+	}
+	else if (settingName === 'mlxEndpoint') {
+		return {
+			title: 'MLX Endpoint',
+			placeholder: defaultProviderSettings.apple.mlxEndpoint,
 		}
 	}
 	else if (settingName === 'headersJSON') {
@@ -366,6 +372,7 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultProviderSettings.apple,
 		...modelInfoOfDefaultModelNames([...defaultModelsOfProvider.apple]),
 		_didFillInProviderSettings: undefined,
+		mlxEndpoint: defaultProviderSettings.apple.mlxEndpoint,
 	},
 }
 

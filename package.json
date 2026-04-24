@@ -20,6 +20,8 @@
     "test-extension": "vscode-test",
     "preinstall": "node build/npm/preinstall.js",
     "postinstall": "node build/npm/postinstall.js",
+    "patch-spdlog": "node scripts/patch-spdlog.js",
+    "setup": "npm install --ignore-scripts && npm run patch-spdlog && node build/npm/postinstall.js",
     "compile": "node ./node_modules/gulp/bin/gulp.js compile",
     "watch": "npm-run-all -lp watch-client watch-extensions",
     "watchd": "deemon npm run watch",

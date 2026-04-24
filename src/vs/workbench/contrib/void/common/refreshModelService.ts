@@ -47,7 +47,7 @@ const refreshBasedOn: { [k in RefreshableProviderName]: (keyof SettingsOfProvide
 	ollama: ['_didFillInProviderSettings', 'endpoint'],
 	vLLM: ['_didFillInProviderSettings', 'endpoint'],
 	lmStudio: ['_didFillInProviderSettings', 'endpoint'],
-	apple: ['_didFillInProviderSettings', 'endpoint'],
+	apple: ['_didFillInProviderSettings', 'endpoint', 'mlxEndpoint'],
 	mistral: ['_didFillInProviderSettings', 'apiKey'],
 	// openAICompatible: ['_didFillInProviderSettings', 'endpoint', 'apiKey'],
 }

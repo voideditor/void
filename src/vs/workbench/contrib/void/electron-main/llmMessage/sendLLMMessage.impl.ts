@@ -401,19 +401,22 @@ type OpenAIModel = {
 	object: 'model';
 	owned_by: string;
 }
-// Returns settingsOfProvider with apple.endpoint patched to the right URL based on model name.
-// - 'foundation' → endpoint (port 9999, Apple Foundation Model)
-// - anything else → mlxEndpoint (port 8080, MLX models) with fallback to endpoint
+// Maps each Apple model id to the endpoint it was last seen on (populated by _appleList).
+// This lets _appleSettingsForModel route requests correctly without relying on name conventions.
+const _appleModelEndpointMap = new Map<string, string>()
+
+// Returns settingsOfProvider with apple.endpoint patched to the URL the model was listed from.
+// Falls back to the 'foundation' name convention if the model hasn't been listed yet.
 const _appleSettingsForModel = (settingsOfProvider: SettingsOfProvider, modelName: string): SettingsOfProvider => {
 	const config = settingsOfProvider.apple
-	const isFoundation = modelName === 'foundation'
-	const targetEndpoint = isFoundation
-		? (config.endpoint || 'http://localhost:9999')
-		: (config.mlxEndpoint || config.endpoint || 'http://localhost:8080')
+	const mainEndpoint = config.endpoint || 'http://localhost:9999'
+	const mlxEndpoint = config.mlxEndpoint || config.endpoint || 'http://localhost:8080'
+	const targetEndpoint = _appleModelEndpointMap.get(modelName)
+		?? (modelName === 'foundation' ? mainEndpoint : mlxEndpoint)
 	return { ...settingsOfProvider, apple: { ...config, endpoint: targetEndpoint } }
 }
 
-// Lists models from both AFM endpoints and merges them.
+// Lists models from both AFM endpoints, records their source, and merges them.
 const _appleList = async ({ onSuccess, onError, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
 	const config = settingsOfProvider.apple
 	const mainEndpoint = config.endpoint || 'http://localhost:9999'
@@ -436,8 +439,14 @@ const _appleList = async ({ onSuccess, onError, settingsOfProvider, providerName
 	])
 
 	const allModels: OpenAIModel[] = []
-	if (mainResult.status === 'fulfilled') allModels.push(...mainResult.value)
-	if (mlxResult.status === 'fulfilled') allModels.push(...mlxResult.value)
+	if (mainResult.status === 'fulfilled') {
+		for (const m of mainResult.value) _appleModelEndpointMap.set(m.id, mainEndpoint)
+		allModels.push(...mainResult.value)
+	}
+	if (mlxResult.status === 'fulfilled') {
+		for (const m of mlxResult.value) _appleModelEndpointMap.set(m.id, mlxEndpoint)
+		allModels.push(...mlxResult.value)
+	}
 
 	if (allModels.length === 0 && mainResult.status === 'rejected') {
 		onError({ error: mainResult.reason + '' })

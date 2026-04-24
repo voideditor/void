@@ -61,6 +61,10 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
+	apple: {
+		endpoint: 'http://localhost:9999',     // Apple Foundation Model
+		mlxEndpoint: 'http://localhost:8080',  // MLX models (afm mlx -m <model> -p 8080)
+	},
 
 } as const
 
@@ -134,24 +138,15 @@ export const defaultModelsOfProvider = {
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
-	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-		'codestral-latest',
-		'devstral-medium-latest',
-		'devstral-small-latest',
-		'magistral-medium-latest',
-		'magistral-small-latest',
-		'mistral-large-latest',
-		'mistral-medium-latest',
-		'mistral-small-latest',
-		'ministral-3b-latest',
-		'ministral-8b-latest',
-		'open-codestral-mamba'
+	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview
+		// Mistral models are autodetected and fetched using the model list endpoint via refreshModelService
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	apple: [], // autodetected via afm list endpoint∂
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -1459,6 +1454,23 @@ const openRouterSettings: VoidStaticProviderInfo = {
 
 
 
+// ---------------- MAC LOCAL AFM (Apple Foundation Model / MLX via afm) ----------------
+const appleSettings: VoidStaticProviderInfo = {
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: false }),
+	modelOptions: {
+		'foundation': {
+			contextWindow: 4_096,
+			reservedOutputTokenSpace: 2_048,
+			cost: { input: 0, output: 0 },
+			downloadable: false,
+			supportsFIM: true,
+			supportsSystemMessage: 'system-role',
+			specialToolFormat: 'openai-style',
+			reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		},
+	},
+}
+
 // ---------------- model settings of everything above ----------------
 
 const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProviderInfo } = {
@@ -1484,6 +1496,8 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+	// Local Apple model
+	apple: appleSettings,
 } as const
 
 

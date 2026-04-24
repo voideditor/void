@@ -16,8 +16,11 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama', 'vLLM', 'lmStudio'] satisfies ProviderName[] // all local names
+export const localProviderNames = ['ollama', 'vLLM', 'lmStudio', 'apple'] satisfies ProviderName[] // all local names (no API key, endpoint-based)
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
+
+// providers whose model list can be fetched and auto-refreshed (local + cloud providers with a /v1/models endpoint)
+export const refreshableProviderNames = ['ollama', 'vLLM', 'lmStudio', 'apple', 'mistral'] satisfies ProviderName[]
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
 type CustomProviderSettings<providerName extends ProviderName> = {
@@ -106,6 +109,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'awsBedrock') {
 		return { title: 'AWS Bedrock', }
 	}
+	else if (providerName === 'apple') {
+		return { title: 'Apple & MLX', }
+	}
 
 	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -128,6 +134,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
+	if (providerName === 'apple') return 'Run Apple\'s on-device Foundation Model or any MLX model locally via [afm](https://github.com/scouzi1966/maclocal-api). Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled.\n\n**Foundation Model** (on-device, no download): `afm`\n\n**MLX models for code** (recommended for 8 GB RAM):\n- `afm mlx -m mlx-community/Qwen2.5-Coder-7B-Instruct-4bit` (~4 GB, best for code + autocomplete)\n- `afm mlx -m mlx-community/devstral-small-2505-4bit` (~4 GB, agentic coding)'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -163,9 +170,10 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 	}
 	else if (settingName === 'endpoint') {
 		return {
-			title: providerName === 'ollama' ? 'Endpoint' :
-				providerName === 'vLLM' ? 'Endpoint' :
-					providerName === 'lmStudio' ? 'Endpoint' :
+		title: providerName === 'ollama' ? 'Endpoint' :
+			providerName === 'vLLM' ? 'Endpoint' :
+				providerName === 'lmStudio' ? 'Endpoint' :
+					providerName === 'apple' ? 'Endpoint' :
 						providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
 							providerName === 'googleVertex' ? 'baseURL' :
 								providerName === 'microsoftAzure' ? 'baseURL' :
@@ -173,15 +181,22 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 										providerName === 'awsBedrock' ? 'Endpoint' :
 											'(never)',
 
-			placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
-				: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
-					: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
-						: providerName === 'lmStudio' ? defaultProviderSettings.lmStudio.endpoint
+		placeholder: providerName === 'ollama' ? defaultProviderSettings.ollama.endpoint
+			: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
+				: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
+					: providerName === 'lmStudio' ? defaultProviderSettings.lmStudio.endpoint
+						: providerName === 'apple' ? defaultProviderSettings.apple.endpoint
 							: providerName === 'liteLLM' ? 'http://localhost:4000'
 								: providerName === 'awsBedrock' ? 'http://localhost:4000/v1'
 									: '(never)',
 
 
+		}
+	}
+	else if (settingName === 'mlxEndpoint') {
+		return {
+			title: 'MLX Endpoint',
+			placeholder: defaultProviderSettings.apple.mlxEndpoint,
 		}
 	}
 	else if (settingName === 'headersJSON') {
@@ -237,6 +252,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	apiKey: undefined,
 	endpoint: undefined,
+	mlxEndpoint: undefined,
 	region: undefined, // googleVertex
 	project: undefined,
 	azureApiVersion: undefined,
@@ -352,6 +368,13 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.awsBedrock),
 		_didFillInProviderSettings: undefined,
 	},
+	apple: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.apple,
+		...modelInfoOfDefaultModelNames([...defaultModelsOfProvider.apple]),
+		_didFillInProviderSettings: undefined,
+		mlxEndpoint: defaultProviderSettings.apple.mlxEndpoint,
+	},
 }
 
 
@@ -385,8 +408,6 @@ export const displayInfoOfFeatureName = (featureName: FeatureName) => {
 }
 
 
-// the models of these can be refreshed (in theory all can, but not all should)
-export const refreshableProviderNames = localProviderNames
 export type RefreshableProviderName = typeof refreshableProviderNames[number]
 
 // models that come with download buttons

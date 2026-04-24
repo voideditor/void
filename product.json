@@ -1,7 +1,7 @@
 {
 	"nameShort": "Void",
 	"nameLong": "Void",
-	"voidVersion": "1.4.9",
+	"voidVersion": "2.0.0 - Apple Foundation Model + Mistral Fetch support",
 	"voidRelease": "0044",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",

@@ -167,6 +167,12 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'apple') {
+		const thisConfig = settingsOfProvider[providerName]
+		// endpoint may have been pre-patched by _appleSettingsForModel to point to the right port
+		const endpoint = thisConfig.endpoint || 'http://localhost:9999'
+		return new OpenAI({ baseURL: `${endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)
 }
@@ -395,6 +401,63 @@ type OpenAIModel = {
 	object: 'model';
 	owned_by: string;
 }
+// Maps each Apple model id to the endpoint it was last seen on (populated by _appleList).
+// This lets _appleSettingsForModel route requests correctly without relying on name conventions.
+const _appleModelEndpointMap = new Map<string, string>()
+
+// Returns settingsOfProvider with apple.endpoint patched to the URL the model was listed from.
+// Falls back to the 'foundation' name convention if the model hasn't been listed yet.
+const _appleSettingsForModel = (settingsOfProvider: SettingsOfProvider, modelName: string): SettingsOfProvider => {
+	const config = settingsOfProvider.apple
+	const mainEndpoint = config.endpoint || 'http://localhost:9999'
+	const mlxEndpoint = config.mlxEndpoint || config.endpoint || 'http://localhost:8080'
+	const targetEndpoint = _appleModelEndpointMap.get(modelName)
+		?? (modelName === 'foundation' ? mainEndpoint : mlxEndpoint)
+	return { ...settingsOfProvider, apple: { ...config, endpoint: targetEndpoint } }
+}
+
+// Lists models from both AFM endpoints, records their source, and merges them.
+const _appleList = async ({ onSuccess, onError, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
+	const config = settingsOfProvider.apple
+	const mainEndpoint = config.endpoint || 'http://localhost:9999'
+	const mlxEndpoint = config.mlxEndpoint || 'http://localhost:8080'
+
+	const fetchModels = async (baseURL: string): Promise<OpenAIModel[]> => {
+		const openai = new OpenAI({ baseURL: `${baseURL}/v1`, apiKey: 'noop', dangerouslyAllowBrowser: true })
+		const response = await openai.models.list()
+		const models: OpenAIModel[] = [...response.data]
+		while (response.hasNextPage()) {
+			models.push(...(await response.getNextPage()).data)
+		}
+		return models
+	}
+
+	// Query both endpoints in parallel; ignore failures from either one
+	const [mainResult, mlxResult] = await Promise.allSettled([
+		fetchModels(mainEndpoint),
+		mainEndpoint !== mlxEndpoint ? fetchModels(mlxEndpoint) : Promise.resolve([]),
+	])
+
+	const allModels: OpenAIModel[] = []
+	if (mainResult.status === 'fulfilled') {
+		for (const m of mainResult.value) _appleModelEndpointMap.set(m.id, mainEndpoint)
+		allModels.push(...mainResult.value)
+	}
+	if (mlxResult.status === 'fulfilled') {
+		for (const m of mlxResult.value) _appleModelEndpointMap.set(m.id, mlxEndpoint)
+		allModels.push(...mlxResult.value)
+	}
+
+	if (allModels.length === 0 && mainResult.status === 'rejected') {
+		onError({ error: mainResult.reason + '' })
+	} else {
+		// Deduplicate by model id
+		const seen = new Set<string>()
+		const unique = allModels.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true })
+		onSuccess({ models: unique })
+	}
+}
+
 const _openaiCompatibleList = async ({ onSuccess: onSuccess_, onError: onError_, settingsOfProvider, providerName }: ListParams_Internal<OpenAIModel>) => {
 	const onSuccess = ({ models }: { models: OpenAIModel[] }) => {
 		onSuccess_({ models })
@@ -878,7 +941,7 @@ export const sendLLMMessageToProviderImplementation = {
 	mistral: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: (params) => sendMistralFIM(params),
-		list: null,
+		list: (params) => _openaiCompatibleList(params),
 	},
 	ollama: {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
@@ -936,6 +999,14 @@ export const sendLLMMessageToProviderImplementation = {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,
+	},
+	apple: {
+		sendChat: (params) => _sendOpenAICompatibleChat({
+			...params,
+			settingsOfProvider: _appleSettingsForModel(params.settingsOfProvider, params.modelName),
+		}),
+		sendFIM: null,
+		list: (params) => _appleList(params),
 	},
 
 } satisfies CallFnOfProvider

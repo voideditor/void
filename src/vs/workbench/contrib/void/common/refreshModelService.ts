@@ -176,14 +176,17 @@ export class RefreshModelService extends Disposable implements IRefreshModelServ
 				// set the models to the detected models
 				this.voidSettingsService.setAutodetectedModels(
 					providerName,
-					models.map(model => {
-					if (providerName === 'ollama') return (model as OllamaModelResponse).name;
-					else if (providerName === 'vLLM') return (model as OpenaiCompatibleModelResponse).id;
-					else if (providerName === 'lmStudio') return (model as OpenaiCompatibleModelResponse).id;
-					else if (providerName === 'apple') return (model as OpenaiCompatibleModelResponse).id;
-					else if (providerName === 'mistral') return (model as OpenaiCompatibleModelResponse).id;
-					else throw new Error('refreshMode fn: unknown provider', providerName);
-					}),
+			models.flatMap(model => {
+				if (providerName === 'ollama') return [(model as OllamaModelResponse).name];
+				else if (providerName === 'vLLM') return [(model as OpenaiCompatibleModelResponse).id];
+				else if (providerName === 'lmStudio') return [(model as OpenaiCompatibleModelResponse).id];
+				else if (providerName === 'apple') return [(model as OpenaiCompatibleModelResponse).id];
+				else if (providerName === 'mistral') {
+					const id = (model as OpenaiCompatibleModelResponse).id;
+					return id.endsWith('-latest') ? [id] : [];
+				}
+				else throw new Error('refreshMode fn: unknown provider', providerName);
+				}),
 					{ enableProviderOnSuccess: options.enableProviderOnSuccess, hideRefresh: options.doNotFire }
 				)
 

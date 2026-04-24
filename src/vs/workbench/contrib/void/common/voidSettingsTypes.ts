@@ -252,6 +252,7 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 const defaultCustomSettings: Record<CustomSettingName, undefined> = {
 	apiKey: undefined,
 	endpoint: undefined,
+	mlxEndpoint: undefined,
 	region: undefined, // googleVertex
 	project: undefined,
 	azureApiVersion: undefined,

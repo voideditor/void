@@ -258,36 +258,42 @@ const openSourceModelOptions_assumingOAICompat = {
 	'deepseekR1': {
 		supportsFIM: false,
 		supportsSystemMessage: false,
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'deepseekCoderV3': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'deepseekCoderV2': {
 		supportsFIM: false,
 		supportsSystemMessage: false, // unstable
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'codestral': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'devstral': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 131_000, reservedOutputTokenSpace: 8_192,
 	},
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
 		contextWindow: 128_000, reservedOutputTokenSpace: 4_096
 	},
@@ -296,6 +302,7 @@ const openSourceModelOptions_assumingOAICompat = {
 	'phi4': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 16_000, reservedOutputTokenSpace: 4_096,
 	},
@@ -303,6 +310,7 @@ const openSourceModelOptions_assumingOAICompat = {
 	'gemma': { // https://news.ycombinator.com/item?id=43451406
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
@@ -310,12 +318,14 @@ const openSourceModelOptions_assumingOAICompat = {
 	'llama4-scout': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 10_000_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama4-maverick': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 10_000_000, reservedOutputTokenSpace: 4_096,
 	},
@@ -324,24 +334,28 @@ const openSourceModelOptions_assumingOAICompat = {
 	'llama3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.1': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.2': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'llama3.3': {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
@@ -349,18 +363,21 @@ const openSourceModelOptions_assumingOAICompat = {
 	'qwen2.5coder': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
 	'qwq': {
 		supportsFIM: false, // no FIM, yes reasoning
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 128_000, reservedOutputTokenSpace: 8_192,
 	},
 	'qwen3': {
 		supportsFIM: false, // replaces QwQ
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 		contextWindow: 32_768, reservedOutputTokenSpace: 8_192,
 	},
@@ -1143,6 +1160,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwen2.5-coder:3b': {
@@ -1152,6 +1170,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 1.9 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwen2.5-coder:1.5b': {
@@ -1161,6 +1180,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: .986 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'llama3.1': {
@@ -1170,6 +1190,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 4.9 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwen2.5-coder': {
@@ -1179,6 +1200,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 	'qwq': {
@@ -1188,6 +1210,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 20 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'deepseek-r1': {
@@ -1197,6 +1220,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 4.7 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: false, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'devstral:latest': {
@@ -1206,6 +1230,7 @@ const ollamaModelOptions = {
 		downloadable: { sizeGb: 14 },
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
 		reasoningCapabilities: false,
 	},
 

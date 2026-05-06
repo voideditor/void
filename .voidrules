@@ -1,0 +1,16 @@
+This is a fork of the VSCode repo called Void.
+
+Most code we care about lives in src/vs/workbench/contrib/void.
+
+You may often need to explore the full repo to find relevant parts of code.
+Look for services and built-in functions that you might need to use to solve the problem.
+
+In typescript, do NOT cast to types if not neccessary. NEVER lazily cast to 'any'. Find the correct type to apply and use it.
+
+Do not add or remove semicolons to any of my files. Just go with convention and make the least number of changes.
+
+Never modify files outside src/vs/workbench/contrib/void without consulting with the user first.
+
+All types that map from a value A to B should be called bOfA. For example, if you create a hashmap that goes from toolId to toolName, it should be called toolNameOfToolId, etc.
+
+Do not run anything to validate your changes; tell the user what to do instead.

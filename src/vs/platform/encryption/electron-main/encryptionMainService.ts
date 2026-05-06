@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { safeStorage as safeStorageElectron, app } from 'electron';
-import { isMacintosh, isWindows } from 'vs/base/common/platform';
-import { KnownStorageProvider, IEncryptionMainService, PasswordStoreCLIOption } from 'vs/platform/encryption/common/encryptionService';
-import { ILogService } from 'vs/platform/log/common/log';
+import { isMacintosh, isWindows, isLinux } from '../../../base/common/platform.js';
+import { KnownStorageProvider, IEncryptionMainService, PasswordStoreCLIOption } from '../common/encryptionService.js';
+import { ILogService } from '../../log/common/log.js';
 
 // These APIs are currently only supported in our custom build of electron so
 // we need to guard against them not being available.
@@ -23,6 +23,13 @@ export class EncryptionMainService implements IEncryptionMainService {
 	constructor(
 		@ILogService private readonly logService: ILogService
 	) {
+
+		// Void added this as a nice default for linux so you don't need to specify encryption provider
+		if (isLinux && !app.commandLine.getSwitchValue('password-store')) {
+			this.logService.trace('[EncryptionMainService] No password-store switch, defaulting to basic...');
+			app.commandLine.appendSwitch('password-store', PasswordStoreCLIOption.basic);
+		}
+
 		// if this commandLine switch is set, the user has opted in to using basic text encryption
 		if (app.commandLine.getSwitchValue('password-store') === PasswordStoreCLIOption.basic) {
 			this.logService.trace('[EncryptionMainService] setting usePlainTextEncryption to true...');

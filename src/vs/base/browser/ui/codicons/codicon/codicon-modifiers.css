@@ -26,7 +26,7 @@
 }
 
 /* custom speed & easing for loading icon */
-.codicon-loading,
+.codicon-loading:not(.codicon-no-default-spin), /* Void changed this as it is literally broken to the !important */
 .codicon-tree-item-loading::before {
 	animation-duration: 1s !important;
 	animation-timing-function: cubic-bezier(0.53, 0.21, 0.29, 0.67) !important;

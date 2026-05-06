@@ -1,5 +1,5 @@
 {
-	"name": "LineMage",
+	"name": "Code - OSS",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},

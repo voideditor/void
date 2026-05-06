@@ -3,32 +3,32 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as arrays from 'vs/base/common/arrays';
-import { CancellationToken } from 'vs/base/common/cancellation';
-import { onUnexpectedExternalError } from 'vs/base/common/errors';
-import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
-import { IDisposable } from 'vs/base/common/lifecycle';
-import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { EditorAction, EditorContributionInstantiation, IActionOptions, registerEditorAction, registerEditorContribution, ServicesAccessor } from 'vs/editor/browser/editorExtensions';
-import { EditorOption } from 'vs/editor/common/config/editorOptions';
-import { Position } from 'vs/editor/common/core/position';
-import { Range } from 'vs/editor/common/core/range';
-import { Selection } from 'vs/editor/common/core/selection';
-import { IEditorContribution } from 'vs/editor/common/editorCommon';
-import { EditorContextKeys } from 'vs/editor/common/editorContextKeys';
-import { ITextModel } from 'vs/editor/common/model';
-import * as languages from 'vs/editor/common/languages';
-import { BracketSelectionRangeProvider } from 'vs/editor/contrib/smartSelect/browser/bracketSelections';
-import { WordSelectionRangeProvider } from 'vs/editor/contrib/smartSelect/browser/wordSelections';
-import * as nls from 'vs/nls';
-import { MenuId } from 'vs/platform/actions/common/actions';
-import { CommandsRegistry } from 'vs/platform/commands/common/commands';
-import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
-import { LanguageFeatureRegistry } from 'vs/editor/common/languageFeatureRegistry';
-import { ITextModelService } from 'vs/editor/common/services/resolverService';
-import { assertType } from 'vs/base/common/types';
-import { URI } from 'vs/base/common/uri';
+import * as arrays from '../../../../base/common/arrays.js';
+import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { onUnexpectedExternalError } from '../../../../base/common/errors.js';
+import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
+import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { ICodeEditor } from '../../../browser/editorBrowser.js';
+import { EditorAction, EditorContributionInstantiation, IActionOptions, registerEditorAction, registerEditorContribution, ServicesAccessor } from '../../../browser/editorExtensions.js';
+import { EditorOption } from '../../../common/config/editorOptions.js';
+import { Position } from '../../../common/core/position.js';
+import { Range } from '../../../common/core/range.js';
+import { Selection } from '../../../common/core/selection.js';
+import { IEditorContribution } from '../../../common/editorCommon.js';
+import { EditorContextKeys } from '../../../common/editorContextKeys.js';
+import { ITextModel } from '../../../common/model.js';
+import * as languages from '../../../common/languages.js';
+import { BracketSelectionRangeProvider } from './bracketSelections.js';
+import { WordSelectionRangeProvider } from './wordSelections.js';
+import * as nls from '../../../../nls.js';
+import { MenuId } from '../../../../platform/actions/common/actions.js';
+import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
+import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
+import { ITextModelService } from '../../../common/services/resolverService.js';
+import { assertType } from '../../../../base/common/types.js';
+import { URI } from '../../../../base/common/uri.js';
 
 class SelectionRanges {
 
@@ -121,6 +121,93 @@ export class SmartSelectController implements IEditorContribution {
 		}
 		this._state = this._state.map(state => state.mov(forward));
 		const newSelections = this._state.map(state => Selection.fromPositions(state.ranges[state.index].getStartPosition(), state.ranges[state.index].getEndPosition()));
+
+		// Void changed this to skip over added whitespace when using smartSelect
+		// // Store the original selections for comparison
+		// const originalSelections = selections;
+
+		// // Keep skipping while we're only adding/removing whitespace
+		// let keepSkipping = true;
+		// let skipCount = 0;
+		// const MAX_SKIPS = 5; // Avoid infinite loops by setting a reasonable limit
+
+		// while (keepSkipping && skipCount < MAX_SKIPS) {
+		// 	keepSkipping = false; // Reset for each iteration
+
+		// 	// Check if all selections only added/removed whitespace
+		// 	if (originalSelections.length === newSelections.length) {
+		// 		for (let i = 0; i < originalSelections.length; i++) {
+		// 			const oldSel = originalSelections[i];
+		// 			const newSel = newSelections[i];
+
+		// 			if (forward) { // For expanding (^+Shift+Right)
+		// 				// Skip if only whitespace was added
+		// 				const oldText = model.getValueInRange(oldSel).trim();
+		// 				const newText = model.getValueInRange(newSel).trim();
+		// 				const onlyWhitespaceAdded = oldText === newText && oldText.length > 0;
+
+		// 				if (onlyWhitespaceAdded) {
+		// 					console.log(`SMART SELECT - SKIPPING (EXPAND) [${skipCount + 1}]:`, {
+		// 						reason: 'only whitespace added',
+		// 						oldText: model.getValueInRange(oldSel),
+		// 						newText: model.getValueInRange(newSel)
+		// 					});
+		// 					keepSkipping = true;
+		// 					break;
+		// 				}
+		// 			} else { // For shrinking (^+Shift+Left)
+		// 				// Skip if only whitespace was removed
+		// 				const oldText = model.getValueInRange(oldSel).trim();
+		// 				const newText = model.getValueInRange(newSel).trim();
+		// 				const onlyWhitespaceRemoved = oldText === newText && newText.length > 0;
+
+		// 				if (onlyWhitespaceRemoved) {
+		// 					console.log(`SMART SELECT - SKIPPING (SHRINK) [${skipCount + 1}]:`, {
+		// 						reason: 'only whitespace removed',
+		// 						oldText: model.getValueInRange(oldSel),
+		// 						newText: model.getValueInRange(newSel)
+		// 					});
+		// 					keepSkipping = true;
+		// 					break;
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+
+		// 	// If we need to skip, move one more time
+		// 	if (keepSkipping) {
+		// 		skipCount++;
+
+		// 		// Try to move to the next range
+		// 		const prevState = this._state;
+		// 		this._state = this._state.map(state => state.mov(forward));
+
+		// 		// Check if we've reached the end of available ranges
+		// 		const stateUnchanged = this._state.every((state, idx) =>
+		// 			state.index === prevState[idx].index
+		// 		);
+
+		// 		if (stateUnchanged) {
+		// 			// We can't move any further, so stop skipping
+		// 			keepSkipping = false;
+		// 		} else {
+		// 			// Update selections for the next iteration
+		// 			newSelections = this._state.map(state => Selection.fromPositions(
+		// 				state.ranges[state.index].getStartPosition(),
+		// 				state.ranges[state.index].getEndPosition()
+		// 			));
+		// 		}
+		// 	}
+		// }
+
+		// // Print AFTER selection (before actually setting it)
+		// console.log('SMART SELECT - AFTER:', newSelections.map(s => {
+		// 	return {
+		// 		range: `(${s.startLineNumber},${s.startColumn}) -> (${s.endLineNumber},${s.endColumn})`,
+		// 		text: model.getValueInRange(s)
+		// 	};
+		// }));
+
 		this._ignoreSelection = true;
 		try {
 			this._editor.setSelections(newSelections);
@@ -151,8 +238,7 @@ class GrowSelectionAction extends AbstractSmartSelect {
 	constructor() {
 		super(true, {
 			id: 'editor.action.smartSelect.expand',
-			label: nls.localize('smartSelect.expand', "Expand Selection"),
-			alias: 'Expand Selection',
+			label: nls.localize2('smartSelect.expand', "Expand Selection"),
 			precondition: undefined,
 			kbOpts: {
 				kbExpr: EditorContextKeys.editorTextFocus,
@@ -180,8 +266,7 @@ class ShrinkSelectionAction extends AbstractSmartSelect {
 	constructor() {
 		super(false, {
 			id: 'editor.action.smartSelect.shrink',
-			label: nls.localize('smartSelect.shrink', "Shrink Selection"),
-			alias: 'Shrink Selection',
+			label: nls.localize2('smartSelect.shrink', "Shrink Selection"),
 			precondition: undefined,
 			kbOpts: {
 				kbExpr: EditorContextKeys.editorTextFocus,

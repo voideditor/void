@@ -717,24 +717,8 @@ const openAICompatIncludeInPayloadReasoning = (reasoningInfo: SendableReasoningI
 
 }
 
-// Mistral Adjustable Reasoning — only "none" | "high" (not OpenAI-style low/medium/high)
-// https://docs.mistral.ai/capabilities/reasoning/adjustable
-const mistralIncludeInPayloadReasoning = (reasoningInfo: SendableReasoningInfo) => {
-	if (!reasoningInfo?.isReasoningEnabled) return null
-	if (reasoningInfo.type !== 'effort_slider_value') return null
-	const raw = reasoningInfo.reasoningEffort
-	let reasoning_effort: 'high' | 'none'
-	if (raw === 'none') {
-		reasoning_effort = 'none'
-	} else if (raw === 'high') {
-		reasoning_effort = 'high'
-	} else if (raw === 'low') {
-		reasoning_effort = 'none'
-	} else {
-		reasoning_effort = 'high'
-	}
-	return { reasoning_effort }
-}
+// Mistral via OpenAI SDK: omit `reasoning_effort` (422 "Extra inputs are not permitted"); public OpenAPI ≠ strict gateway here. Use Mistral-native SDK upstream if needed.
+const mistralIncludeInPayloadReasoning = (_reasoningInfo: SendableReasoningInfo): null => null
 
 const openAISettings: VoidStaticProviderInfo = {
 	modelOptions: openAIModelOptions,
@@ -999,7 +983,8 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, reasoningSlider: { type: 'effort_slider', values: ['none', 'high'], default: 'high' }, openSourceThinkTags: ['<think>', '</think>'] },
+		// No `reasoning_effort` payload (see mistralIncludeInPayloadReasoning). Surface thinking tags from stream text when present (same shape as Magistral).
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'mistral-small-latest': { // Mistral Small 4 — https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03
 		contextWindow: 256_000,
@@ -1009,7 +994,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, reasoningSlider: { type: 'effort_slider', values: ['none', 'high'], default: 'high' }, openSourceThinkTags: ['<think>', '</think>'] },
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'codestral-latest': { // Codestral 25.08 — https://docs.mistral.ai/models/model-cards/codestral-25-08
 		contextWindow: 128_000,
@@ -1098,6 +1083,7 @@ const mistralSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => { return null },
 	providerReasoningIOSettings: {
 		input: { includeInPayload: mistralIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
 	},
 }
 

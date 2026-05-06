@@ -56,6 +56,45 @@ export type ListParams_Internal<ModelResponse> = ModelListParams<ModelResponse>
 
 const invalidApiKeyMessage = (providerName: ProviderName) => `Invalid ${displayInfoOfProviderName(providerName).title} API key.`
 
+/** The OpenAI SDK only reads JSON `error.message`; Mistral often returns FastAPI-shaped `detail`/`message`. Without this remap: "422 status code (no body)". */
+const openAICompatibleErrorMessageFromParsedBody = (parsed: unknown, rawText: string, status: number): string => {
+	if (parsed !== undefined && parsed !== null && typeof parsed === 'object') {
+		const o = parsed as Record<string, unknown>
+		const nested = typeof o.error === 'object' && o.error !== null ? (o.error as { message?: unknown }).message : undefined
+		if (typeof nested === 'string') return nested
+		if (typeof o.message === 'string') return o.message
+		if (typeof o.detail === 'string') return o.detail
+		if (Array.isArray(o.detail)) {
+			return o.detail.map((item: unknown) => {
+				if (item && typeof item === 'object' && typeof (item as { msg?: unknown }).msg === 'string') return (item as { msg: string }).msg
+				try { return JSON.stringify(item) } catch { return String(item) }
+			}).join('; ')
+		}
+	}
+	const t = (rawText || '').trim()
+	if (t.length) return t.length > 4000 ? t.slice(0, 3997) + '...' : t
+	return `HTTP ${status}`
+}
+
+const openAITolerantFetch: typeof fetch = async (input, init) => {
+	const res = await globalThis.fetch(input, init as RequestInit)
+	if (res.ok)
+		return res
+	const rawText = await res.text().catch(() => '')
+	let parsed: unknown
+	try {
+		parsed = rawText ? JSON.parse(rawText) : undefined
+	} catch {
+		parsed = undefined
+	}
+	const message = openAICompatibleErrorMessageFromParsedBody(parsed, rawText, res.status)
+	return new Response(JSON.stringify({ error: { message } }), {
+		status: res.status,
+		statusText: res.statusText,
+		headers: res.headers,
+	})
+}
+
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 
 
@@ -72,6 +111,7 @@ const parseHeadersJSON = (s: string | undefined): Record<string, string | null |
 const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName }) => {
 	const commonPayloadOpts: ClientOptions = {
 		dangerouslyAllowBrowser: true,
+		fetch: openAITolerantFetch,
 	}
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider[providerName]

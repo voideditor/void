@@ -77,7 +77,15 @@ const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): AnthropicOr
 		const currMsg = messages[i]
 
 		if (currMsg.role !== 'tool') {
-			newMessages.push(currMsg)
+			// Omit anthropic-only fields: JSON.stringify would send them and strict APIs (e.g. Mistral) return 422 Extra inputs.
+			if (currMsg.role === 'assistant') {
+				newMessages.push({
+					role: 'assistant',
+					content: currMsg.content,
+				})
+			} else {
+				newMessages.push(currMsg)
+			}
 			continue
 		}
 

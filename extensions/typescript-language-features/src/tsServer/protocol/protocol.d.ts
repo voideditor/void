@@ -19,5 +19,13 @@ declare module '../../../../node_modules/typescript/lib/typescript' {
 		interface Response {
 			readonly _serverType?: ServerType;
 		}
+
+		/** Missing from typescript@5.6 lib; required at runtime when the bundled server supports preparePasteEdits (API ≥ 5.7). */
+		interface PreparePasteEditsRequestArgs extends FileRequestArgs {
+			copiedTextSpan: TextSpan[];
+		}
+		interface PreparePasteEditsResponse extends Response {
+			body: boolean;
+		}
 	}
 }

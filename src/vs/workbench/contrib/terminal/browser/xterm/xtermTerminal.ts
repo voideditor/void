@@ -221,9 +221,6 @@ export class XtermTerminal extends Disposable implements IXtermTerminal, IDetach
 			cursorWidth: config.cursorWidth,
 			macOptionIsMeta: config.macOptionIsMeta,
 			macOptionClickForcesSelection: config.macOptionClickForcesSelection,
-			rightClickSelectsWord: config.rightClickBehavior === 'selectWord',
-			fastScrollModifier: 'alt',
-			fastScrollSensitivity: config.fastScrollSensitivity,
 			scrollSensitivity: config.mouseWheelScrollSensitivity,
 			wordSeparator: config.wordSeparators,
 			overviewRuler: {

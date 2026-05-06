@@ -218,9 +218,13 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 		const min = canTurnOffReasoning ? -1 : 0
 		const max = values.length - 1
 
-		const currentEffort = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort ?? defaultVal
+		const storedEffort = voidSettingsState.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]?.reasoningEffort
+		const rawEffort = storedEffort ?? defaultVal
+		const currentEffort = values.includes(rawEffort) ? rawEffort : defaultVal
+
 		const valueIfOff = -1
-		const value = isReasoningEnabled && currentEffort ? values.indexOf(currentEffort) : valueIfOff
+		const idx = values.indexOf(currentEffort)
+		const value = isReasoningEnabled && idx >= 0 ? idx : valueIfOff
 
 		const currentEffortCapitalized = currentEffort.charAt(0).toUpperCase() + currentEffort.slice(1, Infinity)
 

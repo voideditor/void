@@ -69,10 +69,9 @@ const parseHeadersJSON = (s: string | undefined): Record<string, string | null |
 	}
 }
 
-const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includeInPayload }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName, includeInPayload?: { [s: string]: any } }) => {
+const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName }: { settingsOfProvider: SettingsOfProvider, providerName: ProviderName }) => {
 	const commonPayloadOpts: ClientOptions = {
 		dangerouslyAllowBrowser: true,
-		...includeInPayload,
 	}
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider[providerName]
@@ -188,7 +187,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 		return
 	}
 
-	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload: additionalOpenAIPayload })
+	const openai = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
 	openai.completions
 		.create({
 			model: modelName,
@@ -196,6 +195,7 @@ const _sendOpenAICompatibleFIM = async ({ messages: { prefix, suffix, stopTokens
 			suffix: suffix,
 			stop: stopTokens,
 			max_tokens: 300,
+			...additionalOpenAIPayload,
 		})
 		.then(async response => {
 			const fullText = response.choices[0]?.text
@@ -284,7 +284,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 	const { canIOReasoning, openSourceThinkTags } = reasoningCapabilities || {}
 	const reasoningInfo = getSendableReasoningInfo('Chat', providerName, modelName_, modelSelectionOptions, overridesOfModel) // user's modelName_ here
 
-	const includeInPayload = {
+	const reasoningAndExtraPayload = {
 		...providerReasoningIOSettings?.input?.includeInPayload?.(reasoningInfo),
 		...additionalOpenAIPayload
 	}
@@ -296,7 +296,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		: {}
 
 	// instance
-	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider, includeInPayload })
+	const openai: OpenAI = await newOpenAICompatibleSDK({ providerName, settingsOfProvider })
 	if (providerName === 'microsoftAzure') {
 		// Required to select the model
 		(openai as AzureOpenAI).deploymentName = modelName;
@@ -306,7 +306,7 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		messages: messages as any,
 		stream: true,
 		...nativeToolsObj,
-		...additionalOpenAIPayload
+		...reasoningAndExtraPayload,
 		// max_completion_tokens: maxTokens,
 	}
 

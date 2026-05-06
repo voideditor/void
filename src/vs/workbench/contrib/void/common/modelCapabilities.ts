@@ -141,12 +141,16 @@ export const defaultModelsOfProvider = {
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
-		'codestral-latest',
-		'devstral-small-latest',
 		'mistral-large-latest',
 		'mistral-medium-latest',
-		'ministral-3b-latest',
+		'mistral-small-latest',
+		'devstral-latest',
+		'codestral-latest',
+		'devstral-small-latest',
+		'magistral-medium-latest',
+		'ministral-14b-latest',
 		'ministral-8b-latest',
+		'ministral-3b-latest',
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
@@ -283,7 +287,7 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
-		contextWindow: 131_000, reservedOutputTokenSpace: 8_192,
+		contextWindow: 256_000, reservedOutputTokenSpace: 8_192,
 	},
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
@@ -713,6 +717,25 @@ const openAICompatIncludeInPayloadReasoning = (reasoningInfo: SendableReasoningI
 
 }
 
+// Mistral Adjustable Reasoning — only "none" | "high" (not OpenAI-style low/medium/high)
+// https://docs.mistral.ai/capabilities/reasoning/adjustable
+const mistralIncludeInPayloadReasoning = (reasoningInfo: SendableReasoningInfo) => {
+	if (!reasoningInfo?.isReasoningEnabled) return null
+	if (reasoningInfo.type !== 'effort_slider_value') return null
+	const raw = reasoningInfo.reasoningEffort
+	let reasoning_effort: 'high' | 'none'
+	if (raw === 'none') {
+		reasoning_effort = 'none'
+	} else if (raw === 'high') {
+		reasoning_effort = 'high'
+	} else if (raw === 'low') {
+		reasoning_effort = 'none'
+	} else {
+		reasoning_effort = 'high'
+	}
+	return { reasoning_effort }
+}
+
 const openAISettings: VoidStaticProviderInfo = {
 	modelOptions: openAIModelOptions,
 	modelOptionsFallback: (modelName) => {
@@ -957,75 +980,113 @@ const deepseekSettings: VoidStaticProviderInfo = {
 
 // ---------------- MISTRAL ----------------
 
-const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#pricing https://docs.mistral.ai/getting-started/models/models_overview/#premier-models
-	'mistral-large-latest': {
-		contextWindow: 131_000,
+const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/models_overview/
+	'mistral-large-latest': { // Mistral Large 3 — https://docs.mistral.ai/models/model-cards/mistral-large-3-25-12
+		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 2.00, output: 6.00 },
-		supportsFIM: false,
-		downloadable: { sizeGb: 73 },
-		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
-	},
-	'mistral-medium-latest': { // https://openrouter.ai/mistralai/mistral-medium-3
-		contextWindow: 131_000,
-		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0.40, output: 2.00 },
-		supportsFIM: false,
+		cost: { input: 0.50, output: 1.50 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'codestral-latest': {
+	'mistral-medium-latest': { // Mistral Medium 3.5 — https://docs.mistral.ai/models/model-cards/mistral-medium-3-5-26-04
 		contextWindow: 256_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 1.50, output: 7.50 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, reasoningSlider: { type: 'effort_slider', values: ['none', 'high'], default: 'high' }, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'mistral-small-latest': { // Mistral Small 4 — https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03
+		contextWindow: 256_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.15, output: 0.60 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, reasoningSlider: { type: 'effort_slider', values: ['none', 'high'], default: 'high' }, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'codestral-latest': { // Codestral 25.08 — https://docs.mistral.ai/models/model-cards/codestral-25-08
+		contextWindow: 128_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.30, output: 0.90 },
 		supportsFIM: true,
+		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 13 },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'magistral-medium-latest': {
+	'devstral-latest': { // Devstral 2 — https://docs.mistral.ai/models/model-cards/devstral-2-25-12
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0.30, output: 0.90 }, // TODO: check this
+		cost: { input: 0.40, output: 2.00 },
 		supportsFIM: true,
-		downloadable: { sizeGb: 13 },
-		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
-	},
-	'magistral-small-latest': {
-		contextWindow: 40_000,
-		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0.30, output: 0.90 }, // TODO: check this
-		supportsFIM: true,
-		downloadable: { sizeGb: 13 },
-		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
-	},
-	'devstral-small-latest': { //https://openrouter.ai/mistralai/devstral-small:free
-		contextWindow: 131_000,
-		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0, output: 0 },
-		supportsFIM: false,
-		downloadable: { sizeGb: 14 }, //https://ollama.com/library/devstral
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'ministral-8b-latest': { // ollama 'mistral'
-		contextWindow: 131_000,
+	'magistral-medium-latest': { // Magistral Medium 1.2 — https://docs.mistral.ai/models/model-cards/magistral-medium-1-2-25-09
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 2.00, output: 5.00 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'magistral-small-latest': { // Magistral Small 1.2 (deprecated) — https://docs.mistral.ai/models/model-cards/magistral-small-1-2-25-09
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.30, output: 0.90 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'devstral-small-latest': { // Devstral Small 2 (labs) — https://docs.mistral.ai/models/model-cards/devstral-small-2-25-12
+		contextWindow: 256_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.20, output: 0.80 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 14 },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'ministral-14b-latest': { // Ministral 3 14B — https://docs.mistral.ai/models/model-cards/ministral-3-14b-25-12
+		contextWindow: 256_000,
 		reservedOutputTokenSpace: 4_096,
-		cost: { input: 0.10, output: 0.10 },
-		supportsFIM: false,
+		cost: { input: 0.20, output: 0.20 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		downloadable: { sizeGb: 'not-known' },
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'ministral-8b-latest': { // Ministral 3 8B — https://docs.mistral.ai/models/model-cards/ministral-3-8b-25-12
+		contextWindow: 256_000,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 0.15, output: 0.15 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 4.1 },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'ministral-3b-latest': {
-		contextWindow: 131_000,
+	'ministral-3b-latest': { // Ministral 3 3B — https://docs.mistral.ai/models/model-cards/ministral-3-3b-25-12
+		contextWindow: 256_000,
 		reservedOutputTokenSpace: 4_096,
-		cost: { input: 0.04, output: 0.04 },
-		supportsFIM: false,
+		cost: { input: 0.10, output: 0.10 },
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
@@ -1036,7 +1097,7 @@ const mistralSettings: VoidStaticProviderInfo = {
 	modelOptions: mistralModelOptions,
 	modelOptionsFallback: (modelName) => { return null },
 	providerReasoningIOSettings: {
-		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		input: { includeInPayload: mistralIncludeInPayloadReasoning },
 	},
 }
 

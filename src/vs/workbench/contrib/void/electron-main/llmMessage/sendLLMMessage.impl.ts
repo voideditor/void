@@ -76,8 +76,14 @@ const openAICompatibleErrorMessageFromParsedBody = (parsed: unknown, rawText: st
 	return `HTTP ${status}`
 }
 
-const openAITolerantFetch: typeof fetch = async (input, init) => {
-	const res = await globalThis.fetch(input, init as RequestInit)
+type OpenAIClientFetchArgs = Parameters<NonNullable<ClientOptions['fetch']>>
+
+/** OpenAI typings use node-fetch shapes in Node; Electron uses global fetch — bridge with explicit casts. */
+const openAITolerantFetch = (async (url: OpenAIClientFetchArgs[0], init?: OpenAIClientFetchArgs[1]) => {
+	const res = await globalThis.fetch(
+		url as string | URL | Request,
+		init as Parameters<typeof globalThis.fetch>[1],
+	)
 	if (res.ok)
 		return res
 	const rawText = await res.text().catch(() => '')
@@ -93,7 +99,7 @@ const openAITolerantFetch: typeof fetch = async (input, init) => {
 		statusText: res.statusText,
 		headers: res.headers,
 	})
-}
+}) as unknown as NonNullable<ClientOptions['fetch']>
 
 // ------------ OPENAI-COMPATIBLE (HELPERS) ------------
 

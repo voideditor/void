@@ -1,0 +1,64 @@
+name: Build and Release Windows Binary
+
+# 触发条件：当你推送带有 'v' 开头的 tag 时触发（例如 v1.0.0）
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 给工作流赋予权限，允许创建 Release 和写入内容
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # VS Code 系项目推荐使用 18 或 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # node-gyp 需要 Python
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install Dependencies
+        run: yarn
+        env:
+          # 国内镜像加速（如果 GitHub Actions 下载 Electron 速度慢可以取消注释）
+          # ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
+          # 如果遇到网络问题，可以增加超时时间
+          npm_config_fetch_timeout: 120000
+
+      - name: Compile Source Code
+        run: yarn compile
+        # 注意：本地开发用 `yarn watch`，CI 环境中单次编译用 `yarn compile` 更合适
+        # 如果 Void 的 package.json 中没有 compile 脚本，请改回 `yarn watch`
+
+      - name: Build Windows Archive (ZIP)
+        run: npx gulp vscode-win32-x64-archive
+        # 这一步会生成免安装的 ZIP 绿色版包
+
+      - name: Build Windows Setup (EXE)
+        run: npx gulp vscode-win32-x64-setup
+        # 这一步会调用 Inno Setup 生成 .exe 安装包
+        # GitHub Windows Runner 默认已安装 Inno Setup 6
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            .build/win32-x64/*.zip
+            .build/win32-x64/*.exe
+          # 允许如果 release 已存在则覆盖更新文件
+          fail_on_unmatched_files: true

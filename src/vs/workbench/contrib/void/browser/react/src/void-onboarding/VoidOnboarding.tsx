@@ -511,8 +511,8 @@ const VoidOnboardingContent = () => {
 
 	const providerNamesOfWantToUseOption: { [wantToUseOption in WantToUseOption]: ProviderName[] } = {
 		smart: ['anthropic', 'openAI', 'gemini', 'openRouter'],
-		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio'],
-		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM'],
+		private: ['ollama', 'vLLM', 'openAICompatible', 'lmStudio', 'mlx', 'appleFoundationModels'],
+		cheap: ['gemini', 'deepseek', 'openRouter', 'ollama', 'vLLM', 'mlx'],
 		all: providerNames,
 	}
 
@@ -564,7 +564,7 @@ const VoidOnboardingContent = () => {
 	const detailedDescOfWantToUseOption: { [wantToUseOption in WantToUseOption]: string } = {
 		smart: "Most intelligent and best for agent mode.",
 		private: "Private-hosted so your data never leaves your computer or network. [Email us](mailto:founders@voideditor.com) for help setting up at your company.",
-		cheap: "Use great deals like Gemini 2.5 Pro, or self-host a model with Ollama or vLLM for free.",
+		cheap: "Use great deals like Gemini 2.5 Pro, or self-host with Ollama, vLLM, or MLX on Apple Silicon.",
 		all: "",
 	}
 

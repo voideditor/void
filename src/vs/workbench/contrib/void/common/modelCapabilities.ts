@@ -48,6 +48,12 @@ export const defaultProviderSettings = {
 	lmStudio: {
 		endpoint: 'http://localhost:1234',
 	},
+	mlx: {
+		endpoint: 'http://127.0.0.1:8080',
+	},
+	appleFoundationModels: {
+		endpoint: 'http://127.0.0.1:9999',
+	},
 	liteLLM: { // https://docs.litellm.ai/docs/providers/openai_compatible
 		endpoint: '',
 	},
@@ -111,7 +117,8 @@ export const defaultModelsOfProvider = {
 	vLLM: [ // autodetected
 	],
 	lmStudio: [], // autodetected
-
+	mlx: [], // autodetected — mlx_lm.server
+	appleFoundationModels: [], // autodetected via afm /v1/models (model id: `foundation`)
 	openRouter: [ // https://openrouter.ai/models
 		'anthropic/claude-opus-4.7',
 		'anthropic/claude-sonnet-4.6',
@@ -1594,6 +1601,47 @@ const lmStudioSettings: VoidStaticProviderInfo = {
 	},
 }
 
+const mlxSettings: VoidStaticProviderInfo = {
+	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
+	modelOptions: {},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
+	},
+}
+
+const appleFoundationModelCapabilities = {
+	contextWindow: 32_768,
+	reservedOutputTokenSpace: 8_192,
+	cost: { input: 0, output: 0 },
+	downloadable: false as const,
+	supportsFIM: false,
+	supportsSystemMessage: 'system-role' as const,
+	specialToolFormat: 'openai-style' as const,
+	reasoningCapabilities: false as const,
+}
+
+const appleFoundationModelsModelOptions = {
+	'foundation': { // Apple on-device model via afm — https://github.com/scouzi1966/maclocal-api
+		...appleFoundationModelCapabilities,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const appleFoundationModelsSettings: VoidStaticProviderInfo = {
+	modelOptions: appleFoundationModelsModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		if (lower.includes('foundation') || lower.includes('apple') || lower.includes('afm')) {
+			return { modelName, recognizedModelName: 'foundation', ...appleFoundationModelsModelOptions['foundation'] }
+		}
+		return extensiveModelOptionsFallback(modelName, { downloadable: false, contextWindow: 32_768 })
+	},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
+		output: { needsManualParse: true },
+	},
+}
+
 const ollamaSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => extensiveModelOptionsFallback(modelName, { downloadable: { sizeGb: 'not-known' } }),
 	modelOptions: ollamaModelOptions,
@@ -1867,6 +1915,8 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 
 	liteLLM: liteLLMSettings,
 	lmStudio: lmStudioSettings,
+	mlx: mlxSettings,
+	appleFoundationModels: appleFoundationModelsSettings,
 
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,

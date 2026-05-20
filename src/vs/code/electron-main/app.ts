@@ -131,6 +131,10 @@ import { MetricsMainService } from '../../workbench/contrib/void/electron-main/m
 import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
 import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/sendLLMMessageChannel.js';
 import { VoidSCMService } from '../../workbench/contrib/void/electron-main/voidSCMMainService.js';
+import { AppleFoundationModelsMainService } from '../../workbench/contrib/void/electron-main/appleFoundationModelsMainService.js';
+import { IAppleFoundationModelsMainService } from '../../workbench/contrib/void/common/appleFoundationModelsTypes.js';
+import { MlxMainService } from '../../workbench/contrib/void/electron-main/mlxMainService.js';
+import { IMlxMainService } from '../../workbench/contrib/void/common/mlxTypes.js';
 import { IVoidSCMService } from '../../workbench/contrib/void/common/voidSCMTypes.js';
 import { MCPChannel } from '../../workbench/contrib/void/electron-main/mcpChannel.js';
 /**
@@ -1105,6 +1109,8 @@ export class CodeApplication extends Disposable {
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
 		services.set(IVoidUpdateService, new SyncDescriptor(VoidMainUpdateService, undefined, false));
 		services.set(IVoidSCMService, new SyncDescriptor(VoidSCMService, undefined, false));
+		services.set(IAppleFoundationModelsMainService, new SyncDescriptor(AppleFoundationModelsMainService, undefined, false));
+		services.set(IMlxMainService, new SyncDescriptor(MlxMainService, undefined, false));
 
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
@@ -1249,6 +1255,12 @@ export class CodeApplication extends Disposable {
 		// Void added this
 		const voidSCMChannel = ProxyChannel.fromService(accessor.get(IVoidSCMService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-scm', voidSCMChannel);
+
+		const appleFoundationModelsChannel = ProxyChannel.fromService(accessor.get(IAppleFoundationModelsMainService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-appleFoundationModels', appleFoundationModelsChannel);
+
+		const mlxChannel = ProxyChannel.fromService(accessor.get(IMlxMainService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-mlx', mlxChannel);
 
 		// Void added this
 		const mcpChannel = new MCPChannel();

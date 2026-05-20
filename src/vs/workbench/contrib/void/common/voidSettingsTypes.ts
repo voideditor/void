@@ -16,7 +16,7 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama', 'vLLM', 'lmStudio'] satisfies ProviderName[] // all local names
+export const localProviderNames = ['ollama', 'vLLM', 'lmStudio', 'mlx', 'appleFoundationModels'] satisfies ProviderName[] // all local names
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>
@@ -82,6 +82,12 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'lmStudio') {
 		return { title: 'LM Studio', }
 	}
+	else if (providerName === 'mlx') {
+		return { title: 'MLX', }
+	}
+	else if (providerName === 'appleFoundationModels') {
+		return { title: 'Apple', }
+	}
 	else if (providerName === 'openAICompatible') {
 		return { title: 'OpenAI-Compatible', }
 	}
@@ -127,6 +133,8 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'ollama') return 'Read more about custom [Endpoints here](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-expose-ollama-on-my-network).'
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
+	if (providerName === 'mlx') return 'Only one loaded model is listed at a time (autodetected). See the MLX instructions below to switch models or add a second one.'
+	if (providerName === 'appleFoundationModels') return 'Only one on-device model (`foundation`, autodetected). Void can install and run [`afm`](https://github.com/scouzi1966/maclocal-api) automatically. See the instructions below for adapters or other models.'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
@@ -166,6 +174,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 			title: providerName === 'ollama' ? 'Endpoint' :
 				providerName === 'vLLM' ? 'Endpoint' :
 					providerName === 'lmStudio' ? 'Endpoint' :
+						providerName === 'mlx' ? 'Endpoint' :
+							providerName === 'appleFoundationModels' ? 'Endpoint' :
 						providerName === 'openAICompatible' ? 'baseURL' : // (do not include /chat/completions)
 							providerName === 'googleVertex' ? 'baseURL' :
 								providerName === 'microsoftAzure' ? 'baseURL' :
@@ -177,6 +187,8 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 				: providerName === 'vLLM' ? defaultProviderSettings.vLLM.endpoint
 					: providerName === 'openAICompatible' ? 'https://my-website.com/v1'
 						: providerName === 'lmStudio' ? defaultProviderSettings.lmStudio.endpoint
+							: providerName === 'mlx' ? defaultProviderSettings.mlx.endpoint
+								: providerName === 'appleFoundationModels' ? defaultProviderSettings.appleFoundationModels.endpoint
 							: providerName === 'liteLLM' ? 'http://localhost:4000'
 								: providerName === 'awsBedrock' ? 'http://localhost:4000/v1'
 									: '(never)',
@@ -334,6 +346,18 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.vLLM),
 		_didFillInProviderSettings: undefined,
 	},
+	mlx: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.mlx,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.mlx),
+		_didFillInProviderSettings: undefined,
+	},
+	appleFoundationModels: {
+		...defaultCustomSettings,
+		...defaultProviderSettings.appleFoundationModels,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.appleFoundationModels),
+		_didFillInProviderSettings: undefined,
+	},
 	googleVertex: { // aggregator (serves models from multiple providers)
 		...defaultCustomSettings,
 		...defaultProviderSettings.googleVertex,
@@ -440,6 +464,10 @@ export type ChatMode = 'agent' | 'gather' | 'normal'
 
 export type GlobalSettings = {
 	autoRefreshModels: boolean;
+	/** macOS only: install `afm` via Homebrew and start the local Apple Foundation Models server */
+	autoSetupAppleFoundationModels: boolean;
+	/** macOS only: install `mlx-lm` via pip and start mlx_lm.server */
+	autoSetupMlx: boolean;
 	aiInstructions: string;
 	enableAutocomplete: boolean;
 	syncApplyToChat: boolean;
@@ -456,6 +484,8 @@ export type GlobalSettings = {
 
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
+	autoSetupAppleFoundationModels: true,
+	autoSetupMlx: true,
 	aiInstructions: '',
 	enableAutocomplete: false,
 	syncApplyToChat: true,

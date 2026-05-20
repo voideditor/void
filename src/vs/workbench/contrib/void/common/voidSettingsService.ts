@@ -13,6 +13,8 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { IMetricsService } from './metricsService.js';
 import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
+import { isMacintosh } from '../../../../base/common/platform.js';
+import { consolidateSingleAutodetectedProviderModels, normalizeAutodetectedModelNamesForProvider } from './localSingleModelProviders.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPUserStateOfName as MCPUserStateOfName, MCPUserState } from './voidSettingsTypes.js';
 
 
@@ -102,7 +104,6 @@ const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulMo
 		})
 	]
 }
-
 
 export const modelFilterOfFeatureName: {
 	[featureName in FeatureName]: {
@@ -292,6 +293,14 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			
 			// add autoAcceptLLMChanges feature
 			if (readS.globalSettings.autoAcceptLLMChanges === undefined) readS.globalSettings.autoAcceptLLMChanges = false;
+
+			// Apple Foundation Models auto-setup (macOS only; default off on other platforms)
+			if (readS.globalSettings.autoSetupAppleFoundationModels === undefined) {
+				readS.globalSettings.autoSetupAppleFoundationModels = isMacintosh;
+			}
+			if (readS.globalSettings.autoSetupMlx === undefined) {
+				readS.globalSettings.autoSetupMlx = isMacintosh;
+			}
 		}
 		catch (e) {
 			readS = defaultState()
@@ -328,6 +337,13 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 				// remove when enough people have had it run (default is now {})
 				if (providerName === 'openAICompatible' && !readS.settingsOfProvider[providerName].headersJSON) {
 					readS.settingsOfProvider[providerName].headersJSON = '{}'
+				}
+
+				if (providerName === 'mlx' || providerName === 'appleFoundationModels') {
+					readS.settingsOfProvider[providerName].models = consolidateSingleAutodetectedProviderModels(
+						providerName,
+						readS.settingsOfProvider[providerName].models,
+					)
 				}
 			}
 		}
@@ -504,7 +520,11 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const { models } = this.state.settingsOfProvider[providerName]
 		const oldModelNames = models.map(m => m.modelName)
 
-		const newModels = _modelsWithSwappedInNewModels({ existingModels: models, models: autodetectedModelNames, type: 'autodetected' })
+		const normalizedNames = normalizeAutodetectedModelNamesForProvider(providerName, autodetectedModelNames)
+		let newModels = _modelsWithSwappedInNewModels({ existingModels: models, models: normalizedNames, type: 'autodetected' })
+		if (providerName === 'mlx' || providerName === 'appleFoundationModels') {
+			newModels = consolidateSingleAutodetectedProviderModels(providerName, newModels)
+		}
 		this.setSettingOfProvider(providerName, 'models', newModels)
 
 		// if the models changed, log it

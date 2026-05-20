@@ -5,6 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { os } from '../../../../common/helpers/systemInfo.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -13,7 +14,6 @@ import { URI } from '../../../../../../../base/common/uri.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
 import { WarningBox } from './WarningBox.js'
-import { os } from '../../../../common/helpers/systemInfo.js'
 import { IconLoading } from '../sidebar-tsx/SidebarChat.js'
 import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js'
 import Severity from '../../../../../../../base/common/severity.js'
@@ -737,7 +737,9 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 			{showProviderSuggestions && needsModel ?
 				providerName === 'ollama' ?
 					<WarningBox className="pl-2 mb-4" text={`Please install an Ollama model. We'll auto-detect it.`} />
-					: <WarningBox className="pl-2 mb-4" text={`Please add a model for ${providerTitle} (Models section).`} />
+					: (providerName === 'mlx' || providerName === 'appleFoundationModels' || providerName === 'lmStudio' || providerName === 'vLLM') ?
+						<WarningBox className="pl-2 mb-4" text={`Start your local server — Void will auto-detect models at the endpoint.`} />
+						: <WarningBox className="pl-2 mb-4" text={`Please add a model for ${providerTitle} (Models section).`} />
 				: null}
 		</div>
 	</div >
@@ -779,6 +781,56 @@ export const AutoDetectLocalModelsToggle = () => {
 	/>
 
 
+}
+
+export const AutoSetupMlxToggle = () => {
+	if (os !== 'mac') {
+		return null
+	}
+
+	const settingName: GlobalSettingName = 'autoSetupMlx'
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const metricsService = accessor.get('IMetricsService')
+	const voidSettingsState = useSettingsState()
+	const enabled = voidSettingsState.globalSettings[settingName]
+
+	return <ButtonLeftTextRightOption
+		leftButton={<VoidSwitch
+			size='xxs'
+			value={enabled}
+			onChange={(newVal) => {
+				voidSettingsService.setGlobalSetting(settingName, newVal)
+				metricsService.capture('Click', { action: 'MLX Auto-Setup Toggle', settingName, enabled: newVal })
+			}}
+		/>}
+		text='On macOS: install mlx-lm (pip) if needed, start mlx_lm.server, and autodetect the loaded model.'
+	/>
+}
+
+export const AutoSetupAppleFoundationModelsToggle = () => {
+	if (os !== 'mac') {
+		return null
+	}
+
+	const settingName: GlobalSettingName = 'autoSetupAppleFoundationModels'
+	const accessor = useAccessor()
+	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const metricsService = accessor.get('IMetricsService')
+	const voidSettingsState = useSettingsState()
+	const enabled = voidSettingsState.globalSettings[settingName]
+
+	return <ButtonLeftTextRightOption
+		leftButton={<VoidSwitch
+			size='xxs'
+			value={enabled}
+			onChange={(newVal) => {
+				voidSettingsService.setGlobalSetting(settingName, newVal)
+				metricsService.capture('Click', { action: 'Apple FM Auto-Setup Toggle', settingName, enabled: newVal })
+			}}
+		/>}
+		text='On macOS: install `afm` (Homebrew) if needed, start the Apple server, and enable the `foundation` model.'
+	/>
 }
 
 export const AIInstructionsBox = () => {
@@ -832,6 +884,27 @@ export const OllamaSetupInstructions = ({ sayWeAutoDetect }: { sayWeAutoDetect?:
 			<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
 		</div>
 		{sayWeAutoDetect && <div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>}
+	</div>
+}
+
+export const MlxSetupInstructions = () => {
+	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 text-void-fg-3 text-sm list-decimal select-text mb-4'>
+		<div><ChatMarkdownRender string={`MLX (one model at a time)`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`1. Void can run \`pip install mlx-lm\` and start \`mlx_lm.server\` for you (toggle in Settings → Models). Default model: \`mlx-community/Qwen2.5-Coder-1.5B-Instruct\` on port 8080.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`2. Void shows only **one** autodetected entry: the model currently loaded by the server.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`3. **Switch models**: stop the server, run \`mlx_lm.server --model <other-hf-repo>\`, then click **Refresh** next to MLX in Settings → Models.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`4. **Second model in parallel**: run another server on a different port (e.g. \`mlx_lm.server --model … --port 8081\`), then at the bottom of the model list use **Add Model** → **OpenAI-Compatible** with \`http://127.0.0.1:8081/v1\`, or add the model id manually under MLX if the endpoint exposes multiple ids.`} chatMessageLocation={undefined} /></div>
+	</div>
+}
+
+export const AppleFoundationModelsSetupInstructions = () => {
+	if (os !== 'mac') return null
+	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 text-void-fg-3 text-sm list-decimal select-text mb-4'>
+		<div><ChatMarkdownRender string={`Apple (one model: \`foundation\`)`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`1. Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled. Void can install [\`afm\`](https://github.com/scouzi1966/maclocal-api) via Homebrew (toggle in Settings → Models).`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`2. Only one **autodetected** entry (\`foundation\`): the on-device model exposed by \`afm\`.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`3. **Fine-tuned adapter**: \`afm -a ./my-adapter.fmadapter -p 9998\`, then set Void’s endpoint to \`http://127.0.0.1:9998\` and refresh.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`4. **Other models (Llama, Qwen, etc.)**: use **MLX** or **Ollama** — Apple FM only serves Apple’s built-in Foundation model.`} chatMessageLocation={undefined} /></div>
 	</div>
 }
 
@@ -1181,6 +1254,8 @@ export const Settings = () => {
 									<ModelDump />
 									<div className='w-full h-[1px] my-4' />
 									<AutoDetectLocalModelsToggle />
+									<AutoSetupMlxToggle />
+									<AutoSetupAppleFoundationModelsToggle />
 									<RefreshableModels />
 								</ErrorBoundary>
 							</div>
@@ -1193,6 +1268,10 @@ export const Settings = () => {
 
 									<div className='opacity-80 mb-4'>
 										<OllamaSetupInstructions sayWeAutoDetect={true} />
+									</div>
+									<div className='opacity-80'>
+										<MlxSetupInstructions />
+										<AppleFoundationModelsSetupInstructions />
 									</div>
 
 									<VoidProviderSettings providerNames={localProviderNames} />

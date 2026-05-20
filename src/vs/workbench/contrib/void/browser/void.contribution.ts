@@ -75,6 +75,14 @@ import '../common/voidSettingsService.js'
 // refreshModel
 import '../common/refreshModelService.js'
 
+// Apple Foundation Models (macOS): auto-install afm + start server
+import '../common/appleFoundationModelsService.js'
+import './appleFoundationModelsWorkbenchContrib.js'
+
+// MLX (macOS): auto-install mlx-lm + start mlx_lm.server
+import '../common/mlxService.js'
+import './mlxWorkbenchContrib.js'
+
 // metrics
 import '../common/metricsService.js'
 

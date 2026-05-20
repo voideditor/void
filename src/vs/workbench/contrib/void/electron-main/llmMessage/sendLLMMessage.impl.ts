@@ -139,6 +139,14 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName }: { se
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
+	else if (providerName === 'mlx') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
+	else if (providerName === 'appleFoundationModels') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+	}
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({
@@ -961,6 +969,16 @@ export const sendLLMMessageToProviderImplementation = {
 		// lmStudio has no suffix parameter in /completions, so sendFIM might not work
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: (params) => _openaiCompatibleList(params),
+	},
+	mlx: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: (params) => _sendOpenAICompatibleFIM(params),
+		list: (params) => _openaiCompatibleList(params),
+	},
+	appleFoundationModels: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null,
 		list: (params) => _openaiCompatibleList(params),
 	},
 	liteLLM: {

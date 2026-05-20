@@ -8,6 +8,13 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 export const APPLE_FOUNDATION_MODELS_DEFAULT_ENDPOINT = 'http://127.0.0.1:9999';
 export const APPLE_FOUNDATION_MODELS_DEFAULT_PORT = 9999;
 
+/** https://github.com/scouzi1966/maclocal-api — OpenAI-compatible `afm` server for Apple Foundation Models */
+export const MACLOCAL_API_REPO_URL = 'https://github.com/scouzi1966/maclocal-api';
+export const AFM_DEFAULT_MODEL_ID = 'foundation';
+export const AFM_HOMEBREW_TAP = 'scouzi1966/afm';
+export const AFM_HOMEBREW_FORMULA = 'scouzi1966/afm/afm';
+export const AFM_PIP_PACKAGE = 'macafm';
+
 export type AppleFoundationModelsEnsureAction =
 	| 'already-running'
 	| 'started'

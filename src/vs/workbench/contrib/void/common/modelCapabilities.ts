@@ -1330,7 +1330,7 @@ const appleFoundationModelCapabilities = {
 }
 
 const appleFoundationModelsModelOptions = {
-	'foundation': { // Apple on-device model via afm — https://github.com/scouzi1966/maclocal-api
+	'foundation': { // maclocal-api afm — https://github.com/scouzi1966/maclocal-api
 		...appleFoundationModelCapabilities,
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }

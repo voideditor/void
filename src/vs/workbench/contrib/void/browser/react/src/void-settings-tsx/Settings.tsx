@@ -829,7 +829,7 @@ export const AutoSetupAppleFoundationModelsToggle = () => {
 				metricsService.capture('Click', { action: 'Apple FM Auto-Setup Toggle', settingName, enabled: newVal })
 			}}
 		/>}
-		text='On macOS: install `afm` (Homebrew) if needed, start the Apple server, and enable the `foundation` model.'
+		text='On macOS: install maclocal-api (afm) via Homebrew or pip, start the server on port 9999, and enable model foundation.'
 	/>
 }
 
@@ -900,11 +900,11 @@ export const MlxSetupInstructions = () => {
 export const AppleFoundationModelsSetupInstructions = () => {
 	if (os !== 'mac') return null
 	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 text-void-fg-3 text-sm list-decimal select-text mb-4'>
-		<div><ChatMarkdownRender string={`Apple (one model: \`foundation\`)`} chatMessageLocation={undefined} /></div>
-		<div className='pl-6'><ChatMarkdownRender string={`1. Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled. Void can install [\`afm\`](https://github.com/scouzi1966/maclocal-api) via Homebrew (toggle in Settings → Models).`} chatMessageLocation={undefined} /></div>
-		<div className='pl-6'><ChatMarkdownRender string={`2. Only one **autodetected** entry (\`foundation\`): the on-device model exposed by \`afm\`.`} chatMessageLocation={undefined} /></div>
-		<div className='pl-6'><ChatMarkdownRender string={`3. **Fine-tuned adapter**: \`afm -a ./my-adapter.fmadapter -p 9998\`, then set Void’s endpoint to \`http://127.0.0.1:9998\` and refresh.`} chatMessageLocation={undefined} /></div>
-		<div className='pl-6'><ChatMarkdownRender string={`4. **Other models (Llama, Qwen, etc.)**: use **MLX** or **Ollama** — Apple FM only serves Apple’s built-in Foundation model.`} chatMessageLocation={undefined} /></div>
+		<div><ChatMarkdownRender string={`apple — [maclocal-api](https://github.com/scouzi1966/maclocal-api) (\`afm\`)`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`1. Requires macOS 26+, Apple Silicon, and Apple Intelligence. Void auto-installs \`afm\` (Homebrew: \`brew tap scouzi1966/afm && brew install scouzi1966/afm/afm\`, or pip: \`pip install macafm\`).`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`2. Default server: \`afm -p 9999\` → endpoint \`http://127.0.0.1:9999/v1\`, model id \`foundation\`.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`3. **LoRA adapter**: \`afm -a ./my-adapter.fmadapter -p 9998\`, then set Void’s endpoint to \`http://127.0.0.1:9998\` and refresh.`} chatMessageLocation={undefined} /></div>
+		<div className='pl-6'><ChatMarkdownRender string={`4. **Other local models**: use **MLX** (\`mlx_lm.server\`) or \`afm mlx -m <hf-repo>\` from maclocal-api — this provider is only Apple’s on-device Foundation model.`} chatMessageLocation={undefined} /></div>
 	</div>
 }
 

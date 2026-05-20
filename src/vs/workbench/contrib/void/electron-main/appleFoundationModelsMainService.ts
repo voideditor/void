@@ -8,9 +8,13 @@ import { promisify } from 'util';
 import { exec as _exec } from 'child_process';
 import { isMacintosh } from '../../../../base/common/platform.js';
 import {
+	AFM_HOMEBREW_FORMULA,
+	AFM_HOMEBREW_TAP,
+	AFM_PIP_PACKAGE,
 	APPLE_FOUNDATION_MODELS_DEFAULT_PORT,
 	AppleFoundationModelsEnsureResult,
 	IAppleFoundationModelsMainService,
+	MACLOCAL_API_REPO_URL,
 } from '../common/appleFoundationModelsTypes.js';
 
 const exec = promisify(_exec);
@@ -33,7 +37,7 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 		}
 
 		if (await this._isServerUp(endpoint)) {
-			log.push(`Serveur déjà actif sur ${endpoint}`);
+			log.push(`maclocal-api (afm) already running at ${endpoint}`);
 			return { ok: true, endpoint, action: 'already-running', log };
 		}
 
@@ -41,35 +45,39 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 		let afmPath = await this._whichAfm();
 		if (!afmPath) {
 			if (!options.installIfMissing) {
-				log.push('Commande `afm` introuvable.');
-				return { ok: false, reason: 'afm-missing', log, errorMessage: 'Installez afm avec Homebrew : brew tap scouzi1966/afm && brew install afm' };
+				log.push('`afm` not found (maclocal-api).');
+				return {
+					ok: false,
+					reason: 'afm-missing',
+					log,
+					errorMessage: `Install from ${MACLOCAL_API_REPO_URL} — Homebrew: brew tap ${AFM_HOMEBREW_TAP} && brew install ${AFM_HOMEBREW_FORMULA} — or pip: pip install ${AFM_PIP_PACKAGE}`,
+				};
 			}
 
-			const brewPath = await this._whichBrew();
-			if (!brewPath) {
-				log.push('Homebrew introuvable — impossible d’installer afm automatiquement.');
-				return { ok: false, reason: 'brew-missing', log, errorMessage: 'Installez Homebrew puis : brew tap scouzi1966/afm && brew install afm' };
-			}
-
-			log.push('Installation de afm via Homebrew…');
-			try {
-				await exec(`${brewPath} tap scouzi1966/afm`, { timeout: 120_000 });
-				await exec(`${brewPath} install afm`, { timeout: 600_000 });
+			const installedViaBrew = await this._tryInstallViaHomebrew(log);
+			if (installedViaBrew) {
 				didInstall = true;
-				log.push('Installation Homebrew terminée.');
-			} catch (e) {
-				const msg = e instanceof Error ? e.message : String(e);
-				log.push(`Échec installation : ${msg}`);
-				return { ok: false, reason: 'install-failed', log, errorMessage: msg };
+			} else {
+				const installedViaPip = await this._tryInstallViaPip(log);
+				if (installedViaPip) {
+					didInstall = true;
+				} else {
+					return {
+						ok: false,
+						reason: 'install-failed',
+						log,
+						errorMessage: `Could not install afm. See ${MACLOCAL_API_REPO_URL}`,
+					};
+				}
 			}
 
 			afmPath = await this._whichAfm();
 			if (!afmPath) {
-				log.push('afm toujours introuvable après installation.');
+				log.push('`afm` still not on PATH after install.');
 				return { ok: false, reason: 'afm-missing', log };
 			}
 		} else {
-			log.push(`afm trouvé : ${afmPath}`);
+			log.push(`Found afm: ${afmPath}`);
 		}
 
 		if (options.startServer) {
@@ -79,14 +87,19 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 		for (let i = 0; i < 45; i++) {
 			if (await this._isServerUp(endpoint)) {
 				const action = didInstall ? 'installed-and-started' as const : 'started' as const;
-				log.push(`Serveur prêt sur ${endpoint}`);
+				log.push(`maclocal-api ready at ${endpoint} (model: foundation)`);
 				return { ok: true, endpoint, action, log };
 			}
 			await sleep(1000);
 		}
 
-		log.push('Délai dépassé en attendant le serveur afm.');
-		return { ok: false, reason: 'server-timeout', log, errorMessage: `Le serveur n’a pas répondu sur ${endpoint}. Lancez \`afm -p ${port}\` manuellement.` };
+		log.push('Timed out waiting for afm.');
+		return {
+			ok: false,
+			reason: 'server-timeout',
+			log,
+			errorMessage: `Server did not respond at ${endpoint}. Run manually: afm -p ${port} -H 127.0.0.1`,
+		};
 	}
 
 	async stopServerIfSpawnedByVoid(): Promise<void> {
@@ -100,6 +113,60 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 		}
 		this._child = null;
 		this._spawnedByVoid = false;
+	}
+
+	private async _tryInstallViaHomebrew(log: string[]): Promise<boolean> {
+		const brewPath = await this._whichBrew();
+		if (!brewPath) {
+			log.push('Homebrew not found; will try pip install macafm.');
+			return false;
+		}
+
+		log.push(`Installing afm via Homebrew (${AFM_HOMEBREW_FORMULA})…`);
+		try {
+			await exec(`"${brewPath}" tap ${AFM_HOMEBREW_TAP}`, { timeout: 120_000 });
+			await exec(`"${brewPath}" install ${AFM_HOMEBREW_FORMULA}`, { timeout: 600_000 });
+			log.push('Homebrew install finished.');
+			return true;
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			log.push(`Homebrew install failed: ${msg}`);
+			return false;
+		}
+	}
+
+	private async _tryInstallViaPip(log: string[]): Promise<boolean> {
+		const pythonPath = await this._whichPython3();
+		if (!pythonPath) {
+			log.push('python3 not found; cannot pip install macafm.');
+			return false;
+		}
+
+		log.push(`Installing ${AFM_PIP_PACKAGE} via pip (${MACLOCAL_API_REPO_URL})…`);
+		try {
+			await exec(`"${pythonPath}" -m pip install --upgrade ${AFM_PIP_PACKAGE}`, { timeout: 600_000 });
+			log.push('pip install finished.');
+			return true;
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			log.push(`pip install failed: ${msg}`);
+			return false;
+		}
+	}
+
+	private async _whichPython3(): Promise<string | null> {
+		for (const cmd of ['python3', 'python']) {
+			try {
+				const { stdout } = await exec(`which ${cmd}`, { timeout: 5_000 });
+				const path = stdout.trim();
+				if (path) {
+					return path;
+				}
+			} catch {
+				// try next
+			}
+		}
+		return null;
 	}
 
 	private async _whichAfm(): Promise<string | null> {
@@ -131,7 +198,7 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 				return true;
 			}
 		} catch {
-			// try models next
+			// try /v1/models next
 		} finally {
 			clearTimeout(timeout);
 		}
@@ -150,11 +217,11 @@ export class AppleFoundationModelsMainService implements IAppleFoundationModelsM
 
 	private async _startServer(afmPath: string, port: number, log: string[]): Promise<void> {
 		if (this._child && !this._child.killed) {
-			log.push('Processus afm Void déjà en cours.');
+			log.push('Void afm process already running.');
 			return;
 		}
 
-		log.push(`Démarrage de afm sur le port ${port}…`);
+		log.push(`Starting maclocal-api: afm -p ${port} -H 127.0.0.1…`);
 		const child = spawn(afmPath, ['-p', String(port), '-H', '127.0.0.1'], {
 			detached: true,
 			stdio: 'ignore',

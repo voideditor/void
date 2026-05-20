@@ -16,7 +16,13 @@ type UnionOfKeys<T> = T extends T ? keyof T : never;
 export type ProviderName = keyof typeof defaultProviderSettings
 export const providerNames = Object.keys(defaultProviderSettings) as ProviderName[]
 
-export const localProviderNames = ['ollama', 'vLLM', 'lmStudio', 'mlx', 'appleFoundationModels'] satisfies ProviderName[] // all local names
+export const ollamaProviderNames = ['ollama'] as const satisfies ProviderName[]
+export const mlxProviderNames = ['mlx'] as const satisfies ProviderName[]
+export const appleProviderNames = ['appleFoundationModels'] as const satisfies ProviderName[]
+/** vLLM, LM Studio — separate from Ollama / MLX / apple */
+export const otherLocalProviderNames = ['vLLM', 'lmStudio'] as const satisfies ProviderName[]
+
+export const localProviderNames = [...ollamaProviderNames, ...mlxProviderNames, ...appleProviderNames, ...otherLocalProviderNames] satisfies ProviderName[] // all local names
 export const nonlocalProviderNames = providerNames.filter((name) => !(localProviderNames as string[]).includes(name)) // all non-local names
 
 type CustomSettingName = UnionOfKeys<typeof defaultProviderSettings[ProviderName]>

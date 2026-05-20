@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, ollamaProviderNames, mlxProviderNames, appleProviderNames, otherLocalProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
 import { os } from '../../../../common/helpers/systemInfo.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
@@ -26,7 +26,10 @@ import { StorageScope, StorageTarget } from '../../../../../../../platform/stora
 
 type Tab =
 	| 'models'
-	| 'localProviders'
+	| 'ollama'
+	| 'mlx'
+	| 'apple'
+	| 'localOther'
 	| 'providers'
 	| 'featureOptions'
 	| 'mcp'
@@ -95,11 +98,11 @@ const RefreshModelButton = ({ providerName }: { providerName: RefreshableProvide
 	/>
 }
 
-const RefreshableModels = () => {
+const RefreshableModels = ({ providerNamesFilter }: { providerNamesFilter?: readonly ProviderName[] }) => {
 	const settingsState = useSettingsState()
+	const names = providerNamesFilter ?? refreshableProviderNames
 
-
-	const buttons = refreshableProviderNames.map(providerName => {
+	const buttons = names.map(providerName => {
 		if (!settingsState.settingsOfProvider[providerName]._didFillInProviderSettings) return null
 		return <RefreshModelButton key={providerName} providerName={providerName} />
 	})
@@ -746,13 +749,39 @@ export const SettingsForProvider = ({ providerName, showProviderTitle, showProvi
 }
 
 
-export const VoidProviderSettings = ({ providerNames }: { providerNames: ProviderName[] }) => {
+export const VoidProviderSettings = ({ providerNames }: { providerNames: readonly ProviderName[] }) => {
 	return <>
 		{providerNames.map(providerName =>
 			<SettingsForProvider key={providerName} providerName={providerName} showProviderTitle={true} showProviderSuggestions={true} />
 		)}
 	</>
 }
+
+const LocalProviderSection = ({ title, description, instructions, providerNames, refreshable, autoSetup, modelFilter }: {
+	title: string
+	description?: string
+	instructions?: React.ReactNode
+	providerNames: readonly ProviderName[]
+	refreshable?: boolean
+	autoSetup?: React.ReactNode
+	modelFilter?: readonly ProviderName[]
+}) => (
+	<div className='flex flex-col gap-4 mb-12'>
+		<h2 className='text-3xl mb-1'>{title}</h2>
+		{description && <h3 className='text-void-fg-3 mb-2'>{description}</h3>}
+		{instructions && <div className='opacity-80 mb-2'>{instructions}</div>}
+		{autoSetup}
+		{refreshable && <RefreshableModels providerNamesFilter={providerNames} />}
+		<VoidProviderSettings providerNames={providerNames} />
+		{modelFilter && (
+			<>
+				<div className='w-full h-[1px] my-2' />
+				<h3 className='text-lg text-void-fg-3 mb-2'>Models for {title}</h3>
+				<ModelDump filteredProviders={[...modelFilter]} />
+			</>
+		)}
+	</div>
+)
 
 
 type TabName = 'models' | 'general'
@@ -1110,7 +1139,12 @@ export const Settings = () => {
 
 	const navItems: { tab: Tab; label: string }[] = [
 		{ tab: 'models', label: 'Models' },
-		{ tab: 'localProviders', label: 'Local Providers' },
+		{ tab: 'ollama', label: 'Ollama' },
+		...(os === 'mac' ? ([
+			{ tab: 'mlx' as const, label: 'MLX' },
+			{ tab: 'apple' as const, label: 'apple' },
+		]) : []),
+		{ tab: 'localOther', label: 'Local (other)' },
 		{ tab: 'providers', label: 'Main Providers' },
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
@@ -1254,27 +1288,65 @@ export const Settings = () => {
 									<ModelDump />
 									<div className='w-full h-[1px] my-4' />
 									<AutoDetectLocalModelsToggle />
-									<AutoSetupMlxToggle />
-									<AutoSetupAppleFoundationModelsToggle />
-									<RefreshableModels />
+									<div className='w-full h-[1px] my-4' />
+									<p className='text-void-fg-3 text-sm mb-4'>Per-provider setup and refresh are under <strong>Ollama</strong>, <strong>MLX</strong>, and <strong>apple</strong> in the sidebar.</p>
 								</ErrorBoundary>
 							</div>
 
-							{/* Local Providers section */}
-							<div className={shouldShowTab('localProviders') ? `` : 'hidden'}>
+							<div className={shouldShowTab('ollama') ? `` : 'hidden'}>
 								<ErrorBoundary>
-									<h2 className={`text-3xl mb-2`}>Local Providers</h2>
-									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
+									<LocalProviderSection
+										title='Ollama'
+										description='Pull models with `ollama pull` — Void autodetects them at your endpoint.'
+										instructions={<OllamaSetupInstructions sayWeAutoDetect={true} />}
+										providerNames={ollamaProviderNames}
+										refreshable
+										modelFilter={ollamaProviderNames}
+									/>
+								</ErrorBoundary>
+							</div>
 
-									<div className='opacity-80 mb-4'>
-										<OllamaSetupInstructions sayWeAutoDetect={true} />
-									</div>
-									<div className='opacity-80'>
-										<MlxSetupInstructions />
-										<AppleFoundationModelsSetupInstructions />
-									</div>
+							{os === 'mac' && (
+								<div className={shouldShowTab('mlx') ? `` : 'hidden'}>
+									<ErrorBoundary>
+										<LocalProviderSection
+											title='MLX'
+											description='One loaded model at a time via mlx_lm.server (port 8080 by default).'
+											instructions={<MlxSetupInstructions />}
+											providerNames={mlxProviderNames}
+											refreshable
+											autoSetup={<AutoSetupMlxToggle />}
+											modelFilter={mlxProviderNames}
+										/>
+									</ErrorBoundary>
+								</div>
+							)}
 
-									<VoidProviderSettings providerNames={localProviderNames} />
+							{os === 'mac' && (
+								<div className={shouldShowTab('apple') ? `` : 'hidden'}>
+									<ErrorBoundary>
+										<LocalProviderSection
+											title='apple'
+											description='On-device Foundation model via maclocal-api (`afm`, port 9999).'
+											instructions={<AppleFoundationModelsSetupInstructions />}
+											providerNames={appleProviderNames}
+											refreshable
+											autoSetup={<AutoSetupAppleFoundationModelsToggle />}
+											modelFilter={appleProviderNames}
+										/>
+									</ErrorBoundary>
+								</div>
+							)}
+
+							<div className={shouldShowTab('localOther') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<LocalProviderSection
+										title='Local (other)'
+										description='vLLM and LM Studio — OpenAI-compatible local servers.'
+										providerNames={otherLocalProviderNames}
+										refreshable
+										modelFilter={otherLocalProviderNames}
+									/>
 								</ErrorBoundary>
 							</div>
 

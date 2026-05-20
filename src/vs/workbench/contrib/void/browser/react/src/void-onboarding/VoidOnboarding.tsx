@@ -6,9 +6,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
 import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'lucide-react';
-import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
-import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
-import { OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
+import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, ollamaProviderNames, mlxProviderNames, appleProviderNames, otherLocalProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
+import { os } from '../../../../common/helpers/systemInfo.js';
+import { OllamaSetupInstructions, MlxSetupInstructions, AppleFoundationModelsSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
 import { isLinux } from '../../../../../../../base/common/platform.js';
@@ -99,6 +99,22 @@ const tabNames = ['Free', 'Paid', 'Local'] as const;
 
 type TabName = typeof tabNames[number] | 'Cloud/Other';
 
+type LocalSubTab = 'ollama' | 'mlx' | 'apple' | 'other';
+
+const localSubTabLabels: Record<LocalSubTab, string> = {
+	ollama: 'Ollama',
+	mlx: 'MLX',
+	apple: 'apple',
+	other: 'Other',
+};
+
+const providerNamesOfLocalSubTab: Record<LocalSubTab, ProviderName[]> = {
+	ollama: [...ollamaProviderNames],
+	mlx: [...mlxProviderNames],
+	apple: [...appleProviderNames],
+	other: [...otherLocalProviderNames],
+};
+
 // Data for cloud providers tab
 const cloudProviders: ProviderName[] = ['googleVertex', 'liteLLM', 'microsoftAzure', 'awsBedrock', 'openAICompatible'];
 
@@ -128,6 +144,7 @@ const featureNameMap: { display: string, featureName: FeatureName }[] = [
 
 const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setPageIndex: (index: number) => void }) => {
 	const [currentTab, setCurrentTab] = useState<TabName>('Free');
+	const [localSubTab, setLocalSubTab] = useState<LocalSubTab>('ollama');
 	const settingsState = useSettingsState();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -200,7 +217,24 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 				<div className="text-sm opacity-80 text-void-fg-3 my-4 w-full">{descriptionOfTab[currentTab]}</div>
 			</div>
 
-			{providerNamesOfTab[currentTab].map((providerName) => (
+			{currentTab === 'Local' && (
+				<div className="flex gap-2 mb-6 w-full max-w-xl flex-wrap">
+					{(os === 'mac' ? (['ollama', 'mlx', 'apple', 'other'] as const) : (['ollama', 'other'] as const)).map(sub => (
+						<button
+							key={sub}
+							className={`py-1.5 px-3 rounded-md text-sm ${localSubTab === sub
+								? 'bg-[#0e70c0]/80 text-white'
+								: 'bg-void-bg-2 hover:bg-void-bg-2/80 text-void-fg-1'
+								}`}
+							onClick={() => setLocalSubTab(sub)}
+						>
+							{localSubTabLabels[sub]}
+						</button>
+					))}
+				</div>
+			)}
+
+			{(currentTab === 'Local' ? providerNamesOfLocalSubTab[localSubTab] : providerNamesOfTab[currentTab]).map((providerName) => (
 				<div key={providerName} className="w-full max-w-xl mb-10">
 					<div className="text-xl mb-2">
 						Add {displayInfoOfProviderName(providerName).title}
@@ -226,6 +260,8 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 
 					</div>
 					{providerName === 'ollama' && <OllamaSetupInstructions />}
+					{providerName === 'mlx' && os === 'mac' && <MlxSetupInstructions />}
+					{providerName === 'appleFoundationModels' && os === 'mac' && <AppleFoundationModelsSetupInstructions />}
 				</div>
 			))}
 
@@ -239,7 +275,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 						<div className="text-sm opacity-80 text-void-fg-3 my-4 w-full">Local models should be detected automatically. You can add custom models below.</div>
 					)}
 
-					{currentTab === 'Local' && <ModelDump filteredProviders={localProviderNames} />}
+					{currentTab === 'Local' && <ModelDump filteredProviders={[...providerNamesOfLocalSubTab[localSubTab]]} />}
 					{currentTab === 'Cloud/Other' && <ModelDump filteredProviders={cloudProviders} />}
 				</div>
 			)}

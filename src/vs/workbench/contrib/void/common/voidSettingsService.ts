@@ -14,7 +14,7 @@ import { IMetricsService } from './metricsService.js';
 import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
-import { consolidateSingleAutodetectedProviderModels, normalizeAutodetectedModelNamesForProvider } from './localSingleModelProviders.js';
+import { consolidateSingleAutodetectedProviderModels, dedupeProviderModels, normalizeAutodetectedModelNamesForProvider } from './localSingleModelProviders.js';
 import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPUserStateOfName as MCPUserStateOfName, MCPUserState } from './voidSettingsTypes.js';
 
 
@@ -86,8 +86,8 @@ export interface IVoidSettingsService {
 
 
 
-const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulModelInfo[], models: string[], type: 'autodetected' | 'default' }) => {
-	const { existingModels, models, type } = options
+const _modelsWithSwappedInNewModels = (options: { providerName: ProviderName, existingModels: VoidStatefulModelInfo[], models: string[], type: 'autodetected' | 'default' }) => {
+	const { providerName, existingModels, models, type } = options
 
 	const existingModelsMap: Record<string, VoidStatefulModelInfo> = {}
 	for (const existingModel of existingModels) {
@@ -96,13 +96,13 @@ const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulMo
 
 	const newDefaultModels = models.map((modelName, i) => ({ modelName, type, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
 
-	return [
+	return dedupeProviderModels(providerName, [
 		...newDefaultModels, // swap out all the models of this type for the new models of this type
 		...existingModels.filter(m => {
 			const keep = m.type !== type
 			return keep
 		})
-	]
+	])
 }
 
 export const modelFilterOfFeatureName: {
@@ -129,7 +129,7 @@ const _stateWithMergedDefaultModels = (state: VoidSettingsState): VoidSettingsSt
 		const defaultModels = defaultSettingsOfProvider[providerName]?.models ?? []
 		const currentModels = newSettingsOfProvider[providerName]?.models ?? []
 		const defaultModelNames = defaultModels.map(m => m.modelName)
-		const newModels = _modelsWithSwappedInNewModels({ existingModels: currentModels, models: defaultModelNames, type: 'default' })
+		const newModels = _modelsWithSwappedInNewModels({ providerName, existingModels: currentModels, models: defaultModelNames, type: 'default' })
 		newSettingsOfProvider = {
 			...newSettingsOfProvider,
 			[providerName]: {
@@ -165,14 +165,40 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 		}
 	}
 
+	// dedupe models (aliases, default+custom overlap, persisted legacy ids)
+	for (const providerName of providerNames) {
+		const models = newSettingsOfProvider[providerName].models
+		const deduped = dedupeProviderModels(providerName, models)
+		if (deduped.length !== models.length || deduped.some((m, i) => m.modelName !== models[i]?.modelName || m.type !== models[i]?.type || m.isHidden !== models[i]?.isHidden)) {
+			newSettingsOfProvider = {
+				...newSettingsOfProvider,
+				[providerName]: {
+					...newSettingsOfProvider[providerName],
+					models: deduped,
+				},
+			}
+		}
+	}
+
 	// update model options
+	const visibleModelNameCounts = new Map<string, number>()
+	for (const providerName of providerNames) {
+		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue
+		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
+			if (isHidden) continue
+			visibleModelNameCounts.set(modelName, (visibleModelNameCounts.get(modelName) ?? 0) + 1)
+		}
+	}
+
 	let newModelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
 		const providerTitle = providerName // displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
 		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue // if disabled, don't display model options
 		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
 			if (isHidden) continue
-			newModelOptions.push({ name: `${modelName} (${providerTitle})`, selection: { providerName, modelName } })
+			const showProviderInName = (visibleModelNameCounts.get(modelName) ?? 0) > 1
+			const name = showProviderInName ? `${modelName} (${providerTitle})` : modelName
+			newModelOptions.push({ name, selection: { providerName, modelName } })
 		}
 	}
 
@@ -345,6 +371,10 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 						readS.settingsOfProvider[providerName].models,
 					)
 				}
+				readS.settingsOfProvider[providerName].models = dedupeProviderModels(
+					providerName,
+					readS.settingsOfProvider[providerName].models,
+				)
 			}
 		}
 
@@ -521,7 +551,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const oldModelNames = models.map(m => m.modelName)
 
 		const normalizedNames = normalizeAutodetectedModelNamesForProvider(providerName, autodetectedModelNames)
-		let newModels = _modelsWithSwappedInNewModels({ existingModels: models, models: normalizedNames, type: 'autodetected' })
+		let newModels = _modelsWithSwappedInNewModels({ providerName, existingModels: models, models: normalizedNames, type: 'autodetected' })
 		if (providerName === 'mlx' || providerName === 'appleFoundationModels') {
 			newModels = consolidateSingleAutodetectedProviderModels(providerName, newModels)
 		}

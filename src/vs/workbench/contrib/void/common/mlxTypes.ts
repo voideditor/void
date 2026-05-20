@@ -8,7 +8,8 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 export const MLX_DEFAULT_ENDPOINT = 'http://127.0.0.1:8080';
 export const MLX_DEFAULT_PORT = 8080;
 /** Small default model; first start may download weights from Hugging Face. */
-export const MLX_DEFAULT_MODEL = 'mlx-community/Qwen2.5-Coder-1.5B-Instruct';
+/** Quantized MLX weights on Hugging Face; the unsuffixed repo id does not exist. */
+export const MLX_DEFAULT_MODEL = 'mlx-community/Qwen2.5-Coder-1.5B-Instruct-4bit';
 
 export type MlxEnsureAction = 'already-running' | 'started' | 'installed-and-started';
 

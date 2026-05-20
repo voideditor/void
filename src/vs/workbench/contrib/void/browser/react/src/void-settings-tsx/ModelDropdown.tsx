@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FeatureName, featureNames, isFeatureNameDisabled, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
+import { FeatureName, featureNames, isFeatureNameDisabled, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider, displayInfoOfProviderName } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
 import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
 import { _VoidSelectBox, VoidCustomDropdownBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
@@ -39,7 +39,7 @@ const ModelSelectBox = ({ options, featureName, className }: { options: ModelOpt
 		onChangeOption={onChangeOption}
 		getOptionDisplayName={(option) => option.name}
 		getOptionDropdownName={(option) => option.name}
-		getOptionDropdownDetail={(option) => option.selection.providerName}
+		getOptionDropdownDetail={(option) => displayInfoOfProviderName(option.selection.providerName).title}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
 		className={className}
 		matchInputWidth={false}

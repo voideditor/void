@@ -86,7 +86,7 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 		return { title: 'MLX', }
 	}
 	else if (providerName === 'appleFoundationModels') {
-		return { title: 'Apple', }
+		return { title: 'apple', }
 	}
 	else if (providerName === 'openAICompatible') {
 		return { title: 'OpenAI-Compatible', }

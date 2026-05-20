@@ -72,42 +72,39 @@ export const defaultProviderSettings = {
 
 
 export const defaultModelsOfProvider = {
-	openAI: [ // https://platform.openai.com/docs/models/gp
+	openAI: [ // https://platform.openai.com/docs/models
+		'gpt-5.5',
+		'gpt-5.4',
+		'gpt-5.4-mini',
+		'gpt-5.4-nano',
 		'gpt-4.1',
 		'gpt-4.1-mini',
-		'gpt-4.1-nano',
 		'o3',
 		'o4-mini',
-		// 'o1',
-		// 'o1-mini',
-		// 'gpt-4o',
-		// 'gpt-4o-mini',
 	],
-	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models
-		'claude-opus-4-0',
-		'claude-sonnet-4-0',
+	anthropic: [ // https://docs.anthropic.com/en/docs/about-claude/models/overview
+		'claude-opus-4-7',
+		'claude-sonnet-4-6',
+		'claude-haiku-4-5',
+		'claude-opus-4-6',
+		'claude-sonnet-4-5',
 		'claude-3-7-sonnet-latest',
-		'claude-3-5-sonnet-latest',
-		'claude-3-5-haiku-latest',
-		'claude-3-opus-latest',
 	],
-	xAI: [ // https://docs.x.ai/docs/models?cluster=us-east-1
-		'grok-2',
-		'grok-3',
-		'grok-3-mini',
-		'grok-3-fast',
-		'grok-3-mini-fast'
+	xAI: [ // https://docs.x.ai/docs/models
+		'grok-4.3',
+		'grok-4.20-0309-reasoning',
+		'grok-4.20-0309-non-reasoning',
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
-		'gemini-2.5-pro-exp-03-25',
-		'gemini-2.5-flash-preview-04-17',
-		'gemini-2.0-flash',
-		'gemini-2.0-flash-lite',
-		'gemini-2.5-pro-preview-05-06',
+		'gemini-2.5-pro',
+		'gemini-2.5-flash',
+		'gemini-2.5-flash-lite',
+		'gemini-3.5-flash',
 	],
 	deepseek: [ // https://api-docs.deepseek.com/quick_start/pricing
 		'deepseek-chat',
 		'deepseek-reasoner',
+		'deepseek-v4-pro',
 	],
 	ollama: [ // autodetected
 	],
@@ -116,29 +113,22 @@ export const defaultModelsOfProvider = {
 	lmStudio: [], // autodetected
 
 	openRouter: [ // https://openrouter.ai/models
-		// 'anthropic/claude-3.7-sonnet:thinking',
-		'anthropic/claude-opus-4',
-		'anthropic/claude-sonnet-4',
+		'anthropic/claude-opus-4.7',
+		'anthropic/claude-sonnet-4.6',
+		'google/gemini-2.5-pro',
+		'google/gemini-2.5-flash',
+		'openai/gpt-5.5',
 		'qwen/qwen3-235b-a22b',
-		'anthropic/claude-3.7-sonnet',
-		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
-		'deepseek/deepseek-r1-zero:free',
-		'mistralai/devstral-small:free'
-		// 'openrouter/quasar-alpha',
-		// 'google/gemini-2.5-pro-preview-03-25',
-		// 'mistralai/codestral-2501',
-		// 'qwen/qwen-2.5-coder-32b-instruct',
-		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
-		// 'google/gemini-2.0-pro-exp-02-05:free',
-		// 'google/gemini-2.0-flash-exp:free',
+		'mistralai/devstral-2512',
+		'mistralai/mistral-large-2512',
 	],
 	groq: [ // https://console.groq.com/docs/models
-		'qwen-qwq-32b',
+		'openai/gpt-oss-120b',
+		'openai/gpt-oss-20b',
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
-		// 'qwen-2.5-coder-32b', // preview mode (experimental)
+		'qwen/qwen3-32b',
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'mistral-large-latest',
@@ -146,7 +136,6 @@ export const defaultModelsOfProvider = {
 		'mistral-small-latest',
 		'devstral-latest',
 		'codestral-latest',
-		'devstral-small-latest',
 		'magistral-medium-latest',
 		'ministral-14b-latest',
 		'ministral-8b-latest',
@@ -418,17 +407,32 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 		};
 	}
 
-	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro-exp-03-25')
+	if (lower.includes('gemini') && lower.includes('3.5')) return toFallback(geminiModelOptions, 'gemini-3.5-flash')
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) {
+		if (lower.includes('flash-lite') || lower.includes('flash_lite')) return toFallback(geminiModelOptions, 'gemini-2.5-flash-lite')
+		if (lower.includes('flash')) return toFallback(geminiModelOptions, 'gemini-2.5-flash')
+		return toFallback(geminiModelOptions, 'gemini-2.5-pro')
+	}
 
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')
-	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-3-7-sonnet-20250219')
+	if (lower.includes('opus-4-7') || lower.includes('opus-4.7')) return toFallback(anthropicModelOptions, 'claude-opus-4-7')
+	if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6')) return toFallback(anthropicModelOptions, 'claude-sonnet-4-6')
+	if (lower.includes('haiku-4-5') || lower.includes('haiku-4.5')) return toFallback(anthropicModelOptions, 'claude-haiku-4-5')
+	if (lower.includes('opus-4-6') || lower.includes('opus-4.6')) return toFallback(anthropicModelOptions, 'claude-opus-4-6')
+	if (lower.includes('sonnet-4-5') || lower.includes('sonnet-4.5')) return toFallback(anthropicModelOptions, 'claude-sonnet-4-5-20250929')
+	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-sonnet-4-6')
 
-	if (lower.includes('grok2') || lower.includes('grok2')) return toFallback(xAIModelOptions, 'grok-2')
-	if (lower.includes('grok')) return toFallback(xAIModelOptions, 'grok-3')
+	if (lower.includes('grok-4') || lower.includes('grok4')) {
+		if (lower.includes('non-reasoning') || lower.includes('non_reasoning')) return toFallback(xAIModelOptions, 'grok-4.20-0309-non-reasoning')
+		if (lower.includes('reasoning')) return toFallback(xAIModelOptions, 'grok-4.20-0309-reasoning')
+		return toFallback(xAIModelOptions, 'grok-4.3')
+	}
+	if (lower.includes('grok2') || lower.includes('grok-2')) return toFallback(xAIModelOptions, 'grok-2')
+	if (lower.includes('grok')) return toFallback(xAIModelOptions, 'grok-4.3')
 
-	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekR1')
-	if (lower.includes('deepseek') && lower.includes('v2')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekCoderV2')
-	if (lower.includes('deepseek')) return toFallback(openSourceModelOptions_assumingOAICompat, 'deepseekCoderV3')
+	if (lower.includes('deepseek') && (lower.includes('v4-pro') || lower.includes('v4_pro'))) return toFallback(deepseekModelOptions, 'deepseek-v4-pro')
+	if (lower.includes('deepseek-r1') || lower.includes('deepseek-reasoner')) return toFallback(deepseekModelOptions, 'deepseek-reasoner')
+	if (lower.includes('deepseek')) return toFallback(deepseekModelOptions, 'deepseek-chat')
 
 	if (lower.includes('llama3')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3')
 	if (lower.includes('llama3.1')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama3.1')
@@ -454,6 +458,10 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 
 	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback(openSourceModelOptions_assumingOAICompat, 'quasar')
 
+	if (lower.includes('gpt') && lower.includes('5.5')) return toFallback(openAIModelOptions, 'gpt-5.5')
+	if (lower.includes('gpt') && lower.includes('5.4') && lower.includes('nano')) return toFallback(openAIModelOptions, 'gpt-5.4-nano')
+	if (lower.includes('gpt') && lower.includes('5.4') && lower.includes('mini')) return toFallback(openAIModelOptions, 'gpt-5.4-mini')
+	if (lower.includes('gpt') && lower.includes('5.4')) return toFallback(openAIModelOptions, 'gpt-5.4')
 	if (lower.includes('gpt') && lower.includes('mini') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-mini')
 	if (lower.includes('gpt') && lower.includes('nano') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-nano')
 	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1')
@@ -480,7 +488,65 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 
 
 // ---------------- ANTHROPIC ----------------
+const anthropicThinkingCapabilities = {
+	supportsReasoning: true as const,
+	canTurnOffReasoning: true,
+	canIOReasoning: true,
+	reasoningReservedOutputTokenSpace: 8192,
+	reasoningSlider: { type: 'budget_slider' as const, min: 1024, max: 8192, default: 1024 },
+}
+
 const anthropicModelOptions = {
+	'claude-opus-4-7': { // https://docs.anthropic.com/en/docs/about-claude/models/overview
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: { ...anthropicThinkingCapabilities, canTurnOffReasoning: false }, // adaptive thinking
+	},
+	'claude-sonnet-4-6': {
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 64_000,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: anthropicThinkingCapabilities,
+	},
+	'claude-haiku-4-5': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: 64_000,
+		cost: { input: 1.00, cache_read: 0.10, cache_write: 1.25, output: 5.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: anthropicThinkingCapabilities,
+	},
+	'claude-opus-4-6': {
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 5.00, cache_read: 0.50, cache_write: 6.25, output: 25.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: anthropicThinkingCapabilities,
+	},
+	'claude-sonnet-4-5-20250929': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: 64_000,
+		cost: { input: 3.00, cache_read: 0.30, cache_write: 3.75, output: 15.00 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'anthropic-style',
+		supportsSystemMessage: 'separated',
+		reasoningCapabilities: anthropicThinkingCapabilities,
+	},
 	'claude-3-7-sonnet-20250219': { // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
 		contextWindow: 200_000,
 		reservedOutputTokenSpace: 8_192,
@@ -489,13 +555,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
-		reasoningCapabilities: {
-			supportsReasoning: true,
-			canTurnOffReasoning: true,
-			canIOReasoning: true,
-			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
-		},
+		reasoningCapabilities: anthropicThinkingCapabilities,
 
 	},
 	'claude-opus-4-20250514': {
@@ -506,13 +566,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
-		reasoningCapabilities: {
-			supportsReasoning: true,
-			canTurnOffReasoning: true,
-			canIOReasoning: true,
-			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
-		},
+		reasoningCapabilities: anthropicThinkingCapabilities,
 
 	},
 	'claude-sonnet-4-20250514': {
@@ -523,13 +577,7 @@ const anthropicModelOptions = {
 		supportsFIM: false,
 		specialToolFormat: 'anthropic-style',
 		supportsSystemMessage: 'separated',
-		reasoningCapabilities: {
-			supportsReasoning: true,
-			canTurnOffReasoning: true,
-			canIOReasoning: true,
-			reasoningReservedOutputTokenSpace: 8192, // can bump it to 128_000 with beta mode output-128k-2025-02-19
-			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // they recommend batching if max > 32_000. we cap at 8192 because above is typically not necessary (often even buggy)
-		},
+		reasoningCapabilities: anthropicThinkingCapabilities,
 
 	},
 	'claude-3-5-sonnet-20241022': {
@@ -590,15 +638,18 @@ const anthropicSettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof anthropicModelOptions | null = null
-		if (lower.includes('claude-4-opus') || lower.includes('claude-opus-4')) fallbackName = 'claude-opus-4-20250514'
-		if (lower.includes('claude-4-sonnet') || lower.includes('claude-sonnet-4')) fallbackName = 'claude-sonnet-4-20250514'
-
-
-		if (lower.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
-		if (lower.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
-		if (lower.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
-		if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
-		if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
+		if (lower.includes('opus-4-7') || lower.includes('opus-4.7')) fallbackName = 'claude-opus-4-7'
+		else if (lower.includes('sonnet-4-6') || lower.includes('sonnet-4.6')) fallbackName = 'claude-sonnet-4-6'
+		else if (lower.includes('haiku-4-5') || lower.includes('haiku-4.5')) fallbackName = 'claude-haiku-4-5'
+		else if (lower.includes('opus-4-6') || lower.includes('opus-4.6')) fallbackName = 'claude-opus-4-6'
+		else if (lower.includes('sonnet-4-5') || lower.includes('sonnet-4.5')) fallbackName = 'claude-sonnet-4-5-20250929'
+		else if (lower.includes('claude-4-opus') || lower.includes('claude-opus-4')) fallbackName = 'claude-opus-4-20250514'
+		else if (lower.includes('claude-4-sonnet') || lower.includes('claude-sonnet-4')) fallbackName = 'claude-sonnet-4-20250514'
+		else if (lower.includes('claude-3-7-sonnet')) fallbackName = 'claude-3-7-sonnet-20250219'
+		else if (lower.includes('claude-3-5-sonnet')) fallbackName = 'claude-3-5-sonnet-20241022'
+		else if (lower.includes('claude-3-5-haiku')) fallbackName = 'claude-3-5-haiku-20241022'
+		else if (lower.includes('claude-3-opus')) fallbackName = 'claude-3-opus-20240229'
+		else if (lower.includes('claude-3-sonnet')) fallbackName = 'claude-3-sonnet-20240229'
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...anthropicModelOptions[fallbackName] }
 		return null
 	},
@@ -606,7 +657,54 @@ const anthropicSettings: VoidStaticProviderInfo = {
 
 
 // ---------------- OPENAI ----------------
+const openAIReasoningEffortCapabilities = {
+	supportsReasoning: true as const,
+	canTurnOffReasoning: false,
+	canIOReasoning: false,
+	reasoningSlider: { type: 'effort_slider' as const, values: ['low', 'medium', 'high'], default: 'low' },
+}
+
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
+	'gpt-5.5': { // https://developers.openai.com/api/docs/models/gpt-5.5
+		contextWindow: 1_050_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 5.00, output: 30.00, cache_read: 0.50 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
+	'gpt-5.4': { // https://developers.openai.com/api/docs/models/gpt-5.4
+		contextWindow: 1_050_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 2.50, output: 15.00, cache_read: 0.25 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
+	'gpt-5.4-mini': { // https://developers.openai.com/api/docs/models/gpt-5.4-mini
+		contextWindow: 400_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 0.75, output: 4.50, cache_read: 0.075 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
+	'gpt-5.4-nano': { // https://developers.openai.com/api/docs/models/gpt-5.4-nano
+		contextWindow: 400_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 0.20, output: 1.25, cache_read: 0.02 },
+		downloadable: false,
+		supportsFIM: false,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
 	'o3': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
@@ -725,9 +823,24 @@ const openAISettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof openAIModelOptions | null = null
-		if (lower.includes('o1')) { fallbackName = 'o1' }
-		if (lower.includes('o3-mini')) { fallbackName = 'o3-mini' }
-		if (lower.includes('gpt-4o')) { fallbackName = 'gpt-4o' }
+		if (lower.includes('gpt-5.5') || lower.includes('gpt5.5')) fallbackName = 'gpt-5.5'
+		else if (lower.includes('gpt-5.4') || lower.includes('gpt5.4')) {
+			if (lower.includes('nano')) fallbackName = 'gpt-5.4-nano'
+			else if (lower.includes('mini')) fallbackName = 'gpt-5.4-mini'
+			else fallbackName = 'gpt-5.4'
+		}
+		else if (lower.includes('o4') && lower.includes('mini')) fallbackName = 'o4-mini'
+		else if (lower.includes('o3') && lower.includes('mini')) fallbackName = 'o3-mini'
+		else if (lower.includes('o3')) fallbackName = 'o3'
+		else if (lower.includes('o1') && lower.includes('mini')) fallbackName = 'o1-mini'
+		else if (lower.includes('o1')) fallbackName = 'o1'
+		else if (lower.includes('gpt-4.1') || lower.includes('gpt4.1')) {
+			if (lower.includes('nano')) fallbackName = 'gpt-4.1-nano'
+			else if (lower.includes('mini')) fallbackName = 'gpt-4.1-mini'
+			else fallbackName = 'gpt-4.1'
+		}
+		else if (lower.includes('4o') && lower.includes('mini')) fallbackName = 'gpt-4o-mini'
+		else if (lower.includes('4o') || lower.includes('gpt-4o')) fallbackName = 'gpt-4o'
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...openAIModelOptions[fallbackName] }
 		return null
 	},
@@ -737,9 +850,46 @@ const openAISettings: VoidStaticProviderInfo = {
 }
 
 // ---------------- XAI ----------------
+const xAIReasoningEffortCapabilities = {
+	supportsReasoning: true as const,
+	canTurnOffReasoning: false,
+	canIOReasoning: false,
+	reasoningSlider: { type: 'effort_slider' as const, values: ['low', 'high'], default: 'low' },
+}
+
 const xAIModelOptions = {
 	// https://docs.x.ai/docs/guides/reasoning#reasoning
 	// https://docs.x.ai/docs/models#models-and-pricing
+	'grok-4.3': { // https://docs.x.ai/developers/models/grok-4.3
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 1.25, cache_read: 0.20, output: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: xAIReasoningEffortCapabilities,
+	},
+	'grok-4.20-0309-reasoning': { // https://docs.x.ai/developers/models/grok-4.20-0309-reasoning
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 1.25, output: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: { ...xAIReasoningEffortCapabilities, canTurnOffReasoning: false },
+	},
+	'grok-4.20-0309-non-reasoning': {
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 1.25, output: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
 	'grok-2': {
 		contextWindow: 131_072,
 		reservedOutputTokenSpace: null,
@@ -798,9 +948,14 @@ const xAISettings: VoidStaticProviderInfo = {
 	modelOptionsFallback: (modelName) => {
 		const lower = modelName.toLowerCase()
 		let fallbackName: keyof typeof xAIModelOptions | null = null
-		if (lower.includes('grok-2')) fallbackName = 'grok-2'
-		if (lower.includes('grok-3')) fallbackName = 'grok-3'
-		if (lower.includes('grok')) fallbackName = 'grok-3'
+		if (lower.includes('grok-4.20') || lower.includes('grok4.20')) {
+			if (lower.includes('non-reasoning') || lower.includes('non_reasoning')) fallbackName = 'grok-4.20-0309-non-reasoning'
+			else fallbackName = 'grok-4.20-0309-reasoning'
+		}
+		else if (lower.includes('grok-4') || lower.includes('grok4.3') || lower.includes('grok-4.3')) fallbackName = 'grok-4.3'
+		else if (lower.includes('grok-2')) fallbackName = 'grok-2'
+		else if (lower.includes('grok-3')) fallbackName = 'grok-4.3' // grok-3 aliases redirect to grok-4.3
+		else if (lower.includes('grok')) fallbackName = 'grok-4.3'
 		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...xAIModelOptions[fallbackName] }
 		return null
 	},
@@ -813,6 +968,70 @@ const xAISettings: VoidStaticProviderInfo = {
 
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
+	'gemini-2.5-pro': { // https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 65_536,
+		cost: { input: 1.25, output: 10.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 },
+			reasoningReservedOutputTokenSpace: 8192,
+		},
+	},
+	'gemini-2.5-flash': { // https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 65_536,
+		cost: { input: 0.15, output: 0.60 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 },
+			reasoningReservedOutputTokenSpace: 8192,
+		},
+	},
+	'gemini-2.5-flash-lite': { // https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.075, output: 0.30 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 },
+			reasoningReservedOutputTokenSpace: 8192,
+		},
+	},
+	'gemini-3.5-flash': { // https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 65_536,
+		cost: { input: 0.15, output: 0.60 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 },
+			reasoningReservedOutputTokenSpace: 8192,
+		},
+	},
 	// https://ai.google.dev/gemini-api/docs/thinking#set-budget
 	'gemini-2.5-pro-preview-05-06': {
 		contextWindow: 1_048_576,
@@ -926,33 +1145,71 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 
 const geminiSettings: VoidStaticProviderInfo = {
 	modelOptions: geminiModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof geminiModelOptions | null = null
+		if (lower.includes('3.5') && lower.includes('flash')) fallbackName = 'gemini-3.5-flash'
+		else if (lower.includes('2.5') || lower.includes('2-5')) {
+			if (lower.includes('flash-lite') || lower.includes('flash_lite')) fallbackName = 'gemini-2.5-flash-lite'
+			else if (lower.includes('flash')) fallbackName = 'gemini-2.5-flash'
+			else fallbackName = 'gemini-2.5-pro'
+		}
+		else if (lower.includes('2.0') && lower.includes('flash')) fallbackName = 'gemini-2.0-flash'
+		else if (lower.includes('1.5') && lower.includes('pro')) fallbackName = 'gemini-1.5-pro'
+		else if (lower.includes('1.5') && lower.includes('flash')) fallbackName = 'gemini-1.5-flash'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...geminiModelOptions[fallbackName] }
+		return null
+	},
 }
 
 
 
 // ---------------- DEEPSEEK API ----------------
 const deepseekModelOptions = {
-	'deepseek-chat': {
-		...openSourceModelOptions_assumingOAICompat.deepseekR1,
-		contextWindow: 64_000, // https://api-docs.deepseek.com/quick_start/pricing
-		reservedOutputTokenSpace: 8_000, // 8_000,
-		cost: { cache_read: .07, input: .27, output: 1.10, },
+	'deepseek-chat': { // deepseek-v4-flash, non-thinking — https://api-docs.deepseek.com/quick_start/pricing
+		...openSourceModelOptions_assumingOAICompat.deepseekCoderV3,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 384_000,
+		cost: { cache_read: 0.0028, input: 0.14, output: 0.28 },
 		downloadable: false,
+		supportsFIM: true,
 	},
-	'deepseek-reasoner': {
-		...openSourceModelOptions_assumingOAICompat.deepseekCoderV2,
-		contextWindow: 64_000,
-		reservedOutputTokenSpace: 8_000, // 8_000,
-		cost: { cache_read: .14, input: .55, output: 2.19, },
+	'deepseek-reasoner': { // deepseek-v4-flash, thinking mode
+		...openSourceModelOptions_assumingOAICompat.deepseekR1,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 384_000,
+		cost: { cache_read: 0.0028, input: 0.14, output: 0.28 },
 		downloadable: false,
+		supportsFIM: false,
+	},
+	'deepseek-v4-pro': { // https://api-docs.deepseek.com/quick_start/pricing
+		contextWindow: 1_000_000,
+		reservedOutputTokenSpace: 384_000,
+		cost: { cache_read: 0.0145, input: 1.74, output: 3.48 },
+		downloadable: false,
+		supportsFIM: true,
+		specialToolFormat: 'openai-style',
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 
 
 const deepseekSettings: VoidStaticProviderInfo = {
 	modelOptions: deepseekModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof deepseekModelOptions | null = null
+		if (lower.includes('v4-pro') || lower.includes('v4_pro')) fallbackName = 'deepseek-v4-pro'
+		else if (lower.includes('reasoner') || lower.includes('r1')) fallbackName = 'deepseek-reasoner'
+		else if (lower.includes('chat') || lower.includes('v4')) fallbackName = 'deepseek-chat'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...deepseekModelOptions[fallbackName] }
+		return null
+	},
 	providerReasoningIOSettings: {
 		// reasoning: OAICompat +  response.choices[0].delta.reasoning_content // https://api-docs.deepseek.com/guides/reasoning_model
 		input: { includeInPayload: openAICompatIncludeInPayloadReasoning },
@@ -969,7 +1226,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.50, output: 1.50 },
-		supportsFIM: true,
+		supportsFIM: false, // FIM endpoint: codestral-latest only — https://docs.mistral.ai/capabilities/fim
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
@@ -979,18 +1236,17 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 1.50, output: 7.50 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
-		// No `reasoning_effort` payload (see mistralIncludeInPayloadReasoning). Surface thinking tags from stream text when present (same shape as Magistral).
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'mistral-small-latest': { // Mistral Small 4 — https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.15, output: 0.60 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
@@ -1010,7 +1266,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.40, output: 2.00 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
@@ -1020,27 +1276,27 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 128_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 2.00, output: 5.00 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
-	'magistral-small-latest': { // Magistral Small 1.2 (deprecated) — https://docs.mistral.ai/models/model-cards/magistral-small-1-2-25-09
+	'magistral-small-latest': { // Magistral Small 1.2 (deprecated → Mistral Small 4) — https://docs.mistral.ai/models/model-cards/magistral-small-1-2-25-09
 		contextWindow: 128_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.30, output: 0.90 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] },
 	},
-	'devstral-small-latest': { // Devstral Small 2 (labs) — https://docs.mistral.ai/models/model-cards/devstral-small-2-25-12
+	'devstral-small-latest': { // Devstral Small 2 (labs, deprecated → Devstral 2) — https://docs.mistral.ai/models/model-cards/devstral-small-2-25-12
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 8_192,
 		cost: { input: 0.20, output: 0.80 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 14 },
 		supportsSystemMessage: 'system-role',
@@ -1050,7 +1306,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 4_096,
 		cost: { input: 0.20, output: 0.20 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
@@ -1060,7 +1316,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 4_096,
 		cost: { input: 0.15, output: 0.15 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 4.1 },
 		supportsSystemMessage: 'system-role',
@@ -1070,7 +1326,7 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 		contextWindow: 256_000,
 		reservedOutputTokenSpace: 4_096,
 		cost: { input: 0.10, output: 0.10 },
-		supportsFIM: true,
+		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		downloadable: { sizeGb: 'not-known' },
 		supportsSystemMessage: 'system-role',
@@ -1080,7 +1336,23 @@ const mistralModelOptions = { // https://docs.mistral.ai/getting-started/models/
 
 const mistralSettings: VoidStaticProviderInfo = {
 	modelOptions: mistralModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof mistralModelOptions | null = null
+		if (lower.includes('codestral')) fallbackName = 'codestral-latest'
+		else if (lower.includes('magistral')) fallbackName = lower.includes('small') ? 'magistral-small-latest' : 'magistral-medium-latest'
+		else if (lower.includes('devstral')) fallbackName = lower.includes('small') ? 'devstral-small-latest' : 'devstral-latest'
+		else if (lower.includes('ministral')) {
+			if (lower.includes('14')) fallbackName = 'ministral-14b-latest'
+			else if (lower.includes('8')) fallbackName = 'ministral-8b-latest'
+			else fallbackName = 'ministral-3b-latest'
+		}
+		else if (lower.includes('mistral-large') || lower.includes('large-25')) fallbackName = 'mistral-large-latest'
+		else if (lower.includes('mistral-medium') || lower.includes('medium-3')) fallbackName = 'mistral-medium-latest'
+		else if (lower.includes('mistral-small') || lower.includes('small-26') || lower.includes('small-4')) fallbackName = 'mistral-small-latest'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...mistralModelOptions[fallbackName] }
+		return null
+	},
 	providerReasoningIOSettings: {
 		input: { includeInPayload: mistralIncludeInPayloadReasoning },
 		output: { needsManualParse: true },
@@ -1090,6 +1362,26 @@ const mistralSettings: VoidStaticProviderInfo = {
 
 // ---------------- GROQ ----------------
 const groqModelOptions = { // https://console.groq.com/docs/models, https://groq.com/pricing/
+	'openai/gpt-oss-120b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.15, output: 0.60 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
+	'openai/gpt-oss-20b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.075, output: 0.30 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: openAIReasoningEffortCapabilities,
+	},
 	'llama-3.3-70b-versatile': {
 		contextWindow: 128_000,
 		reservedOutputTokenSpace: 32_768, // 32_768,
@@ -1107,6 +1399,16 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
+	},
+	'qwen/qwen3-32b': {
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.29, output: 0.59 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'qwen-2.5-coder-32b': {
 		contextWindow: 128_000,
@@ -1129,7 +1431,19 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 const groqSettings: VoidStaticProviderInfo = {
 	modelOptions: groqModelOptions,
-	modelOptionsFallback: (modelName) => { return null },
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof groqModelOptions | null = null
+		if (lower.includes('gpt-oss') && (lower.includes('120') || lower.includes('120b'))) fallbackName = 'openai/gpt-oss-120b'
+		else if (lower.includes('gpt-oss') && (lower.includes('20') || lower.includes('20b'))) fallbackName = 'openai/gpt-oss-20b'
+		else if (lower.includes('qwen3') || lower.includes('qwen-3')) fallbackName = 'qwen/qwen3-32b'
+		else if (lower.includes('llama-3.3') || lower.includes('llama3.3')) fallbackName = 'llama-3.3-70b-versatile'
+		else if (lower.includes('llama-3.1') || lower.includes('llama3.1')) fallbackName = 'llama-3.1-8b-instant'
+		else if (lower.includes('qwen') && lower.includes('coder')) fallbackName = 'qwen-2.5-coder-32b'
+		else if (lower.includes('qwq')) fallbackName = 'qwen-qwq-32b'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...groqModelOptions[fallbackName] }
+		return null
+	},
 	providerReasoningIOSettings: {
 		// Must be set to either parsed or hidden when using tool calling https://console.groq.com/docs/reasoning
 		input: {
@@ -1312,6 +1626,42 @@ const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/doc
 
 // ---------------- OPENROUTER ----------------
 const openRouterModelOptions_assumingOpenAICompat = {
+	'anthropic/claude-opus-4.7': {
+		...anthropicModelOptions['claude-opus-4-7'],
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		downloadable: false,
+	},
+	'anthropic/claude-sonnet-4.6': {
+		...anthropicModelOptions['claude-sonnet-4-6'],
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		downloadable: false,
+	},
+	'google/gemini-2.5-pro': {
+		...geminiModelOptions['gemini-2.5-pro'],
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		downloadable: false,
+	},
+	'google/gemini-2.5-flash': {
+		...geminiModelOptions['gemini-2.5-flash'],
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		downloadable: false,
+	},
+	'openai/gpt-5.5': {
+		...openAIModelOptions['gpt-5.5'],
+		downloadable: false,
+	},
+	'mistralai/mistral-large-2512': {
+		...mistralModelOptions['mistral-large-latest'],
+		downloadable: false,
+	},
+	'mistralai/devstral-2512': {
+		...mistralModelOptions['devstral-latest'],
+		downloadable: false,
+	},
 	'qwen/qwen3-235b-a22b': {
 		contextWindow: 40_960,
 		reservedOutputTokenSpace: null,
@@ -1385,7 +1735,7 @@ const openRouterModelOptions_assumingOpenAICompat = {
 	'anthropic/claude-sonnet-4': {
 		contextWindow: 200_000,
 		reservedOutputTokenSpace: null,
-		cost: { input: 15.00, output: 75.00 },
+		cost: { input: 3.00, output: 15.00 },
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',

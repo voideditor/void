@@ -1,8 +1,6 @@
 ## Void is now deprecated.
 Void is deprecated and no longer accepting contributions.
-Thank you to everyone who contributed, both with lines of code and support from the community.
-
-Void remains open source and is still one of the best references to use when forking VS Code.
+Thank you to everyone who contributed, both with lines of code and support from the community. Void remains open source and is still one of the best references to use when forking VS Code.
 
 
 ## Download
@@ -25,7 +23,7 @@ If you're forking VS Code, you might still want to reference Void's logic, and s
 
 - Feel free to reference our architecture for using IPC and satisfying CSP.
 
-- Everything we've done is 100% open source. See our [repo list](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
+- Everything we've done is 100% open source. See [repos](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
 
 
 

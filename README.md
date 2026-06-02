@@ -2,28 +2,28 @@
 Void is deprecated and no longer accepting contributions.
 Thank you to everyone who contributed, both with lines of code and support from the community.
 
- Void remains open source and is still one of the best references to use when forking VS Code.
+Void remains open source and is still one of the best references to use when forking VS Code.
 
 
 ## Download
 
-To view a list of newer Void forks, see the [Void Forks](http://github.com/voideditor/void-forks/) list.
+To view a list of newer Void forks, see [Void Forks](http://github.com/voideditor/void-forks/).
 
-To download an old version of Void, see our [Releases](https://github.com/voideditor/void/releases) page.
+To download an old version of Void, see [Releases](https://github.com/voideditor/void/releases).
 
 ## Forking VS Code
 
-If you're forking VS Code, you might still want to reference Void's logic and see our docs [here](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) and [here](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+If you're forking VS Code, you might still want to reference Void's logic, and see our [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) and [How to Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
-- We mount React + Tailwind. This is typically not possible in VS Code, and it required extending the build pipeline to compile React and [scope](https://github.com/andrewpareles/scope-tailwind) tailwind ourselves.
+- We mount React + Tailwind. This is typically not possible in VS Code, and it required extending the build pipeline to compile React and [scope](https://github.com/andrewpareles/scope-tailwind) Tailwind ourselves.
 
-- You can copy our GitHub actions to package, sign, and auto-update Void. VS Code's build pipeline is private, so this is typically tribal knowledge.
+- You can copy our GitHub Actions to package, sign, and auto-update Void. VS Code's build pipeline is private, so this is typically tribal knowledge.
 
-- Our AI provider pipeline is built from scratch, so you can support custom functionality including autocomplete/FIM. We also expose grammars for common open source `<thinking>` tags, tool tags, etc.
+- Our AI completions pipeline is built from scratch, allowing us to support autocomplete (FIM) and other custom responses. We also expose grammars for common `<thinking>` tags, tool tags, etc.
 
-- VoidModelService lets you edit files in the background, without worrying about differences between the raw file and in-memory buffer, or having failed writes and reads if the ITextModel was not mounted.
+- Use VoidModelService to edit files in the background, without having subtle `ITextModel` write errors. It syncs OS-level files with your text buffers.
 
-- Feel free to reference our architecture for using IPC, satisfying CSP, and setting up custom Services.
+- Feel free to reference our architecture for using IPC and satisfying CSP.
 
 - Everything we've done is 100% open source. See our [repo list](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
 

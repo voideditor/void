@@ -10,14 +10,15 @@ Thank you to everyone who contributed, both with lines of code and support from 
 
 You might want to reference Void's logic if you're forking VS Code.
 
-
 - We mount React + Tailwind. This is typically not possible in VS Code, and it required extending the build pipeline to compile React and [scope](https://github.com/andrewpareles/scope-tailwind) tailwind ourselves.
 
-- We expose GitHub actions that package, sign, and auto-update Void. Surprisingly VS Code's build pipeline is private, so it's usually hard to do this yourself.
+- We expose GitHub actions that package, sign, and auto-update Void. Surprisingly, VS Code's build pipeline is private, so it's hard to figure this out yourself.
 
 - We have a Service that lets you modify files in the background, without worrying about in-memory vs raw-file differences or having failed writes and reads if the ITextModel was not mounted.
 
-- We provide examples of creating custom Services, doing IPC, doing HTTP networking to AI providers securely while satisfying CSP, and using core VS Code Services and Actions.
+- Our AI provider pipeline is built from scratch, allowing you to support custom functionality like autocomplete/FIM models.
+
+- We provide examples of creating custom Services, doing IPC, securely networking with HTTP to AI providers while satisfying CSP, and using core VS Code Services and Actions.
 
 - Everything we've done is 100% open source. See [here](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
 

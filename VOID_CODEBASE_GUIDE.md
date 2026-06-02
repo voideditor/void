@@ -52,7 +52,10 @@ Here's some terminology you might want to know about when working inside VSCode:
 	- You can run actions as a user by pressing Cmd+Shift+P (opens the command pallete), or you can run them internally by using the commandService to call them by ID. We use actions to register keybinding listeners like Cmd+L, Cmd+K, etc. The nice thing about actions is the user can change the keybindings.
 
 
-### Internal LLM Message Pipeline
+
+
+
+### Void's LLM Message Pipeline
 
 Here's a picture of all the dependencies that are relevent between the time you first send a message through Void's sidebar, and the time a request is sent to your provider.
 Sending LLM messages from the main process avoids CSP issues with local providers and lets us use node_modules more easily.
@@ -134,7 +137,7 @@ If you want to know how our build pipeline works, see our build repo [here](http
 
 For additional references, the Void team put together this list of links to get up and running with VSCode.
 <details>
-	
+
 
 #### Links for Beginners
 

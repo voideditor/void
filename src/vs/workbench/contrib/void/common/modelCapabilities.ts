@@ -135,10 +135,13 @@ export const defaultModelsOfProvider = {
 		// 'google/gemini-2.0-flash-exp:free',
 	],
 	groq: [ // https://console.groq.com/docs/models
-		'qwen-qwq-32b',
+		//'qwen-qwq-32b', //(Deprecated)
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
-		// 'qwen-2.5-coder-32b', // preview mode (experimental)
+		// 'qwen-2.5-coder-32b', // (Deprecated)
+		'qwen3-32b', // (Preveiw model, could be deprecated soon)
+		// Note to Andrew: We should add more models for Groq or put a message somewhere that lets people see the rest of the models that Groq has
+
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
@@ -1061,24 +1064,38 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'qwen-2.5-coder-32b': {
-		contextWindow: 128_000,
-		reservedOutputTokenSpace: null, // not specified?
-		cost: { input: 0.79, output: 0.79 },
+	// (This model has been deprecated)
+	// 'qwen-2.5-coder-32b': {
+	// 	contextWindow: 128_000,
+	//	reservedOutputTokenSpace: null, // not specified?
+	//	cost: { input: 0.79, output: 0.79 },
+	//	downloadable: false,
+	//	supportsFIM: false, // unfortunately looks like no FIM support on groq
+	//	supportsSystemMessage: 'system-role',
+	//	reasoningCapabilities: false,
+	//},
+	// (This model has been deprecated)
+	//'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
+	//	contextWindow: 128_000,
+	//	reservedOutputTokenSpace: null, // not specified?
+	//	cost: { input: 0.29, output: 0.39 },
+	//	downloadable: false,
+	//	supportsFIM: false,
+	//	supportsSystemMessage: 'system-role',
+	//	reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
+	//},
+	'qwen3-32b': { //https://huggingface.co/Qwen/Qwen3-32B
+		contextWindow: 131_072,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.29, output: 0.59 },
 		downloadable: false,
-		supportsFIM: false, // unfortunately looks like no FIM support on groq
+		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		//Personal Notes: To turn off reasoning, you need to add /no_think to the prompt. Or set the enable_thinking parameter to false.
+		//Personal Notes: I have no idea where/how to define exactly how to turn off reasoning
 	},
-	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
-		contextWindow: 128_000,
-		reservedOutputTokenSpace: null, // not specified?
-		cost: { input: 0.29, output: 0.39 },
-		downloadable: false,
-		supportsFIM: false,
-		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: false, openSourceThinkTags: ['<think>', '</think>'] }, // we're using reasoning_format:parsed so really don't need to know openSourceThinkTags
-	},
+
 } as const satisfies { [s: string]: VoidStaticModelInfo }
 const groqSettings: VoidStaticProviderInfo = {
 	modelOptions: groqModelOptions,

@@ -142,6 +142,26 @@ export const extractReasoningWrapper = (
 // =============== tools (XML) ===============
 
 
+// Aliases for common hallucinated tool names. Some weaker models invent tags
+// like <write_file> instead of using the canonical <rewrite_file>, etc. We
+// map a small, unambiguous set back to the real tool names so the call still
+// parses. Keys are lowercase aliases, values are canonical tool names.
+const toolNameAliases: Record<string, ToolName> = {
+	'write_file': 'rewrite_file',
+	'create_file': 'create_file_or_folder',
+	'delete_file': 'delete_file_or_folder',
+}
+
+// Per-tool parameter aliases. Models sometimes use <path>/<content> instead of
+// the canonical <uri>/<new_content>. Scoped per tool to avoid accidental
+// collisions across tools that legitimately use different param names.
+const paramAliasesOfTool: Partial<Record<ToolName, Record<string, string>>> = {
+	rewrite_file: { path: 'uri', content: 'new_content' },
+	edit_file: { path: 'uri' },
+	create_file_or_folder: { path: 'uri' },
+	delete_file_or_folder: { path: 'uri' },
+}
+
 
 const findPartiallyWrittenToolTagAtEnd = (fullText: string, toolTags: string[]) => {
 	for (const toolTag of toolTags) {
@@ -165,7 +185,12 @@ const findIndexOfAny = (fullText: string, matches: string[]) => {
 
 
 type ToolOfToolName = { [toolName: string]: InternalToolInfo | undefined }
-const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: string, str: string, toolOfToolName: ToolOfToolName): RawToolCallObj => {
+type ToolTagAliases = {
+	openTag: string;
+	closeTag: string;
+	paramAliases?: Record<string, string>; // alias param name -> canonical param name
+}
+const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: string, str: string, toolOfToolName: ToolOfToolName, aliases?: ToolTagAliases): RawToolCallObj => {
 	const paramsObj: RawToolParamsObj = {}
 	const doneParams: ToolParamName<T>[] = []
 	let isDone = false
@@ -190,11 +215,12 @@ const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: stri
 		return ans
 	}
 
-	// find first toolName tag
-	const openToolTag = `<${toolName}>`
+	// find first toolName tag (use alias tag if the model used an alias)
+	const openToolTag = aliases?.openTag ?? `<${toolName}>`
+	const closeToolTag = aliases?.closeTag ?? `</${toolName}>`
 	let i = str.indexOf(openToolTag)
 	if (i === -1) return getAnswer()
-	let j = str.lastIndexOf(`</${toolName}>`)
+	let j = str.lastIndexOf(closeToolTag)
 	if (j === -1) j = Infinity
 	else isDone = true
 
@@ -205,6 +231,23 @@ const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: stri
 
 	const allowedParams = Object.keys(toolOfToolName[toolName]?.params ?? {}) as ToolParamName<T>[]
 	if (allowedParams.length === 0) return getAnswer()
+
+	// Build effective param tag list: canonical names first, then any aliases
+	// pointing at canonical params. We try them in order, so canonical wins.
+	const paramTagList: Array<{ openTag: string; closeTag: string; canonical: ToolParamName<T> }> = []
+	for (const paramName of allowedParams) {
+		paramTagList.push({ openTag: `<${paramName}>`, closeTag: `</${paramName}>`, canonical: paramName })
+	}
+	if (aliases?.paramAliases) {
+		const allowedSet = new Set<string>(allowedParams as string[])
+		for (const aliasName in aliases.paramAliases) {
+			const canonical = aliases.paramAliases[aliasName]
+			if (allowedSet.has(canonical)) {
+				paramTagList.push({ openTag: `<${aliasName}>`, closeTag: `</${aliasName}>`, canonical: canonical as ToolParamName<T> })
+			}
+		}
+	}
+
 	let latestMatchedOpenParam: null | ToolParamName<T> = null
 	let n = 0
 	while (true) {
@@ -213,10 +256,10 @@ const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: stri
 
 		// find the param name opening tag
 		let matchedOpenParam: null | ToolParamName<T> = null
-		for (const paramName of allowedParams) {
-			const removed = pm.removeFromStartUntilFullMatch(`<${paramName}>`, true)
+		for (const { openTag, canonical } of paramTagList) {
+			const removed = pm.removeFromStartUntilFullMatch(openTag, true)
 			if (removed) {
-				matchedOpenParam = paramName
+				matchedOpenParam = canonical
 				break
 			}
 		}
@@ -231,14 +274,13 @@ const parseXMLPrefixToToolCall = <T extends ToolName,>(toolName: T, toolId: stri
 			latestMatchedOpenParam = matchedOpenParam
 		}
 
-		paramsObj[latestMatchedOpenParam] = ''
+		if (paramsObj[latestMatchedOpenParam] === undefined) paramsObj[latestMatchedOpenParam] = ''
 
-		// find the param name closing tag
+		// find the param name closing tag (canonical or alias)
 		let matchedCloseParam: boolean = false
 		let paramContents = ''
-		for (const paramName of allowedParams) {
+		for (const { closeTag } of paramTagList) {
 			const i = pm.i
-			const closeTag = `</${paramName}>`
 			const removed = pm.removeFromStartUntilFullMatch(closeTag, true)
 			if (removed) {
 				const i2 = pm.i
@@ -275,6 +317,27 @@ export const extractXMLToolsWrapper = (
 	const toolOpenTags = tools.map(t => `<${t.name}>`)
 	for (const t of tools) { toolOfToolName[t.name] = t }
 
+	// Add alias open tags that map to a real tool. We track which canonical tool
+	// each alias resolves to so the parser can use canonical params.
+	const canonicalOfOpenTag: Record<string, ToolName> = {}
+	const aliasInfoOfTag: Record<string, ToolTagAliases> = {}
+	for (const t of tools) {
+		canonicalOfOpenTag[`<${t.name}>`] = t.name as ToolName
+	}
+	for (const aliasName in toolNameAliases) {
+		const canonical = toolNameAliases[aliasName]
+		if (!toolOfToolName[canonical]) continue
+		const openTag = `<${aliasName}>`
+		const closeTag = `</${aliasName}>`
+		toolOpenTags.push(openTag)
+		canonicalOfOpenTag[openTag] = canonical
+		aliasInfoOfTag[openTag] = {
+			openTag,
+			closeTag,
+			paramAliases: paramAliasesOfTool[canonical],
+		}
+	}
+
 	const toolId = generateUuid()
 
 	// detect <availableTools[0]></availableTools[0]>, etc
@@ -282,7 +345,7 @@ export const extractXMLToolsWrapper = (
 	let trueFullText = ''
 	let latestToolCall: RawToolCallObj | undefined = undefined
 
-	let foundOpenTag: { idx: number, toolName: ToolName } | null = null
+	let foundOpenTag: { idx: number, toolName: ToolName, openTag: string } | null = null
 	let openToolTagBuffer = '' // the characters we've seen so far that come after a < with no space afterwards, not yet added to fullText
 
 	let prevFullTextLen = 0
@@ -312,9 +375,9 @@ export const extractXMLToolsWrapper = (
 				const i = findIndexOfAny(fullText, toolOpenTags)
 				if (i !== null) {
 					const [idx, toolTag] = i
-					const toolName = toolTag.substring(1, toolTag.length - 1) as ToolName
+					const toolName = canonicalOfOpenTag[toolTag]
 					// console.log('found ', toolName)
-					foundOpenTag = { idx, toolName }
+					foundOpenTag = { idx, toolName, openTag: toolTag }
 
 					// do not count anything at or after i in fullText
 					fullText = fullText.substring(0, idx)
@@ -331,6 +394,7 @@ export const extractXMLToolsWrapper = (
 				toolId,
 				trueFullText.substring(foundOpenTag.idx, Infinity),
 				toolOfToolName,
+				aliasInfoOfTag[foundOpenTag.openTag],
 			)
 		}
 

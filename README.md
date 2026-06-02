@@ -5,27 +5,27 @@ Thank you to everyone who contributed, both with lines of code and support from 
  Void remains open source and is still one of the best references to use when forking VS Code.
 
 
-## Old Download
+## Download
+
+To view a list of newer Void forks, see the [Void Forks](http://github.com/voideditor/void-forks/) list.
 
 To download an old version of Void, see our [Releases](https://github.com/voideditor/void/releases) page.
 
-To view a list of newer Void forks, see [Void Forks](http://github.com/voideditor/void-forks/).
-
 ## Forking VS Code
 
-You might want to reference Void's logic if you're forking VS Code.
+If you're forking VS Code, you might still want to reference Void's logic and see our docs [here](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md) and [here](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
 
 - We mount React + Tailwind. This is typically not possible in VS Code, and it required extending the build pipeline to compile React and [scope](https://github.com/andrewpareles/scope-tailwind) tailwind ourselves.
 
-- We expose GitHub actions that package, sign, and auto-update Void. Surprisingly, VS Code's build pipeline is private, so it's hard to do this yourself.
+- You can copy our GitHub actions to package, sign, and auto-update Void. VS Code's build pipeline is private, so this is typically tribal knowledge.
 
-- We have a Service that lets you modify files in the background, without worrying about differences between the raw file and in-memory buffer, or having failed writes and reads if the ITextModel was not mounted.
+- Our AI provider pipeline is built from scratch, so you can support custom functionality including autocomplete/FIM. We also expose grammars for common open source `<thinking>` tags, tool tags, etc.
 
-- Our AI provider pipeline is built from scratch so you can support custom functionality like autocomplete models (FIM).
+- VoidModelService lets you edit files in the background, without worrying about differences between the raw file and in-memory buffer, or having failed writes and reads if the ITextModel was not mounted.
 
-- We provide examples of creating custom Services, doing IPC, securely networking with HTTP to AI providers while satisfying CSP, and using core VS Code Services and Actions.
+- Feel free to reference our architecture for using IPC, satisfying CSP, and setting up custom Services.
 
-- Everything we've done is 100% open source. See [here](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
+- Everything we've done is 100% open source. See our [repo list](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
 
 
 
@@ -46,11 +46,11 @@ This repo contains the full sourcecode for Void's Desktop app. If you're new, we
 
 - 🧭 [Website](https://voideditor.com)
 
-- 👨‍💻 [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md)
-
-- 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
+- 🚙 [Roadmap](https://github.com/orgs/voideditor/projects/2)
 
 - 🔨 [Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md)
+
+
 
 
 ## Reference

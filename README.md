@@ -1,3 +1,33 @@
+## Void is now deprecated.
+Void is deprecated and no longer accepting contributions.
+Thank you to everyone who contributed, both with lines of code and support from the community.
+
+ Void remains open source and is still one of the best references to use when forking VS Code.
+
+
+
+## Forking VS Code
+
+You might want to reference Void's logic if you're forking VS Code.
+
+- We mount React + Tailwind. This is typically not possible in VS Code, and it required extending the build pipeline to compile React and [scope](https://github.com/andrewpareles/scope-tailwind) tailwind ourselves.
+
+- We expose GitHub actions that package, sign, and auto-update Void. Surprisingly VS Code's build pipeline is private, so it's hard to figure this out yourself.
+
+- Our service lets you modify files in the background without worrying about in-memory vs raw-file differences, or having failed writes and reads if the ITextModel was not mounted.
+
+- Our AI provider pipeline is built from scratch so we support custom functionality like autocomplete/FIM models.
+
+- We show you examples of creating custom Services, doing IPC, securely networking with HTTP to AI providers while satisfying CSP, and using core VS Code Services and Actions.
+
+- Everything we've done is 100% open source. See [here](https://github.com/orgs/voideditor/repositories) for a complete picture of all the repos that make up Void.
+
+## Old Download
+
+To download an old version of Void, see our [Releases](https://github.com/voideditor/void/releases) page.
+
+
+
 # Welcome to Void.
 
 <div align="center">
@@ -9,33 +39,26 @@
 	/>
 </div>
 
-Void is the open-source Cursor alternative.
-
 Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data.
 
-This repo contains the full sourcecode for Void. If you're new, welcome!
+This repo contains the full sourcecode for Void's Desktop app. If you're new, welcome!
 
 - 🧭 [Website](https://voideditor.com)
 
-- 👋 [Discord](https://discord.gg/RSNjgaugJs)
+- 👨‍💻 [Codebase Guide](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md)
 
 - 🚙 [Project Board](https://github.com/orgs/voideditor/projects/2)
 
+- 🔨 [Contribute](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md)
 
-## Note
-
-We've paused work on the Void IDE (this repo) to explore a few novel coding ideas. We want to focus on innovation over feature-parity. Void will continue running, but without maintenance some existing features might stop working over time. Depending on the direction of our new work, we might not resume Void as an IDE.
-
-We won't be actively reviewing Issues and PRs, but we will respond to all [email](mailto:hello@voideditor.com) inquiries on building and maintaining your own version of Void while we're paused. 
 
 ## Reference
 
-Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to the codebase, see [VOID_CODEBASE_GUIDE](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
+Void is a fork of the [vscode](https://github.com/microsoft/vscode) repository. For a guide to our codebase, see [VOID_CODEBASE_GUIDE](https://github.com/voideditor/void/blob/main/VOID_CODEBASE_GUIDE.md).
 
 For a guide on how to develop your own version of Void, see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md) and [void-builder](https://github.com/voideditor/void-builder).
 
 
 
-
 ## Support
-You can always reach us in our Discord server or contact us via email: hello@voideditor.com.
+You can always reach us in our [Discord server](https://discord.gg/RSNjgaugJs) or contact us via email at hello@voideditor.com.

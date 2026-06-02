@@ -10,7 +10,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IFileService, IFileStat } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { ShallowDirectoryItem, BuiltinToolCallParams, BuiltinToolResultType } from './toolsServiceTypes.js';
-import { MAX_CHILDREN_URIs_PAGE, MAX_DIRSTR_CHARS_TOTAL_BEGINNING, MAX_DIRSTR_CHARS_TOTAL_TOOL } from './prompt/prompts.js';
+import { IVoidSettingsService } from './voidSettingsService.js';
 
 
 const MAX_FILES_TOTAL = 1000;
@@ -74,6 +74,7 @@ const shouldExcludeDirectory = (name: string) => {
 
 export const computeDirectoryTree1Deep = async (
 	fileService: IFileService,
+	voidSettingsService: IVoidSettingsService,
 	rootURI: URI,
 	pageNumber: number = 1,
 ): Promise<BuiltinToolResultType['ls_dir']> => {
@@ -84,8 +85,8 @@ export const computeDirectoryTree1Deep = async (
 
 	const nChildren = stat.children?.length ?? 0;
 
-	const fromChildIdx = MAX_CHILDREN_URIs_PAGE * (pageNumber - 1);
-	const toChildIdx = MAX_CHILDREN_URIs_PAGE * pageNumber - 1; // INCLUSIVE
+	const fromChildIdx = voidSettingsService.state.globalSettings.maxChildrenUrisPage * (pageNumber - 1);
+	const toChildIdx = voidSettingsService.state.globalSettings.maxChildrenUrisPage * pageNumber - 1; // INCLUSIVE
 	const listChildren = stat.children?.slice(fromChildIdx, toChildIdx + 1);
 
 	const children: ShallowDirectoryItem[] = listChildren?.map(child => ({
@@ -387,6 +388,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 	constructor(
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IFileService private readonly fileService: IFileService,
+		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 	) {
 		super();
 	}
@@ -405,7 +407,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 		const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
 			eRoot,
 			this.fileService,
-			MAX_DIRSTR_CHARS_TOTAL_TOOL,
+			this.voidSettingsService.state.globalSettings.maxDirstrCharsTotalTool,
 			{ count: 0 },
 			{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir }
 		);
@@ -416,7 +418,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			const result = await computeAndStringifyDirectoryTree(
 				eRoot,
 				this.fileService,
-				MAX_DIRSTR_CHARS_TOTAL_TOOL,
+				this.voidSettingsService.state.globalSettings.maxDirstrCharsTotalTool,
 				{ count: 0 },
 				{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
 			);
@@ -427,7 +429,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			wasCutOff = initialCutOff;
 		}
 
-		let c = content.substring(0, MAX_DIRSTR_CHARS_TOTAL_TOOL)
+		let c = content.substring(0, this.voidSettingsService.state.globalSettings.maxDirstrCharsTotalTool)
 		c = `Directory of ${uri.fsPath}:\n${content}`
 		if (wasCutOff) c = `${c}\n...Result was truncated...`
 
@@ -459,7 +461,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 			const { content: initialContent, wasCutOff: initialCutOff } = await computeAndStringifyDirectoryTree(
 				eRoot,
 				this.fileService,
-				MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
+				this.voidSettingsService.state.globalSettings.maxDirstrCharsTotalBeginning - str.length,
 				{ count: 0 },
 				{ maxDepth: START_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: startMaxItemsPerDir }
 			);
@@ -470,7 +472,7 @@ class DirectoryStrService extends Disposable implements IDirectoryStrService {
 				const result = await computeAndStringifyDirectoryTree(
 					eRoot,
 					this.fileService,
-					MAX_DIRSTR_CHARS_TOTAL_BEGINNING - str.length,
+					this.voidSettingsService.state.globalSettings.maxDirstrCharsTotalBeginning - str.length,
 					{ count: 0 },
 					{ maxDepth: DEFAULT_MAX_DEPTH, currentDepth: 0, maxItemsPerDir: DEFAULT_MAX_ITEMS_PER_DIR }
 				);

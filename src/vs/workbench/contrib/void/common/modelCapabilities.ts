@@ -65,6 +65,9 @@ export const defaultProviderSettings = {
 		region: 'us-east-1', // add region setting
 		endpoint: '', // optionally allow overriding default
 	},
+	minimax: {
+		apiKey: '',
+	},
 
 } as const
 
@@ -153,6 +156,11 @@ export const defaultModelsOfProvider = {
 	microsoftAzure: [],
 	awsBedrock: [],
 	liteLLM: [],
+	minimax: [ // https://platform.minimax.io/docs/api-reference/text-openai-api
+		'MiniMax-M3',
+		'MiniMax-M2.7',
+		'MiniMax-M2.7-highspeed',
+	],
 
 
 } as const satisfies Record<ProviderName, string[]>
@@ -955,6 +963,51 @@ const deepseekSettings: VoidStaticProviderInfo = {
 
 
 
+// ---------------- MINIMAX ----------------
+const minimaxModelOptions = { // https://platform.minimax.io/docs/api-reference/text-openai-api
+	'MiniMax-M3': {
+		contextWindow: 512_000,
+		reservedOutputTokenSpace: 16_384,
+		cost: { input: 0.60, output: 2.40, cache_read: 0.12 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role' as const,
+		specialToolFormat: 'openai-style' as const,
+		reasoningCapabilities: false as const,
+	},
+	'MiniMax-M2.7': {
+		contextWindow: 204_800,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.30, output: 1.20 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role' as const,
+		specialToolFormat: 'openai-style' as const,
+		reasoningCapabilities: false as const,
+	},
+	'MiniMax-M2.7-highspeed': {
+		contextWindow: 204_800,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.60, output: 2.40 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role' as const,
+		specialToolFormat: 'openai-style' as const,
+		reasoningCapabilities: false as const,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const minimaxSettings: VoidStaticProviderInfo = {
+	modelOptions: minimaxModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		if (lower.includes('minimax')) return { modelName: 'MiniMax-M3', recognizedModelName: 'MiniMax-M3', ...minimaxModelOptions['MiniMax-M3'] }
+		return null
+	},
+}
+
+
+
 // ---------------- MISTRAL ----------------
 
 const mistralModelOptions = { // https://mistral.ai/products/la-plateforme#pricing https://docs.mistral.ai/getting-started/models/models_overview/#premier-models
@@ -1474,6 +1527,7 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	googleVertex: googleVertexSettings,
 	microsoftAzure: microsoftAzureSettings,
 	awsBedrock: awsBedrockSettings,
+	minimax: minimaxSettings,
 } as const
 
 

@@ -6,6 +6,7 @@
 .interactive-session {
 	max-width: 850px;
 	margin: auto;
+	position: relative;
 }
 
 .interactive-list > .monaco-list > .monaco-scrollable-element > .monaco-list-rows > .monaco-list-row > .monaco-tl-row > .monaco-tl-twistie {

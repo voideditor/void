@@ -117,7 +117,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
 		//  https://github.com/openai/openai-node?tab=readme-ov-file#microsoft-azure-openai
 		const thisConfig = settingsOfProvider[providerName]
-		const endpoint = `https://${thisConfig.project}.openai.azure.com/`;
+		const endpoint = `https://${thisConfig.project}.cognitiveservices.azure.com/`;
 		const apiVersion = thisConfig.azureApiVersion ?? '2024-04-01-preview';
 		const options = { endpoint, apiKey: thisConfig.apiKey, apiVersion };
 		return new AzureOpenAI({ ...options, ...commonPayloadOpts });

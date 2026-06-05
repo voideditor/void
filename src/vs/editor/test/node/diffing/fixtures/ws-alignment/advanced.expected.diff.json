@@ -1,34 +1,38 @@
 {
 	"original": {
-		"content": "import { Stack, Text } from '@fluentui/react';\nimport { View } from '../../layout/layout';\n\nexport const WelcomeView = () => {\n\treturn (\n\t\t<View title='VS Code Tools'>\n\t\t\t<Stack grow={true} verticalFill={true}>\n\t\t\t\t<Stack.Item>\n\t\t\t\t\t<Text>\n\t\t\t\t\t\tWelcome to the VS Code Tools application.\n\t\t\t\t\t</Text>\n\t\t\t\t</Stack.Item>\n\t\t\t</Stack>\n\t\t</View>\n\t);\n}\n",
+		"content": "import * as React from 'react';\nimport type { ReactElement, ReactNode } from 'react';\nimport { View } from '../../layout/layout.js';\n\nconst Stack = Object.assign(\n    ({ children }: { children?: ReactNode; grow?: boolean; verticalFill?: boolean }): ReactElement => (\n\t\t<div data-type='stack'>{children}</div>\n\t),\n\t{\n        Item: ({ children }: { children?: ReactNode }): ReactElement => (\n\t\t\t<div data-type='stack-item'>{children}</div>\n\t\t)\n\t}\n);\n\nconst Text = ({ children }: { children?: ReactNode }): ReactElement => (\n\t<span>{children}</span>\n);\n\nexport const WelcomeView = () => {\n\treturn (\n\t\t<View title='VS Code Tools'>\n\t\t\t<Stack grow={true} verticalFill={true}>\n\t\t\t\t<Stack.Item>\n\t\t\t\t\t<Text>\n\t\t\t\t\t\tWelcome to the VS Code Tools application.\n\t\t\t\t\t</Text>\n\t\t\t\t</Stack.Item>\n\t\t\t</Stack>\n\t\t</View>\n\t);\n}\n",
 		"fileName": "./1.tsx"
 	},
 	"modified": {
-		"content": "import { Nav } from '@fluentui/react';\nimport { View } from '../../layout/layout';\n\nexport const WelcomeView = () => {\n\treturn (\n\t\t<View title='VS Code Tools'>\n\t\t\t<Nav\n\t\t\t\tgroups={[\n\t\t\t\t\t{\n\t\t\t\t\t\tlinks: [\n\t\t\t\t\t\t\t{ name: 'VS Code Standup (Redmond)', url: 'https://vscode-standup.azurewebsites.net', icon: 'JoinOnlineMeeting', target: '_blank' },\n\t\t\t\t\t\t\t{ name: 'VS Code Standup (Zurich)', url: 'https://stand.azurewebsites.net/', icon: 'JoinOnlineMeeting', target: '_blank' },\n\t\t\t\t\t\t\t{ name: 'VS Code Errors', url: 'https://errors.code.visualstudio.com', icon: 'ErrorBadge', target: '_blank' },\n\t\t\t\t\t\t]\n\t\t\t\t\t}\n\t\t\t\t]}>\n\t\t\t</Nav>\n\t\t</View>\n\t);\n}\n",
+		"content": "import * as React from 'react';\nimport type { ReactElement, ReactNode } from 'react';\nimport { View } from '../../layout/layout.js';\n\nconst Nav = ({\n\tgroups\n}: {\n    groups: { links: { name: string; url: string; icon: string; target: string }[] }[];\n}): ReactElement => (\n\t<nav data-type='nav'>\n\t\t{groups.map((group, idx) => (\n\t\t\t<ul key={idx}>\n\t\t\t\t{group.links.map((link) => (\n\t\t\t\t\t<li key={link.url}>\n\t\t\t\t\t\t<a href={link.url} target={link.target} rel='noreferrer'>\n\t\t\t\t\t\t\t{link.name} ({link.icon})\n\t\t\t\t\t\t</a>\n\t\t\t\t\t</li>\n\t\t\t\t))}\n\t\t\t</ul>\n\t\t))}\n\t</nav>\n);\n\nexport const WelcomeView = () => {\n\treturn (\n\t\t<View title='VS Code Tools'>\n\t\t\t<Nav\n\t\t\t\tgroups={[\n\t\t\t\t\t{\n\t\t\t\t\t\tlinks: [\n\t\t\t\t\t\t\t{ name: 'VS Code Standup (Redmond)', url: 'https://vscode-standup.azurewebsites.net', icon: 'JoinOnlineMeeting', target: '_blank' },\n\t\t\t\t\t\t\t{ name: 'VS Code Standup (Zurich)', url: 'https://stand.azurewebsites.net/', icon: 'JoinOnlineMeeting', target: '_blank' },\n\t\t\t\t\t\t\t{ name: 'VS Code Errors', url: 'https://errors.code.visualstudio.com', icon: 'ErrorBadge', target: '_blank' },\n\t\t\t\t\t\t]\n\t\t\t\t\t}\n\t\t\t\t]}>\n\t\t\t</Nav>\n\t\t</View>\n\t);\n}\n",
 		"fileName": "./2.tsx"
 	},
 	"diffs": [
 		{
-			"originalRange": "[1,2)",
-			"modifiedRange": "[1,2)",
+			"originalRange": "[5,18)",
+			"modifiedRange": "[5,23)",
 			"innerChanges": [
 				{
-					"originalRange": "[1,10 -> 1,21]",
-					"modifiedRange": "[1,10 -> 1,13]"
+					"originalRange": "[5,7 -> 6,83]",
+					"modifiedRange": "[5,7 -> 9,1]"
+				},
+				{
+					"originalRange": "[7,1 -> 18,1]",
+					"modifiedRange": "[10,1 -> 23,1]"
 				}
 			]
 		},
 		{
-			"originalRange": "[7,14)",
-			"modifiedRange": "[7,18)",
+			"originalRange": "[23,30)",
+			"modifiedRange": "[28,39)",
 			"innerChanges": [
 				{
-					"originalRange": "[7,1 -> 13,1]",
-					"modifiedRange": "[7,1 -> 17,1]"
+					"originalRange": "[23,1 -> 29,1]",
+					"modifiedRange": "[28,1 -> 38,1]"
 				},
 				{
-					"originalRange": "[13,6 -> 13,11]",
-					"modifiedRange": "[17,6 -> 17,9]"
+					"originalRange": "[29,6 -> 29,11]",
+					"modifiedRange": "[38,6 -> 38,9]"
 				}
 			]
 		}

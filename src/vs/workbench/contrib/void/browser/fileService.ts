@@ -5,10 +5,9 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
-import { IDirectoryStrService } from '../common/directoryStrService.js';
+import { IDirectoryStrService } from '../../../../platform/void/common/directoryStrService.js';
 import { messageOfSelection } from '../common/prompt/prompts.js';
 import { IVoidModelService } from '../common/voidModelService.js';
-
 
 
 class FilePromptActionService extends Action2 {

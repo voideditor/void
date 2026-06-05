@@ -5,9 +5,9 @@
 
 import { equals } from '../../../../../base/common/arrays.js';
 import { splitLines } from '../../../../../base/common/strings.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { SingleTextEdit, TextEdit } from '../../../../common/core/textEdit.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { SingleTextEdit, TextEdit } from '../../../../../editor/common/language/core/textEdit.js';
 import { LineDecoration } from '../../../../common/viewLayout/lineDecorations.js';
 import { InlineDecoration } from '../../../../common/viewModel.js';
 import { ColumnRange } from '../utils.js';

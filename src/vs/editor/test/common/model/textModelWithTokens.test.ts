@@ -5,16 +5,16 @@
 
 import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IFoundBracket } from '../../../common/textModelBracketPairs.js';
-import { TextModel } from '../../../common/model/textModel.js';
-import { ITokenizationSupport, TokenizationRegistry, EncodedTokenizationResult } from '../../../common/languages.js';
-import { StandardTokenType, MetadataConsts } from '../../../common/encodedTokenAttributes.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
+import { ITokenizationSupport, TokenizationRegistry, EncodedTokenizationResult } from '../../../../editor/common/language/languages.js';
+import { StandardTokenType, MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { CharacterPair } from '../../../common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { NullState } from '../../../common/languages/nullTokenize.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { TestLineToken } from '../core/testLineToken.js';
 import { createModelServices, createTextModel, instantiateTextModel } from '../testTextModel.js';
 import { TestInstantiationService } from '../../../../platform/instantiation/test/common/instantiationServiceMock.js';

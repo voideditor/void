@@ -21,8 +21,8 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { URI } from '../../../../base/common/uri.js';
-import { CommentThread, Comment } from '../../../../editor/common/languages.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { CommentThread, Comment } from '../../../../editor/common/language/languages.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { IAction } from '../../../../base/common/actions.js';
 
 export class CommentsAccessibleView extends Disposable implements IAccessibleViewImplementation {

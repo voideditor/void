@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
+import type { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
 
 export interface IGlyphRasterizer {
 	/**

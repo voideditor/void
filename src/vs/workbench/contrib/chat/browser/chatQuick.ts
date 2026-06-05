@@ -9,7 +9,7 @@ import { disposableTimeout } from '../../../../base/common/async.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { MenuId } from '../../../../platform/actions/common/actions.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

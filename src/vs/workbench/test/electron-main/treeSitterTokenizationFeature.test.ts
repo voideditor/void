@@ -6,8 +6,8 @@
 import assert from 'assert';
 import { TestInstantiationService } from '../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../base/test/common/utils.js';
-import { TreeSitterTextModelService } from '../../../editor/common/services/treeSitter/treeSitterParserService.js';
-import { IModelService } from '../../../editor/common/services/model.js';
+import { TreeSitterTextModelService } from '../../../editor/common/language/services/treeSitter/treeSitterParserService.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
 import { Event } from '../../../base/common/event.js';
 import { URI } from '../../../base/common/uri.js';
 import { IFileService } from '../../../platform/files/common/files.js';
@@ -17,19 +17,19 @@ import { ClassifiedEvent, OmitMetadata, IGDPRProperty, StrictPropertyCheck } fro
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../platform/configuration/test/common/testConfigurationService.js';
 import { IEnvironmentService } from '../../../platform/environment/common/environment.js';
-import { ModelService } from '../../../editor/common/services/modelService.js';
+import { ModelService } from '../../../editor/common/language/services/modelService.js';
 // eslint-disable-next-line local/code-layering, local/code-import-patterns
 import { TreeSitterTokenizationFeature } from '../../services/treeSitter/browser/treeSitterTokenizationFeature.js';
-import { ITreeSitterImporter, ITreeSitterParserService, TreeSitterImporter, TreeUpdateEvent } from '../../../editor/common/services/treeSitterParserService.js';
-import { ITreeSitterTokenizationSupport, TreeSitterTokenizationRegistry } from '../../../editor/common/languages.js';
+import { ITreeSitterImporter, ITreeSitterParserService, TreeSitterImporter, TreeUpdateEvent } from '../../../editor/common/language/services/treeSitterParserService.js';
+import { ITreeSitterTokenizationSupport, TreeSitterTokenizationRegistry } from '../../../editor/common/language/languages.js';
 import { FileService } from '../../../platform/files/common/fileService.js';
 import { Schemas } from '../../../base/common/network.js';
 import { DiskFileSystemProvider } from '../../../platform/files/node/diskFileSystemProvider.js';
-import { ILanguageService } from '../../../editor/common/languages/language.js';
-import { LanguageService } from '../../../editor/common/services/languageService.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
+import { LanguageService } from '../../../editor/common/language/services/languageService.js';
 import { TestColorTheme, TestThemeService } from '../../../platform/theme/test/common/testThemeService.js';
 import { IThemeService } from '../../../platform/theme/common/themeService.js';
-import { ITextResourcePropertiesService } from '../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../editor/common/language/services/textResourceConfiguration.js';
 import { TestTextResourcePropertiesService } from '../common/workbenchTestServices.js';
 import { TestLanguageConfigurationService } from '../../../editor/test/common/modes/testLanguageConfigurationService.js';
 import { ILanguageConfigurationService } from '../../../editor/common/languages/languageConfigurationRegistry.js';
@@ -41,15 +41,15 @@ import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js'
 import { ProbeScope, TokenStyle } from '../../../platform/theme/common/tokenClassificationRegistry.js';
 import { TextMateThemingRuleDefinitions } from '../../services/themes/common/colorThemeData.js';
 import { Color } from '../../../base/common/color.js';
-import { ITreeSitterTokenizationStoreService } from '../../../editor/common/model/treeSitterTokenStoreService.js';
-import { Range } from '../../../editor/common/core/range.js';
-import { ITextModel } from '../../../editor/common/model.js';
-import { TokenQuality, TokenUpdate } from '../../../editor/common/model/tokenStore.js';
+import { ITreeSitterTokenizationStoreService } from '../../../editor/common/language/model/treeSitterTokenStoreService.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
+import { TokenQuality, TokenUpdate } from '../../../editor/common/language/model/tokenStore.js';
 // eslint-disable-next-line local/code-layering, local/code-import-patterns
 import { ICodeEditorService } from '../../../editor/browser/services/codeEditorService.js';
 // eslint-disable-next-line local/code-layering, local/code-import-patterns
 import { TestCodeEditorService } from '../../../editor/test/browser/editorTestServices.js';
-import { IModelContentChangedEvent } from '../../../editor/common/textModelEvents.js';
+import { IModelContentChangedEvent } from '../../../editor/common/language/textModelEvents.js';
 
 class MockTelemetryService implements ITelemetryService {
 	_serviceBrand: undefined;

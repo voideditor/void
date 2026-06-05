@@ -10,10 +10,10 @@ import { assertIsDefined } from '../../../base/common/types.js';
 import { applyFontInfo } from '../config/domFontInfo.js';
 import { WrappingIndent } from '../../common/config/editorOptions.js';
 import { FontInfo } from '../../common/config/fontInfo.js';
-import { StringBuilder } from '../../common/core/stringBuilder.js';
-import { InjectedTextOptions } from '../../common/model.js';
+import { StringBuilder } from '../../../editor/common/language/core/stringBuilder.js';
+import { InjectedTextOptions } from '../../../editor/common/language/model.js';
 import { ILineBreaksComputer, ILineBreaksComputerFactory, ModelLineProjectionData } from '../../common/modelLineProjectionData.js';
-import { LineInjectedText } from '../../common/textModelEvents.js';
+import { LineInjectedText } from '../../../editor/common/language/textModelEvents.js';
 
 const ttPolicy = createTrustedTypesPolicy('domLineBreaksComputer', { createHTML: value => value });
 

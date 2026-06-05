@@ -6,12 +6,12 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
 import { IActiveCodeEditor } from '../../../browser/editorBrowser.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { DocumentColorProvider, IColorInformation } from '../../../common/languages.js';
-import { ITextModel, TrackedRangeStickiness } from '../../../common/model.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { DocumentColorProvider, IColorInformation } from '../../../../editor/common/language/languages.js';
+import { ITextModel, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
 import { getColorPresentations } from './color.js';
 import { ColorPickerModel } from './colorPickerModel.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 export const enum ColorPickerWidgetType {
 	Hover = 'hover',

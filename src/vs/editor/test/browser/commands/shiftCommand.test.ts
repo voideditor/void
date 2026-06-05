@@ -8,10 +8,10 @@ import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.j
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { ShiftCommand } from '../../../common/commands/shiftCommand.js';
 import { EditorAutoIndentStrategy } from '../../../common/config/editorOptions.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { getEditOperation, testCommand } from '../testCommand.js';
 import { javascriptOnEnterRules } from '../../common/modes/supports/onEnterRules.js';

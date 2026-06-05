@@ -9,8 +9,8 @@ import { IStringDictionary } from '../../../../base/common/collections.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { FormattingOptions } from '../../../../base/common/jsonFormatter.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
-import { ITextResourcePropertiesService, ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
+import { ITextResourcePropertiesService, ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 
 class UserDataSyncUtilService implements IUserDataSyncUtilService {
 

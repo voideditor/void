@@ -6,10 +6,10 @@
 import { binarySearch, isFalsyOrEmpty } from '../../../../base/common/arrays.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { IPosition } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { CompletionItem, CompletionItemKind } from '../../../common/languages.js';
-import { IEditorWorkerService } from '../../../common/services/editorWorker.js';
+import { IPosition } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { CompletionItem, CompletionItemKind } from '../../../../editor/common/language/languages.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 import { BracketSelectionRangeProvider } from '../../smartSelect/browser/bracketSelections.js';
 
 export abstract class WordDistance {

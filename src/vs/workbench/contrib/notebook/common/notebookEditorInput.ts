@@ -29,7 +29,7 @@ import { IExtensionService } from '../../../services/extensions/common/extension
 import { localize } from '../../../../nls.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../../services/editor/common/customEditorLabelService.js';
 
 export interface NotebookEditorInputOptions {

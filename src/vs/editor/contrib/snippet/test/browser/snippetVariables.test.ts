@@ -11,8 +11,8 @@ import { extUriBiasedIgnorePathCase } from '../../../../../base/common/resources
 import { URI } from '../../../../../base/common/uri.js';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { TextModel } from '../../../../common/model/textModel.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { SnippetParser, Variable, VariableResolver } from '../../browser/snippetParser.js';
 import { ClipboardBasedVariableResolver, CompositeSnippetVariableResolver, ModelBasedVariableResolver, SelectionBasedVariableResolver, TimeBasedVariableResolver, WorkspaceBasedVariableResolver } from '../../browser/snippetVariables.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';

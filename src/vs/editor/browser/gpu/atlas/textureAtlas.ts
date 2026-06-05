@@ -11,7 +11,7 @@ import { Disposable, dispose, MutableDisposable, toDisposable } from '../../../.
 import { NKeyMap } from '../../../../base/common/map.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
+import { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { GlyphRasterizer } from '../raster/glyphRasterizer.js';
 import type { IGlyphRasterizer } from '../raster/raster.js';
 import { IdleTaskQueue, type ITaskQueue } from '../taskQueue.js';

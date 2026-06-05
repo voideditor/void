@@ -29,7 +29,7 @@
 				}
 			}
 		},
-		{   // Void added this
+		{ // Void added this
 			"type": "npm",
 			"script": "watchreactd",
 			"label": "React - Build",
@@ -227,7 +227,13 @@
 			"windows": {
 				"command": ".\\scripts\\code-server.bat"
 			},
-			"args": ["--no-launch", "--connection-token", "dev-token", "--port", "8080"],
+			"args": [
+				"--no-launch",
+				"--connection-token",
+				"dev-token",
+				"--port",
+				"8080"
+			],
 			"label": "Run code server",
 			"isBackground": true,
 			"problemMatcher": {
@@ -249,7 +255,12 @@
 			"windows": {
 				"command": ".\\scripts\\code-web.bat"
 			},
-			"args": ["--port", "8080", "--browser", "none"],
+			"args": [
+				"--port",
+				"8080",
+				"--browser",
+				"none"
+			],
 			"label": "Run code web",
 			"isBackground": true,
 			"problemMatcher": {
@@ -275,26 +286,43 @@
 		},
 		{
 			"type": "shell",
-			"command": "node build/lib/preLaunch.js",
-			"label": "Ensure Prelaunch Dependencies",
+			"label": "Lint (eslint: CLI)",
+			"command": "mkdir -p /tmp/tsc-problems-logs/; npx eslint \"src/**/*.{ts,tsx,js}\" --format stylish 2>&1 | tee -a /tmp/tsc-problems-logs/eslint.log",
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"group": "build",
 			"presentation": {
-				"reveal": "silent",
-				"close": true
+				"reveal": "always"
 			}
 		},
 		{
-			"type": "npm",
-			"script": "tsec-compile-check",
-			"problemMatcher": [
-				{
-					"base": "$tsc",
-					"applyTo": "allDocuments",
-					"owner": "tsec"
-				}
+			"label": "all problems check",
+			"dependsOn": [
+				"Lint (eslint: CLI)",
+				"TS: typecheck (noEmit, non-blocking)"
 			],
 			"group": "build",
-			"label": "npm: tsec-compile-check",
-			"detail": "node_modules/tsec/bin/tsec -p src/tsconfig.json --noEmit"
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always"
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "TS: typecheck (noEmit, non-blocking)",
+			"command": "bash ${workspaceFolder}/scripts/tsc-problems.sh",
+			"problemMatcher": "$tsc",
+			"group": "build",
+			"options": {
+				"shell": {
+					"executable": "/bin/bash",
+					"args": [
+						"-lc"
+					]
+				}
+			}
 		},
 		{
 			// Used for monaco editor playground launch config

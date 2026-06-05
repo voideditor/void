@@ -9,11 +9,11 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
-import { Range } from '../../../../common/core/range.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { MetadataConsts, StandardTokenType } from '../../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../common/languages.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { MetadataConsts, StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { NullState } from '../../../../common/languages/nullTokenize.js';
 import { AutoIndentOnPaste, IndentationToSpacesCommand, IndentationToTabsCommand } from '../../browser/indentation.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
@@ -23,7 +23,7 @@ import { cppOnEnterRules, htmlOnEnterRules, javascriptOnEnterRules, phpOnEnterRu
 import { TypeOperations } from '../../../../common/cursor/cursorTypeOperations.js';
 import { cppBracketRules, goBracketRules, htmlBracketRules, latexBracketRules, luaBracketRules, phpBracketRules, rubyBracketRules, typescriptBracketRules, vbBracketRules } from '../../../../test/common/modes/supports/bracketRules.js';
 import { javascriptAutoClosingPairsRules, latexAutoClosingPairsRules } from '../../../../test/common/modes/supports/autoClosingPairsRules.js';
-import { LanguageService } from '../../../../common/services/languageService.js';
+import { LanguageService } from '../../../../../editor/common/language/services/languageService.js';
 import { ServiceCollection } from '../../../../../platform/instantiation/common/serviceCollection.js';
 import { TestLanguageConfigurationService } from '../../../../test/common/modes/testLanguageConfigurationService.js';
 

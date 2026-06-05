@@ -7,7 +7,7 @@ import { IPromptsService } from '../service/types.js';
 import { IPromptFileReference } from '../parsers/types.js';
 import { assert } from '../../../../../../base/common/assert.js';
 import { NotPromptFile } from '../../promptFileReferenceErrors.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { assertDefined } from '../../../../../../base/common/types.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { IEditor } from '../../../../../../editor/common/editorCommon.js';

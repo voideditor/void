@@ -10,12 +10,12 @@ import { ReplaceCommand, ReplaceCommandWithOffsetCursorState, ReplaceCommandWith
 import { ShiftCommand } from '../commands/shiftCommand.js';
 import { SurroundSelectionCommand } from '../commands/surroundSelectionCommand.js';
 import { CursorConfiguration, EditOperationResult, EditOperationType, ICursorSimpleModel, isQuote } from '../cursorCommon.js';
-import { WordCharacterClass, getMapForWordSeparators } from '../core/wordCharacterClassifier.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
-import { Position } from '../core/position.js';
+import { WordCharacterClass, getMapForWordSeparators } from '../../../editor/common/language/core/wordCharacterClassifier.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
+import { Position } from '../../../editor/common/language/core/position.js';
 import { ICommand, ICursorStateComputerData, IEditOperationBuilder } from '../editorCommon.js';
-import { ITextModel } from '../model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 import { EnterAction, IndentAction, StandardAutoClosingPairConditional } from '../languages/languageConfiguration.js';
 import { getIndentationAtPosition } from '../languages/languageConfigurationRegistry.js';
 import { IElectricAction } from '../languages/supports/electricCharacter.js';

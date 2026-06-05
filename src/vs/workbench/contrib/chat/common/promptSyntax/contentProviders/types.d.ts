@@ -4,9 +4,18 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../../../base/common/uri.js';
-import { ResolveError } from '../../promptFileReferenceErrors.js';
 import { IDisposable } from '../../../../../../base/common/lifecycle.js';
 import { VSBufferReadableStream } from '../../../../../../base/common/buffer.js';
+
+/**
+ * Structural shape of a prompt resolve error.
+ */
+export interface IPromptResolveError extends Error {
+	readonly uri: URI;
+	readonly errorType: string;
+	sameTypeAs(other: unknown): other is IPromptResolveError;
+	equal(other: unknown): boolean;
+}
 
 /**
  * Interface for a prompt contents provider. Prompt contents providers are
@@ -27,10 +36,10 @@ export interface IPromptContentsProvider extends IDisposable {
 	/**
 	 * Event that fires when the prompt contents change. The event is either a
 	 * {@linkcode VSBufferReadableStream} stream with changed contents or
-	 * an instance of the {@linkcode ResolveError} error.
+	 * an instance of a prompt resolve error.
 	 */
 	onContentChanged(
-		callback: (streamOrError: VSBufferReadableStream | ResolveError) => void,
+		callback: (streamOrError: VSBufferReadableStream | IPromptResolveError) => void,
 	): IDisposable;
 
 	/**

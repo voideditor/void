@@ -10,8 +10,8 @@ import { ISaveOptions, IRevertOptions, SaveReason } from '../../../common/editor
 import { ReadableStream } from '../../../../base/common/stream.js';
 import { IBaseFileStatWithMetadata, IFileStatWithMetadata, IWriteFileOptions, FileOperationError, FileOperationResult, IReadFileStreamOptions, IFileReadLimits } from '../../../../platform/files/common/files.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { ITextEditorModel } from '../../../../editor/common/services/resolverService.js';
-import { ITextBufferFactory, ITextModel, ITextSnapshot } from '../../../../editor/common/model.js';
+import { ITextEditorModel } from '../../../../editor/common/language/services/resolverService.js';
+import { ITextBufferFactory, ITextModel, ITextSnapshot } from '../../../../editor/common/language/model.js';
 import { VSBuffer, VSBufferReadable, VSBufferReadableStream } from '../../../../base/common/buffer.js';
 import { areFunctions, isUndefinedOrNull } from '../../../../base/common/types.js';
 import { IWorkingCopy, IWorkingCopySaveEvent } from '../../workingCopy/common/workingCopy.js';

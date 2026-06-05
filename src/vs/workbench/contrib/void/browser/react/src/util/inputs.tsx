@@ -3,28 +3,103 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { forwardRef, ForwardRefExoticComponent, MutableRefObject, RefAttributes, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, ForwardRefExoticComponent, RefAttributes, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { Checkbox } from '../../../../../../../base/browser/ui/toggle/toggle.js';
-
 import { CodeEditorWidget } from '../../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js'
 import { useAccessor } from './services.js';
-import { ITextModel } from '../../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../../editor/common/language/model.js';
 import { asCssVariable } from '../../../../../../../platform/theme/common/colorUtils.js';
 import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
-import { useFloating, autoUpdate, offset, flip, shift, size, autoPlacement } from '@floating-ui/react';
+import { useFloating, autoUpdate, offset, flip, shift, size,} from '@floating-ui/react';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { getBasename, getFolderName } from '../sidebar-tsx/SidebarChat.js';
-import { ChevronRight, File, Folder, FolderClosed, LucideProps } from 'lucide-react';
-import { StagingSelectionItem } from '../../../../common/chatThreadServiceTypes.js';
-import { DiffEditorWidget } from '../../../../../../../editor/browser/widget/diffEditor/diffEditorWidget.js';
-import { extractSearchReplaceBlocks, ExtractedSearchReplaceBlock } from '../../../../common/helpers/extractCodeFromResult.js';
-import { IAccessibilitySignalService } from '../../../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
-import { IEditorProgressService } from '../../../../../../../platform/progress/common/progress.js';
-import { detectLanguage } from '../../../../common/helpers/languageHelpers.js';
+import { getBasename } from '../sidebar-tsx/SidebarChatShared.js';
+import { ChevronRight, File, Folder, LucideProps } from 'lucide-react';
+import { StagingSelectionItem } from '../../../../../../../platform/void/common/chatThreadServiceTypes.js';
+
+const jetBrainsMonoFontFamily = `'JetBrains Mono', JetBrainsMono, monospace`;
+const jetBrainsMonoFontStyleElementId = 'void-jetbrains-mono-font-face';
+let jetBrainsMonoFontStylesInjected = false;
+
+let _cachedWorkspaceFoldersKey: string | null = null;
+let _cachedSortedWorkspaceFolders: readonly any[] = [];
+
+function getSortedWorkspaceFolders(accessor: ReturnType<typeof useAccessor>) {
+	const workspaceService = accessor.get('IWorkspaceContextService');
+	const folders = workspaceService.getWorkspace().folders ?? [];
+
+	const key = folders.map((f: any) => f.uri?.fsPath ?? '').join('|');
+	if (key !== _cachedWorkspaceFoldersKey) {
+		_cachedWorkspaceFoldersKey = key;
+		_cachedSortedWorkspaceFolders = [...folders].sort(
+			(a: any, b: any) => (b.uri.fsPath.length - a.uri.fsPath.length)
+		);
+	}
+
+	return _cachedSortedWorkspaceFolders;
+}
+
+const ensureJetBrainsMonoFontFace = () => {
+	if (jetBrainsMonoFontStylesInjected || typeof document === 'undefined') {
+		return;
+	}
+
+	if (document.getElementById(jetBrainsMonoFontStyleElementId)) {
+		jetBrainsMonoFontStylesInjected = true;
+		return;
+	}
+
+	const style = document.createElement('style');
+	style.id = jetBrainsMonoFontStyleElementId;
+	style.textContent = `
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-Italic.woff2') format('woff2');
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-MediumItalic.woff2') format('woff2');
+	font-style: italic;
+	font-weight: 500;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('assets/fonts/JetBrainsMono-BoldItalic.woff2') format('woff2');
+	font-style: italic;
+	font-weight: 700;
+	font-display: swap;
+}`;
+	document.head.appendChild(style);
+	jetBrainsMonoFontStylesInjected = true;
+}
 
 
 // type guard
@@ -71,115 +146,90 @@ type Option = {
 
 
 const isSubsequence = (text: string, pattern: string): boolean => {
+	const t = text.toLowerCase();
+	const p = pattern.toLowerCase();
+	if (p === '') return true;
 
-	text = text.toLowerCase()
-	pattern = pattern.toLowerCase()
-
-	if (pattern === '') return true;
-	if (text === '') return false;
-	if (pattern.length > text.length) return false;
-
-	const seq: boolean[][] = Array(pattern.length + 1)
-		.fill(null)
-		.map(() => Array(text.length + 1).fill(false));
-
-	for (let j = 0; j <= text.length; j++) {
-		seq[0][j] = true;
+	let j = 0;
+	for (let i = 0; i < t.length && j < p.length; i++) {
+		if (t[i] === p[j]) j++;
 	}
-
-	for (let i = 1; i <= pattern.length; i++) {
-		for (let j = 1; j <= text.length; j++) {
-			if (pattern[i - 1] === text[j - 1]) {
-				seq[i][j] = seq[i - 1][j - 1];
-			} else {
-				seq[i][j] = seq[i][j - 1];
-			}
-		}
-	}
-	return seq[pattern.length][text.length];
+	return j === p.length;
 };
 
 
+const scoreSubsequenceLower = (textLower: string, patternLower: string): number => {
+	if (!patternLower) return 0;
+
+	const p = patternLower;
+	const m = p.length;
+
+	const lps = new Array<number>(m).fill(0);
+	for (let i = 1, len = 0; i < m; ) {
+		if (p[i] === p[len]) {
+			lps[i++] = ++len;
+		} else if (len > 0) {
+			len = lps[len - 1];
+		} else {
+			lps[i++] = 0;
+		}
+	}
+
+	let j = 0;
+	let max = 0;
+
+	for (let i = 0; i < textLower.length; i++) {
+		const c = textLower[i];
+
+		while (j > 0 && p[j] !== c) {
+			j = lps[j - 1];
+		}
+		if (p[j] === c) {
+			j++;
+			if (j > max) max = j;
+			if (j === m) {
+				j = lps[j - 1];
+			}
+		}
+	}
+	return max;
+};
+
 const scoreSubsequence = (text: string, pattern: string): number => {
 	if (pattern === '') return 0;
+	return scoreSubsequenceLower(text.toLowerCase(), pattern.toLowerCase());
+};
 
-	text = text.toLowerCase();
-	pattern = pattern.toLowerCase();
-
-	// We'll use dynamic programming to find the longest consecutive substring
-	const n = text.length;
-	const m = pattern.length;
-
-	// This will track our maximum consecutive match length
-	let maxConsecutive = 0;
-
-	// For each starting position in the text
-	for (let i = 0; i < n; i++) {
-		// Check for matches starting from this position
-		let consecutiveCount = 0;
-
-		// For each character in the pattern
-		for (let j = 0; j < m; j++) {
-			// If we have a match and we're still within text bounds
-			if (i + j < n && text[i + j] === pattern[j]) {
-				consecutiveCount++;
-			} else {
-				// Break on first non-match
-				break;
-			}
-		}
-
-		// Update our maximum
-		maxConsecutive = Math.max(maxConsecutive, consecutiveCount);
+const getWorkspacePathInfo = (
+	uri: URI,
+	sortedFolders: ReturnType<typeof getSortedWorkspaceFolders>
+): { relativePath: string; workspaceFolderUri: URI | undefined } => {
+	if (!sortedFolders.length) {
+		return { relativePath: uri.fsPath, workspaceFolderUri: undefined };
 	}
 
-	return maxConsecutive;
-}
-
-
-function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor>, uri: URI): string {
-	const workspaceService = accessor.get('IWorkspaceContextService');
-	const workspaceFolders = workspaceService.getWorkspace().folders;
-
-	if (!workspaceFolders.length) {
-		return uri.fsPath; // No workspace folders, return original path
-	}
-
-	// Sort workspace folders by path length (descending) to match the most specific folder first
-	const sortedFolders = [...workspaceFolders].sort((a, b) =>
-		b.uri.fsPath.length - a.uri.fsPath.length
-	);
-
-	// Add trailing slash to paths for exact matching
 	const uriPath = uri.fsPath.endsWith('/') ? uri.fsPath : uri.fsPath + '/';
 
-	// Check if the URI is inside any workspace folder
 	for (const folder of sortedFolders) {
+		const folderFsPath: string = folder.uri.fsPath;
+		const folderPath = folderFsPath.endsWith('/') ? folderFsPath : folderFsPath + '/';
 
-
-		const folderPath = folder.uri.fsPath.endsWith('/') ? folder.uri.fsPath : folder.uri.fsPath + '/';
 		if (uriPath.startsWith(folderPath)) {
-			// Calculate the relative path by removing the workspace folder path
-			let relativePath = uri.fsPath.slice(folder.uri.fsPath.length);
-			// Remove leading slash if present
-			if (relativePath.startsWith('/')) {
-				relativePath = relativePath.slice(1);
-			}
-			// console.log({ folderPath, relativePath, uriPath });
-
-			return relativePath;
+			let relativePath = uri.fsPath.slice(folderFsPath.length);
+			if (relativePath.startsWith('/')) relativePath = relativePath.slice(1);
+			return { relativePath, workspaceFolderUri: folder.uri };
 		}
 	}
 
-	// URI is not in any workspace folder, return original path
-	return uri.fsPath;
+	return { relativePath: uri.fsPath, workspaceFolderUri: undefined };
+};
+
+function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor>, uri: URI): string {
+	const sortedFolders = getSortedWorkspaceFolders(accessor);
+	return getWorkspacePathInfo(uri, sortedFolders).relativePath;
 }
 
-
-
 const numOptionsToShow = 100
-
-
 
 // TODO make this unique based on other options
 const getAbbreviatedName = (relativePath: string) => {
@@ -189,10 +239,7 @@ const getAbbreviatedName = (relativePath: string) => {
 const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: string[], optionText: string): Promise<Option[]> => {
 
 	const toolsService = accessor.get('IToolsService')
-
-
-
-	const searchForFilesOrFolders = async (t: string, searchFor: 'files' | 'folders') => {
+	const searchForFilesOrFolders = async (t: string, searchFor: 'files' | 'folders'): Promise<Option[]> => {
 		try {
 
 			const searchResults = (await (await toolsService.callTool.search_pathnames_only({
@@ -200,10 +247,11 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 				includePattern: null,
 				pageNumber: 1,
 			})).result).uris
+			const sortedFolders = getSortedWorkspaceFolders(accessor);
 
 			if (searchFor === 'files') {
 				const res: Option[] = searchResults.map(uri => {
-					const relativePath = getRelativeWorkspacePath(accessor, uri)
+					const relativePath = getWorkspacePathInfo(uri, sortedFolders).relativePath
 					return {
 						leafNodeType: 'File',
 						uri: uri,
@@ -222,33 +270,8 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 				for (const uri of searchResults) {
 					if (!uri) continue;
 
-					// Get the full path and extract directories
-					const relativePath = getRelativeWorkspacePath(accessor, uri)
+					const { relativePath, workspaceFolderUri } = getWorkspacePathInfo(uri, sortedFolders);
 					const pathParts = relativePath.split('/');
-
-					// Get workspace info
-					const workspaceService = accessor.get('IWorkspaceContextService');
-					const workspaceFolders = workspaceService.getWorkspace().folders;
-
-					// Find the workspace folder containing this URI
-					let workspaceFolderUri: URI | undefined;
-					if (workspaceFolders.length) {
-						// Sort workspace folders by path length (descending) to match the most specific folder first
-						const sortedFolders = [...workspaceFolders].sort((a, b) =>
-							b.uri.fsPath.length - a.uri.fsPath.length
-						);
-
-						// Find the containing workspace folder
-						for (const folder of sortedFolders) {
-							const folderPath = folder.uri.fsPath.endsWith('/') ? folder.uri.fsPath : folder.uri.fsPath + '/';
-							const uriPath = uri.fsPath.endsWith('/') ? uri.fsPath : uri.fsPath + '/';
-
-							if (uriPath.startsWith(folderPath)) {
-								workspaceFolderUri = folder.uri;
-								break;
-							}
-						}
-					}
 
 					if (workspaceFolderUri) {
 						// Add each directory and its parents to the map
@@ -256,26 +279,26 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 						for (let i = 0; i < pathParts.length - 1; i++) {
 							currentPath = i === 0 ? `/${pathParts[i]}` : `${currentPath}/${pathParts[i]}`;
 
-
-							// Create a proper directory URI
 							const directoryUri = URI.joinPath(
 								workspaceFolderUri,
 								currentPath.startsWith('/') ? currentPath.substring(1) : currentPath
 							);
-
 							directoryMap.set(currentPath, directoryUri);
 						}
 					}
 				}
-				// Convert map to array
+
 				return Array.from(directoryMap.entries()).map(([relativePath, uri]) => ({
 					leafNodeType: 'Folder',
-					uri: uri,
-					iconInMenu: Folder, // Folder
+					uri,
+					iconInMenu: Folder,
 					fullName: relativePath,
 					abbreviatedName: getAbbreviatedName(relativePath),
 				})) satisfies Option[];
 			}
+
+			// Fallback (should not reach due to narrow type), but keep TS happy
+			return []
 		} catch (error) {
 			console.error('Error fetching directories:', error);
 			return [];
@@ -314,7 +337,6 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 	}
 
-
 	if (generateNextOptionsAtPath) {
 
 		nextOptionsAtPath = await generateNextOptionsAtPath(optionText)
@@ -325,20 +347,24 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 		nextOptionsAtPath = [...foldersResults, ...filesResults,]
 	}
 
+	const qLower = optionText.trim().toLowerCase();
+
 	const optionsAtPath = nextOptionsAtPath
-		.filter(o => isSubsequence(o.fullName, optionText))
-		.sort((a, b) => { // this is a hack but good for now
-			const scoreA = scoreSubsequence(a.fullName, optionText);
-			const scoreB = scoreSubsequence(b.fullName, optionText);
-			return scoreB - scoreA;
+		.map(o => {
+			const fullLower = o.fullName.toLowerCase();
+			return {
+				o,
+				fullLower,
+				score: scoreSubsequenceLower(fullLower, qLower),
+			};
 		})
-		.slice(0, numOptionsToShow) // should go last because sorting/filtering should happen on all datapoints
+		.filter(x => isSubsequence(x.fullLower, qLower))
+		.sort((a, b) => b.score - a.score)
+		.slice(0, numOptionsToShow)
+		.map(x => x.o);
 
-	return optionsAtPath
-
+	return optionsAtPath;
 }
-
-
 
 export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
 type InputBox2Props = {
@@ -354,9 +380,8 @@ type InputBox2Props = {
 	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
+
 export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
-
-
 	// mirrors whatever is in ref
 	const accessor = useAccessor()
 
@@ -446,8 +471,6 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			chatThreadService.addNewStagingSelection(newSelection)
 		}
 		else {
-
-
 			currentPathRef.current = JSON.stringify(newPath);
 			const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
 			if (currentPathRef.current !== JSON.stringify(newPath)) { return; }
@@ -669,6 +692,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		whileElementsMounted: autoUpdate,
 		strategy: 'fixed',
 	});
+
 	useEffect(() => {
 		if (!isMenuOpen) return;
 
@@ -692,8 +716,6 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isMenuOpen, refs.floating, refs.reference]);
-	// logic for @ to mention ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 
 	const [isEnabled, setEnabled] = useState(true)
 
@@ -703,13 +725,14 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 		r.style.height = 'auto' // set to auto to reset height, then set to new height
 
-		if (r.scrollHeight === 0) return requestAnimationFrame(adjustHeight)
+		if (r.scrollHeight === 0) {
+			requestAnimationFrame(adjustHeight)
+			return
+		}
 		const h = r.scrollHeight
 		const newHeight = Math.min(h + 1, 500) // plus one to avoid scrollbar appearing when it shouldn't
 		r.style.height = `${newHeight}px`
 	}, []);
-
-
 
 	const fns: TextAreaFns = useMemo(() => ({
 		setValue: (val) => {
@@ -723,15 +746,10 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 		disable: () => { setEnabled(false) },
 	}), [onChangeText, adjustHeight])
 
-
-
 	useEffect(() => {
 		if (initValue)
 			fns.setValue(initValue)
 	}, [initValue])
-
-
-
 
 	return <>
 		<textarea
@@ -763,11 +781,9 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 			onInput={useCallback((event: React.FormEvent<HTMLTextAreaElement>) => {
 				const latestChange = (event.nativeEvent as InputEvent).data;
-
 				if (latestChange === '@') {
-					onOpenOptionMenu()
+				    onOpenOptionMenu()
 				}
-
 			}, [onOpenOptionMenu, accessor])}
 
 			onChange={useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -956,11 +972,11 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
+		ctor={InputBox}
 		className='
 			bg-void-bg-1
 			@@void-force-child-placeholder-void-fg-1
 		'
-		ctor={InputBox}
 		propsFn={useCallback((container) => [
 			container,
 			contextViewProvider,
@@ -999,10 +1015,6 @@ export const VoidInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 		}, [onChangeText, onCreateInstance, inputBoxRef])}
 	/>
 };
-
-
-
-
 
 export const VoidSlider = ({
 	value,
@@ -1163,8 +1175,6 @@ export const VoidSlider = ({
 	);
 };
 
-
-
 export const VoidSwitch = ({
 	value,
 	onChange,
@@ -1183,8 +1193,8 @@ export const VoidSwitch = ({
 				onClick={() => !disabled && onChange(!value)}
 				className={`
 			cursor-pointer
-			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
-			${value ? 'bg-zinc-900 dark:bg-white' : 'bg-white dark:bg-zinc-600'}
+			relative inline-flex items-center rounded-full border transition-colors duration-200 ease-in-out
+			${value ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white' : 'bg-zinc-300 dark:bg-zinc-600 border-zinc-400 dark:border-zinc-500'}
 			${disabled ? 'opacity-25' : ''}
 			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
@@ -1195,7 +1205,8 @@ export const VoidSwitch = ({
 			>
 				<span
 					className={`
-			  inline-block transform rounded-full bg-white dark:bg-zinc-900 shadow transition-transform duration-200 ease-in-out
+			  inline-block transform rounded-full shadow transition-transform duration-200 ease-in-out
+			  ${value ? 'bg-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-200'}
 			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
@@ -1212,10 +1223,6 @@ export const VoidSwitch = ({
 		</label>
 	);
 };
-
-
-
-
 
 export const VoidCheckBox = ({ label, value, onClick, className }: { label: string, value: boolean, onClick: (checked: boolean) => void, className?: string }) => {
 	const divRef = useRef<HTMLDivElement | null>(null)
@@ -1249,8 +1256,6 @@ export const VoidCheckBox = ({ label, value, onClick, className }: { label: stri
 
 }
 
-
-
 export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	options,
 	selectedOption,
@@ -1264,6 +1269,9 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	matchInputWidth = false,
 	gapPx = 0,
 	offsetPx = -6,
+	enableSearch = false,
+	getOptionSearchText,
+	searchPlaceholder,
 }: {
 	options: T[];
 	selectedOption: T | undefined;
@@ -1277,9 +1285,14 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	matchInputWidth?: boolean;
 	gapPx?: number;
 	offsetPx?: number;
+	enableSearch?: boolean;
+	getOptionSearchText?: (option: T) => string;
+	searchPlaceholder?: string;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const measureRef = useRef<HTMLDivElement>(null);
+	const [searchQuery, setSearchQuery] = useState('');
+	const searchInputRef = useRef<HTMLInputElement | null>(null);
 
 	// Replace manual positioning with floating-ui
 	const {
@@ -1334,6 +1347,20 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 		onChangeOption(options[0])
 	}, [selectedOption, onChangeOption, options])
 
+	// Reset search when closing dropdown
+	useEffect(() => {
+		if (!isOpen && searchQuery !== '') {
+			setSearchQuery('');
+		}
+	}, [isOpen, searchQuery])
+
+	// Focus search input when opening dropdown
+	useEffect(() => {
+		if (isOpen && enableSearch && searchInputRef.current) {
+			searchInputRef.current.focus();
+		}
+	}, [isOpen, enableSearch])
+
 	// Handle clicks outside
 	useEffect(() => {
 		if (!isOpen) return;
@@ -1359,6 +1386,22 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen, refs.floating, refs.reference]);
 
+	const getSearchableText = useCallback((option: T) => {
+		if (getOptionSearchText) {
+			return getOptionSearchText(option) || '';
+		}
+		const base = getOptionDropdownName(option) || '';
+		const detail = getOptionDropdownDetail?.(option) || '';
+		return `${base} ${detail}`.trim();
+	}, [getOptionSearchText, getOptionDropdownName, getOptionDropdownDetail]);
+
+	const filteredOptions = useMemo(() => {
+		if (!enableSearch) return options;
+		const q = searchQuery.trim().toLowerCase();
+		if (!q) return options;
+		return options.filter(option => getSearchableText(option).toLowerCase().includes(q));
+	}, [options, enableSearch, searchQuery, getSearchableText]);
+
 	if (selectedOption === undefined)
 		return null
 
@@ -1370,12 +1413,12 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 				className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
 				aria-hidden="true"
 			>
-				{options.map((option) => {
+				{options.map((option, index) => {
 					const optionName = getOptionDropdownName(option);
 					const optionDetail = getOptionDropdownDetail?.(option) || '';
 
 					return (
-						<div key={optionName + optionDetail} className="flex items-center whitespace-nowrap">
+						<div key={`${optionName}-${optionDetail}-${index}`} className="flex items-center whitespace-nowrap">
 							<div className="w-4" />
 							<span className="flex justify-between w-full">
 								<span>{optionName}</span>
@@ -1429,16 +1472,31 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 							))
 					}}
 					onWheel={(e) => e.stopPropagation()}
-				><div className='overflow-auto max-h-80'>
+				>
+					<div className='overflow-auto max-h-80'>
 
-						{options.map((option) => {
+						{enableSearch && (
+							<div className="sticky top-0 z-10 bg-void-bg-1 px-2 py-1 border-b border-void-border-2">
+								<input
+									ref={searchInputRef}
+									type="text"
+									className="w-full bg-transparent text-xs outline-none"
+									placeholder={searchPlaceholder ?? 'Search...'}
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+									onClick={(e) => e.stopPropagation()}
+								/>
+							</div>
+						)}
+
+						{filteredOptions.map((option, index) => {
 							const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
 							const optionName = getOptionDropdownName(option);
 							const optionDetail = getOptionDropdownDetail?.(option) || '';
 
 							return (
 								<div
-									key={optionName}
+									key={`${optionName}-${optionDetail}-${index}`}
 									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
 									${thisOptionIsSelected ? 'bg-blue-500 text-white/80' : 'hover:bg-blue-500 hover:text-white/80'}
@@ -1476,12 +1534,10 @@ export const VoidCustomDropdownBox = <T extends NonNullable<any>>({
 	);
 };
 
-
-
 export const _VoidSelectBox = <T,>({ onChangeSelection, onCreateInstance, selectBoxRef, options, className }: {
 	onChangeSelection: (value: T) => void;
 	onCreateInstance?: ((instance: SelectBox) => void | IDisposable[]);
-	selectBoxRef?: React.MutableRefObject<SelectBox | null>;
+	selectBoxRef?: React.RefObject<SelectBox | null>;
 	options: readonly { text: string, value: T }[];
 	className?: string;
 }) => {
@@ -1594,10 +1650,16 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 
 	const accessor = useAccessor()
 	const instantiationService = accessor.get('IInstantiationService')
+	const configurationService = accessor.get('IConfigurationService')
 	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
+	const editorFontLigatures = configurationService.getValue<boolean | string>('editor.fontLigatures')
 
 	const id = useId()
+
+	useEffect(() => {
+		ensureJetBrainsMonoFontFace();
+	}, []);
 
 	// these are used to pass to the model creation of modelRef
 	const initValueRef = useRef(initValue)
@@ -1625,7 +1687,9 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 					{
 						automaticLayout: true,
 						wordWrap: 'off',
-
+						fontFamily: jetBrainsMonoFontFamily,
+						fontLigatures: editorFontLigatures,
+						fontSize: 12,
 						scrollbar: {
 							alwaysConsumeMouseWheel: false,
 							...SHOW_SCROLLBARS ? {
@@ -1715,284 +1779,9 @@ export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: Bl
 
 }
 
-
 export const VoidButtonBgDarken = ({ children, disabled, onClick, className }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; className?: string }) => {
 	return <button disabled={disabled}
 		className={`px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap flex items-center justify-center ${className || ''}`}
 		onClick={onClick}
 	>{children}</button>
 }
-
-// export const VoidScrollableElt = ({ options, children }: { options: ScrollableElementCreationOptions, children: React.ReactNode }) => {
-// 	const instanceRef = useRef<DomScrollableElement | null>(null);
-// 	const [childrenPortal, setChildrenPortal] = useState<React.ReactNode | null>(null)
-
-// 	return <>
-// 		<WidgetComponent
-// 			ctor={DomScrollableElement}
-// 			propsFn={useCallback((container) => {
-// 				return [container, options] as const;
-// 			}, [options])}
-// 			onCreateInstance={useCallback((instance: DomScrollableElement) => {
-// 				instanceRef.current = instance;
-// 				setChildrenPortal(createPortal(children, instance.getDomNode()))
-// 				return []
-// 			}, [setChildrenPortal, children])}
-// 			dispose={useCallback((instance: DomScrollableElement) => {
-// 				console.log('calling dispose!!!!')
-// 				// instance.dispose();
-// 				// instance.getDomNode().remove()
-// 			}, [])}
-// 		>{children}</WidgetComponent>
-
-// 		{childrenPortal}
-
-// 	</>
-// }
-
-// export const VoidSelectBox = <T,>({ onChangeSelection, initVal, selectBoxRef, options }: {
-// 	initVal: T;
-// 	selectBoxRef: React.MutableRefObject<SelectBox | null>;
-// 	options: readonly { text: string, value: T }[];
-// 	onChangeSelection: (value: T) => void;
-// }) => {
-
-
-// 	return <WidgetComponent
-// 		ctor={DropdownMenu}
-// 		propsFn={useCallback((container) => {
-// 			return [
-// 				container, {
-// 					contextMenuProvider,
-// 					actions: options.map(({ text, value }, i) => ({
-// 						id: i + '',
-// 						label: text,
-// 						tooltip: text,
-// 						class: undefined,
-// 						enabled: true,
-// 						run: () => {
-// 							onChangeSelection(value);
-// 						},
-// 					}))
-
-// 				}] as const;
-// 		}, [options, initVal, contextViewProvider])}
-
-// 		dispose={useCallback((instance: DropdownMenu) => {
-// 			instance.dispose();
-// 			// instance.element.remove()
-// 		}, [])}
-
-// 		onCreateInstance={useCallback((instance: DropdownMenu) => {
-// 			return []
-// 		}, [])}
-
-// 	/>;
-// };
-
-
-
-
-// export const VoidCheckBox = ({ onChangeChecked, initVal, label, checkboxRef, }: {
-// 	onChangeChecked: (checked: boolean) => void;
-// 	initVal: boolean;
-// 	checkboxRef: React.MutableRefObject<ObjectSettingCheckboxWidget | null>;
-// 	label: string;
-// }) => {
-// 	const containerRef = useRef<HTMLDivElement>(null);
-
-
-// 	useEffect(() => {
-// 		if (!containerRef.current) return;
-
-// 		// Create and mount the Checkbox using VSCode's implementation
-
-// 		checkboxRef.current = new ObjectSettingCheckboxWidget(
-// 			containerRef.current,
-// 			themeService,
-// 			contextViewService,
-// 			hoverService,
-// 		);
-
-
-// 		checkboxRef.current.setValue([{
-// 			key: { type: 'string', data: label },
-// 			value: { type: 'boolean', data: initVal },
-// 			removable: false,
-// 			resetable: true,
-// 		}])
-
-// 		checkboxRef.current.onDidChangeList((list) => {
-// 			onChangeChecked(!!list);
-// 		})
-
-
-// 		// cleanup
-// 		return () => {
-// 			if (checkboxRef.current) {
-// 				checkboxRef.current.dispose();
-// 				if (containerRef.current) {
-// 					while (containerRef.current.firstChild) {
-// 						containerRef.current.removeChild(containerRef.current.firstChild);
-// 					}
-// 				}
-// 				checkboxRef.current = null;
-// 			}
-// 		};
-// 	}, [checkboxRef, label, initVal, onChangeChecked]);
-
-// 	return <div ref={containerRef} className="w-full" />;
-// };
-
-
-
-
-const SingleDiffEditor = ({ block, lang }: { block: ExtractedSearchReplaceBlock, lang: string | undefined }) => {
-	const accessor = useAccessor();
-	const modelService = accessor.get('IModelService');
-	const instantiationService = accessor.get('IInstantiationService');
-	const languageService = accessor.get('ILanguageService');
-
-	const languageSelection = useMemo(() => languageService.createById(lang), [lang, languageService]);
-
-	// Create models for original and modified
-	const originalModel = useMemo(() =>
-		modelService.createModel(block.orig, languageSelection),
-		[block.orig, languageSelection, modelService]
-	);
-	const modifiedModel = useMemo(() =>
-		modelService.createModel(block.final, languageSelection),
-		[block.final, languageSelection, modelService]
-	);
-
-	// Clean up models on unmount
-	useEffect(() => {
-		return () => {
-			originalModel.dispose();
-			modifiedModel.dispose();
-		};
-	}, [originalModel, modifiedModel]);
-
-	// Imperatively mount the DiffEditorWidget
-	const divRef = useRef<HTMLDivElement | null>(null);
-	const editorRef = useRef<any>(null);
-
-	useEffect(() => {
-		if (!divRef.current) return;
-		// Create the diff editor instance
-		const editor = instantiationService.createInstance(
-			DiffEditorWidget,
-			divRef.current,
-			{
-				automaticLayout: true,
-				readOnly: true,
-				renderSideBySide: true,
-				minimap: { enabled: false },
-				lineNumbers: 'off',
-				scrollbar: {
-					vertical: 'hidden',
-					horizontal: 'auto',
-					verticalScrollbarSize: 0,
-					horizontalScrollbarSize: 8,
-					alwaysConsumeMouseWheel: false,
-					ignoreHorizontalScrollbarInContentHeight: true,
-				},
-				hover: { enabled: false },
-				folding: false,
-				selectionHighlight: false,
-				renderLineHighlight: 'none',
-				overviewRulerLanes: 0,
-				hideCursorInOverviewRuler: true,
-				overviewRulerBorder: false,
-				glyphMargin: false,
-				stickyScroll: { enabled: false },
-				scrollBeyondLastLine: false,
-				renderGutterMenu: false,
-				renderIndicators: false,
-			},
-			{ originalEditor: { isSimpleWidget: true }, modifiedEditor: { isSimpleWidget: true } }
-		);
-		editor.setModel({ original: originalModel, modified: modifiedModel });
-
-		// Calculate the height based on content
-		const updateHeight = () => {
-			const contentHeight = Math.max(
-				originalModel.getLineCount() * 19, // approximate line height
-				modifiedModel.getLineCount() * 19
-			) + 19 * 2 + 1; // add padding
-
-			// Set reasonable min/max heights
-			const height = Math.min(Math.max(contentHeight, 100), 300);
-			if (divRef.current) {
-				divRef.current.style.height = `${height}px`;
-				editor.layout();
-			}
-		};
-
-		updateHeight();
-		editorRef.current = editor;
-
-		// Update height when content changes
-		const disposable1 = originalModel.onDidChangeContent(() => updateHeight());
-		const disposable2 = modifiedModel.onDidChangeContent(() => updateHeight());
-
-		return () => {
-			disposable1.dispose();
-			disposable2.dispose();
-			editor.dispose();
-			editorRef.current = null;
-		};
-	}, [originalModel, modifiedModel, instantiationService]);
-
-	return (
-		<div className="w-full bg-void-bg-3 @@bg-editor-style-override" ref={divRef} />
-	);
-};
-
-
-
-
-
-/**
- * ToolDiffEditor mounts a native VSCode DiffEditorWidget to show a diff between original and modified code blocks.
- * Props:
- *   - uri: URI of the file (for language detection, etc)
- *   - searchReplaceBlocks: string in search/replace format (from LLM)
- *   - language?: string (optional, fallback to 'plaintext')
- */
-export const VoidDiffEditor = ({ uri, searchReplaceBlocks, language }: { uri?: any, searchReplaceBlocks: string, language?: string }) => {
-	const accessor = useAccessor();
-	const languageService = accessor.get('ILanguageService');
-
-	// Extract all blocks
-	const blocks = extractSearchReplaceBlocks(searchReplaceBlocks);
-
-	// Use detectLanguage for language detection if not provided
-	let lang = language;
-	if (!lang && blocks.length > 0) {
-		lang = detectLanguage(languageService, { uri: uri ?? null, fileContents: blocks[0].orig });
-	}
-
-	// If no blocks, show empty state
-	if (blocks.length === 0) {
-		return <div className="w-full p-4 text-void-fg-4 text-sm">No changes found</div>;
-	}
-
-	// Display all blocks
-	return (
-		<div className="w-full flex flex-col gap-2">
-			{blocks.map((block, index) => (
-				<div key={index} className="w-full">
-					{blocks.length > 1 && (
-						<div className="text-void-fg-4 text-xs mb-1 px-1">
-							Change {index + 1} of {blocks.length}
-						</div>
-					)}
-					<SingleDiffEditor block={block} lang={lang} />
-				</div>
-			))}
-		</div>
-	);
-};
-
-

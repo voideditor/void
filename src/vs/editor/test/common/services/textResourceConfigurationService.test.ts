@@ -6,10 +6,10 @@
 import assert from 'assert';
 import { TestConfigurationService } from '../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestInstantiationService } from '../../../../platform/instantiation/test/common/instantiationServiceMock.js';
-import { IModelService } from '../../../common/services/model.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IConfigurationValue, IConfigurationService, ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
-import { TextResourceConfigurationService } from '../../../common/services/textResourceConfigurationService.js';
+import { TextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfigurationService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 

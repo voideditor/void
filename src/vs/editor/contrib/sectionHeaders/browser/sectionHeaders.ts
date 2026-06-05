@@ -9,12 +9,12 @@ import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../browser/editorExtensions.js';
 import { EditorOption, IEditorMinimapOptions } from '../../../common/config/editorOptions.js';
 import { IEditorContribution, IEditorDecorationsCollection } from '../../../common/editorCommon.js';
-import { StandardTokenType } from '../../../common/encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
-import { IModelDeltaDecoration, MinimapPosition, MinimapSectionHeaderStyle, TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
-import { IEditorWorkerService } from '../../../common/services/editorWorker.js';
-import { FindSectionHeaderOptions, SectionHeader } from '../../../common/services/findSectionHeaders.js';
+import { IModelDeltaDecoration, MinimapPosition, MinimapSectionHeaderStyle, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
+import { FindSectionHeaderOptions, SectionHeader } from '../../../../editor/common/language/services/findSectionHeaders.js';
 
 export class SectionHeaderDetector extends Disposable implements IEditorContribution {
 

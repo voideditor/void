@@ -9,7 +9,7 @@ import { onUnexpectedError } from '../../../base/common/errors.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { DisposableMap, DisposableStore, IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
-import { ILanguageService } from '../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
 import { ExtensionIdentifier } from '../../../platform/extensions/common/extensions.js';
 import { NotebookDto } from './mainThreadNotebookDto.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';

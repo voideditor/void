@@ -5,11 +5,11 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { EditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { EndOfLineSequence, IModelDeltaDecoration, TrackedRangeStickiness } from '../../../common/model.js';
-import { TextModel } from '../../../common/model/textModel.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { EndOfLineSequence, IModelDeltaDecoration, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
 import { createTextModel } from '../testTextModel.js';
 
 // --------- utils

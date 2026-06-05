@@ -25,8 +25,8 @@ import { EditorInputCapabilities, IEditorIdentifier, IUntypedEditorInput } from 
 import { EDITOR_DRAG_AND_DROP_BACKGROUND, EDITOR_DROP_INTO_PROMPT_BACKGROUND, EDITOR_DROP_INTO_PROMPT_BORDER, EDITOR_DROP_INTO_PROMPT_FOREGROUND } from '../../../common/theme.js';
 import { GroupDirection, IEditorDropTargetDelegate, IEditorGroup, IEditorGroupsService, IMergeGroupOptions, MergeGroupMode } from '../../../services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { ITreeViewsDnDService } from '../../../../editor/common/services/treeViewsDndService.js';
-import { DraggedTreeItemsIdentifier } from '../../../../editor/common/services/treeViewsDnd.js';
+import { ITreeViewsDnDService } from '../../../../editor/common/language/services/treeViewsDndService.js';
+import { DraggedTreeItemsIdentifier } from '../../../../editor/common/language/services/treeViewsDnd.js';
 
 interface IDropOperation {
 	splitDirection?: GroupDirection;

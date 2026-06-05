@@ -9,8 +9,8 @@ import { canceled } from '../../../../../base/common/errors.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import { DocumentSemanticTokensProvider, ProviderResult, SemanticTokens, SemanticTokensEdits, SemanticTokensLegend } from '../../../../common/languages.js';
-import { ITextModel } from '../../../../common/model.js';
+import { DocumentSemanticTokensProvider, ProviderResult, SemanticTokens, SemanticTokensEdits, SemanticTokensLegend } from '../../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { getDocumentSemanticTokens } from '../../common/getSemanticTokens.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 

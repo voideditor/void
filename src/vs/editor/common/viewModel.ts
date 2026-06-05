@@ -6,16 +6,16 @@
 import * as arrays from '../../base/common/arrays.js';
 import { IScrollPosition, Scrollable } from '../../base/common/scrollable.js';
 import * as strings from '../../base/common/strings.js';
-import { IPosition, Position } from './core/position.js';
-import { Range } from './core/range.js';
+import { IPosition, Position } from '../../editor/common/language/core/position.js';
+import { Range } from '../../editor/common/language/core/range.js';
 import { CursorConfiguration, CursorState, EditOperationType, IColumnSelectData, ICursorSimpleModel, PartialCursorState } from './cursorCommon.js';
 import { CursorChangeReason } from './cursorEvents.js';
 import { INewScrollPosition, ScrollType } from './editorCommon.js';
 import { EditorTheme } from './editorTheme.js';
-import { EndOfLinePreference, IGlyphMarginLanesModel, IModelDecorationOptions, ITextModel, PositionAffinity } from './model.js';
+import { EndOfLinePreference, IGlyphMarginLanesModel, IModelDecorationOptions, ITextModel, PositionAffinity } from '../../editor/common/language/model.js';
 import { ILineBreaksComputer, InjectedText } from './modelLineProjectionData.js';
 import { BracketGuideOptions, IActiveIndentGuideInfo, IndentGuide } from './textModelGuides.js';
-import { IViewLineTokens } from './tokens/lineTokens.js';
+import { IViewLineTokens } from '../../editor/common/language/tokens/lineTokens.js';
 import { ViewEventHandler } from './viewEventHandler.js';
 import { VerticalRevealType } from './viewEvents.js';
 

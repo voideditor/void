@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { FindMatch, IReadonlyTextBuffer } from '../../../../../editor/common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { FindMatch, IReadonlyTextBuffer } from '../../../../../editor/common/language/model.js';
 import { IFileMatch, ISearchRange, ITextSearchMatch, QueryType } from '../../../../services/search/common/search.js';
 import { ICellViewModel } from '../../../notebook/browser/notebookBrowser.js';
 import { CellKind } from '../../../notebook/common/notebookCommon.js';
@@ -15,7 +15,7 @@ import { SearchModelImpl } from '../../browser/searchTreeModel/searchModel.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { createFileUriFromPathFromRoot, stubModelService, stubNotebookEditorService } from './searchTestCommon.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { INotebookEditorService } from '../../../notebook/browser/services/notebookEditorService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { CellMatch, NotebookCompatibleFileMatch, textSearchMatchesToNotebookMatches } from '../../browser/notebookSearch/notebookSearchModel.js';

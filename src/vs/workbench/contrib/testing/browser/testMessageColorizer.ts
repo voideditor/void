@@ -9,8 +9,8 @@ import { IDisposable, toDisposable } from '../../../../base/common/lifecycle.js'
 import { GraphemeIterator, forAnsiStringParts, removeAnsiEscapeCodes } from '../../../../base/common/strings.js';
 import './media/testMessageColorizer.css';
 import { CodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 const colorAttrRe = /^\x1b\[([0-9]+)m$/;
 

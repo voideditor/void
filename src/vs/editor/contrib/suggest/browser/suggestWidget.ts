@@ -18,7 +18,7 @@ import './media/suggest.css';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition, IEditorMouseEvent } from '../../../browser/editorBrowser.js';
 import { EmbeddedCodeEditorWidget } from '../../../browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { IPosition } from '../../../common/core/position.js';
+import { IPosition } from '../../../../editor/common/language/core/position.js';
 import { SuggestWidgetStatus } from './suggestWidgetStatus.js';
 import '../../symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
 import * as nls from '../../../../nls.js';
@@ -35,7 +35,7 @@ import { canExpandCompletionItem, SuggestDetailsOverlay, SuggestDetailsWidget } 
 import { ItemRenderer } from './suggestWidgetRenderer.js';
 import { getListStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { status } from '../../../../base/browser/ui/aria/aria.js';
-import { CompletionItemKinds } from '../../../common/languages.js';
+import { CompletionItemKinds } from '../../../../editor/common/language/languages.js';
 
 /**
  * Suggest widget colors

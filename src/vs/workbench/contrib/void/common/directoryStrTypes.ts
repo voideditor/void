@@ -6,5 +6,5 @@ export type VoidDirectoryItem = {
 	isSymbolicLink: boolean;
 	children: VoidDirectoryItem[] | null;
 	isDirectory: boolean;
-	isGitIgnoredDirectory: false | { numChildren: number }; // if directory is gitignored, we ignore children
+	isGitIgnoredDirectory: false | { numChildren: number };
 }

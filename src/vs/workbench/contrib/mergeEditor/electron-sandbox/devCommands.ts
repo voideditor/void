@@ -7,7 +7,7 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { randomPath } from '../../../../base/common/extpath.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { ILocalizedString } from '../../../../platform/action/common/action.js';
 import { Action2, IAction2Options } from '../../../../platform/actions/common/actions.js';

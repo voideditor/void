@@ -5,7 +5,7 @@
 
 import { URI } from '../../../base/common/uri.js';
 import { EditorWorkerClient } from '../../browser/services/editorWorkerService.js';
-import { IModelService } from '../../common/services/model.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
 
 /**
  * Create a new web worker that has model syncing capabilities built in.

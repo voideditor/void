@@ -8,7 +8,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { OperatingSystem } from '../../../../base/common/platform.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { IRecorded, IRecordedEvent, IRecordedTextareaState } from './imeRecordedTypes.js';
 import { TestAccessibilityService } from '../../../../platform/accessibility/test/common/testAccessibilityService.js';
 import { NullLogService } from '../../../../platform/log/common/log.js';

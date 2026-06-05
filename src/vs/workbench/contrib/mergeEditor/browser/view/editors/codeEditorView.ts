@@ -11,8 +11,8 @@ import { IObservable, autorun, derived, observableFromEvent } from '../../../../
 import { EditorExtensionsRegistry, IEditorContributionDescription } from '../../../../../../editor/browser/editorExtensions.js';
 import { CodeEditorWidget } from '../../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
 import { IEditorOptions } from '../../../../../../editor/common/config/editorOptions.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
-import { Selection } from '../../../../../../editor/common/core/selection.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../../editor/common/language/core/selection.js';
 import { CodeLensContribution } from '../../../../../../editor/contrib/codelens/browser/codelensController.js';
 import { FoldingController } from '../../../../../../editor/contrib/folding/browser/folding.js';
 import { MenuWorkbenchToolBar } from '../../../../../../platform/actions/browser/toolbar.js';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { FoldingModel, updateFoldingStateAtIndex } from '../../browser/viewModel/foldingModel.js';
 import { runDeleteAction } from '../../browser/controller/cellOperations.js';

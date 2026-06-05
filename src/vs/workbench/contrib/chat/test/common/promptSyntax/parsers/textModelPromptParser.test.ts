@@ -8,7 +8,7 @@ import { createURI } from '../testUtils/createUri.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { Schemas } from '../../../../../../../base/common/network.js';
 import { ExpectedReference } from '../testUtils/expectedReference.js';
-import { ITextModel } from '../../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../../editor/common/language/model.js';
 import { Disposable } from '../../../../../../../base/common/lifecycle.js';
 import { OpenFailed } from '../../../../common/promptFileReferenceErrors.js';
 import { IFileService } from '../../../../../../../platform/files/common/files.js';

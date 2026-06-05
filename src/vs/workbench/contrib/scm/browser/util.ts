@@ -14,7 +14,7 @@ import { equals } from '../../../../base/common/arrays.js';
 import { ActionViewItem, IBaseActionViewItemOptions } from '../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { renderLabelWithIcons } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 import { reset } from '../../../../base/browser/dom.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IResourceNode, ResourceTree } from '../../../../base/common/resourceTree.js';

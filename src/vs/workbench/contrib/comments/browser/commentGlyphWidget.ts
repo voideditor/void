@@ -6,12 +6,12 @@
 import * as nls from '../../../../nls.js';
 import { Color } from '../../../../base/common/color.js';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidgetPosition } from '../../../../editor/browser/editorBrowser.js';
-import { IModelDecorationOptions, OverviewRulerLane } from '../../../../editor/common/model.js';
-import { ModelDecorationOptions } from '../../../../editor/common/model/textModel.js';
+import { IModelDecorationOptions, OverviewRulerLane } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { darken, editorBackground, editorForeground, listInactiveSelectionBackground, opaque, registerColor } from '../../../../platform/theme/common/colorRegistry.js';
 import { themeColorFromId } from '../../../../platform/theme/common/themeService.js';
 import { IEditorDecorationsCollection } from '../../../../editor/common/editorCommon.js';
-import { CommentThreadState } from '../../../../editor/common/languages.js';
+import { CommentThreadState } from '../../../../editor/common/language/languages.js';
 import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter } from '../../../../base/common/event.js';
 

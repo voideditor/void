@@ -18,9 +18,9 @@ import { URI } from '../../../../base/common/uri.js';
 import { IEditorConstructionOptions } from '../../../../editor/browser/config/editorConfiguration.js';
 import { EditorExtensionsRegistry } from '../../../../editor/browser/editorExtensions.js';
 import { CodeEditorWidget, ICodeEditorWidgetOptions } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
-import { IPosition, Position } from '../../../../editor/common/core/position.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { AccessibilityHelpNLS } from '../../../../editor/common/standaloneStrings.js';
 import { CodeActionController } from '../../../../editor/contrib/codeAction/browser/codeActionController.js';
 import { localize } from '../../../../nls.js';
@@ -47,7 +47,7 @@ import { IChatCodeBlockContextProviderService } from '../../chat/browser/chat.js
 import { ICodeBlockActionContext } from '../../chat/browser/codeBlockPart.js';
 import { getSimpleEditorOptions } from '../../codeEditor/browser/simpleEditorOptions.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 
 const enum DIMENSIONS {
 	MAX_WIDTH = 600

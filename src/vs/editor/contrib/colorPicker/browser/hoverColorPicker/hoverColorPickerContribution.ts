@@ -6,7 +6,7 @@
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { ICodeEditor, IEditorMouseEvent } from '../../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { IEditorContribution } from '../../../../common/editorCommon.js';
 import { ContentHoverController } from '../../../hover/browser/contentHoverController.js';
 import { HoverStartMode, HoverStartSource } from '../../../hover/browser/hoverOperation.js';

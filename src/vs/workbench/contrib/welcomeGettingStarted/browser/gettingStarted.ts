@@ -27,7 +27,7 @@ import { assertIsDefined } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import './media/gettingStarted.css';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { MarkdownRenderer } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import { localize } from '../../../../nls.js';
 import { IAccessibilityService } from '../../../../platform/accessibility/common/accessibility.js';

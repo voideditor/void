@@ -10,9 +10,9 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { CoreEditingCommands } from '../../../../browser/coreCommands.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { EditorCommand } from '../../../../browser/editorExtensions.js';
-import { Position } from '../../../../common/core/position.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { ViewModel } from '../../../../common/viewModel/viewModelImpl.js';
 import { CursorWordAccessibilityLeft, CursorWordAccessibilityLeftSelect, CursorWordAccessibilityRight, CursorWordAccessibilityRightSelect, CursorWordEndLeft, CursorWordEndLeftSelect, CursorWordEndRight, CursorWordEndRightSelect, CursorWordLeft, CursorWordLeftSelect, CursorWordRight, CursorWordRightSelect, CursorWordStartLeft, CursorWordStartLeftSelect, CursorWordStartRight, CursorWordStartRightSelect, DeleteInsideWord, DeleteWordEndLeft, DeleteWordEndRight, DeleteWordLeft, DeleteWordRight, DeleteWordStartLeft, DeleteWordStartRight } from '../../browser/wordOperations.js';

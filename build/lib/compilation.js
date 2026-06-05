@@ -83,6 +83,10 @@ function createCompile(src, { build, emitError, transpileOnly, preserveEnglish }
     const sourcemaps = require('gulp-sourcemaps');
     const projectPath = path_1.default.join(__dirname, '../../', src, 'tsconfig.json');
     const overrideOptions = { ...getTypeScriptCompilerOptions(src), inlineSources: Boolean(build) };
+    if (process.env['VSCODE_TSC_IGNORE_UNUSED']) {
+        overrideOptions.noUnusedLocals = false;
+        overrideOptions.noUnusedParameters = false;
+    }
     if (!build) {
         overrideOptions.inlineSourceMap = true;
     }

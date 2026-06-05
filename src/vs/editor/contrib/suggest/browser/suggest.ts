@@ -11,23 +11,23 @@ import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { assertType } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
-import { IPosition, Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
-import { ITextModel } from '../../../common/model.js';
-import * as languages from '../../../common/languages.js';
-import { ITextModelService } from '../../../common/services/resolverService.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import * as languages from '../../../../editor/common/language/languages.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { SnippetParser } from '../../snippet/browser/snippetParser.js';
 import { localize } from '../../../../nls.js';
 import { MenuId } from '../../../../platform/actions/common/actions.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { historyNavigationVisible } from '../../../../platform/history/browser/contextScopedHistoryWidget.js';
 import { InternalQuickSuggestionsOptions, QuickSuggestionsValue } from '../../../common/config/editorOptions.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
-import { StandardTokenType } from '../../../common/encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../../editor/common/language/encodedTokenAttributes.js';
 
 export const Context = {
 	Visible: historyNavigationVisible,

@@ -5,9 +5,9 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
-import { LanguageIdCodec } from '../../../common/services/languagesRegistry.js';
-import { IViewLineTokens, LineTokens } from '../../../common/tokens/lineTokens.js';
+import { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
+import { LanguageIdCodec } from '../../../../editor/common/language/services/languagesRegistry.js';
+import { IViewLineTokens, LineTokens } from '../../../../editor/common/language/tokens/lineTokens.js';
 
 suite('LineTokens', () => {
 

@@ -11,13 +11,13 @@ import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ContentWidgetPositionPreference, IActiveCodeEditor, ICodeEditor, IContentWidget, IContentWidgetPosition } from '../../../browser/editorBrowser.js';
 import { EditorAction, ServicesAccessor, registerEditorAction, registerEditorContribution, EditorContributionInstantiation } from '../../../browser/editorExtensions.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
-import { ITextModel } from '../../../common/model.js';
-import { IState, ITokenizationSupport, TokenizationRegistry, ILanguageIdCodec, Token } from '../../../common/languages.js';
-import { FontStyle, StandardTokenType, TokenMetadata } from '../../../common/encodedTokenAttributes.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IState, ITokenizationSupport, TokenizationRegistry, ILanguageIdCodec, Token } from '../../../../editor/common/language/languages.js';
+import { FontStyle, StandardTokenType, TokenMetadata } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { NullState, nullTokenize, nullTokenizeEncoded } from '../../../common/languages/nullTokenize.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IStandaloneThemeService } from '../../common/standaloneTheme.js';
 import { InspectTokensNLS } from '../../../common/standaloneStrings.js';
 

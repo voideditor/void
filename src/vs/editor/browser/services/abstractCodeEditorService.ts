@@ -14,7 +14,7 @@ import { URI } from '../../../base/common/uri.js';
 import { ICodeEditor, IDiffEditor } from '../editorBrowser.js';
 import { ICodeEditorOpenHandler, ICodeEditorService } from './codeEditorService.js';
 import { IContentDecorationRenderOptions, IDecorationRenderOptions, IThemeDecorationRenderOptions, isThemeColor } from '../../common/editorCommon.js';
-import { IModelDecorationOptions, IModelDecorationOverviewRulerOptions, InjectedTextOptions, ITextModel, OverviewRulerLane, TrackedRangeStickiness } from '../../common/model.js';
+import { IModelDecorationOptions, IModelDecorationOverviewRulerOptions, InjectedTextOptions, ITextModel, OverviewRulerLane, TrackedRangeStickiness } from '../../../editor/common/language/model.js';
 import { IResourceEditorInput } from '../../../platform/editor/common/editor.js';
 import { IColorTheme, IThemeService } from '../../../platform/theme/common/themeService.js';
 import { ThemeColor } from '../../../base/common/themables.js';

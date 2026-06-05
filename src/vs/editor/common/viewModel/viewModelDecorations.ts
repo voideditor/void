@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IDisposable } from '../../../base/common/lifecycle.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { IEditorConfiguration } from '../config/editorConfiguration.js';
-import { IModelDecoration, ITextModel, PositionAffinity } from '../model.js';
+import { IModelDecoration, ITextModel, PositionAffinity } from '../../../editor/common/language/model.js';
 import { IViewModelLines } from './viewModelLines.js';
 import { ICoordinatesConverter, InlineDecoration, InlineDecorationType, ViewModelDecoration } from '../viewModel.js';
 import { filterValidationDecorations } from '../config/editorOptions.js';
-import { StandardTokenType } from '../encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../editor/common/language/encodedTokenAttributes.js';
 
 export interface IDecorationsViewportData {
 	/**

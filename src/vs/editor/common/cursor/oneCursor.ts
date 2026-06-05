@@ -5,10 +5,10 @@
 
 import { CursorState, ICursorSimpleModel, SelectionStartKind, SingleCursorState } from '../cursorCommon.js';
 import { CursorContext } from './cursorContext.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
-import { PositionAffinity, TrackedRangeStickiness } from '../model.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
+import { PositionAffinity, TrackedRangeStickiness } from '../../../editor/common/language/model.js';
 
 /**
  * Represents a single cursor.

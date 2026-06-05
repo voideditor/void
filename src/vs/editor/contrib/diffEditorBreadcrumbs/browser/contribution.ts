@@ -7,13 +7,13 @@ import { reverseOrder, compareBy, numberComparator } from '../../../../base/comm
 import { observableValue, observableSignalFromEvent, autorunWithStore, IReader } from '../../../../base/common/observable.js';
 import { HideUnchangedRegionsFeature, IDiffEditorBreadcrumbsSource } from '../../../browser/widget/diffEditor/features/hideUnchangedRegionsFeature.js';
 import { DisposableCancellationTokenSource } from '../../../browser/widget/diffEditor/utils.js';
-import { LineRange } from '../../../common/core/lineRange.js';
-import { ITextModel } from '../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { LineRange } from '../../../../editor/common/language/core/lineRange.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { IOutlineModelService, OutlineModel } from '../../documentSymbols/browser/outlineModel.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Event } from '../../../../base/common/event.js';
-import { SymbolKind } from '../../../common/languages.js';
+import { SymbolKind } from '../../../../editor/common/language/languages.js';
 
 class DiffEditorBreadcrumbsSource extends Disposable implements IDiffEditorBreadcrumbsSource {
 	private readonly _currentModel = observableValue<OutlineModel | undefined>(this, undefined);

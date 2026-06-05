@@ -10,7 +10,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { derived, derivedWithStore, observableValue, recomputeInitiallyAndOnChange } from '../../../../base/common/observable.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IDiffEditor } from '../../../common/editorCommon.js';
 import { ICodeEditor } from '../../editorBrowser.js';
 import { DiffEditorWidget } from '../diffEditor/diffEditorWidget.js';

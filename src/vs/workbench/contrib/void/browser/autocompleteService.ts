@@ -4,25 +4,24 @@
  *--------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { InlineCompletion, } from '../../../../editor/common/languages.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { EndOfLinePreference, ITextModel } from '../../../../editor/common/language/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { InlineCompletion, } from '../../../../editor/common/language/languages.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { extractCodeFromRegular } from '../common/helpers/extractCodeFromResult.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { extractCodeFromRegular } from '../../../../platform/void/common/helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
 import { isWindows } from '../../../../base/common/platform.js';
-import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { FeatureName } from '../common/voidSettingsTypes.js';
+import { IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js';
+import { FeatureName } from '../../../../platform/void/common/voidSettingsTypes.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
 // import { IContextGatheringService } from './contextGatheringService.js';
-
 
 
 const allLinebreakSymbols = ['\r\n', '\n']
@@ -811,29 +810,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				overridesOfModel,
 				logging: { loggingName: 'Autocomplete' },
 				onText: () => { }, // unused in FIMMessage
-				// onText: async ({ fullText, newText }) => {
-
-				// 	newAutocompletion.insertText = fullText
-
-				// 	// count newlines in newText
-				// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
-				// 	newAutocompletion._newlineCount += numNewlines
-
-				// 	// if too many newlines, resolve up to last newline
-				// 	if (newAutocompletion._newlineCount > 10) {
-				// 		const lastNewlinePos = fullText.lastIndexOf('\n')
-				// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
-				// 		resolve(newAutocompletion.insertText)
-				// 		return
-				// 	}
-
-				// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-				// 	// 	reject('LLM response did not match user\'s text.')
-				// 	// }
-				// },
 				onFinalMessage: ({ fullText }) => {
-
-					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
 
 					newAutocompletion.endTime = Date.now()
 					newAutocompletion.status = 'finished'

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CursorConfiguration, ICursorSimpleModel, SingleCursorState, IColumnSelectData, SelectionStartKind } from '../cursorCommon.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 
 export class ColumnSelection {
 

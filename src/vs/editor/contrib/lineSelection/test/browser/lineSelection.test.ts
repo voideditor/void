@@ -7,8 +7,8 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import type { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { EditorAction } from '../../../../browser/editorExtensions.js';
-import { Position } from '../../../../common/core/position.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { ExpandLineSelectionAction } from '../../browser/lineSelection.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 

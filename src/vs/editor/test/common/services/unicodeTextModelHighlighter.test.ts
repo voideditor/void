@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Range } from '../../../common/core/range.js';
-import { UnicodeHighlighterOptions, UnicodeTextModelHighlighter } from '../../../common/services/unicodeTextModelHighlighter.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { UnicodeHighlighterOptions, UnicodeTextModelHighlighter } from '../../../../editor/common/language/services/unicodeTextModelHighlighter.js';
 import { createTextModel } from '../testTextModel.js';
 
 suite('UnicodeTextModelHighlighter', () => {

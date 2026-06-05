@@ -6,11 +6,11 @@
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { registerEditorCommand } from '../../../browser/editorExtensions.js';
 import { DeleteWordContext, WordNavigationType, WordPartOperations } from '../../../common/cursor/cursorWordOperations.js';
-import { WordCharacterClassifier } from '../../../common/core/wordCharacterClassifier.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { WordCharacterClassifier } from '../../../../editor/common/language/core/wordCharacterClassifier.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { DeleteWordCommand, MoveWordCommand } from '../../wordOperations/browser/wordOperations.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';

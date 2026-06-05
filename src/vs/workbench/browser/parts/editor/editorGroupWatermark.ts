@@ -87,6 +87,7 @@ export class EditorGroupWatermark extends Disposable {
 	// private enabled: boolean = false;
 	private workbenchState: WorkbenchState;
 	private currentDisposables = new Set<IDisposable>();
+	private isDisposed = false;
 
 	constructor(
 		container: HTMLElement,
@@ -169,10 +170,16 @@ export class EditorGroupWatermark extends Disposable {
 
 
 		const update = async () => {
+			if (this.isDisposed) {
+				return;
+			}
 
 			// put async at top so don't need to wait (this prevents a jitter on load)
 			const recentlyOpened = await this.workspacesService.getRecentlyOpened()
 				.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
+			if (this.isDisposed) {
+				return;
+			}
 
 			clearNode(voidIconBox);
 			clearNode(recentsBox);
@@ -282,6 +289,9 @@ export class EditorGroupWatermark extends Disposable {
 
 			}
 			else {
+				if (this.isDisposed) {
+					return;
+				}
 
 				// show them Void keybindings
 				const keys = this.keybindingService.lookupKeybinding(VOID_CTRL_L_ACTION_ID);
@@ -326,7 +336,9 @@ export class EditorGroupWatermark extends Disposable {
 		};
 
 		update();
-		this.transientDisposables.add(this.keybindingService.onDidUpdateKeybindings(update));
+		if (!this.isDisposed) {
+			this.transientDisposables.add(this.keybindingService.onDidUpdateKeybindings(update));
+		}
 	}
 
 	private clear(): void {
@@ -335,9 +347,11 @@ export class EditorGroupWatermark extends Disposable {
 	}
 
 	override dispose(): void {
-		super.dispose();
-		this.clear();
+		this.isDisposed = true;
 		this.currentDisposables.forEach(label => label.dispose());
+		this.currentDisposables.clear();
+		this.clear();
+		super.dispose();
 	}
 }
 

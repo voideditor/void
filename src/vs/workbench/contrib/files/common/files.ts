@@ -9,11 +9,11 @@ import { IWorkbenchEditorConfiguration, IEditorIdentifier, EditorResourceAccesso
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { IFilesConfiguration as PlatformIFilesConfiguration, FileChangeType, IFileService } from '../../../../platform/files/common/files.js';
 import { ContextKeyExpr, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
-import { ITextModelContentProvider } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelContentProvider } from '../../../../editor/common/language/services/resolverService.js';
 import { Disposable, DisposableStore, MutableDisposable } from '../../../../base/common/lifecycle.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService, ILanguageSelection } from '../../../../editor/common/languages/language.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService, ILanguageSelection } from '../../../../editor/common/language/language.js';
 import { ITextFileService } from '../../../services/textfile/common/textfiles.js';
 import { InputFocusedContextKey } from '../../../../platform/contextkey/common/contextkeys.js';
 import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';

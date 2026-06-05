@@ -22,7 +22,7 @@ import { ITextFileService, ITextFileSaveEvent, ITextFileResolveEvent } from '../
 import { extname, basename, isEqual, isEqualOrParent } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { getMimeTypes } from '../../../../editor/common/services/languagesAssociations.js';
+import { getMimeTypes } from '../../../../editor/common/language/services/languagesAssociations.js';
 import { hash } from '../../../../base/common/hash.js';
 import { IPaneCompositePartService } from '../../../services/panecomposite/browser/panecomposite.js';
 import { ViewContainerLocation } from '../../../common/views.js';

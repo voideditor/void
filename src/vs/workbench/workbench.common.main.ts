@@ -14,6 +14,7 @@ import './browser/workbench.contribution.js';
 
 //#region --- Void
 import './contrib/void/browser/void.contribution.js'; // Void added this
+import './contrib/acp/browser/acpService.js';
 //#endregion
 
 //#region --- workbench actions
@@ -116,9 +117,9 @@ import '../editor/browser/services/hoverService/hoverService.js';
 import './services/assignment/common/assignmentService.js';
 import './services/outline/browser/outlineService.js';
 import './services/languageDetection/browser/languageDetectionWorkerServiceImpl.js';
-import '../editor/common/services/languageFeaturesService.js';
-import '../editor/common/services/semanticTokensStylingService.js';
-import '../editor/common/services/treeViewsDndService.js';
+import '../editor/common/language/services/languageFeaturesService.js';
+import '../editor/common/language/services/semanticTokensStylingService.js';
+import '../editor/common/language/services/treeViewsDndService.js';
 import './services/textMate/browser/textMateTokenizationFeature.contribution.js';
 import './services/treeSitter/browser/treeSitterTokenizationFeature.contribution.js';
 import './services/userActivity/common/userActivityService.js';
@@ -132,16 +133,16 @@ import { IAllowedExtensionsService, IGlobalExtensionEnablementService } from '..
 import { ContextViewService } from '../platform/contextview/browser/contextViewService.js';
 import { IContextViewService } from '../platform/contextview/browser/contextView.js';
 import { IListService, ListService } from '../platform/list/browser/listService.js';
-import { IEditorWorkerService } from '../editor/common/services/editorWorker.js';
+import { IEditorWorkerService } from '../editor/common/language/services/editorWorker.js';
 import { WorkbenchEditorWorkerService } from './contrib/codeEditor/browser/workbenchEditorWorkerService.js';
-import { MarkerDecorationsService } from '../editor/common/services/markerDecorationsService.js';
-import { IMarkerDecorationsService } from '../editor/common/services/markerDecorations.js';
+import { MarkerDecorationsService } from '../editor/common/language/services/markerDecorationsService.js';
+import { IMarkerDecorationsService } from '../editor/common/language/services/markerDecorations.js';
 import { IMarkerService } from '../platform/markers/common/markers.js';
 import { MarkerService } from '../platform/markers/common/markerService.js';
 import { ContextKeyService } from '../platform/contextkey/browser/contextKeyService.js';
 import { IContextKeyService } from '../platform/contextkey/common/contextkey.js';
-import { ITextResourceConfigurationService } from '../editor/common/services/textResourceConfiguration.js';
-import { TextResourceConfigurationService } from '../editor/common/services/textResourceConfigurationService.js';
+import { ITextResourceConfigurationService } from '../editor/common/language/services/textResourceConfiguration.js';
+import { TextResourceConfigurationService } from '../editor/common/language/services/textResourceConfigurationService.js';
 import { IDownloadService } from '../platform/download/common/download.js';
 import { DownloadService } from '../platform/download/common/downloadService.js';
 import { OpenerService } from '../editor/browser/services/openerService.js';

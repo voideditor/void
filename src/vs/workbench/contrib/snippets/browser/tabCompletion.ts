@@ -10,7 +10,7 @@ import { ISnippetsService } from './snippets.js';
 import { getNonWhitespacePrefix } from './snippetsService.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IEditorContribution } from '../../../../editor/common/editorCommon.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { registerEditorContribution, EditorCommand, registerEditorCommand, EditorContributionInstantiation } from '../../../../editor/browser/editorExtensions.js';
 import { SnippetController2 } from '../../../../editor/contrib/snippet/browser/snippetController2.js';
 import { showSimpleSuggestions } from '../../../../editor/contrib/suggest/browser/suggest.js';
@@ -21,8 +21,8 @@ import { SnippetCompletion } from './snippetCompletionProvider.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { EditorState, CodeEditorStateFlag } from '../../../../editor/contrib/editorState/browser/editorState.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { CompletionItemProvider } from '../../../../editor/common/languages.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { CompletionItemProvider } from '../../../../editor/common/language/languages.js';
 
 export class TabCompletionController implements IEditorContribution {
 

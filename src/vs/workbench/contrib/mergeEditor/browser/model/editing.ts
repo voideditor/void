@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { equals } from '../../../../../base/common/arrays.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { IIdentifiedSingleEditOperation } from '../../../../../editor/common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { IIdentifiedSingleEditOperation } from '../../../../../editor/common/language/model.js';
 import { LineRange } from './lineRange.js';
 
 /**

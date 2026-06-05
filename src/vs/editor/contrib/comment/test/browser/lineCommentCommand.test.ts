@@ -6,11 +6,11 @@
 import assert from 'assert';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { ICommand } from '../../../../common/editorCommon.js';
-import { ColorId, MetadataConsts } from '../../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../../common/languages.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { ColorId, MetadataConsts } from '../../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { CommentRule } from '../../../../common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { NullState } from '../../../../common/languages/nullTokenize.js';

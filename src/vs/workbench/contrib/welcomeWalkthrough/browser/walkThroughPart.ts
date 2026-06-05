@@ -16,7 +16,7 @@ import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { WalkThroughInput } from './walkThroughInput.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { CodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';

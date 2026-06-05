@@ -17,15 +17,15 @@ import { IActiveCodeEditor, ICodeEditor, IEditorMouseEvent, MouseTargetType } fr
 import { ClassNameReference, CssProperties, DynamicCssRules } from '../../../browser/editorDom.js';
 import { StableEditorScrollState } from '../../../browser/stableEditorScroll.js';
 import { EditorOption, EDITOR_FONT_DEFAULTS } from '../../../common/config/editorOptions.js';
-import { EditOperation } from '../../../common/core/editOperation.js';
-import { Range } from '../../../common/core/range.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
-import * as languages from '../../../common/languages.js';
-import { IModelDeltaDecoration, InjectedTextCursorStops, InjectedTextOptions, ITextModel, TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationInjectedTextOptions } from '../../../common/model/textModel.js';
-import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../common/services/languageFeatureDebounce.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { ITextModelService } from '../../../common/services/resolverService.js';
+import * as languages from '../../../../editor/common/language/languages.js';
+import { IModelDeltaDecoration, InjectedTextCursorStops, InjectedTextOptions, ITextModel, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationInjectedTextOptions } from '../../../../editor/common/language/model/textModel.js';
+import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../../editor/common/language/services/languageFeatureDebounce.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { ClickLinkGesture, ClickLinkMouseEvent } from '../../gotoSymbol/browser/link/clickLinkGesture.js';
 import { InlayHintAnchor, InlayHintItem, InlayHintsFragments } from './inlayHints.js';
 import { goToDefinitionWithLocation, showGoToContextMenu } from './inlayHintsLocations.js';
@@ -35,7 +35,7 @@ import { createDecorator, IInstantiationService } from '../../../../platform/ins
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import * as colors from '../../../../platform/theme/common/colorRegistry.js';
 import { themeColorFromId } from '../../../../platform/theme/common/themeService.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 
 // --- hint caching service (per session)
 

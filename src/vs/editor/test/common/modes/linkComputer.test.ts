@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ILink } from '../../../common/languages.js';
+import { ILink } from '../../../../editor/common/language/languages.js';
 import { ILinkComputerTarget, computeLinks } from '../../../common/languages/linkComputer.js';
 
 class SimpleLinkComputerTarget implements ILinkComputerTarget {

@@ -6,9 +6,9 @@
 import { compareBy } from '../../../../../base/common/arrays.js';
 import { assertFn, checkAdjacentItems } from '../../../../../base/common/assert.js';
 import { isDefined } from '../../../../../base/common/types.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { TextLength } from '../../../../../editor/common/core/textLength.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextLength } from '../../../../../editor/common/language/core/textLength.js';
 import { RangeMapping } from '../model/mapping.js';
 import { ModifiedBaseRange } from '../model/modifiedBaseRange.js';
 import { addLength, lengthBetweenPositions, lengthOfRange } from '../model/rangeUtils.js';

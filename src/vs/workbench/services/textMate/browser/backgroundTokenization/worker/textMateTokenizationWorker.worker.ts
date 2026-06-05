@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI, UriComponents } from '../../../../../../base/common/uri.js';
-import { LanguageId } from '../../../../../../editor/common/encodedTokenAttributes.js';
-import { IModelChangedEvent } from '../../../../../../editor/common/model/mirrorTextModel.js';
+import { LanguageId } from '../../../../../../editor/common/language/encodedTokenAttributes.js';
+import { IModelChangedEvent } from '../../../../../../editor/common/language/model/mirrorTextModel.js';
 import { ICreateGrammarResult, TMGrammarFactory } from '../../../common/TMGrammarFactory.js';
 import { IValidEmbeddedLanguagesMap, IValidGrammarDefinition, IValidTokenTypeMap } from '../../../common/TMScopeRegistry.js';
 import type { IOnigLib, IRawTheme, StackDiff } from 'vscode-textmate';

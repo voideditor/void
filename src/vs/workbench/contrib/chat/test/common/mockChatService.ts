@@ -34,7 +34,6 @@ export class MockChatService implements IChatService {
 		this.sessions.set(session.sessionId, session);
 	}
 	getSession(sessionId: string): IChatModel | undefined {
-		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		return this.sessions.get(sessionId) ?? {} as IChatModel;
 	}
 	async getOrRestoreSession(sessionId: string): Promise<IChatModel | undefined> {

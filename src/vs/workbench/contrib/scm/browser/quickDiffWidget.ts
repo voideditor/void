@@ -39,8 +39,8 @@ import { IAccessibilityService } from '../../../../platform/accessibility/common
 import { Iterable } from '../../../../base/common/iterator.js';
 import { basename } from '../../../../base/common/resources.js';
 import { EditorOption, IDiffEditorOptions } from '../../../../editor/common/config/editorOptions.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { getFlatActionBarActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { IActionBarOptions } from '../../../../base/browser/ui/actionbar/actionbar.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';

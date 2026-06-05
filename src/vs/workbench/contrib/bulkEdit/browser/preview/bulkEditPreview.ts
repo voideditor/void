@@ -3,16 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { createTextBufferFactoryFromSnapshot } from '../../../../../editor/common/model/textModel.js';
-import { WorkspaceEditMetadata } from '../../../../../editor/common/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { createTextBufferFactoryFromSnapshot } from '../../../../../editor/common/language/model/textModel.js';
+import { WorkspaceEditMetadata } from '../../../../../editor/common/language/languages.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { coalesceInPlace } from '../../../../../base/common/arrays.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { EditOperation, ISingleEditOperation } from '../../../../../editor/common/core/editOperation.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { EditOperation, ISingleEditOperation } from '../../../../../editor/common/language/core/editOperation.js';
 import { ServicesAccessor, IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';

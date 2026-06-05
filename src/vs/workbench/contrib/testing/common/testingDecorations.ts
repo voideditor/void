@@ -7,8 +7,8 @@ import { IAction } from '../../../../base/common/actions.js';
 import { binarySearch } from '../../../../base/common/arrays.js';
 import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { IModelDeltaDecoration } from '../../../../editor/common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ITestMessage } from './testTypes.js';
 

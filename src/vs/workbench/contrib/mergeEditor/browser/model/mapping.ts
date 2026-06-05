@@ -7,9 +7,9 @@ import { compareBy, numberComparator } from '../../../../../base/common/arrays.j
 import { findLast } from '../../../../../base/common/arraysFind.js';
 import { assertFn, checkAdjacentItems } from '../../../../../base/common/assert.js';
 import { BugIndicatingError } from '../../../../../base/common/errors.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { concatArrays } from '../utils.js';
 import { LineRangeEdit } from './editing.js';
 import { LineRange } from './lineRange.js';

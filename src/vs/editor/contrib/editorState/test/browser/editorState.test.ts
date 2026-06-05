@@ -7,9 +7,9 @@ import assert from 'assert';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
-import { Position } from '../../../../common/core/position.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { ITextModel } from '../../../../common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { CodeEditorStateFlag, EditorState } from '../../browser/editorState.js';
 
 interface IStubEditorState {

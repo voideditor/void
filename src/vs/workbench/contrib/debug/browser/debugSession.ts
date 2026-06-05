@@ -17,7 +17,7 @@ import * as resources from '../../../../base/common/resources.js';
 import Severity from '../../../../base/common/severity.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { IPosition, Position } from '../../../../editor/common/core/position.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

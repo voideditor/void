@@ -8,10 +8,10 @@ import { HierarchicalKind } from '../../../../../base/common/hierarchicalKind.js
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import * as languages from '../../../../common/languages.js';
-import { TextModel } from '../../../../common/model/textModel.js';
+import * as languages from '../../../../../editor/common/language/languages.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { getCodeActions } from '../../browser/codeAction.js';
 import { CodeActionItem, CodeActionKind, CodeActionTriggerSource } from '../../common/types.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';

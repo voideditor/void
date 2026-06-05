@@ -5,10 +5,10 @@
 import assert from 'assert';
 import { IDisposable } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { TextModel } from '../../../../common/model/textModel.js';
-import { CompletionItemKind, CompletionItemProvider } from '../../../../common/languages.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
+import { CompletionItemKind, CompletionItemProvider } from '../../../../../editor/common/language/languages.js';
 import { CompletionOptions, provideSuggestionItems, SnippetSortOrder } from '../../browser/suggest.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';

@@ -56,6 +56,10 @@ export function createCompile(src: string, { build, emitError, transpileOnly, pr
 
 	const projectPath = path.join(__dirname, '../../', src, 'tsconfig.json');
 	const overrideOptions = { ...getTypeScriptCompilerOptions(src), inlineSources: Boolean(build) };
+	if (process.env['VSCODE_TSC_IGNORE_UNUSED']) {
+		overrideOptions.noUnusedLocals = false;
+		overrideOptions.noUnusedParameters = false;
+	}
 	if (!build) {
 		overrideOptions.inlineSourceMap = true;
 	}

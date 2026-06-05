@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IModelDecorationOptions, IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel } from '../../../common/model.js';
+import { IModelDecorationOptions, IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/language/model.js';
 import { FoldingRegion, FoldingRegions, ILineRange, FoldRange, FoldSource } from './foldingRanges.js';
 import { hash } from '../../../../base/common/hash.js';
 import { SelectedLines } from './folding.js';

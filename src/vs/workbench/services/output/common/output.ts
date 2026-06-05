@@ -9,7 +9,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { LogLevel } from '../../../../platform/log/common/log.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 /**
  * Mime type used by the output editor.

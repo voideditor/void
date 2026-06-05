@@ -18,7 +18,7 @@ interface State {
 	errorInfo: ErrorInfo | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
 	constructor(props: Props) {
 		super(props);
 		this.state = {
@@ -28,38 +28,20 @@ class ErrorBoundary extends Component<Props, State> {
 		};
 	}
 
-	static getDerivedStateFromError(error: Error): Partial<State> {
-		return {
-			hasError: true,
-			error
-		};
-	}
-
-	componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+	override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
 		this.setState({
 			error,
 			errorInfo
 		});
 	}
 
-	render(): ReactNode {
+	override render(): ReactNode {
 		if (this.state.hasError && this.state.error) {
-			// If a custom fallback is provided, use it
 			if (this.props.fallback) {
 				return this.props.fallback;
 			}
-
-			// Use ErrorDisplay component as the default error UI
-			return (
-				<WarningBox text={this.state.error + ''} />
-				// <ErrorDisplay
-				// 	message={this.state.error + ''}
-				// 	fullError={this.state.error}
-				// 	onDismiss={this.props.onDismiss || null}
-				// />
-			);
+			return <WarningBox text={this.state.error + ''} />;
 		}
-
 		return this.props.children;
 	}
 }

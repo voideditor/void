@@ -13,7 +13,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { Position } from '../../../../editor/common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 
 export class ReplAccessibleView implements IAccessibleViewImplementation {
 	priority = 70;

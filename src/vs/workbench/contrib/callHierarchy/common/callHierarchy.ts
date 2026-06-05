@@ -3,20 +3,20 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IRange } from '../../../../editor/common/core/range.js';
-import { SymbolKind, ProviderResult, SymbolTag } from '../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { SymbolKind, ProviderResult, SymbolTag } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { LanguageFeatureRegistry } from '../../../../editor/common/languageFeatureRegistry.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IPosition, Position } from '../../../../editor/common/core/position.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
 import { isNonEmptyArray } from '../../../../base/common/arrays.js';
 import { onUnexpectedExternalError } from '../../../../base/common/errors.js';
 import { IDisposable, RefCountedDisposable } from '../../../../base/common/lifecycle.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { assertType } from '../../../../base/common/types.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 
 export const enum CallHierarchyDirection {
 	CallsTo = 'incomingCalls',

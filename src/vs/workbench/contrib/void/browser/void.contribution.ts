@@ -70,16 +70,20 @@ import './voidSCMService.js'
 import '../common/sendLLMMessageService.js'
 
 // voidSettings
-import '../common/voidSettingsService.js'
-
-// refreshModel
-import '../common/refreshModelService.js'
+import '../../../../platform/void/common/voidSettingsService.js'
 
 // metrics
-import '../common/metricsService.js'
+import '../../../../platform/void/common/metricsService.js'
 
 // updates
-import '../common/voidUpdateService.js'
+import '../../../../platform/void/common/voidUpdateService.js'
 
 // model service
 import '../common/voidModelService.js'
+
+
+import { IRemoteModelsService } from '../../../../platform/void/common/remoteModelsService.js';
+import { RemoteModelsServiceClient } from './remoteModelsService.js';
+import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
+
+registerSingleton(IRemoteModelsService, RemoteModelsServiceClient, InstantiationType.Delayed);

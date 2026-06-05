@@ -18,7 +18,7 @@ import Severity from '../../../../base/common/severity.js';
 import * as Types from '../../../../base/common/types.js';
 import * as nls from '../../../../nls.js';
 
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
 import { IWorkspaceContextService, IWorkspaceFolder, WorkbenchState } from '../../../../platform/workspace/common/workspace.js';

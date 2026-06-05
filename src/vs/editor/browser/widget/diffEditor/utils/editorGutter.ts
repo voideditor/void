@@ -7,8 +7,8 @@ import { h, reset } from '../../../../../base/browser/dom.js';
 import { Disposable, IDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { autorun, IObservable, IReader, ISettableObservable, observableFromEvent, observableSignal, observableSignalFromEvent, observableValue, transaction } from '../../../../../base/common/observable.js';
 import { CodeEditorWidget } from '../../codeEditor/codeEditorWidget.js';
-import { LineRange } from '../../../../common/core/lineRange.js';
-import { OffsetRange } from '../../../../common/core/offsetRange.js';
+import { LineRange } from '../../../../../editor/common/language/core/lineRange.js';
+import { OffsetRange } from '../../../../../editor/common/language/core/offsetRange.js';
 
 export class EditorGutter<T extends IGutterItemInfo = IGutterItemInfo> extends Disposable {
 	private readonly scrollTop = observableFromEvent(this,

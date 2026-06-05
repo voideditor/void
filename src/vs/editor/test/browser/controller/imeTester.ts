@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from '../../../common/core/position.js';
-import { IRange, Range } from '../../../common/core/range.js';
-import { EndOfLinePreference } from '../../../common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { EndOfLinePreference } from '../../../../editor/common/language/model.js';
 import * as dom from '../../../../base/browser/dom.js';
 import * as browser from '../../../../base/browser/browser.js';
 import * as platform from '../../../../base/common/platform.js';

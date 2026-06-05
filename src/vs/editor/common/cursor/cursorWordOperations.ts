@@ -8,12 +8,12 @@ import * as strings from '../../../base/common/strings.js';
 import { EditorAutoClosingEditStrategy, EditorAutoClosingStrategy } from '../config/editorOptions.js';
 import { CursorConfiguration, ICursorSimpleModel, SelectionStartKind, SingleCursorState } from '../cursorCommon.js';
 import { DeleteOperations } from './cursorDeleteOperations.js';
-import { WordCharacterClass, WordCharacterClassifier, IntlWordSegmentData, getMapForWordSeparators } from '../core/wordCharacterClassifier.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
-import { ITextModel } from '../model.js';
-import { IWordAtPosition } from '../core/wordHelper.js';
+import { WordCharacterClass, WordCharacterClassifier, IntlWordSegmentData, getMapForWordSeparators } from '../../../editor/common/language/core/wordCharacterClassifier.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
+import { IWordAtPosition } from '../../../editor/common/language/core/wordHelper.js';
 import { AutoClosingPairs } from '../languages/languageConfiguration.js';
 
 interface IFindWordResult {

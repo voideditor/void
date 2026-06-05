@@ -5,7 +5,7 @@
 
 import * as nls from '../../../nls.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { ILanguageExtensionPoint } from './language.js';
+import { ILanguageExtensionPoint } from '../language/language.js';
 import { Registry } from '../../../platform/registry/common/platform.js';
 import { IDisposable } from '../../../base/common/lifecycle.js';
 import { Mimes } from '../../../base/common/mime.js';

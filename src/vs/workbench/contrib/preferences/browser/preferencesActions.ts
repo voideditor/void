@@ -5,9 +5,9 @@
 
 import { Action } from '../../../../base/common/actions.js';
 import { URI } from '../../../../base/common/uri.js';
-import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { getIconClasses } from '../../../../editor/common/language/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import * as nls from '../../../../nls.js';
 import { IQuickInputService, IQuickPickItem } from '../../../../platform/quickinput/common/quickInput.js';
 import { IPreferencesService } from '../../../services/preferences/common/preferences.js';

@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IBulkEditService, ResourceEdit, ResourceTextEdit } from '../../../../../editor/browser/services/bulkEditService.js';
-import { IPosition, Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { EndOfLinePreference, IReadonlyTextBuffer } from '../../../../../editor/common/model.js';
+import { IPosition, Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { EndOfLinePreference, IReadonlyTextBuffer } from '../../../../../editor/common/language/model.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../../editor/common/languages/modesRegistry.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ResourceNotebookCellEdit } from '../../../bulkEdit/browser/bulkCellEdits.js';
 import { INotebookActionContext, INotebookCellActionContext } from './coreActions.js';
 import { CellEditState, CellFocusMode, expandCellRangesWithHiddenCells, IActiveNotebookEditor, ICellViewModel } from '../notebookBrowser.js';

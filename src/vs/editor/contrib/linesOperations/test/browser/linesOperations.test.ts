@@ -7,10 +7,10 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { CoreEditingCommands } from '../../../../browser/coreCommands.js';
 import type { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { EditorAction } from '../../../../browser/editorExtensions.js';
-import { Position } from '../../../../common/core/position.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { Handler } from '../../../../common/editorCommon.js';
-import { ITextModel } from '../../../../common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { ViewModel } from '../../../../common/viewModel/viewModelImpl.js';
 import { CamelCaseAction, PascalCaseAction, DeleteAllLeftAction, DeleteAllRightAction, DeleteDuplicateLinesAction, DeleteLinesAction, IndentLinesAction, InsertLineAfterAction, InsertLineBeforeAction, JoinLinesAction, KebabCaseAction, LowerCaseAction, SnakeCaseAction, SortLinesAscendingAction, SortLinesDescendingAction, TitleCaseAction, TransposeAction, UpperCaseAction } from '../../browser/linesOperations.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';

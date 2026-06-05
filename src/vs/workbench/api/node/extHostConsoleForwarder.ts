@@ -47,7 +47,11 @@ export class ExtHostConsoleForwarder extends AbstractExtHostConsoleForwarder {
 
 		Object.defineProperty(stream, 'write', {
 			set: () => { },
-			get: () => (chunk: Uint8Array | string, encoding?: BufferEncoding, callback?: (err?: Error) => void) => {
+			get: () => (
+				chunk: Uint8Array | string,
+				encoding?: BufferEncoding,
+				callback?: (err?: Error | null) => void
+			) => {
 				if (!this._isMakingConsoleCall) {
 					buf += (chunk as any).toString(encoding);
 					const eol = buf.length > MAX_STREAM_BUFFER_LENGTH ? buf.length : buf.lastIndexOf('\n');

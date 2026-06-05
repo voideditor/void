@@ -10,9 +10,9 @@ import { join, basename } from '../../../../../base/common/path.js';
 import { UTF16le, UTF8_with_bom, UTF16be, UTF8, UTF16le_BOM, UTF16be_BOM, UTF8_BOM } from '../../common/encoding.js';
 import { bufferToStream, VSBuffer } from '../../../../../base/common/buffer.js';
 import { createTextModel } from '../../../../../editor/test/common/testTextModel.js';
-import { ITextSnapshot, DefaultEndOfLine } from '../../../../../editor/common/model.js';
+import { ITextSnapshot, DefaultEndOfLine } from '../../../../../editor/common/language/model.js';
 import { isWindows } from '../../../../../base/common/platform.js';
-import { createTextBufferFactoryFromStream } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactoryFromStream } from '../../../../../editor/common/language/model/textModel.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 
 export interface Params {

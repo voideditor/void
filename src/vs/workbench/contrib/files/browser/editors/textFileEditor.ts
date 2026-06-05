@@ -20,7 +20,7 @@ import { FileOperationError, FileOperationResult, FileChangesEvent, IFileService
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { IStorageService } from '../../../../../platform/storage/common/storage.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { ICodeEditorViewState, ScrollType } from '../../../../../editor/common/editorCommon.js';

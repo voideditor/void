@@ -38,7 +38,7 @@ import { getActionBarActions, PrimaryAndSecondaryActions } from '../../../../pla
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { hash } from '../../../../base/common/hash.js';
-import { getMimeTypes } from '../../../../editor/common/services/languagesAssociations.js';
+import { getMimeTypes } from '../../../../editor/common/language/services/languagesAssociations.js';
 import { extname, isEqual } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { EditorActivation, IEditorOptions } from '../../../../platform/editor/common/editor.js';

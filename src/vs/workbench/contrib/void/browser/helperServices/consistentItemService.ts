@@ -94,8 +94,6 @@ export class ConsistentItemService extends Disposable implements IConsistentItem
 		this._register(this._editorService.onCodeEditorRemove(editor => { removeItemsFromEditor(editor) }))
 	}
 
-
-
 	_putItemOnEditor(editor: ICodeEditor, consistentItemId: string) {
 		const { fn } = this.infoOfConsistentItemId[consistentItemId]
 
@@ -113,7 +111,6 @@ export class ConsistentItemService extends Disposable implements IConsistentItem
 		this.consistentItemIdOfItemId[itemId] = consistentItemId
 
 		this.disposeFnOfItemId[itemId] = () => {
-			// console.log('calling remove for', itemId)
 			dispose?.()
 		}
 

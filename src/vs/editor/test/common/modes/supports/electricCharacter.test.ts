@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { StandardTokenType } from '../../../../common/encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
 import { BracketElectricCharacterSupport, IElectricAction } from '../../../../common/languages/supports/electricCharacter.js';
 import { RichEditBrackets } from '../../../../common/languages/supports/richEditBrackets.js';
 import { TokenText, createFakeScopedLineTokens } from '../../modesTestUtils.js';

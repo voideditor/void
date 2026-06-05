@@ -30,8 +30,8 @@ import { IEnvironmentService } from '../../../../../platform/environment/common/
 import { ConfigurationKey, IExtensionsWorkbenchService } from '../../common/extensions.js';
 import { TestExtensionEnablementService } from '../../../../services/extensionManagement/test/browser/extensionEnablementService.test.js';
 import { IURLService } from '../../../../../platform/url/common/url.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { ILifecycleService } from '../../../../services/lifecycle/common/lifecycle.js';
 import { INotificationService, Severity, IPromptChoice, IPromptOptions } from '../../../../../platform/notification/common/notification.js';
 import { NativeURLService } from '../../../../../platform/url/common/urlService.js';

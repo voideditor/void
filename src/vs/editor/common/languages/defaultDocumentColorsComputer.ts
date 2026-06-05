@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { Color, HSLA } from '../../../base/common/color.js';
-import { IPosition } from '../core/position.js';
-import { IRange } from '../core/range.js';
-import { IColor, IColorInformation } from '../languages.js';
+import { IPosition } from '../language/core/position.js';
+import { IRange } from '../language/core/range.js';
+import { IColor, IColorInformation } from '../language/languages.js';
 
 export interface IDocumentColorComputerTarget {
 	getValue(): string;

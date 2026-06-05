@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { EndOfLinePreference } from '../../../common/model.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { EndOfLinePreference } from '../../../../editor/common/language/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { EditorOption, IComputedEditorOptions } from '../../../common/config/editorOptions.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { AccessibilitySupport } from '../../../../platform/accessibility/common/accessibility.js';

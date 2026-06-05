@@ -8,7 +8,7 @@ import { autorun } from '../../../../base/common/observable.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { isDefined } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IFileService } from '../../../../platform/files/common/files.js';

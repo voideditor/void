@@ -3,24 +3,21 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { MCPUserState, RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js'
-import { DisposableStore, IDisposable } from '../../../../../../../base/common/lifecycle.js'
-import { VoidSettingsState } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
+import { useState, useEffect, useCallback } from 'react'
+import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
+import { VoidSettingsState } from '../../../../../../../platform/void/common/voidSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
-import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
 import { IExplorerService } from '../../../../../../../workbench/contrib/files/browser/files.js'
-import { IModelService } from '../../../../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../../../../editor/common/language/services/model.js';
 import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextViewService, IContextMenuService } from '../../../../../../../platform/contextview/browser/contextView.js';
 import { IFileService } from '../../../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
 import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
-import { IRefreshModelService } from '../../../../../../../workbench/contrib/void/common/refreshModelService.js';
-import { IVoidSettingsService } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js';
+import { IVoidSettingsService } from '../../../../../../../platform/void/common/voidSettingsService.js';
 import { IExtensionTransferService } from '../../../../../../../workbench/contrib/void/browser/extensionTransferService.js'
 
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
@@ -30,36 +27,34 @@ import { IContextKeyService } from '../../../../../../../platform/contextkey/com
 import { INotificationService } from '../../../../../../../platform/notification/common/notification.js'
 import { IAccessibilityService } from '../../../../../../../platform/accessibility/common/accessibility.js'
 import { ILanguageConfigurationService } from '../../../../../../../editor/common/languages/languageConfigurationRegistry.js'
-import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js'
+import { ILanguageFeaturesService } from '../../../../../../../editor/common/language/services/languageFeatures.js'
 import { ILanguageDetectionService } from '../../../../../../services/languageDetection/common/languageDetectionWorkerService.js'
 import { IKeybindingService } from '../../../../../../../platform/keybinding/common/keybinding.js'
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
-import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+
+import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 import { ITerminalToolService } from '../../../terminalToolService.js'
-import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
+import { ILanguageService } from '../../../../../../../editor/common/language/language.js'
 import { IVoidModelService } from '../../../../common/voidModelService.js'
 import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
 import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
 import { INativeHostService } from '../../../../../../../platform/native/common/native.js';
 import { IEditCodeService } from '../../../editCodeServiceInterface.js'
-import { IToolsService } from '../../../toolsService.js'
+import { IToolsService } from '../../../../common/toolsService.js'
 import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
+import { IRemoteModelsService } from '../../../../../../../platform/void/common/remoteModelsService.js'
+import { IDynamicModelService } from '../../../../../../../platform/void/common/dynamicModelService.js'
 import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
 import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
-import { IMCPService } from '../../../../common/mcpService.js';
-import { IStorageService, StorageScope } from '../../../../../../../platform/storage/common/storage.js'
-import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
+import { IDynamicProviderRegistryService } from '../../../../../../../platform/void/common/providerReg.js'
+import { IFileDialogService } from '../../../../../../../platform/dialogs/common/dialogs.js'
+import { IMCPService } from '../../../../common/mcpService.js'
 
-
-// normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
-
-// even if React hasn't mounted yet, the variables are always updated to the latest state.
-// React listens by adding a setState function to these listeners.
 
 let chatThreadsState: ThreadsState
 const chatThreadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
@@ -70,22 +65,14 @@ const chatThreadsStreamStateListeners: Set<(threadId: string) => void> = new Set
 let settingsState: VoidSettingsState
 const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
 
-let refreshModelState: RefreshModelStateOfProvider
-const refreshModelStateListeners: Set<(s: RefreshModelStateOfProvider) => void> = new Set()
-const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: RefreshModelStateOfProvider) => void> = new Set()
-
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
 const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
 const commandBarURIStateListeners: Set<(uri: URI) => void> = new Set();
 const activeURIListeners: Set<(uri: URI | null) => void> = new Set();
+const mcpListeners: Set<() => void> = new Set();
 
-const mcpListeners: Set<() => void> = new Set()
-
-
-// must call this before you can use any of the hooks below
-// this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
 export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const disposables: IDisposable[] = []
@@ -95,18 +82,13 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	const stateServices = {
 		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(IVoidSettingsService),
-		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
 		editCodeService: accessor.get(IEditCodeService),
 		voidCommandBarService: accessor.get(IVoidCommandBarService),
 		modelService: accessor.get(IModelService),
-		mcpService: accessor.get(IMCPService),
 	}
 
-	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService } = stateServices
-
-
-
+	const { settingsStateService, chatThreadsStateService, themeService, editCodeService, voidCommandBarService, modelService } = stateServices
 
 	chatThreadsState = chatThreadsStateService.state
 	disposables.push(
@@ -133,15 +115,6 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
-	refreshModelState = refreshModelService.state
-	disposables.push(
-		refreshModelService.onDidChangeState((providerName) => {
-			refreshModelState = refreshModelService.state
-			refreshModelStateListeners.forEach(l => l(refreshModelState))
-			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState)) // no state
-		})
-	)
-
 	colorThemeState = themeService.getColorTheme().type
 	disposables.push(
 		themeService.onDidColorThemeChange(({ type }) => {
@@ -150,6 +123,12 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
+	const mcpService = accessor.get(IMCPService)
+	disposables.push(
+		mcpService.onDidChangeState(() => {
+			mcpListeners.forEach(l => l())
+		})
+	)
 	// no state
 	disposables.push(
 		editCodeService.onDidChangeStreamingInCtrlKZone(({ diffareaid }) => {
@@ -170,17 +149,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
-	disposables.push(
-		mcpService.onDidChangeState(() => {
-			mcpListeners.forEach(l => l())
-		})
-	)
 
 
 	return disposables
 }
-
-
 
 const getReactAccessor = (accessor: ServicesAccessor) => {
 	const reactAccessor = {
@@ -189,10 +161,10 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IContextViewService: accessor.get(IContextViewService),
 		IContextMenuService: accessor.get(IContextMenuService),
 		IFileService: accessor.get(IFileService),
+		IFileDialogService: accessor.get(IFileDialogService),
 		IHoverService: accessor.get(IHoverService),
 		IThemeService: accessor.get(IThemeService),
 		ILLMMessageService: accessor.get(ILLMMessageService),
-		IRefreshModelService: accessor.get(IRefreshModelService),
 		IVoidSettingsService: accessor.get(IVoidSettingsService),
 		IEditCodeService: accessor.get(IEditCodeService),
 		IChatThreadService: accessor.get(IChatThreadService),
@@ -226,10 +198,10 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ITerminalService: accessor.get(ITerminalService),
 		IExtensionManagementService: accessor.get(IExtensionManagementService),
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
+		IRemoteModelsService: accessor.get(IRemoteModelsService),
+        IDynamicModelService: accessor.get(IDynamicModelService),
+		IDynamicProviderRegistryService: accessor.get(IDynamicProviderRegistryService),
 		IMCPService: accessor.get(IMCPService),
-
-		IStorageService: accessor.get(IStorageService),
-
 	} as const
 	return reactAccessor
 }
@@ -238,23 +210,83 @@ type ReactAccessor = ReturnType<typeof getReactAccessor>
 
 
 let reactAccessor_: ReactAccessor | null = null
+let reactAccessorById: Map<Function, any> | null = null
 const _registerAccessor = (accessor: ServicesAccessor) => {
 	const reactAccessor = getReactAccessor(accessor)
 	reactAccessor_ = reactAccessor
+
+	// map ServiceIdentifier functions to their service instances so callers can do accessor.get(IMetricsService)
+	reactAccessorById = new Map<Function, any>([
+		[IModelService, reactAccessor.IModelService],
+		[IClipboardService, reactAccessor.IClipboardService],
+		[IContextViewService, reactAccessor.IContextViewService],
+		[IContextMenuService, reactAccessor.IContextMenuService],
+		[IFileService, reactAccessor.IFileService],
+		[IFileDialogService, reactAccessor.IFileDialogService],
+		[IHoverService, reactAccessor.IHoverService],
+		[IThemeService, reactAccessor.IThemeService],
+		[ILLMMessageService, reactAccessor.ILLMMessageService],
+		[IVoidSettingsService, reactAccessor.IVoidSettingsService],
+		[IEditCodeService, reactAccessor.IEditCodeService],
+		[IChatThreadService, reactAccessor.IChatThreadService],
+		[IInstantiationService, reactAccessor.IInstantiationService],
+		[ICodeEditorService, reactAccessor.ICodeEditorService],
+		[ICommandService, reactAccessor.ICommandService],
+		[IContextKeyService, reactAccessor.IContextKeyService],
+		[INotificationService, reactAccessor.INotificationService],
+		[IAccessibilityService, reactAccessor.IAccessibilityService],
+		[ILanguageConfigurationService, reactAccessor.ILanguageConfigurationService],
+		[ILanguageDetectionService, reactAccessor.ILanguageDetectionService],
+		[ILanguageFeaturesService, reactAccessor.ILanguageFeaturesService],
+		[IKeybindingService, reactAccessor.IKeybindingService],
+		[ISearchService, reactAccessor.ISearchService],
+		[IExplorerService, reactAccessor.IExplorerService],
+		[IEnvironmentService, reactAccessor.IEnvironmentService],
+		[IConfigurationService, reactAccessor.IConfigurationService],
+		[IPathService, reactAccessor.IPathService],
+		[IMetricsService, reactAccessor.IMetricsService],
+		[ITerminalToolService, reactAccessor.ITerminalToolService],
+		[ILanguageService, reactAccessor.ILanguageService],
+		[IVoidModelService, reactAccessor.IVoidModelService],
+		[IWorkspaceContextService, reactAccessor.IWorkspaceContextService],
+		[IVoidCommandBarService, reactAccessor.IVoidCommandBarService],
+		[INativeHostService, reactAccessor.INativeHostService],
+		[IToolsService, reactAccessor.IToolsService],
+		[IConvertToLLMMessageService, reactAccessor.IConvertToLLMMessageService],
+		[ITerminalService, reactAccessor.ITerminalService],
+		[IExtensionManagementService, reactAccessor.IExtensionManagementService],
+		[IExtensionTransferService, reactAccessor.IExtensionTransferService],
+		[IRemoteModelsService, reactAccessor.IRemoteModelsService],
+        [IDynamicModelService, reactAccessor.IDynamicModelService],
+	])
 }
 
 // -- services --
 export const useAccessor = () => {
-	if (!reactAccessor_) {
-		throw new Error(`⚠️ Void useAccessor was called before _registerServices!`)
-	}
+    if (!reactAccessor_) {
+        throw new Error(`Void useAccessor was called before _registerServices!`)
+    }
 
-	return { get: <S extends keyof ReactAccessor,>(service: S): ReactAccessor[S] => reactAccessor_![service] }
+    const getter = (service: keyof ReactAccessor | Function) => {
+        if (typeof service === 'string') {
+            return (reactAccessor_ as any)[service as keyof ReactAccessor]
+        }
+        if (reactAccessorById) {
+            const v = reactAccessorById.get(service as Function)
+            if (v !== undefined) return v
+        }
+        throw new Error(`Void useAccessor couldn't find service: ${service && (service as any).toString ? (service as any).toString() : String(service)}`)
+    }
+
+    return {
+        // Overloads: call with a key of ReactAccessor to get strongly-typed result,
+        // or call with a ServiceIdentifier function to get a T inferred by the caller.
+        get: getter as {
+            <S extends keyof ReactAccessor>(service: S): ReactAccessor[S]
+            <T>(service: Function): T
+        }
+    }
 }
-
-
-
-// -- state of services --
 
 export const useSettingsState = () => {
 	const [s, ss] = useState(settingsState)
@@ -274,21 +306,7 @@ export const useChatThreadsState = () => {
 		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
-	// allow user to set state natively in react
-	// const ss: React.Dispatch<React.SetStateAction<ThreadsState>> = (action)=>{
-	// 	_ss(action)
-	// 	if (typeof action === 'function') {
-	// 		const newState = action(chatThreadsState)
-	// 		chatThreadsState = newState
-	// 	} else {
-	// 		chatThreadsState = action
-	// 	}
-	// }
-	// return [s, ss] as const
 }
-
-
-
 
 export const useChatThreadsStreamState = (threadId: string) => {
 	const [s, ss] = useState<ThreadStreamState[string] | undefined>(chatThreadsStreamState[threadId])
@@ -315,25 +333,6 @@ export const useFullChatThreadsStreamState = () => {
 	return s
 }
 
-
-
-export const useRefreshModelState = () => {
-	const [s, ss] = useState(refreshModelState)
-	useEffect(() => {
-		ss(refreshModelState)
-		refreshModelStateListeners.add(ss)
-		return () => { refreshModelStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
-
-
-export const useRefreshModelListener = (listener: (providerName: RefreshableProviderName, s: RefreshModelStateOfProvider) => void) => {
-	useEffect(() => {
-		refreshModelProviderListeners.add(listener)
-		return () => { refreshModelProviderListeners.delete(listener) }
-	}, [listener, refreshModelProviderListeners])
-}
 
 export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
 	useEffect(() => {
@@ -373,8 +372,6 @@ export const useCommandBarState = () => {
 	return s;
 }
 
-
-
 // roughly gets the active URI - this is used to get the history of recent URIs
 export const useActiveURI = () => {
 	const accessor = useAccessor()
@@ -388,41 +385,19 @@ export const useActiveURI = () => {
 	return { uri: s }
 }
 
-
-
-
 export const useMCPServiceState = () => {
 	const accessor = useAccessor()
 	const mcpService = accessor.get('IMCPService')
 	const [s, ss] = useState(mcpService.state)
+
 	useEffect(() => {
 		const listener = () => { ss(mcpService.state) }
-		mcpListeners.add(listener);
-		return () => { mcpListeners.delete(listener) };
-	}, []);
-	return s
-}
 
+		listener()
 
-
-export const useIsOptedOut = () => {
-	const accessor = useAccessor()
-	const storageService = accessor.get('IStorageService')
-
-	const getVal = useCallback(() => {
-		return storageService.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false)
-	}, [storageService])
-
-	const [s, ss] = useState(getVal())
-
-	useEffect(() => {
-		const disposables = new DisposableStore();
-		const d = storageService.onDidChangeValue(StorageScope.APPLICATION, OPT_OUT_KEY, disposables)(e => {
-			ss(getVal())
-		})
-		disposables.add(d)
-		return () => disposables.clear()
-	}, [storageService, getVal])
+		mcpListeners.add(listener)
+		return () => { mcpListeners.delete(listener) }
+	}, [mcpService])
 
 	return s
 }

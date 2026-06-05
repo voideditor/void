@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commonPrefixLength } from '../../../../../base/common/strings.js';
-import { Range } from '../../../../common/core/range.js';
-import { TextLength } from '../../../../common/core/textLength.js';
-import { SingleTextEdit } from '../../../../common/core/textEdit.js';
-import { EndOfLinePreference, ITextModel } from '../../../../common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextLength } from '../../../../../editor/common/language/core/textLength.js';
+import { SingleTextEdit } from '../../../../../editor/common/language/core/textEdit.js';
+import { EndOfLinePreference, ITextModel } from '../../../../../editor/common/language/model.js';
 
 export function singleTextRemoveCommonPrefix(edit: SingleTextEdit, model: ITextModel, validModelRange?: Range): SingleTextEdit {
 	const modelRange = validModelRange ? edit.range.intersectRanges(validModelRange) : edit.range;

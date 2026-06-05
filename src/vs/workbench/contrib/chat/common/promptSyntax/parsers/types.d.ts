@@ -4,9 +4,18 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../../../base/common/uri.js';
-import { ResolveError } from '../../promptFileReferenceErrors.js';
 import { IDisposable } from '../../../../../../base/common/lifecycle.js';
-import { IRange, Range } from '../../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../../editor/common/language/core/range.js';
+
+/**
+ * Structural shape of a prompt resolve error.
+ */
+export interface IPromptResolveError extends Error {
+	readonly uri: URI;
+	readonly errorType: string;
+	sameTypeAs(other: unknown): other is IPromptResolveError;
+	equal(other: unknown): boolean;
+}
 
 /**
  * A resolve error with a parent prompt URI, if any.
@@ -15,7 +24,7 @@ export interface IResolveError {
 	/**
 	 * Original error instance.
 	 */
-	readonly originalError: ResolveError;
+	readonly originalError: IPromptResolveError;
 
 	/**
 	 * URI of the parent that references this error.
@@ -73,7 +82,7 @@ interface IPromptReferenceBase extends IDisposable {
 	 * including the {@link linkRange} and any additional
 	 * parts the reference may contain (e.g., the `#file:` prefix).
 	 */
-	readonly range: Range;
+	readonly range: IRange;
 
 	/**
 	 * Range of the link part that the reference points to.
@@ -110,12 +119,12 @@ interface IPromptReferenceBase extends IDisposable {
 	 *
 	 * See also {@link resolveFailed}.
 	 */
-	readonly errorCondition: ResolveError | undefined;
+	readonly errorCondition: IPromptResolveError | undefined;
 
 	/**
 	 * Get list of errors for the direct links of the current reference.
 	 */
-	readonly errors: readonly ResolveError[];
+	readonly errors: readonly IPromptResolveError[];
 
 	/**
 	 * List of all errors that occurred while resolving the current

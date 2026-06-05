@@ -8,10 +8,10 @@ import { INotebookDocumentMetadataTextModel, INotebookTextModel, NotebookCellMet
 import { StringSHA1 } from '../../../../../base/common/hash.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { DefaultEndOfLine, EndOfLinePreference, ITextBuffer } from '../../../../../editor/common/model.js';
+import { DefaultEndOfLine, EndOfLinePreference, ITextBuffer } from '../../../../../editor/common/language/model.js';
 import { Emitter } from '../../../../../base/common/event.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { createTextBuffer } from '../../../../../editor/common/model/textModel.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { createTextBuffer } from '../../../../../editor/common/language/model/textModel.js';
 
 export function getFormattedNotebookMetadataJSON(transientMetadata: TransientDocumentMetadata | undefined, metadata: NotebookDocumentMetadata) {
 	let filteredMetadata: { [key: string]: any } = {};

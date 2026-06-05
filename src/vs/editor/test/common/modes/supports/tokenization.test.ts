@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { FontStyle } from '../../../../common/encodedTokenAttributes.js';
+import { FontStyle } from '../../../../../editor/common/language/encodedTokenAttributes.js';
 import { ColorMap, ExternalThemeTrieElement, ParsedTokenThemeRule, ThemeTrieElementRule, TokenTheme, parseTokenTheme, strcmp } from '../../../../common/languages/supports/tokenization.js';
 
 suite('Token theme matching', () => {

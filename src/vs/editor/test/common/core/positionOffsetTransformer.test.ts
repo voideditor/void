@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { OffsetRange } from '../../../common/core/offsetRange.js';
-import { PositionOffsetTransformer } from '../../../common/core/positionToOffset.js';
+import { OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
+import { PositionOffsetTransformer } from '../../../../editor/common/language/core/positionToOffset.js';
 
 suite('PositionOffsetTransformer', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();

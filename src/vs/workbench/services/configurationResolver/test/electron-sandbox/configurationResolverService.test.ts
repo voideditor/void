@@ -14,7 +14,7 @@ import { isLinux, isMacintosh, isWindows } from '../../../../../base/common/plat
 import { isObject } from '../../../../../base/common/types.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { EditorType } from '../../../../../editor/common/editorCommon.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IConfigurationOverrides, IConfigurationService, IConfigurationValue } from '../../../../../platform/configuration/common/configuration.js';

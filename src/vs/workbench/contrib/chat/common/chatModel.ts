@@ -17,9 +17,9 @@ import { basename, isEqual } from '../../../../base/common/resources.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { URI, UriComponents, UriDto, isUriComponents } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { IOffsetRange, OffsetRange } from '../../../../editor/common/core/offsetRange.js';
-import { IRange } from '../../../../editor/common/core/range.js';
-import { Location, SymbolKind, TextEdit } from '../../../../editor/common/languages.js';
+import { IOffsetRange, OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { Location, SymbolKind, TextEdit } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IMarker, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
@@ -1368,7 +1368,6 @@ export class ChatModel extends Disposable implements IChatModel {
 
 					// Port entries from old format
 					const result = 'responseErrorDetails' in raw ?
-						// eslint-disable-next-line local/code-no-dangerous-type-assertions
 						{ errorDetails: raw.responseErrorDetails } as IChatAgentResult : raw.result;
 					request.response = new ChatResponseModel(raw.response ?? [new MarkdownString(raw.response)], this, agent, raw.slashCommand, request.id, true, raw.isCanceled, raw.vote, raw.voteDownReason, result, raw.followups, undefined, undefined, raw.responseId);
 					request.response.shouldBeRemovedOnSend = raw.isHidden ? { requestId: raw.requestId } : raw.shouldBeRemovedOnSend;

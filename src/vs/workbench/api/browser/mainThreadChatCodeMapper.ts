@@ -5,7 +5,7 @@
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Disposable, DisposableMap, IDisposable } from '../../../base/common/lifecycle.js';
 import { URI } from '../../../base/common/uri.js';
-import { TextEdit } from '../../../editor/common/languages.js';
+import { TextEdit } from '../../../editor/common/language/languages.js';
 import { ICodeMapperProvider, ICodeMapperRequest, ICodeMapperResponse, ICodeMapperService } from '../../contrib/chat/common/chatCodeMapperService.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
 import { ExtHostCodeMapperShape, ExtHostContext, ICodeMapperProgressDto, ICodeMapperRequestDto, MainContext, MainThreadCodeMapperShape } from '../common/extHost.protocol.js';

@@ -28,6 +28,7 @@ const { promisify } = require('node:util');
  * run: string;
  * grep: string;
  * runGlob: string;
+ * voidQuick: boolean;
  * browser: string;
  * reporter: string;
  * 'reporter-options': string;
@@ -39,7 +40,7 @@ const { promisify } = require('node:util');
  * }}
 */
 const args = minimist(process.argv.slice(2), {
-	boolean: ['build', 'debug', 'sequential', 'help'],
+	boolean: ['build', 'debug', 'sequential', 'help', 'voidQuick'],
 	string: ['run', 'grep', 'runGlob', 'browser', 'reporter', 'reporter-options', 'tfs'],
 	default: {
 		build: false,
@@ -57,6 +58,7 @@ const args = minimist(process.argv.slice(2), {
 		build: 'run with build output (out-build)',
 		run: 'only run tests matching <relative_file_path>',
 		grep: 'only run tests matching <pattern>',
+		voidQuick: 'run curated Void/ACP browser tests',
 		debug: 'do not run browsers headless',
 		sequential: 'only run suites for a single browser at a time',
 		browser: 'browsers in which tests should run',
@@ -74,6 +76,7 @@ Options:
 --build              run with build output (out-build)
 --run <relative_file_path> only run tests matching <relative_file_path>
 --grep, -g, -f <pattern> only run tests matching <pattern>
+--voidQuick          run curated Void/ACP browser tests
 --debug, --debug-browser do not run browsers headless
 --sequential         only run suites for a single browser at a time
 --browser <browser>  browsers in which tests should run
@@ -108,8 +111,31 @@ const outdir = args.build ? 'out-build' : 'out';
 const rootDir = path.resolve(__dirname, '..', '..', '..');
 const out = path.join(rootDir, `${outdir}`);
 
+const voidQuickBrowserTests = [
+	'src/vs/workbench/contrib/void/test/browser/toolsServicePath.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatSystemMessage.specialToolFormat.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/acpProcessArgs.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/acpService.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/AcpHostCallbacksService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/editCodeService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatAcpNormalizeReadFileArgs.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.nonAcpToAcpSwitch.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.modelConfigSwitch.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/toolsServiceSearchInFile.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/acpInternalExtMethodService.getLLMConfigSwitch.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/readFileChunkLinesPropagation.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/sendLLMMessageService.deltaReconstruct.test.ts',
+];
+
 function ensureIsArray(a) {
 	return Array.isArray(a) ? a : [a];
+}
+
+function toOutRelativeTestPath(file) {
+	file = file.replace(/^src/, 'out');
+	file = file.replace(/\.ts$/, '.js');
+	return path.relative(out, file);
 }
 
 const testModules = (async function () {
@@ -118,14 +144,15 @@ const testModules = (async function () {
 	let isDefaultModules = true;
 	let promise;
 
-	if (args.run) {
+	if (args.voidQuick) {
+		// curated list of browser tests for quick pre-commit runs
+		isDefaultModules = false;
+		promise = Promise.resolve(voidQuickBrowserTests.map(toOutRelativeTestPath));
+
+	} else if (args.run) {
 		// use file list (--run)
 		isDefaultModules = false;
-		promise = Promise.resolve(ensureIsArray(args.run).map(file => {
-			file = file.replace(/^src/, 'out');
-			file = file.replace(/\.ts$/, '.js');
-			return path.relative(out, file);
-		}));
+		promise = Promise.resolve(ensureIsArray(args.run).map(toOutRelativeTestPath));
 
 	} else {
 		// glob patterns (--glob)

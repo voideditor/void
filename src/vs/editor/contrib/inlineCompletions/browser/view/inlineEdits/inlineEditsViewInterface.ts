@@ -6,7 +6,7 @@
 import { IMouseEvent } from '../../../../../../base/browser/mouseEvent.js';
 import { Event } from '../../../../../../base/common/event.js';
 import { IObservable } from '../../../../../../base/common/observable.js';
-import { Command } from '../../../../../common/languages.js';
+import { Command } from '../../../../../../editor/common/language/languages.js';
 import { InlineEditWithChanges } from './inlineEditWithChanges.js';
 
 export enum InlineEditTabAction {

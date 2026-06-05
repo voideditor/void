@@ -15,7 +15,7 @@ import { Disposable, DisposableMap, IDisposable } from '../../../../base/common/
 import { revive } from '../../../../base/common/marshalling.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { URI } from '../../../../base/common/uri.js';
-import { isLocation } from '../../../../editor/common/languages.js';
+import { isLocation } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

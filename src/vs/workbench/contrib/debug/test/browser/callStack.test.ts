@@ -9,7 +9,7 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { Constants } from '../../../../../base/common/uint.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { TestAccessibilityService } from '../../../../../platform/accessibility/test/common/testAccessibilityService.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';

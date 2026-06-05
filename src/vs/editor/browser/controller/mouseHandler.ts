@@ -12,8 +12,8 @@ import { IMouseTarget, IMouseTargetOutsideEditor, IMouseTargetViewZoneData, Mous
 import { ClientCoordinates, EditorMouseEvent, EditorMouseEventFactory, GlobalEditorPointerMoveMonitor, createEditorPagePosition, createCoordinatesRelativeToEditor, PageCoordinates } from '../editorDom.js';
 import { ViewController } from '../view/viewController.js';
 import { EditorZoom } from '../../common/config/editorZoom.js';
-import { Position } from '../../common/core/position.js';
-import { Selection } from '../../common/core/selection.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
 import { HorizontalPosition } from '../view/renderingContext.js';
 import { ViewContext } from '../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../common/viewEvents.js';

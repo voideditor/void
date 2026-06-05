@@ -9,11 +9,11 @@ import { Event } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { mock } from '../../../../../base/test/common/mock.js';
-import { Range } from '../../../../common/core/range.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { TextModel } from '../../../../common/model/textModel.js';
-import { CompletionItemInsertTextRule, CompletionItemKind } from '../../../../common/languages.js';
-import { IEditorWorkerService } from '../../../../common/services/editorWorker.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
+import { CompletionItemInsertTextRule, CompletionItemKind } from '../../../../../editor/common/language/languages.js';
+import { IEditorWorkerService } from '../../../../../editor/common/language/services/editorWorker.js';
 import { SnippetController2 } from '../../../snippet/browser/snippetController2.js';
 import { SuggestController } from '../../browser/suggestController.js';
 import { ISuggestMemoryService } from '../../browser/suggestMemory.js';
@@ -29,8 +29,8 @@ import { InMemoryStorageService, IStorageService } from '../../../../../platform
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { NullTelemetryService } from '../../../../../platform/telemetry/common/telemetryUtils.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { LanguageFeaturesService } from '../../../../common/services/languageFeaturesService.js';
-import { ILanguageFeaturesService } from '../../../../common/services/languageFeatures.js';
+import { LanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeaturesService.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeatures.js';
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { DeleteLinesAction } from '../../../linesOperations/browser/linesOperations.js';
 

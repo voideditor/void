@@ -28,8 +28,8 @@ import { IExtensionRecommendationNotificationService } from '../../../platform/e
 import { IProductService } from '../../../platform/product/common/productService.js';
 import { IStorageService } from '../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
-import { IModelService } from '../../../editor/common/services/model.js';
-import { ModelService } from '../../../editor/common/services/modelService.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { ModelService } from '../../../editor/common/language/services/modelService.js';
 import { IWorkspaceContextService } from '../../../platform/workspace/common/workspace.js';
 import { IFilesConfigurationService } from '../../services/filesConfiguration/common/filesConfigurationService.js';
 import { ILifecycleService } from '../../services/lifecycle/common/lifecycle.js';

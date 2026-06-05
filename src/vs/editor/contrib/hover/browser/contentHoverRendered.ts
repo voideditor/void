@@ -8,13 +8,13 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { EditorHoverStatusBar } from './contentHoverStatusBar.js';
 import { HoverStartSource } from './hoverOperation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { ContentHoverResult } from './contentHoverTypes.js';
 import * as dom from '../../../../base/browser/dom.js';
-import { HoverVerbosityAction } from '../../../common/languages.js';
+import { HoverVerbosityAction } from '../../../../editor/common/language/languages.js';
 import { MarkdownHoverParticipant } from './markdownHoverParticipant.js';
 import { HoverColorPickerParticipant } from '../../colorPicker/browser/hoverColorPicker/hoverColorPickerParticipant.js';
 import { localize } from '../../../../nls.js';
@@ -22,7 +22,7 @@ import { InlayHintsHover } from '../../inlayHints/browser/inlayHintsHover.js';
 import { BugIndicatingError } from '../../../../base/common/errors.js';
 import { HoverAction } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IOffsetRange } from '../../../common/core/offsetRange.js';
+import { IOffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
 
 export class RenderedContentHover extends Disposable {
 

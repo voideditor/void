@@ -26,7 +26,7 @@ import { getDefaultNotebookCreationOptions, NotebookEditorWidget } from '../../n
 import { GroupsOrder, IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { ExecutionStateCellStatusBarContrib, TimerCellStatusBarContrib } from '../../notebook/browser/contrib/cellStatusBar/executionStatusBarItemController.js';
 import { INotebookKernelService } from '../../notebook/common/notebookKernelService.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IMenuService, MenuId } from '../../../../platform/actions/common/actions.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { ReplEditorSettings, INTERACTIVE_INPUT_CURSOR_BOUNDARY } from '../../interactive/browser/interactiveCommon.js';
@@ -41,7 +41,7 @@ import { ContextMenuController } from '../../../../editor/contrib/contextmenu/br
 import { SuggestController } from '../../../../editor/contrib/suggest/browser/suggestController.js';
 import { MarkerController } from '../../../../editor/contrib/gotoError/browser/gotoError.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ITextEditorOptions, TextEditorSelectionSource } from '../../../../platform/editor/common/editor.js';
 import { INotebookExecutionStateService, NotebookExecutionType } from '../../notebook/common/notebookExecutionStateService.js';
 import { NOTEBOOK_KERNEL } from '../../notebook/common/notebookContextKeys.js';

@@ -6,9 +6,9 @@
 import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { withTestCodeEditor } from '../testCodeEditor.js';
 

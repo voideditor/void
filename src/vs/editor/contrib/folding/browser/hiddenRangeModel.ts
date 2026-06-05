@@ -7,10 +7,10 @@ import { findFirstIdxMonotonousOrArrLen } from '../../../../base/common/arraysFi
 
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { IRange, Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
-import { IModelContentChangedEvent } from '../../../common/textModelEvents.js';
-import { countEOL } from '../../../common/core/eolCounter.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
+import { countEOL } from '../../../../editor/common/language/core/eolCounter.js';
 import { FoldingModel } from './foldingModel.js';
 
 export class HiddenRangeModel {

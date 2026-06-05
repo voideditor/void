@@ -8,7 +8,7 @@ import { CharCode } from '../../../../base/common/charCode.js';
 import { anyScore, fuzzyScore, FuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScoreOptions, FuzzyScorer } from '../../../../base/common/filters.js';
 import { compareIgnoreCase } from '../../../../base/common/strings.js';
 import { InternalSuggestOptions } from '../../../common/config/editorOptions.js';
-import { CompletionItemKind, CompletionItemProvider } from '../../../common/languages.js';
+import { CompletionItemKind, CompletionItemProvider } from '../../../../editor/common/language/languages.js';
 import { WordDistance } from './wordDistance.js';
 import { CompletionItem } from './suggest.js';
 

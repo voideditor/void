@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { IAITextQuery, IFileMatch, ISearchComplete, ISearchProgressItem, ISearchRange, ITextQuery, ITextSearchQuery, ITextSearchResult } from '../../../../services/search/common/search.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { IFileStatWithPartialMetadata, IFileService } from '../../../../../platform/files/common/files.js';
 import { IProgress, IProgressStep } from '../../../../../platform/progress/common/progress.js';
 import { ReplacePattern } from '../../../../services/search/common/replace.js';

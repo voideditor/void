@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
-import { Position } from '../../../../common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { getSecondaryEdits } from '../../browser/model/inlineCompletionsModel.js';
-import { SingleTextEdit } from '../../../../common/core/textEdit.js';
+import { SingleTextEdit } from '../../../../../editor/common/language/core/textEdit.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 suite('inlineCompletionModel', () => {

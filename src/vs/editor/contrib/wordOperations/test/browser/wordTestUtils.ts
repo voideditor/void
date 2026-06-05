@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from '../../../../common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { ITestCodeEditor, TestCodeEditorInstantiationOptions, withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 
 export function deserializePipePositions(text: string): [string, Position[]] {

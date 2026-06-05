@@ -22,12 +22,12 @@ import { EditorContributionCtor, EditorContributionInstantiation, IEditorContrib
 import { CodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
 import { EmbeddedCodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { IEditorOptions } from '../../../../editor/common/config/editorOptions.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { IWordAtPosition } from '../../../../editor/common/core/wordHelper.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { IWordAtPosition } from '../../../../editor/common/language/core/wordHelper.js';
 import { IEditorContribution, IEditorDecorationsCollection } from '../../../../editor/common/editorCommon.js';
-import { Location } from '../../../../editor/common/languages.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { Location } from '../../../../editor/common/language/languages.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { ClickLinkGesture, ClickLinkMouseEvent } from '../../../../editor/contrib/gotoSymbol/browser/link/clickLinkGesture.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { createActionViewItem } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';

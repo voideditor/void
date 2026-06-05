@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { DefaultEndOfLine, FindMatch, IReadonlyTextBuffer } from '../../../../editor/common/model.js';
-import { PieceTreeTextBufferBuilder } from '../../../../editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.js';
-import { SearchParams } from '../../../../editor/common/model/textModelSearch.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { DefaultEndOfLine, FindMatch, IReadonlyTextBuffer } from '../../../../editor/common/language/model.js';
+import { PieceTreeTextBufferBuilder } from '../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.js';
+import { SearchParams } from '../../../../editor/common/language/model/textModelSearch.js';
 
 interface RawOutputFindMatch {
 	textBuffer: IReadonlyTextBuffer;

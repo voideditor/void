@@ -27,7 +27,7 @@ import Messages from './messages.js';
 import { isUndefinedOrNull } from '../../../../base/common/types.js';
 import { IProblemsWidget } from './markersView.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { unsupportedSchemas } from '../../../../platform/markers/common/markerService.js';
 import Severity from '../../../../base/common/severity.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';

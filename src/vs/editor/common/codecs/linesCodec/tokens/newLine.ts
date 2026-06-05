@@ -6,8 +6,8 @@
 import { Line } from './line.js';
 import { BaseToken } from '../../baseToken.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 
 /**
  * A token that represent a `new line` with a `range`. The `range`

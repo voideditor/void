@@ -24,7 +24,7 @@ import { IAccessibilityService } from '../../../../platform/accessibility/common
 import { ICommentThreadWidget } from '../common/commentThreadWidget.js';
 import { CommentContextKeys } from '../common/commentContextKeys.js';
 import { ILanguageConfigurationService } from '../../../../editor/common/languages/languageConfigurationRegistry.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { clamp } from '../../../../base/common/numbers.js';

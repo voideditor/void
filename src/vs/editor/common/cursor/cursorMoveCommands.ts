@@ -7,8 +7,8 @@ import * as types from '../../../base/common/types.js';
 import { CursorState, ICursorSimpleModel, PartialCursorState, SelectionStartKind, SingleCursorState } from '../cursorCommon.js';
 import { MoveOperations } from './cursorMoveOperations.js';
 import { WordOperations } from './cursorWordOperations.js';
-import { IPosition, Position } from '../core/position.js';
-import { Range } from '../core/range.js';
+import { IPosition, Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { ICommandMetadata } from '../../../platform/commands/common/commands.js';
 import { IViewModel } from '../viewModel.js';
 

@@ -5,7 +5,7 @@
 
 import { groupBy } from '../../../../base/common/arrays.js';
 import { URI } from '../../../../base/common/uri.js';
-import { CommentThread } from '../../../../editor/common/languages.js';
+import { CommentThread } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { ResourceWithCommentThreads, ICommentThreadChangedEvent } from '../common/commentModel.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';

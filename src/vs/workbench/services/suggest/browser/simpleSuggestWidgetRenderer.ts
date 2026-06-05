@@ -13,9 +13,9 @@ import { createMatches } from '../../../../base/common/filters.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { getIconClasses } from '../../../../editor/common/language/services/getIconClasses.js';
 import { URI } from '../../../../base/common/uri.js';
 import { FileKind } from '../../../../platform/files/common/files.js';
 

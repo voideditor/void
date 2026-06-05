@@ -20,8 +20,8 @@ import { ICodeEditor, IViewZoneChangeAccessor } from '../../../../../editor/brow
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
 import { IEditorOptions as ICodeEditorOptions } from '../../../../../editor/common/config/editorOptions.js';
 import { ICodeEditorViewState, ScrollType } from '../../../../../editor/common/editorCommon.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { localize } from '../../../../../nls.js';
 import { IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IEditorOptions, ITextEditorOptions, ITextResourceEditorInput } from '../../../../../platform/editor/common/editor.js';

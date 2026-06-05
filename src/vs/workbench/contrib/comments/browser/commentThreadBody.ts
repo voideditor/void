@@ -6,7 +6,7 @@
 import * as dom from '../../../../base/browser/dom.js';
 import * as nls from '../../../../nls.js';
 import { Disposable, DisposableMap, DisposableStore } from '../../../../base/common/lifecycle.js';
-import * as languages from '../../../../editor/common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { ICommentService } from './commentService.js';
 import { StandardKeyboardEvent } from '../../../../base/browser/keyboardEvent.js';
@@ -17,9 +17,9 @@ import { URI } from '../../../../base/common/uri.js';
 import { ICommentThreadWidget } from '../common/commentThreadWidget.js';
 import { IMarkdownRendererOptions, MarkdownRenderer } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ICellRange } from '../../notebook/common/notebookRange.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { LayoutableEditor } from './simpleCommentEditor.js';
 
 export class CommentThreadBody<T extends IRange | ICellRange = IRange> extends Disposable {

@@ -12,9 +12,9 @@ import { CellUri, IMainCellDto, INotebookDiffResult, NotebookCellsChangeType, No
 import { INotebookService } from '../../common/notebookService.js';
 import { NotebookWorker } from '../../common/services/notebookWebWorker.js';
 import { INotebookEditorWorkerService } from '../../common/services/notebookWorkerService.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { TextModel } from '../../../../../editor/common/model/textModel.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { FileAccess, Schemas } from '../../../../../base/common/network.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 

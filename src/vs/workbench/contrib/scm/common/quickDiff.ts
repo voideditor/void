@@ -8,7 +8,7 @@ import * as nls from '../../../../nls.js';
 import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { LanguageSelector } from '../../../../editor/common/languageSelector.js';
+import { LanguageSelector } from '../../../../editor/common/language/languageSelector.js';
 import { Event } from '../../../../base/common/event.js';
 import { LineRangeMapping } from '../../../../editor/common/diff/rangeMapping.js';
 import { IChange } from '../../../../editor/common/diff/legacyLinesDiffComputer.js';

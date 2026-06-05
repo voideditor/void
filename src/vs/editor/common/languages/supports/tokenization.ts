@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Color } from '../../../../base/common/color.js';
-import { LanguageId, FontStyle, ColorId, StandardTokenType, MetadataConsts } from '../../encodedTokenAttributes.js';
+import { LanguageId, FontStyle, ColorId, StandardTokenType, MetadataConsts } from '../../language/encodedTokenAttributes.js';
 
 export interface ITokenThemeRule {
 	token: string;

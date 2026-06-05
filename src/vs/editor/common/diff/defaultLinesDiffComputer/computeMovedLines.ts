@@ -8,11 +8,11 @@ import { DetailedLineRangeMapping, LineRangeMapping } from '../rangeMapping.js';
 import { pushMany, compareBy, numberComparator, reverseOrder } from '../../../../base/common/arrays.js';
 import { MonotonousArray, findLastMonotonous } from '../../../../base/common/arraysFind.js';
 import { SetMap } from '../../../../base/common/map.js';
-import { LineRange, LineRangeSet } from '../../core/lineRange.js';
+import { LineRange, LineRangeSet } from '../../../../editor/common/language/core/lineRange.js';
 import { LinesSliceCharSequence } from './linesSliceCharSequence.js';
 import { LineRangeFragment, isSpace } from './utils.js';
 import { MyersDiffAlgorithm } from './algorithms/myersDiffAlgorithm.js';
-import { Range } from '../../core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 export function computeMovedLines(
 	changes: DetailedLineRangeMapping[],

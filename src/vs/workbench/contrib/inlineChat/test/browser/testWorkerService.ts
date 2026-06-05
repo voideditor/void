@@ -4,16 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 import { URI } from '../../../../../base/common/uri.js';
 import { mock } from '../../../../../base/test/common/mock.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { assertType } from '../../../../../base/common/types.js';
-import { DiffAlgorithmName, IEditorWorkerService, ILineChange } from '../../../../../editor/common/services/editorWorker.js';
+import { DiffAlgorithmName, IEditorWorkerService, ILineChange } from '../../../../../editor/common/language/services/editorWorker.js';
 import { IDocumentDiff, IDocumentDiffProviderOptions } from '../../../../../editor/common/diff/documentDiffProvider.js';
-import { EditorWorker } from '../../../../../editor/common/services/editorWebWorker.js';
-import { LineRange } from '../../../../../editor/common/core/lineRange.js';
+import { EditorWorker } from '../../../../../editor/common/language/services/editorWebWorker.js';
+import { LineRange } from '../../../../../editor/common/language/core/lineRange.js';
 import { MovedText } from '../../../../../editor/common/diff/linesDiffComputer.js';
 import { LineRangeMapping, DetailedLineRangeMapping, RangeMapping } from '../../../../../editor/common/diff/rangeMapping.js';
-import { TextEdit } from '../../../../../editor/common/languages.js';
+import { TextEdit } from '../../../../../editor/common/language/languages.js';
 
 
 export class TestWorkerService extends mock<IEditorWorkerService>() {

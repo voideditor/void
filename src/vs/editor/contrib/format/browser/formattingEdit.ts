@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
-import { EditOperation, ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Range } from '../../../common/core/range.js';
-import { EndOfLineSequence } from '../../../common/model.js';
-import { TextEdit } from '../../../common/languages.js';
+import { EditOperation, ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { EndOfLineSequence } from '../../../../editor/common/language/model.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
 import { StableEditorScrollState } from '../../../browser/stableEditorScroll.js';
 
 export class FormattingEdit {

@@ -7,7 +7,7 @@ import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { extname, isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { ToggleCaseSensitiveKeybinding, ToggleRegexKeybinding, ToggleWholeWordKeybinding } from '../../../../editor/contrib/find/browser/findModel.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';

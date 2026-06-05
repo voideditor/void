@@ -34,7 +34,7 @@ import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 
 import { IWorkspace, IWorkspaceContextService, IWorkspaceFolder, WorkbenchState, WorkspaceFolder } from '../../../../platform/workspace/common/workspace.js';
 import { Markers } from '../../markers/common/markers.js';
@@ -65,7 +65,7 @@ import { CancellationToken, CancellationTokenSource } from '../../../../base/com
 import { toFormattedString } from '../../../../base/common/jsonFormatter.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { TextEditorSelectionRevealType } from '../../../../platform/editor/common/editor.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';

@@ -6,9 +6,9 @@
 
 import { assertSnapshot } from '../../../../../base/test/common/snapshot.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { CoverageDetailsModel } from '../../browser/codeCoverageDecorations.js';
 import { CoverageDetails, DetailType } from '../../common/testTypes.js';
 

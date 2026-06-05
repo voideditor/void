@@ -3,53 +3,465 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
+import type * as Parser from '@vscode/tree-sitter-wasm';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor, IOverlayWidget, IViewZone } from '../../../../editor/browser/editorBrowser.js';
-
-// import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-// import { throttle } from '../../../../base/common/decorators.js';
 import { findDiffs } from './helpers/findDiffs.js';
-import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/model.js';
-import { IRange } from '../../../../editor/common/core/range.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { EndOfLinePreference, IModelDecorationOptions, ITextModel } from '../../../../editor/common/language/model.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITreeSitterParserService } from '../../../../editor/common/language/services/treeSitterParserService.js';
+import { getModuleLocation } from '../../../../editor/common/language/services/treeSitter/treeSitterLanguages.js';
 import { IUndoRedoElement, IUndoRedoService, UndoRedoElementType } from '../../../../platform/undoRedo/common/undoRedo.js';
 import { RenderOptions } from '../../../../editor/browser/widget/diffEditor/components/diffEditorViewZones/renderLines.js';
-// import { IModelService } from '../../../../editor/common/services/model.js';
-
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import * as dom from '../../../../base/browser/dom.js';
 import { Widget } from '../../../../base/browser/ui/widget.js';
 import { URI } from '../../../../base/common/uri.js';
+import { FileAccess, type AppResourcePath } from '../../../../base/common/network.js';
+import { importAMDNodeModule } from '../../../../amdX.js';
 import { IConsistentEditorItemService, IConsistentItemService } from './helperServices/consistentItemService.js';
-import { voidPrefixAndSuffix, ctrlKStream_userMessage, ctrlKStream_systemMessage, defaultQuickEditFimTags, rewriteCode_systemMessage, rewriteCode_userMessage, searchReplaceGivenDescription_systemMessage, searchReplaceGivenDescription_userMessage, tripleTick, } from '../common/prompt/prompts.js';
+import { buildNativeSysMessageForCtrlK, buildNativeUserMessageForCtrlK, buildXmlSysMessageForCtrlK, buildXmlUserMessageForCtrlK } from '../common/prompt/prompts.js';
+import { getModelCapabilities } from '../../../../platform/void/common/modelInference.js';
 import { IVoidCommandBarService } from './voidCommandBarService.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './actionIDs.js';
-
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
-import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
-import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
 import { INotificationService, } from '../../../../platform/notification/common/notification.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { ILLMMessageService } from '../common/sendLLMMessageService.js';
-import { LLMChatMessage } from '../common/sendLLMMessageTypes.js';
-import { IMetricsService } from '../common/metricsService.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
+import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 import { IEditCodeService, AddCtrlKOpts, StartApplyingOpts, CallBeforeStartApplyingOpts, } from './editCodeServiceInterface.js';
-import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { FeatureName } from '../common/voidSettingsTypes.js';
+import { IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { deepClone } from '../../../../base/common/objects.js';
-import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
-import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
+import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../../../../platform/void/common/helpers/colors.js';
+import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, ComputedDiff } from '../../../../platform/void/common/editCodeServiceTypes.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
-// import { isMacintosh } from '../../../../base/common/platform.js';
-// import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
+import { IToolsService } from '../common/toolsService.js';
+import DiffMatchPatch from './lib/diff-match-patch.js'
+import { inferSelectionFromCode, inferExactBlockFromCode, InferenceAstContext, InferredBlock } from './react/src/markdown/inferSelection.js'
 
-const numLinesOfStr = (str: string) => str.split('\n').length
+type DmpOp = -1 | 0 | 1
+
+
+// Fixes cases where inference returns only a prefix of a declaration line and we end up
+// replacing mid-line (corrupting the file).
+
+function offsetToLineNumber(text: string, offset: number): number {
+	// 1-based
+	return text.slice(0, Math.max(0, offset)).split('\n').length;
+}
+
+function findMatchingCurlyForwardJs(text: string, openIndex: number): number {
+	type Mode = 'code' | 'sgl' | 'dbl' | 'template' | 'line' | 'block';
+
+	let i = openIndex + 1;
+	let depth = 1;
+
+	let mode: Mode = 'code';
+	let escaped = false;
+
+
+	let templateNesting = 0;
+
+
+
+	const tplExprDepthStack: number[] = [];
+
+	while (i < text.length) {
+		const ch = text[i];
+		const next = text[i + 1];
+
+
+		if (mode === 'line') {
+			if (ch === '\n') mode = 'code';
+			i++;
+			continue;
+		}
+		if (mode === 'block') {
+			if (ch === '*' && next === '/') { mode = 'code'; i += 2; continue; }
+			i++;
+			continue;
+		}
+
+
+		if (mode === 'sgl' || mode === 'dbl') {
+			if (escaped) { escaped = false; i++; continue; }
+			if (ch === '\\') { escaped = true; i++; continue; }
+
+			if ((mode === 'sgl' && ch === '\'') || (mode === 'dbl' && ch === '"')) {
+				mode = 'code';
+				i++;
+				continue;
+			}
+			i++;
+			continue;
+		}
+
+		// --- Template raw: ` ... ${ ... } ... ` ---
+		if (mode === 'template') {
+			if (escaped) { escaped = false; i++; continue; }
+			if (ch === '\\') { escaped = true; i++; continue; }
+
+
+			if (ch === '$' && next === '{') {
+				tplExprDepthStack.push(depth);
+				depth++;
+				mode = 'code';
+				i += 2;
+				continue;
+			}
+
+
+			if (ch === '`') {
+				templateNesting--;
+				mode = 'code';
+				i++;
+				continue;
+			}
+
+			i++;
+			continue;
+		}
+
+		// --- mode === 'code' ---
+
+		if (ch === '/' && next === '/') { mode = 'line'; i += 2; continue; }
+		if (ch === '/' && next === '*') { mode = 'block'; i += 2; continue; }
+
+
+		if (ch === '\'') { mode = 'sgl'; escaped = false; i++; continue; }
+		if (ch === '"') { mode = 'dbl'; escaped = false; i++; continue; }
+
+
+		if (ch === '`') {
+			templateNesting++;
+			mode = 'template';
+			escaped = false;
+			i++;
+			continue;
+		}
+
+
+		if (ch === '{') { depth++; i++; continue; }
+		if (ch === '}') {
+			depth--;
+
+			if (tplExprDepthStack.length > 0 && depth === tplExprDepthStack[tplExprDepthStack.length - 1]) {
+				tplExprDepthStack.pop();
+				if (templateNesting > 0) {
+					mode = 'template';
+					i++;
+					continue;
+				}
+			}
+
+			if (depth === 0) return i;
+			i++;
+			continue;
+		}
+
+		i++;
+	}
+
+	return -1;
+}
+
+
+// Finds the "body" '{' for a TS/JS function/method-like declaration starting at startOffset.
+// Ignores braces inside (...) (params), and heuristically skips return-type object literals.
+function findTopLevelBodyOpenBraceJs(text: string, startOffset: number, searchWindow = 8000): number {
+	const limit = Math.min(text.length, startOffset + searchWindow);
+
+	let inS = false, inD = false, inT = false, inSL = false, inML = false;
+	let prev = '';
+
+	let parenDepth = 0;
+	let sawParen = false;
+
+	let inReturnType = false;
+	let typeBraceDepth = 0;
+
+	for (let i = startOffset; i < limit; i++) {
+		const ch = text[i];
+		const next = text[i + 1];
+
+		// comments (only when not in strings)
+		if (!inS && !inD && !inT) {
+			if (!inML && !inSL && ch === '/' && next === '/') { inSL = true; i++; prev = ''; continue; }
+			if (!inML && !inSL && ch === '/' && next === '*') { inML = true; i++; prev = ''; continue; }
+			if (inSL && ch === '\n') { inSL = false; prev = ch; continue; }
+			if (inML && ch === '*' && next === '/') { inML = false; i++; prev = ''; continue; }
+			if (inSL || inML) { prev = ch; continue; }
+		}
+
+		// strings
+		if (!inSL && !inML) {
+			if (!inD && !inT && ch === '\'' && prev !== '\\') { inS = !inS; prev = ch; continue; }
+			if (!inS && !inT && ch === '"' && prev !== '\\') { inD = !inD; prev = ch; continue; }
+			if (!inS && !inD && ch === '`' && prev !== '\\') { inT = !inT; prev = ch; continue; }
+		}
+
+		if (inS || inD || inT || inSL || inML) { prev = ch; continue; }
+
+		// parentheses (params)
+		if (ch === '(') { parenDepth++; sawParen = true; prev = ch; continue; }
+		if (ch === ')') { if (parenDepth > 0) parenDepth--; prev = ch; continue; }
+
+		if (!sawParen) { prev = ch; continue; }
+
+		// Only consider top-level (outside params)
+		if (parenDepth === 0) {
+			// detect start of return type: `): Type ... {`
+			if (ch === ':' && typeBraceDepth === 0) {
+				inReturnType = true;
+				prev = ch;
+				continue;
+			}
+
+			if (typeBraceDepth > 0) {
+				if (ch === '{') typeBraceDepth++;
+				else if (ch === '}') typeBraceDepth--;
+				prev = ch;
+				continue;
+			}
+
+			// Candidate '{'
+			if (ch === '{') {
+				if (inReturnType) {
+					// Heuristic: decide if this is a type-literal `{ a: number; }` vs function body
+					const close = findMatchingCurlyForwardJs(text, i);
+					if (close !== -1) {
+						const inside = text.slice(i + 1, Math.min(close, i + 350));
+						const looksTypey = /[:;]/.test(inside) && !/\b(return|const|let|var|if|for|while|switch|try|throw|import|export)\b/.test(inside);
+						if (looksTypey) {
+							typeBraceDepth = 1; // enter type-literal braces
+							prev = ch;
+							continue;
+						}
+					}
+				}
+
+				// treat as body
+				return i;
+			}
+
+			// End of signature without body (abstract/interface etc)
+			if (ch === ';') return -1;
+		}
+
+		prev = ch;
+	}
+
+	return -1;
+}
+
+function looksLikeFullTopLevelBlockSnippet(snippet: string): boolean {
+	const s = normalizeEol(snippet ?? '');
+	const open = findTopLevelBodyOpenBraceJs(s, 0, Math.min(8000, s.length));
+	if (open === -1) return false;
+	const close = findMatchingCurlyForwardJs(s, open);
+	if (close === -1) return false;
+	const tail = s.slice(close + 1).trim();
+	return tail === '' || tail === ';' || tail === ',';
+}
+
+function expandToEnclosingCurlyBlockJs(text: string, startOffset: number, searchWindow = 8000) {
+	const open = findTopLevelBodyOpenBraceJs(text, startOffset, searchWindow);
+	if (open === -1) return null;
+
+	const close = findMatchingCurlyForwardJs(text, open);
+	if (close === -1) return null;
+
+	const endOffset = close + 1;
+
+	const startLine = offsetToLineNumber(text, startOffset);
+	const endLine = offsetToLineNumber(text, endOffset);
+
+	return {
+		startOffset,
+		endOffset,
+		text: text.slice(startOffset, endOffset),
+		range: [startLine, endLine] as [number, number],
+	};
+}
+
+// normalize EOLs to LF
+// normalize EOLs to LF
+function normalizeEol(s: string): string {
+	return (s ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+}
+
+// (Very common LLM failure mode for edit_file snippets.)
+function stripMarkdownFence(s: string): string {
+	const str = String(s ?? '');
+	const m = str.match(/^\s*```[a-zA-Z0-9_-]*\s*\n([\s\S]*?)\n```\s*$/);
+	return m ? m[1] : str;
+}
+
+function escapeForShellDoubleQuotes(s: string): string {
+	// minimal, practical escaping for bash/zsh inside "...":
+	return String(s).replace(/(["\\$`])/g, '\\$1');
+}
+
+function buildInvisibleCharsDebugCmd(filePathForCmd: string, startLine: number, endLine: number) {
+	const a = Math.max(1, Math.floor(startLine || 1));
+	const b = Math.max(a, Math.floor(endLine || a));
+	const file = `"${escapeForShellDoubleQuotes(filePathForCmd)}"`;
+
+	return {
+		gnu: `sed -n '${a},${b}p' ${file} | cat -A`,
+		// macOS/BSD fallback (often available even when cat -A isn't)
+		bsd: `sed -n '${a},${b}p' ${file} | cat -vet`,
+	};
+}
+
+const EDIT_FILE_FALLBACK_MSG = 'LLM did not correctly provide an ORIGINAL code block.';
+
+// Build unified diff in line-mode using DMP's line helpers
+function createUnifiedFromLineDiffs(fileLabel: string, original: string, updated: string, context = 3): string {
+	const dmp = new DiffMatchPatch()
+	const a: any = (dmp as any).diff_linesToChars_(original, updated)
+	let diffs = dmp.diff_main(a.chars1, a.chars2, false)
+	try { dmp.diff_cleanupSemantic(diffs) } catch { }
+	(dmp as any).diff_charsToLines_(diffs, a.lineArray)
+
+	const out: string[] = []
+	out.push(`--- a/${fileLabel}`)
+	out.push(`+++ b/${fileLabel}`)
+
+	let oldLine = 1
+	let newLine = 1
+	const ctxBuf: string[] = []
+	let inHunk = false
+	let hunkLines: string[] = []
+	let hunkStartOld = 0
+	let hunkStartNew = 0
+	let oldCount = 0
+	let newCount = 0
+	let postCtxLeft = 0
+
+	const flushHunk = () => {
+		if (!inHunk) return
+		out.push(`@@ -${hunkStartOld},${Math.max(1, oldCount)} +${hunkStartNew},${Math.max(1, newCount)} @@`)
+		out.push(...hunkLines)
+		inHunk = false
+		hunkLines = []
+		oldCount = 0
+		newCount = 0
+		postCtxLeft = 0
+	}
+
+	const startHunkWithCtx = () => {
+		inHunk = true
+		hunkStartOld = oldLine - ctxBuf.length
+		hunkStartNew = newLine - ctxBuf.length
+		for (const ln of ctxBuf) {
+			hunkLines.push(' ' + ln)
+			oldCount++; newCount++
+		}
+	}
+
+	const splitLines = (s: string) => {
+		const arr = s.split('\n')
+		if (arr.length && arr[arr.length - 1] === '') arr.pop()
+		return arr
+	}
+
+	for (const [op, text] of diffs as [DmpOp, string][]) {
+		const lines = splitLines(text)
+		if (op === 0) {
+			if (inHunk) {
+				for (const ln of lines) {
+					if (postCtxLeft > 0) {
+						hunkLines.push(' ' + ln)
+						oldCount++; newCount++; oldLine++; newLine++; postCtxLeft--
+					} else {
+						flushHunk()
+						ctxBuf.push(ln)
+						if (ctxBuf.length > context) ctxBuf.shift()
+						oldLine++; newLine++
+					}
+				}
+			} else {
+				for (const ln of lines) {
+					ctxBuf.push(ln)
+					if (ctxBuf.length > context) ctxBuf.shift()
+					oldLine++; newLine++
+				}
+			}
+		} else if (op === -1) {
+			if (!inHunk) startHunkWithCtx()
+			for (const ln of lines) {
+				hunkLines.push('-' + ln)
+				oldCount++; oldLine++
+			}
+			postCtxLeft = context
+		} else {
+			if (!inHunk) startHunkWithCtx()
+			for (const ln of lines) {
+				hunkLines.push('+' + ln)
+				newCount++; newLine++
+			}
+			postCtxLeft = context
+		}
+	}
+
+	flushHunk()
+	return out.join('\n')
+}
+
+// Helper: apply a single diff to an 'original' baseline string, returning the new baseline.
+// This is used for per-diff accept in edit_file preview zones so that only the accepted
+// change is merged into the baseline while the remaining diffs stay visible.
+function applyDiffToBaseline(original: string, diff: Diff): string {
+	// We mirror the line indexing used in findDiffs: 1-based lines via a leading empty element.
+	const lines = ('\n' + (original ?? '')).split('\n');
+
+	const start = diff.originalStartLine;
+	if (start < 1 || start > lines.length) {
+		return original;
+	}
+
+	if (diff.type === 'insertion') {
+		// Insert the new lines at the insertion point.
+		const insertPos = Math.min(start, lines.length);
+		const newLines = (diff.code ?? '').split('\n');
+		lines.splice(insertPos, 0, ...newLines);
+		return lines.slice(1).join('\n');
+	}
+
+	if (diff.type === 'deletion' || diff.type === 'edit') {
+		// For edits and deletions we have an originalEndLine.
+		const end = diff.originalEndLine;
+		if (end < start || start >= lines.length) {
+			return original;
+		}
+
+		if (diff.type === 'deletion') {
+			// Drop the lines that were deleted in the new text.
+			const deleteCount = Math.min(end - start + 1, lines.length - start);
+			lines.splice(start, deleteCount);
+		} else {
+			// Replace the original range with the new content.
+			const deleteCount = Math.min(end - start + 1, lines.length - start);
+			const newLines = (diff.code ?? '').split('\n');
+			lines.splice(start, deleteCount, ...newLines);
+		}
+	}
+
+	return lines.slice(1).join('\n');
+}
 
 
 export const getLengthOfTextPx = ({ tabWidth, spaceWidth, content }: { tabWidth: number, spaceWidth: number, content: string }) => {
@@ -61,12 +473,11 @@ export const getLengthOfTextPx = ({ tabWidth, spaceWidth, content }: { tabWidth:
 			lengthOfTextPx += spaceWidth;
 		}
 	}
-
 	return lengthOfTextPx
 }
 
 
-const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number => {
+export const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number => {
 
 	const model = editor.getModel();
 	if (!model) {
@@ -99,62 +510,7 @@ const getLeadingWhitespacePx = (editor: ICodeEditor, startLine: number): number 
 	return leftWhitespacePx;
 };
 
-
-// Helper function to remove whitespace except newlines
-const removeWhitespaceExceptNewlines = (str: string): string => {
-	return str.replace(/[^\S\n]+/g, '');
-}
-
-
-
-// finds block.orig in fileContents and return its range in file
-// startingAtLine is 1-indexed and inclusive
-// returns 1-indexed lines
-const findTextInCode = (text: string, fileContents: string, canFallbackToRemoveWhitespace: boolean, opts: { startingAtLine?: number, returnType: 'lines' }) => {
-
-	const returnAns = (fileContents: string, idx: number) => {
-		const startLine = numLinesOfStr(fileContents.substring(0, idx + 1))
-		const numLines = numLinesOfStr(text)
-		const endLine = startLine + numLines - 1
-
-		return [startLine, endLine] as const
-	}
-
-	const startingAtLineIdx = (fileContents: string) => opts?.startingAtLine !== undefined ?
-		fileContents.split('\n').slice(0, opts.startingAtLine).join('\n').length // num characters in all lines before startingAtLine
-		: 0
-
-	// idx = starting index in fileContents
-	let idx = fileContents.indexOf(text, startingAtLineIdx(fileContents))
-
-	// if idx was found
-	if (idx !== -1) {
-		return returnAns(fileContents, idx)
-	}
-
-	if (!canFallbackToRemoveWhitespace)
-		return 'Not found' as const
-
-	// try to find it ignoring all whitespace this time
-	text = removeWhitespaceExceptNewlines(text)
-	fileContents = removeWhitespaceExceptNewlines(fileContents)
-	idx = fileContents.indexOf(text, startingAtLineIdx(fileContents));
-
-	if (idx === -1) return 'Not found' as const
-	const lastIdx = fileContents.lastIndexOf(text)
-	if (lastIdx !== idx) return 'Not unique' as const
-
-	return returnAns(fileContents, idx)
-}
-
-
-
-// line/col is the location, originalCodeStartLine is the start line of the original code being displayed
-type StreamLocationMutable = { line: number, col: number, addedSplitYet: boolean, originalCodeStartLine: number }
-
-
-
-class EditCodeService extends Disposable implements IEditCodeService {
+export class EditCodeService extends Disposable implements IEditCodeService {
 	_serviceBrand: undefined;
 
 	// URI <--> model
@@ -175,13 +531,367 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	onDidChangeDiffsInDiffZoneNotStreaming = this._onDidChangeDiffsInDiffZoneNotStreaming.event;
 	onDidChangeStreamingInDiffZone = this._onDidChangeStreamingInDiffZone.event;
 
+	// fired when instant apply fell back to locating ORIGINAL snippets and retried
+	private readonly _onDidUseFallback = new Emitter<{ uri: URI; message?: string }>();
+	public readonly onDidUseFallback = this._onDidUseFallback.event;
+
 	// ctrlKZone: [uri], isStreaming  // listen on change streaming
 	private readonly _onDidChangeStreamingInCtrlKZone = new Emitter<{ uri: URI; diffareaid: number }>();
 	onDidChangeStreamingInCtrlKZone = this._onDidChangeStreamingInCtrlKZone.event;
 
+	// remember last fallback message per file so UI can rehydrate state after status changes
+	private _lastFallbackMsgByFsPath = new Map<string, string>();
+
+	// optional public binding from applyBoxId -> uri for UI convenience
+	private _applyBoxIdToUri = new Map<string, URI>()
+	private _astContextByFsPath = new Map<string, { versionId: number; languageId: string; astContext: InferenceAstContext | null }>();
+	private _astWarmupByFsPath = new Map<string, Promise<void>>();
+	private _treeSitterImportPromise: Promise<typeof import('@vscode/tree-sitter-wasm')> | null = null;
+	private _treeSitterInitPromise: Promise<void> | null = null;
+	private _bundledParserByGrammar = new Map<string, Parser.Parser>();
+	private _bundledLanguageByGrammar = new Map<string, Parser.Language>();
+
+	public bindApplyBoxUri(applyBoxId: string, uri: URI) {
+		this._applyBoxIdToUri.set(applyBoxId, uri)
+	}
+
+	public getUriByApplyBoxId(applyBoxId: string): URI | undefined {
+		return this._applyBoxIdToUri.get(applyBoxId)
+	}
+
+	public getLastFallbackMessage(uri: URI): string | null {
+		return this._lastFallbackMsgByFsPath.get(uri.fsPath) ?? null
+	}
+
+	public recordFallbackMessage(uri: URI, message: string) {
+		try {
+			this._lastFallbackMsgByFsPath.set(uri.fsPath, message);
+		} catch { /* ignore */ }
+
+		try {
+			this._onDidUseFallback.fire({ uri, message });
+		} catch { /* ignore */ }
+	}
+
+	private _isAstInferenceEnabled(): boolean {
+		try {
+			return !!this._settingsService.state.globalSettings.applyAstInference;
+		} catch {
+			return false;
+		}
+	}
+
+	private async _promiseWithTimeout<T>(
+		promise: Promise<T>,
+		timeoutMs: number,
+		fallback: T,
+		label: string
+	): Promise<T> {
+		let timer: any;
+		let didTimeout = false;
+		const timeoutPromise = new Promise<T>(resolve => {
+			timer = setTimeout(() => {
+				didTimeout = true;
+				resolve(fallback);
+			}, timeoutMs);
+		});
+
+		try {
+			return await Promise.race([promise, timeoutPromise]);
+		} catch (e) {
+			this.logService.debug(`[apply-ast] ${label} failed`, e);
+			return fallback;
+		} finally {
+			if (timer !== undefined) clearTimeout(timer);
+			if (didTimeout) {
+				this.logService.debug(`[apply-ast] ${label} timed out after ${timeoutMs}ms`);
+			}
+		}
+	}
+
+	private _grammarNameForLanguageId(languageId: string): string | null {
+		const id = String(languageId || '').toLowerCase();
+		const map: Record<string, string> = {
+			typescript: 'tree-sitter-typescript',
+			typescriptreact: 'tree-sitter-tsx',
+			tsx: 'tree-sitter-tsx',
+			javascript: 'tree-sitter-javascript',
+			javascriptreact: 'tree-sitter-tsx',
+			css: 'tree-sitter-css',
+			ini: 'tree-sitter-ini',
+			regex: 'tree-sitter-regex',
+			python: 'tree-sitter-python',
+			go: 'tree-sitter-go',
+			java: 'tree-sitter-java',
+			csharp: 'tree-sitter-c-sharp',
+			'c#': 'tree-sitter-c-sharp',
+			cpp: 'tree-sitter-cpp',
+			'c++': 'tree-sitter-cpp',
+			php: 'tree-sitter-php',
+			ruby: 'tree-sitter-ruby',
+			rust: 'tree-sitter-rust',
+		};
+		return map[id] ?? null;
+	}
+
+	private async _getTreeSitterImport() {
+		if (!this._treeSitterImportPromise) {
+			this._treeSitterImportPromise = importAMDNodeModule<typeof import('@vscode/tree-sitter-wasm')>(
+				'@vscode/tree-sitter-wasm',
+				'wasm/tree-sitter.js'
+			);
+		}
+		return this._treeSitterImportPromise;
+	}
+
+	private async _ensureBundledTreeSitterInitialized() {
+		const mod = await this._getTreeSitterImport();
+		if (!this._treeSitterInitPromise) {
+			const parserWasmPath = `${getModuleLocation(this._environmentService)}/tree-sitter.wasm` as AppResourcePath;
+			this._treeSitterInitPromise = mod.Parser.init({
+				locateFile: () => FileAccess.asBrowserUri(parserWasmPath).toString(true)
+			}).then(() => undefined);
+		}
+		await this._treeSitterInitPromise;
+		return mod;
+	}
+
+	private async _getBundledLanguage(grammarName: string): Promise<Parser.Language | null> {
+		const cached = this._bundledLanguageByGrammar.get(grammarName);
+		if (cached) return cached;
+
+		try {
+			const mod = await this._ensureBundledTreeSitterInitialized();
+			const wasmPath = `${getModuleLocation(this._environmentService)}/${grammarName}.wasm` as AppResourcePath;
+			const data = await this._fileService.readFile(FileAccess.asFileUri(wasmPath));
+			const language = await mod.Language.load(data.value.buffer);
+			this._bundledLanguageByGrammar.set(grammarName, language);
+			return language;
+		} catch (e) {
+			this.logService.debug('[apply-ast] Failed to load bundled language', grammarName, e);
+			return null;
+		}
+	}
+
+	private async _getBundledParser(grammarName: string): Promise<Parser.Parser | null> {
+		const language = await this._getBundledLanguage(grammarName);
+		if (!language) return null;
+
+		let parser = this._bundledParserByGrammar.get(grammarName);
+		if (!parser) {
+			const mod = await this._ensureBundledTreeSitterInitialized();
+			parser = new mod.Parser();
+			this._bundledParserByGrammar.set(grammarName, parser);
+		}
+		parser.setLanguage(language);
+		return parser;
+	}
+
+	private _isInterestingAstNodeType(nodeType: string, span: number): boolean {
+		const t = nodeType.toLowerCase();
+		if (span < 20) return false;
+		if (t === 'program' || t === 'source_file' || t === 'module') return span >= 120;
+
+		return /(function|method|class|interface|enum|struct|impl|namespace|module|declaration|definition|statement_block|block|object|trait|record|lambda|arrow_function|closure|if_statement|for_statement|while_statement|switch_statement|try_statement)/.test(t);
+	}
+
+	private _collectAstCandidates(tree: Parser.Tree): InferenceAstContext['candidates'] {
+		const candidates: InferenceAstContext['candidates'] = [];
+		const seen = new Set<string>();
+		const cursor = tree.rootNode.walk();
+		let goDown = true;
+		let visited = 0;
+
+		try {
+			while (true) {
+				if (goDown) {
+					const startOffset = cursor.startIndex;
+					const endOffset = cursor.endIndex;
+					visited += 1;
+
+					if (visited > 45000 || candidates.length >= 1600) break;
+
+					if (endOffset > startOffset && this._isInterestingAstNodeType(cursor.nodeType, endOffset - startOffset)) {
+						const key = `${startOffset}:${endOffset}`;
+						if (!seen.has(key)) {
+							seen.add(key);
+							candidates.push({ startOffset, endOffset, nodeType: cursor.nodeType });
+						}
+					}
+
+					if (cursor.gotoFirstChild()) continue;
+					goDown = false;
+				}
+
+				if (cursor.gotoNextSibling()) {
+					goDown = true;
+					continue;
+				}
+				if (!cursor.gotoParent()) break;
+			}
+		} finally {
+			cursor.delete();
+		}
+
+		candidates.sort((a, b) => a.startOffset - b.startOffset);
+		return candidates;
+	}
+
+	private _putAstContextCache(uri: URI, model: ITextModel | null, astContext: InferenceAstContext | null): void {
+		if (!model) return;
+		const entry = {
+			versionId: model.getVersionId(),
+			languageId: model.getLanguageId(),
+			astContext
+		};
+		this._astContextByFsPath.delete(uri.fsPath);
+		this._astContextByFsPath.set(uri.fsPath, entry);
+
+		const maxEntries = 80;
+		while (this._astContextByFsPath.size > maxEntries) {
+			const oldest = this._astContextByFsPath.keys().next().value as string | undefined;
+			if (!oldest) break;
+			this._astContextByFsPath.delete(oldest);
+		}
+	}
+
+	private _getCachedAstContext(uri: URI, model: ITextModel | null): InferenceAstContext | null {
+		if (!model) return null;
+		const cached = this._astContextByFsPath.get(uri.fsPath);
+		if (!cached) return null;
+		if (cached.versionId !== model.getVersionId()) return null;
+		if (cached.languageId !== model.getLanguageId()) return null;
+		return cached.astContext;
+	}
+
+	private async _buildAstContextFromService(model: ITextModel): Promise<InferenceAstContext | null> {
+		try {
+			let tree = this._treeSitterParserService.getParseResult(model)?.parseResult?.tree;
+			if (!tree) {
+				const textModelTree = await this._promiseWithTimeout(
+					this._treeSitterParserService.getTextModelTreeSitter(model, true),
+					500,
+					null,
+					'service.getTextModelTreeSitter'
+				);
+				if (textModelTree && !textModelTree.parseResult?.tree) {
+					await this._promiseWithTimeout(
+						textModelTree.parse(model.getLanguageId()),
+						700,
+						undefined,
+						'service.parse'
+					);
+				}
+				tree = textModelTree?.parseResult?.tree;
+			}
+			if (!tree) return null;
+
+			const candidates = this._collectAstCandidates(tree);
+			if (candidates.length === 0) return null;
+			return { candidates, languageId: model.getLanguageId(), source: 'service' };
+		} catch {
+			return null;
+		}
+	}
+
+	private async _buildAstContextFromBundled(fileText: string, languageId: string): Promise<InferenceAstContext | null> {
+		const grammar = this._grammarNameForLanguageId(languageId);
+		if (!grammar) return null;
+
+		const parser = await this._getBundledParser(grammar);
+		if (!parser) return null;
+
+		let tree: Parser.Tree | null = null;
+		try {
+			tree = parser.parse(fileText);
+			if (!tree) return null;
+			const candidates = this._collectAstCandidates(tree);
+			if (candidates.length === 0) return null;
+			return { candidates, languageId, source: 'bundled' };
+		} catch (e) {
+			this.logService.debug('[apply-ast] Bundled parser failed', languageId, e);
+			return null;
+		} finally {
+			tree?.delete?.();
+		}
+	}
+
+	private async _getOrBuildAstContext(uri: URI, fileText: string, model: ITextModel | null): Promise<InferenceAstContext | null> {
+		if (!this._isAstInferenceEnabled()) return null;
+		if (!fileText || fileText.length < 24) return null;
+		if (fileText.length > 2_000_000) return null;
+
+		const cached = this._getCachedAstContext(uri, model);
+		if (cached) return cached;
+
+		let astContext: InferenceAstContext | null = null;
+		if (model) {
+			astContext = await this._promiseWithTimeout(
+				this._buildAstContextFromService(model),
+				900,
+				null,
+				'buildAstContextFromService'
+			);
+		}
+		if (!astContext) {
+			astContext = await this._promiseWithTimeout(
+				this._buildAstContextFromBundled(fileText, model?.getLanguageId() ?? ''),
+				900,
+				null,
+				'buildAstContextFromBundled'
+			);
+		}
+
+		this._putAstContextCache(uri, model, astContext);
+		return astContext;
+	}
+
+	private async _prewarmAstForUri(uri: URI): Promise<void> {
+		if (!this._isAstInferenceEnabled()) return;
+		if (this._astWarmupByFsPath.has(uri.fsPath)) {
+			await this._astWarmupByFsPath.get(uri.fsPath);
+			return;
+		}
+
+		const warmupPromise = (async () => {
+			const model = this._modelService.getModel(uri);
+			if (!model) return;
+			const cached = this._getCachedAstContext(uri, model);
+			if (cached) return;
+			const astContext = await this._promiseWithTimeout(
+				this._buildAstContextFromService(model),
+				900,
+				null,
+				'prewarm.buildAstContextFromService'
+			);
+			this._putAstContextCache(uri, model, astContext);
+		})();
+
+		this._astWarmupByFsPath.set(uri.fsPath, warmupPromise);
+		try {
+			await warmupPromise;
+		} finally {
+			this._astWarmupByFsPath.delete(uri.fsPath);
+		}
+	}
+
+	public async inferSelectionForApply({
+		uri,
+		codeStr,
+		fileText
+	}: {
+		uri: URI;
+		codeStr: string;
+		fileText: string;
+	}): Promise<{ text: string; range: [number, number] } | null> {
+		if (!codeStr || !fileText) return null;
+		const model = this._modelService.getModel(uri);
+		const astContext = await this._getOrBuildAstContext(uri, fileText, model);
+		return inferSelectionFromCode({ codeStr, fileText, astContext: astContext ?? undefined });
+	}
+
 
 	constructor(
-		// @IHistoryService private readonly _historyService: IHistoryService, // history service is the history of pressing alt left/right
 		@ICodeEditorService private readonly _codeEditorService: ICodeEditorService,
 		@IModelService private readonly _modelService: IModelService,
 		@IUndoRedoService private readonly _undoRedoService: IUndoRedoService, // undoRedo service is the history of pressing ctrl+z
@@ -191,11 +901,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		@IConsistentEditorItemService private readonly _consistentEditorItemService: IConsistentEditorItemService,
 		@IMetricsService private readonly _metricsService: IMetricsService,
 		@INotificationService private readonly _notificationService: INotificationService,
-		// @ICommandService private readonly _commandService: ICommandService,
 		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
-		// @IFileService private readonly _fileService: IFileService,
 		@IVoidModelService private readonly _voidModelService: IVoidModelService,
 		@IConvertToLLMMessageService private readonly _convertToLLMMessageService: IConvertToLLMMessageService,
+		@ILogService private readonly logService: ILogService,
+		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
+		@ITreeSitterParserService private readonly _treeSitterParserService: ITreeSitterParserService,
+		@IFileService private readonly _fileService: IFileService,
+		@IEnvironmentService private readonly _environmentService: IEnvironmentService,
 	) {
 		super();
 
@@ -240,10 +953,89 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// add listeners for all existing editors + listen for editor being added
 		for (let editor of this._codeEditorService.listCodeEditors()) { initializeEditor(editor) }
 		this._register(this._codeEditorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
-
-
 	}
 
+	private _getWorkspaceRelativePathForCmd(uri: URI): string {
+		try {
+			const ws = this._workspaceContextService.getWorkspace();
+			const folders = ws?.folders ?? [];
+			if (folders.length === 0) return uri.fsPath;
+
+			const norm = (p: string) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/g, '');
+			const file = norm(uri.fsPath);
+
+			for (const f of folders) {
+				const root = norm(f.uri.fsPath);
+				if (!root) continue;
+
+				if (file === root) return '.';
+				if (file.startsWith(root + '/')) {
+					const rel = file.slice(root.length + 1);
+					return rel || '.';
+				}
+			}
+		} catch { /* ignore */ }
+
+		return uri.fsPath;
+	}
+
+	private async _formatDocumentAtUri(uri: URI): Promise<void> {
+		try {
+			const editor = this._codeEditorService
+				.listCodeEditors()
+				.find(e => e.getModel()?.uri?.fsPath === uri.fsPath);
+
+			if (!editor) {
+				this.logService.debug('[format] No editor found for uri:', uri.fsPath);
+				return;
+			}
+
+			const action = editor.getAction?.('editor.action.formatDocument');
+			if (!action) {
+				this.logService.debug('[format] No formatDocument action on editor for uri:', uri.fsPath);
+				return;
+			}
+
+			this.logService.debug('[format] Running editor.action.formatDocument for:', uri.fsPath);
+			await action.run();
+
+		} catch (e: any) {
+			this.logService.warn('[format] Failed to format document:', uri.fsPath, e);
+		}
+	}
+
+	public hasIdleDiffZoneForApplyBox(uri: URI, applyBoxId: string): boolean {
+		const setIds = this.diffAreasOfURI?.[uri.fsPath];
+		if (!setIds || setIds.size === 0) return false;
+
+		for (const id of Array.from(setIds)) {
+			const da = this.diffAreaOfId?.[id];
+			if (da && da.type === 'DiffZone' && !da._streamState?.isStreaming && da.applyBoxId === applyBoxId) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private _getEditFileSimpleDiffZoneForApplyBox(uri: URI, applyBoxId: string): (DiffZone & { _editFileSimple?: any }) | null {
+		const setIds = this.diffAreasOfURI?.[uri.fsPath];
+		if (!setIds || setIds.size === 0) return null;
+
+		for (const id of Array.from(setIds)) {
+			const da = this.diffAreaOfId?.[id];
+			if (da && da.type === 'DiffZone' && (da as any)._editFileSimple && da.applyBoxId === applyBoxId) {
+				return da as any;
+			}
+		}
+		return null;
+	}
+
+	public async applyEditFileSimpleForApplyBox({ uri, applyBoxId }: { uri: URI; applyBoxId: string }): Promise<boolean> {
+		const dz = this._getEditFileSimpleDiffZoneForApplyBox(uri, applyBoxId);
+		if (!dz) return false;
+		await this.applyEditFileSimpleFromDiffZone(dz as any);
+		return true;
+	}
 
 	private _onUserChangeContent(uri: URI, e: IModelContentChangedEvent) {
 		for (const change of e.changes) {
@@ -268,33 +1060,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 	}
 
-
 	public processRawKeybindingText(keybindingStr: string): string {
 		return keybindingStr
-			.replace(/Enter/g, '↵') // ⏎
+			// allow-any-unicode-next-line
+			.replace(/Enter/g, '↵')
+			// allow-any-unicode-next-line
 			.replace(/Backspace/g, '⌫');
 	}
-
-	// private _notifyError = (e: Parameters<OnError>[0]) => {
-	// 	const details = errorDetails(e.fullError)
-	// 	this._notificationService.notify({
-	// 		severity: Severity.Warning,
-	// 		message: `Void Error: ${e.message}`,
-	// 		actions: {
-	// 			secondary: [{
-	// 				id: 'void.onerror.opensettings',
-	// 				enabled: true,
-	// 				label: `Open Void's settings`,
-	// 				tooltip: '',
-	// 				class: undefined,
-	// 				run: () => { this._commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID) }
-	// 			}]
-	// 		},
-	// 		source: details ? `(Hold ${isMacintosh ? 'Option' : 'Alt'} to hover) - ${details}\n\nIf this persists, feel free to [report](https://github.com/voideditor/void/issues/new) it.` : undefined
-	// 	})
-	// }
-
-
 
 	// highlight the region
 	private _addLineDecoration = (model: ITextModel | null, startLine: number, endLine: number, className: string, options?: Partial<IModelDecorationOptions>) => {
@@ -312,7 +1084,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		return disposeHighlight
 	}
-
 
 	private _addDiffAreaStylesToURI = (uri: URI) => {
 		const { model } = this._voidModelService.getModel(uri)
@@ -342,7 +1113,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 	}
 
-
 	private _computeDiffsAndAddStylesToURI = (uri: URI) => {
 		const { model } = this._voidModelService.getModel(uri)
 		if (model === null) return
@@ -367,8 +1137,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		}
 	}
-
-
 
 	mostRecentTextOfCtrlKZoneId: Record<string, string | undefined> = {}
 	private _addCtrlKZoneInput = (ctrlKZone: CtrlKZone) => {
@@ -414,13 +1182,13 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						textAreaRef.current = r
 						if (!textAreaRef.current) return
 
-						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) { // detect first mount this way (a hack)
+						if (!(ctrlKZone.diffareaid in this.mostRecentTextOfCtrlKZoneId)) {
 							this.mostRecentTextOfCtrlKZoneId[ctrlKZone.diffareaid] = undefined
 							setTimeout(() => textAreaRef.current?.focus(), 100)
 						}
 					},
 					onChangeHeight(height) {
-						if (height === 0) return // the viewZone sets this height to the container if it's out of view, ignore it
+						if (height === 0) return
 						viewZone.heightInPx = height
 						// re-render with this new height
 						editor.changeViewZones(accessor => {
@@ -455,22 +1223,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		} satisfies CtrlKZone['_mountInfo']
 	}
 
-
-
 	private _refreshCtrlKInputs = async (uri: URI) => {
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
 			if (diffArea.type !== 'CtrlKZone') continue
 			if (!diffArea._mountInfo) {
 				diffArea._mountInfo = this._addCtrlKZoneInput(diffArea)
-				console.log('MOUNTED CTRLK', diffArea.diffareaid)
 			}
 			else {
 				diffArea._mountInfo.refresh()
 			}
 		}
 	}
-
 
 	private _addDiffStylesToURI = (uri: URI, diff: Diff) => {
 		const { type, diffid } = diff
@@ -491,9 +1255,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		// red in a view zone
 		if (type !== 'insertion') {
-			const consistentZoneId = this._consistentItemService.addConsistentItemToURI({
+			const consistentZoneId = (this._consistentItemService as any)?.addConsistentItemToURI?.({
 				uri,
-				fn: (editor) => {
+				fn: (editor: ICodeEditor) => {
 
 					const domNode = document.createElement('div');
 					domNode.className = 'void-redBG'
@@ -553,9 +1317,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					editor.changeViewZones(accessor => { zoneId = accessor.addZone(viewZone) })
 					return () => editor.changeViewZones(accessor => { if (zoneId) accessor.removeZone(zoneId) })
 				},
-			})
+			}) ?? null
 
-			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentZoneId) })
+			if (consistentZoneId !== null) {
+				disposeInThisEditorFns.push(() => { (this._consistentItemService as any)?.removeConsistentItemFromURI?.(consistentZoneId) })
+			}
 
 		}
 
@@ -564,9 +1330,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		const diffZone = this.diffAreaOfId[diff.diffareaid]
 		if (diffZone.type === 'DiffZone' && !diffZone._streamState.isStreaming) {
 			// Accept | Reject widget
-			const consistentWidgetId = this._consistentItemService.addConsistentItemToURI({
+			const consistentWidgetId = (this._consistentItemService as any)?.addConsistentItemToURI?.({
 				uri,
-				fn: (editor) => {
+				fn: (editor: ICodeEditor) => {
 					let startLine: number
 					let offsetLines: number
 					if (diff.type === 'insertion' || diff.type === 'edit') {
@@ -590,8 +1356,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					const buttonsWidget = this._instantiationService.createInstance(AcceptRejectInlineWidget, {
 						editor,
 						onAccept: () => {
-							this.acceptDiff({ diffid })
-							this._metricsService.capture('Accept Diff', { diffid })
+							try {
+								const currentDiffZone = this.diffAreaOfId[diff.diffareaid]
+								const isEditFile = currentDiffZone && (currentDiffZone as any)._editFileSimple
+								void this.acceptDiff({ diffid }).then(() => {
+									this._metricsService.capture(isEditFile ? 'Accept Diff (edit_file)' : 'Accept Diff', { diffid })
+								}).catch((e) => {
+									this._notificationService?.warn?.(`Accept failed: ${e?.message ?? String(e)}`)
+									this.logService.error('acceptDiff error:', e)
+								})
+							} catch (e) {
+								this.logService.error('Error in onAccept handler:', e)
+							}
 						},
 						onReject: () => {
 							this.rejectDiff({ diffid })
@@ -603,17 +1379,16 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					})
 					return () => { buttonsWidget.dispose() }
 				}
-			})
-			disposeInThisEditorFns.push(() => { this._consistentItemService.removeConsistentItemFromURI(consistentWidgetId) })
+			}) ?? null
+			if (consistentWidgetId !== null) {
+				disposeInThisEditorFns.push(() => { (this._consistentItemService as any)?.removeConsistentItemFromURI?.(consistentWidgetId) })
+			}
 		}
 
 		const disposeInEditor = () => { disposeInThisEditorFns.forEach(f => f()) }
 		return disposeInEditor;
 
 	}
-
-
-
 
 	private _getActiveEditorURI(): URI | null {
 		const editor = this._codeEditorService.getActiveCodeEditor()
@@ -624,6 +1399,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	}
 
 	weAreWriting = false
+	private readonly _activeBulkAcceptRejectUris = new Set<string>()
 	private _writeURIText(uri: URI, text: string, range_: IRange | 'wholeFileRange', { shouldRealignDiffAreas, }: { shouldRealignDiffAreas: boolean, }) {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) {
@@ -641,7 +1417,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			const oldRange = range
 			this._realignAllDiffAreasLines(uri, newText, oldRange)
 		}
-
 		const uriStr = model.getValue(EndOfLinePreference.LF)
 
 		// heuristic check
@@ -657,10 +1432,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		this._refreshStylesAndDiffsInURI(uri)
 	}
-
-
-
-
 
 
 	private _getCurrentVoidFileSnapshot = (uri: URI): VoidFileSnapshot => {
@@ -733,10 +1504,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			'wholeFileRange',
 			{ shouldRealignDiffAreas: false }
 		)
-		// this._noLongerNeedModelReference(uri)
 	}
 
-	private _addToHistory(uri: URI, opts?: { onWillUndo?: () => void }) {
+	private _addToHistory(uri: URI, opts?: { onWillUndo?: () => void; save?: boolean }) {
 		const beforeSnapshot: VoidFileSnapshot = this._getCurrentVoidFileSnapshot(uri)
 		let afterSnapshot: VoidFileSnapshot | null = null
 
@@ -752,7 +1522,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		const onFinishEdit = async () => {
 			afterSnapshot = this._getCurrentVoidFileSnapshot(uri)
-			await this._voidModelService.saveModel(uri)
+			if (opts?.save !== false) {
+				await this._voidModelService.saveModel(uri)
+			}
 		}
 		return { onFinishEdit }
 	}
@@ -801,18 +1573,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 	}
 
-
 	// delete all diffs, update diffAreaOfId, update diffAreasOfModelId
 	private _deleteDiffZone(diffZone: DiffZone) {
 		this._clearAllDiffAreaEffects(diffZone)
 		delete this.diffAreaOfId[diffZone.diffareaid]
 		this.diffAreasOfURI[diffZone._URI.fsPath]?.delete(diffZone.diffareaid.toString())
 		this._onDidAddOrDeleteDiffZones.fire({ uri: diffZone._URI })
-	}
-
-	private _deleteTrackingZone(trackingZone: TrackingZone<unknown>) {
-		delete this.diffAreaOfId[trackingZone.diffareaid]
-		this.diffAreasOfURI[trackingZone._URI.fsPath]?.delete(trackingZone.diffareaid.toString())
 	}
 
 	private _deleteCtrlKZone(ctrlKZone: CtrlKZone) {
@@ -870,13 +1636,8 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		return newDiff
 	}
 
-
-
-
 	// changes the start/line locations of all DiffAreas on the page (adjust their start/end based on the change) based on the change that was recently made
 	private _realignAllDiffAreasLines(uri: URI, text: string, recentChange: { startLineNumber: number; endLineNumber: number }) {
-
-		// console.log('recent change', recentChange)
 
 		// compute net number of newlines lines that were added/removed
 		const startLine = recentChange.startLineNumber
@@ -890,12 +1651,10 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 			// if the diffArea is entirely above the range, it is not affected
 			if (diffArea.endLine < startLine) {
-				// console.log('CHANGE FULLY BELOW DA (doing nothing)')
 				continue
 			}
 			// if a diffArea is entirely below the range, shift the diffArea up/down by the delta amount of newlines
 			else if (endLine < diffArea.startLine) {
-				// console.log('CHANGE FULLY ABOVE DA')
 				const changedRangeHeight = endLine - startLine + 1
 				const deltaNewlines = newTextHeight - changedRangeHeight
 				diffArea.startLine += deltaNewlines
@@ -903,20 +1662,17 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			// if the diffArea fully contains the change, elongate it by the delta amount of newlines
 			else if (startLine >= diffArea.startLine && endLine <= diffArea.endLine) {
-				// console.log('DA FULLY CONTAINS CHANGE')
 				const changedRangeHeight = endLine - startLine + 1
 				const deltaNewlines = newTextHeight - changedRangeHeight
 				diffArea.endLine += deltaNewlines
 			}
 			// if the change fully contains the diffArea, make the diffArea have the same range as the change
 			else if (diffArea.startLine > startLine && diffArea.endLine < endLine) {
-				// console.log('CHANGE FULLY CONTAINS DA')
 				diffArea.startLine = startLine
 				diffArea.endLine = startLine + newTextHeight
 			}
 			// if the change contains only the diffArea's top
 			else if (startLine < diffArea.startLine && diffArea.startLine <= endLine) {
-				// console.log('CHANGE CONTAINS TOP OF DA ONLY')
 				const numOverlappingLines = endLine - diffArea.startLine + 1
 				const numRemainingLinesInDA = diffArea.endLine - diffArea.startLine + 1 - numOverlappingLines
 				const newHeight = (numRemainingLinesInDA - 1) + (newTextHeight - 1) + 1
@@ -925,15 +1681,12 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			// if the change contains only the diffArea's bottom
 			else if (startLine <= diffArea.endLine && diffArea.endLine < endLine) {
-				// console.log('CHANGE CONTAINS BOTTOM OF DA ONLY')
 				const numOverlappingLines = diffArea.endLine - startLine + 1
 				diffArea.endLine += newTextHeight - numOverlappingLines
 			}
 		}
 
 	}
-
-
 
 	private _fireChangeDiffsIfNotStreaming(uri: URI) {
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
@@ -945,7 +1698,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 		}
 	}
-
 
 	private _refreshStylesAndDiffsInURI(uri: URI) {
 
@@ -964,88 +1716,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		// 5. this is the only place where diffs are changed, so can fire here only
 		this._fireChangeDiffsIfNotStreaming(uri)
 	}
-
-
-
-
-	// @throttle(100)
-	private _writeStreamedDiffZoneLLMText(uri: URI, originalCode: string, llmTextSoFar: string, deltaText: string, latestMutable: StreamLocationMutable) {
-
-		let numNewLines = 0
-
-		// ----------- 1. Write the new code to the document -----------
-		// figure out where to highlight based on where the AI is in the stream right now, use the last diff to figure that out
-		const computedDiffs = findDiffs(originalCode, llmTextSoFar)
-
-		// if streaming, use diffs to figure out where to write new code
-		// these are two different coordinate systems - new and old line number
-		let endLineInLlmTextSoFar: number // get file[diffArea.startLine...newFileEndLine] with line=newFileEndLine highlighted
-		let startLineInOriginalCode: number // get original[oldStartingPoint...] (line in the original code, so starts at 1)
-
-		const lastDiff = computedDiffs.pop()
-
-		if (!lastDiff) {
-			// console.log('!lastDiff')
-			// if the writing is identical so far, display no changes
-			startLineInOriginalCode = 1
-			endLineInLlmTextSoFar = 1
-		}
-		else {
-			startLineInOriginalCode = lastDiff.originalStartLine
-			if (lastDiff.type === 'insertion' || lastDiff.type === 'edit')
-				endLineInLlmTextSoFar = lastDiff.endLine
-			else if (lastDiff.type === 'deletion')
-				endLineInLlmTextSoFar = lastDiff.startLine
-			else
-				throw new Error(`Void: diff.type not recognized on: ${lastDiff}`)
-		}
-
-		// at the start, add a newline between the stream and originalCode to make reasoning easier
-		if (!latestMutable.addedSplitYet) {
-			this._writeURIText(uri, '\n',
-				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col, },
-				{ shouldRealignDiffAreas: true }
-			)
-			latestMutable.addedSplitYet = true
-			numNewLines += 1
-		}
-
-		// insert deltaText at latest line and col
-		this._writeURIText(uri, deltaText,
-			{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col },
-			{ shouldRealignDiffAreas: true }
-		)
-		const deltaNumNewLines = deltaText.split('\n').length - 1
-		latestMutable.line += deltaNumNewLines
-		const lastNewlineIdx = deltaText.lastIndexOf('\n')
-		latestMutable.col = lastNewlineIdx === -1 ? latestMutable.col + deltaText.length : deltaText.length - lastNewlineIdx
-		numNewLines += deltaNumNewLines
-
-		// delete or insert to get original up to speed
-		if (latestMutable.originalCodeStartLine < startLineInOriginalCode) {
-			// moved up, delete
-			const numLinesDeleted = startLineInOriginalCode - latestMutable.originalCodeStartLine
-			this._writeURIText(uri, '',
-				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line + numLinesDeleted, endColumn: Number.MAX_SAFE_INTEGER, },
-				{ shouldRealignDiffAreas: true }
-			)
-			numNewLines -= numLinesDeleted
-		}
-		else if (latestMutable.originalCodeStartLine > startLineInOriginalCode) {
-			const newText = '\n' + originalCode.split('\n').slice((startLineInOriginalCode - 1), (latestMutable.originalCodeStartLine - 1) - 1 + 1).join('\n')
-			this._writeURIText(uri, newText,
-				{ startLineNumber: latestMutable.line, startColumn: latestMutable.col, endLineNumber: latestMutable.line, endColumn: latestMutable.col },
-				{ shouldRealignDiffAreas: true }
-			)
-			numNewLines += newText.split('\n').length - 1
-		}
-		latestMutable.originalCodeStartLine = startLineInOriginalCode
-
-		return { endLineInLlmTextSoFar, numNewLines } // numNewLines here might not be correct....
-	}
-
-
-
 
 	// called first, then call startApplying
 	public addCtrlKZone({ startLine, endLine, editor }: AddCtrlKOpts) {
@@ -1104,10 +1774,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		onFinishEdit()
 	}
 
-
-
-
 	private _getURIBeforeStartApplying(opts: CallBeforeStartApplyingOpts) {
+		this.logService.debug('[DEBUG] _getURIBeforeStartApplying opts:', JSON.stringify(opts, null, 2));
+
 		// SR
 		if (opts.from === 'ClickApply') {
 			const uri = this._uriOfGivenURI(opts.uri)
@@ -1115,95 +1784,265 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			return uri
 		}
 		else if (opts.from === 'QuickEdit') {
-			const { diffareaid } = opts
+			const { diffareaid } = opts as any
+			this.logService.debug('[DEBUG] QuickEdit branch, diffareaid:', diffareaid);
 			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone?.type !== 'CtrlKZone') return
+			this.logService.debug('[DEBUG] ctrlKZone:', ctrlKZone);
+			if (ctrlKZone?.type !== 'CtrlKZone') {
+				this.logService.debug('[DEBUG] Invalid ctrlKZone or wrong type');
+				return
+			}
 			const { _URI: uri } = ctrlKZone
+			this.logService.debug('[DEBUG] URI from ctrlKZone:', uri.toString());
 			return uri
 		}
 		return
 	}
 
-	public async callBeforeApplyOrEdit(givenURI: URI | 'current') {
-		const uri = this._uriOfGivenURI(givenURI)
-		if (!uri) return
+	public async callBeforeApplyOrEdit(givenURI: URI | 'current' | CallBeforeStartApplyingOpts) {
+		this.logService.debug('[DEBUG] callBeforeApplyOrEdit givenURI:', JSON.stringify(givenURI));
+
+		let uri: URI | undefined;
+		if (givenURI === 'current' || URI.isUri(givenURI)) {
+			uri = this._uriOfGivenURI(givenURI as URI | 'current');
+		} else {
+			uri = this._getURIBeforeStartApplying(givenURI);
+		}
+
+		if (!uri) {
+			this.logService.debug('[DEBUG] No URI found in callBeforeApplyOrEdit');
+			return
+		}
+		this.logService.debug('[DEBUG] Initializing model with URI:', JSON.stringify(uri));
 		await this._voidModelService.initializeModel(uri)
 		await this._voidModelService.saveModel(uri) // save the URI
+		this._prewarmAstForUri(uri).catch(e => {
+			this.logService.debug('[apply-ast] prewarm failed', uri.fsPath, e);
+		});
 	}
 
-
-	// the applyDonePromise this returns can reject, and should be caught with .catch
 	public startApplying(opts: StartApplyingOpts): [URI, Promise<void>] | null {
+		this.logService.debug('[startApplying] Called with opts:', JSON.stringify({
+			from: opts.from,
+			uri: (opts as any).uri?.toString?.(),
+			applyStr: (opts as any).applyStr?.substring?.(0, 100) + '...',
+			applyBoxId: (opts as any).applyBoxId
+		}))
+
 		let res: [DiffZone, Promise<void>] | undefined = undefined
 
 		if (opts.from === 'QuickEdit') {
-			res = this._initializeWriteoverStream(opts) // rewrite
+			this.logService.debug('[startApplying] QuickEdit branch')
+			res = this._initializeWriteoverStream(opts)
 		}
 		else if (opts.from === 'ClickApply') {
-			if (this._settingsService.state.globalSettings.enableFastApply) {
-				const numCharsInFile = this._fileLengthOfGivenURI(opts.uri)
-				if (numCharsInFile === null) return null
-				if (numCharsInFile < 1000) { // slow apply for short files (especially important for empty files)
-					res = this._initializeWriteoverStream(opts)
-				}
-				else {
-					res = this._initializeSearchAndReplaceStream(opts) // fast apply
-				}
-			}
-			else {
-				res = this._initializeWriteoverStream(opts) // rewrite
-			}
+			this.logService.debug('[startApplying] ClickApply branch')
+			res = this._handleClickApply(opts)
 		}
 
-		if (!res) return null
+		if (!res) {
+			this.logService.debug('[startApplying] No result, returning null')
+			return null
+		}
+
 		const [diffZone, applyDonePromise] = res
+		this.logService.debug('[startApplying] Success, returning URI:', diffZone._URI.toString())
 		return [diffZone._URI, applyDonePromise]
 	}
 
+	private _handleClickApply(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
+		const startOpts = opts as any
+		this.logService.debug('[_handleClickApply] Start with opts:', JSON.stringify({
+			uri: startOpts.uri?.toString?.(),
+			hasApplyStr: !!startOpts.applyStr,
+			applyStrLength: startOpts.applyStr?.length,
+			applyBoxId: startOpts.applyBoxId
+		}))
 
-	public instantlyApplySearchReplaceBlocks({ uri, searchReplaceBlocks }: { uri: URI, searchReplaceBlocks: string }) {
-		// start diffzone
-		const res = this._startStreamingDiffZone({
-			uri,
-			streamRequestIdRef: { current: null },
-			startBehavior: 'keep-conflicts',
-			linkedCtrlKZone: null,
-			onWillUndo: () => { },
-		})
-		if (!res) return
-		const { diffZone, onFinishEdit } = res
-
-
-		const onDone = () => {
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
-			this._refreshStylesAndDiffsInURI(uri)
-			onFinishEdit()
-
-			// auto accept
-			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
-				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept' })
-			}
+		// Try to infer ORIGINAL and create preview
+		const inferredResult = this._tryInferAndPreview(startOpts)
+		if (inferredResult) {
+			this.logService.debug('[_handleClickApply] Inferred result found, using it')
+			return inferredResult
 		}
 
-
-		const onError = (e: { message: string; fullError: Error | null; }) => {
-			// this._notifyError(e)
-			onDone()
-			this._undoHistory(uri)
-			throw e.fullError || new Error(e.message)
-		}
-
-		try {
-			this._instantlyApplySRBlocks(uri, searchReplaceBlocks)
-		}
-		catch (e) {
-			onError({ message: e + '', fullError: null })
-		}
-
-		onDone()
+		// Fallback: reuse existing preview DiffZone
+		this.logService.debug('[_handleClickApply] No inferred result, falling back to existing preview')
+		const fallbackResult = this._previewAndPrepareEditFileSimple(startOpts)
+		this.logService.debug('[_handleClickApply] Fallback result:', fallbackResult ? 'found' : 'not found')
+		return fallbackResult
 	}
 
+	private _getFileTextWithEol(uri: URI): { text: string | null, eol: '\n' | '\r\n' } {
+		try {
+			const { model } = this._voidModelService.getModel(uri)
+			if (!model) return { text: null, eol: '\n' }
+			const eol = (model.getEOL?.() === '\r\n') ? '\r\n' : '\n'
+			const text = model.getValue()
+			return { text, eol }
+		} catch (e) {
+			this.logService.error('[_getFileTextWithEol] Failed:', e)
+			return { text: null, eol: '\n' }
+		}
+	}
+
+	private _inferOriginalSnippet(applyStr: string, fileText: string, uri?: URI): InferredBlock | null {
+		this.logService.debug('[_inferOriginalSnippet] Inferring with:', JSON.stringify({
+			applyStrLength: applyStr.length,
+			fileTextLength: fileText.length,
+			applyStrPreview: applyStr.substring(0, 50) + '...'
+		}));
+
+		try {
+			const model = uri ? this._modelService.getModel(uri) : null;
+			const astContext = uri ? this._getCachedAstContext(uri, model) : null;
+			const inferred = inferExactBlockFromCode({
+				codeStr: applyStr,
+				fileText,
+				astContext: astContext ?? undefined
+			});
+
+			this.logService.debug('[_inferOriginalSnippet] Inference result:', JSON.stringify({
+				hasResult: !!inferred,
+				hasText: !!(inferred as any)?.text,
+				textLength: (inferred as any)?.text?.length,
+				range: (inferred as any)?.range,
+				offsets: (inferred as any)?.offsets,
+				occurrence: (inferred as any)?.occurrence,
+				astSource: astContext?.source ?? null,
+				preview: (inferred as any)?.text?.substring(0, 50) + '...'
+			}));
+
+			if (!inferred || !(inferred as any).text) return inferred;
+
+			const inferredText = String((inferred as any).text ?? '');
+			const inferredNorm = normalizeEol(inferredText);
+			const applyNorm = normalizeEol(applyStr);
+
+			const inferredLines = inferredNorm.split('\n').length;
+			const applyLines = applyNorm.split('\n').length;
+
+			const inferredStart =
+				(Array.isArray((inferred as any).offsets) ? (inferred as any).offsets[0] : null) ??
+				fileText.indexOf(inferredText);
+
+			// Suspicious when:
+			//  - inferred is a single line but applyStr is multi-line
+			//  - inferred is very short compared to applyStr
+			//  - inferred seems to be a prefix (common: "public foo({ a }")
+			const suspiciouslyShort =
+				(inferredLines === 1 && applyLines > 1) ||
+				inferredText.length < 80 ||
+				(inferredText.length < Math.max(40, Math.floor(applyStr.length * 0.25)));
+
+			const canSafelyExpand =
+				suspiciouslyShort &&
+				inferredStart !== -1 &&
+				looksLikeFullTopLevelBlockSnippet(applyStr);
+
+			if (!canSafelyExpand) {
+				return inferred;
+			}
+
+			// Expand to full enclosing { ... } block, starting from the line start
+			const lineStart = Math.max(0, fileText.lastIndexOf('\n', Math.max(0, inferredStart - 1)) + 1);
+			const expanded = expandToEnclosingCurlyBlockJs(fileText, lineStart);
+
+			if (!expanded || !expanded.text || expanded.text.length <= inferredText.length) {
+				this.logService.debug('[_inferOriginalSnippet] Expansion skipped (no better block found).', JSON.stringify({
+					inferredStart,
+					inferredLen: inferredText.length,
+					expandedLen: expanded?.text?.length ?? null
+				}));
+				return inferred;
+			}
+
+			// Compute occurrence for expanded text based on start offset (so replace picks the right one if repeated)
+			const occurrences: number[] = [];
+			for (let from = 0; ;) {
+				const i = fileText.indexOf(expanded.text, from);
+				if (i === -1) break;
+				occurrences.push(i);
+				from = i + Math.max(1, expanded.text.length);
+			}
+			const occIdx = occurrences.indexOf(expanded.startOffset);
+			const occurrence = occIdx >= 0 ? (occIdx + 1) : 1;
+
+			(inferred as any).text = expanded.text;
+			(inferred as any).range = expanded.range;
+			(inferred as any).offsets = [expanded.startOffset, expanded.endOffset];
+			(inferred as any).occurrence = occurrence;
+
+			this.logService.debug('[_inferOriginalSnippet] Expanded inferred ORIGINAL to enclosing block.', JSON.stringify({
+				oldLen: inferredText.length,
+				newLen: expanded.text.length,
+				oldLines: inferredLines,
+				newLines: expanded.text.split('\n').length,
+				newRange: expanded.range,
+				occurrence
+			}));
+
+			return inferred;
+		} catch (e) {
+			this.logService.error('[_inferOriginalSnippet] inferExactBlockFromCode failed:', JSON.stringify({
+				error: (e as any)?.message || String(e),
+				applyStrLength: applyStr.length
+			}));
+			return null;
+		}
+	}
+
+	private _tryInferAndPreview(startOpts: any): [DiffZone, Promise<void>] | undefined {
+		this.logService.debug('[_tryInferAndPreview] Starting inference')
+
+		const maybeUri = this._uriOfGivenURI(startOpts.uri)
+		this.logService.debug('[_tryInferAndPreview] Resolved URI:', maybeUri?.toString() || 'null')
+		if (!maybeUri) return undefined
+
+		const { text: fileText, eol } = this._getFileTextWithEol(maybeUri)
+		this.logService.debug('[_tryInferAndPreview] File text retrieved:', JSON.stringify({ hasText: !!fileText, textLength: fileText?.length, eol }))
+		if (!fileText) return undefined
+
+		const inferred = this._inferOriginalSnippet(startOpts.applyStr, fileText, maybeUri)
+		this.logService.debug('[_tryInferAndPreview] Inferred block:', JSON.stringify({
+			ok: !!inferred, textLength: inferred?.text?.length, range: inferred?.range, offsets: inferred?.offsets, occurrence: inferred?.occurrence
+		}))
+		if (!inferred) return undefined
+
+
+		const foundAt =
+			(Array.isArray((inferred as any).offsets) ? (inferred as any).offsets[0] : null) ??
+			fileText.indexOf(inferred.text);
+		this.logService.debug('[_tryInferAndPreview] Exact text recheck in model:', JSON.stringify({ foundAt }))
+
+		const updatedWithModelEol = startOpts.applyStr.replace(/\r\n|\n/g, eol)
+
+		const previewParams = {
+			uri: maybeUri,
+			originalSnippet: inferred.text,
+			updatedSnippet: updatedWithModelEol,
+			occurrence: inferred.occurrence,
+			replaceAll: false,
+			locationHint: { startLineNumber: inferred.range[0], endLineNumber: inferred.range[1] },
+			encoding: null,
+			newline: eol,
+			applyBoxId: startOpts.applyBoxId,
+		}
+
+		this.logService.debug('[_tryInferAndPreview] Calling _previewAndPrepareEditFileSimple with params:', JSON.stringify({
+			uri: previewParams.uri.toString(),
+			originalLength: previewParams.originalSnippet.length,
+			updatedLength: previewParams.updatedSnippet.length,
+			occurrence: previewParams.occurrence,
+			locationHint: previewParams.locationHint,
+			newline: previewParams.newline,
+			applyBoxId: previewParams.applyBoxId
+		}))
+
+		const result = this._previewAndPrepareEditFileSimple(previewParams)
+		this.logService.debug('[_tryInferAndPreview] Preview result:', result ? 'success' : 'failed')
+		return result
+	}
 
 	public instantlyRewriteFile({ uri, newContent }: { uri: URI, newContent: string }) {
 		// start diffzone
@@ -1213,6 +2052,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			startBehavior: 'keep-conflicts',
 			linkedCtrlKZone: null,
 			onWillUndo: () => { },
+			applyBoxId: undefined,
 		})
 		if (!res) return
 		const { diffZone, onFinishEdit } = res
@@ -1223,38 +2063,29 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 			this._refreshStylesAndDiffsInURI(uri)
 			onFinishEdit()
-
-			// auto accept
-			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
-				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept' })
-			}
 		}
 
 		this._writeURIText(uri, newContent, 'wholeFileRange', { shouldRealignDiffAreas: true })
 		onDone()
 	}
 
-
 	private _findOverlappingDiffArea({ startLine, endLine, uri, filter }: { startLine: number, endLine: number, uri: URI, filter?: (diffArea: DiffArea) => boolean }): DiffArea | null {
 		// check if there's overlap with any other diffAreas and return early if there is
 		for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
 			const diffArea = this.diffAreaOfId[diffareaid]
-			if (!diffArea) continue
-			if (!filter?.(diffArea)) continue
-			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine
+			if (!diffArea) {
+				continue;
+			}
+			if (!filter?.(diffArea)) {
+				continue;
+			}
+			const noOverlap = diffArea.startLine > endLine || diffArea.endLine < startLine;
 			if (!noOverlap) {
-				return diffArea
+				return diffArea;
 			}
 		}
-		return null
+		return null;
 	}
-
-
-
-
-
-
-
 
 	private _startStreamingDiffZone({
 		uri,
@@ -1262,12 +2093,14 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		streamRequestIdRef,
 		linkedCtrlKZone,
 		onWillUndo,
+		applyBoxId,
 	}: {
 		uri: URI,
 		startBehavior: 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts',
 		streamRequestIdRef: { current: string | null },
 		linkedCtrlKZone: CtrlKZone | null,
 		onWillUndo: () => void,
+		applyBoxId?: string,
 	}) {
 		const { model } = this._voidModelService.getModel(uri)
 		if (!model) return
@@ -1292,7 +2125,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			}
 			else {
 				// keep conflict on whole file - to keep conflict, revert the change and use those contents as original, then un-revert the file
-				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
+				// this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior: 'reject', _addToHistory: false })
 				const oldFileStr = model.getValue(EndOfLinePreference.LF) // use this as original code
 				this._writeURIText(uri, originalFileStr, 'wholeFileRange', { shouldRealignDiffAreas: true }) // un-revert
 				originalCode = oldFileStr
@@ -1300,8 +2133,9 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 		}
 		else if (startBehavior === 'accept-conflicts' || startBehavior === 'reject-conflicts') {
-			const behavior = startBehavior === 'accept-conflicts' ? 'accept' : 'reject'
-			this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior, _addToHistory: false })
+
+			// const behavior: 'accept' | 'reject' = startBehavior === 'accept-conflicts' ? 'accept' : 'reject'
+			// this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: true, behavior, _addToHistory: false })
 		}
 
 		const adding: Omit<DiffZone, 'diffareaid'> = {
@@ -1317,9 +2151,11 @@ class EditCodeService extends Disposable implements IEditCodeService {
 			},
 			_diffOfId: {}, // added later
 			_removeStylesFns: new Set(),
+			applyBoxId: applyBoxId,
 		}
 
 		const diffZone = this._addDiffArea(adding)
+		this.logService.debug(`[_startStreamingDiffZone] Created DiffZone with applyBoxId: ${applyBoxId}, diffareaid: ${diffZone.diffareaid}`)
 		this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
 		this._onDidAddOrDeleteDiffZones.fire({ uri })
 
@@ -1334,237 +2170,20 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		return { diffZone, onFinishEdit }
 	}
 
-
-
-
 	private _uriIsStreaming(uri: URI) {
 		const diffAreas = this.diffAreasOfURI[uri.fsPath]
 		if (!diffAreas) return false
 		for (const diffareaid of diffAreas) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (diffArea?.type !== 'DiffZone') continue
-			if (diffArea._streamState.isStreaming) return true
+			const diffArea = this.diffAreaOfId[diffareaid];
+			if (diffArea?.type !== 'DiffZone') {
+				continue;
+			}
+			if (diffArea._streamState.isStreaming) {
+				return true;
+			}
 		}
-		return false
+		return false;
 	}
-
-
-	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
-
-		const { from, } = opts
-		const featureName: FeatureName = opts.from === 'ClickApply' ? 'Apply' : 'Ctrl+K'
-		const overridesOfModel = this._settingsService.state.overridesOfModel
-		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-
-
-		const uri = this._getURIBeforeStartApplying(opts)
-		if (!uri) return
-
-		let startRange: 'fullFile' | [number, number]
-		let ctrlKZoneIfQuickEdit: CtrlKZone | null = null
-
-		if (from === 'ClickApply') {
-			startRange = 'fullFile'
-		}
-		else if (from === 'QuickEdit') {
-			const { diffareaid } = opts
-			const ctrlKZone = this.diffAreaOfId[diffareaid]
-			if (ctrlKZone?.type !== 'CtrlKZone') return
-			ctrlKZoneIfQuickEdit = ctrlKZone
-			const { startLine: startLine_, endLine: endLine_ } = ctrlKZone
-			startRange = [startLine_, endLine_]
-		}
-		else {
-			throw new Error(`Void: diff.type not recognized on: ${from}`)
-		}
-
-		const { model } = this._voidModelService.getModel(uri)
-		if (!model) return
-
-		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
-
-		// build messages
-		const quickEditFIMTags = defaultQuickEditFimTags // TODO can eventually let users customize modelFimTags
-		const originalFileCode = model.getValue(EndOfLinePreference.LF)
-		const originalCode = startRange === 'fullFile' ? originalFileCode : originalFileCode.split('\n').slice((startRange[0] - 1), (startRange[1] - 1) + 1).join('\n')
-		const language = model.getLanguageId()
-		let messages: LLMChatMessage[]
-		let separateSystemMessage: string | undefined
-		if (from === 'ClickApply') {
-			const { messages: a, separateSystemMessage: b } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
-				systemMessage: rewriteCode_systemMessage,
-				simpleMessages: [{ role: 'user', content: rewriteCode_userMessage({ originalCode, applyStr: opts.applyStr, language }), }],
-				featureName,
-				modelSelection,
-			})
-			messages = a
-			separateSystemMessage = b
-		}
-		else if (from === 'QuickEdit') {
-			if (!ctrlKZoneIfQuickEdit) return
-			const { _mountInfo } = ctrlKZoneIfQuickEdit
-			const instructions = _mountInfo?.textAreaRef.current?.value ?? ''
-
-			const startLine = startRange === 'fullFile' ? 1 : startRange[0]
-			const endLine = startRange === 'fullFile' ? model.getLineCount() : startRange[1]
-			const { prefix, suffix } = voidPrefixAndSuffix({ fullFileStr: originalFileCode, startLine, endLine })
-			const userContent = ctrlKStream_userMessage({ selection: originalCode, instructions: instructions, prefix, suffix, fimTags: quickEditFIMTags, language })
-
-			const { messages: a, separateSystemMessage: b } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
-				systemMessage: ctrlKStream_systemMessage({ quickEditFIMTags: quickEditFIMTags }),
-				simpleMessages: [{ role: 'user', content: userContent, }],
-				featureName,
-				modelSelection,
-			})
-			messages = a
-			separateSystemMessage = b
-
-		}
-		else { throw new Error(`featureName ${from} is invalid`) }
-
-		// if URI is already streaming, return (should never happen, caller is responsible for checking)
-		if (this._uriIsStreaming(uri)) return
-
-		// start diffzone
-		const res = this._startStreamingDiffZone({
-			uri,
-			streamRequestIdRef,
-			startBehavior: opts.startBehavior,
-			linkedCtrlKZone: ctrlKZoneIfQuickEdit,
-			onWillUndo: () => {
-				if (streamRequestIdRef.current) {
-					this._llmMessageService.abort(streamRequestIdRef.current)
-				}
-			},
-
-		})
-		if (!res) return
-		const { diffZone, onFinishEdit, } = res
-
-
-		// helpers
-		const onDone = () => {
-			console.log('called onDone')
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
-
-			if (ctrlKZoneIfQuickEdit) {
-				const ctrlKZone = ctrlKZoneIfQuickEdit
-
-				ctrlKZone._linkedStreamingDiffZone = null
-				this._onDidChangeStreamingInCtrlKZone.fire({ uri, diffareaid: ctrlKZone.diffareaid })
-				this._deleteCtrlKZone(ctrlKZone)
-			}
-			this._refreshStylesAndDiffsInURI(uri)
-			onFinishEdit()
-
-			// auto accept
-			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
-				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept' })
-			}
-		}
-
-		// throws
-		const onError = (e: { message: string; fullError: Error | null; }) => {
-			// this._notifyError(e)
-			onDone()
-			this._undoHistory(uri)
-			throw e.fullError || new Error(e.message)
-		}
-
-		const extractText = (fullText: string, recentlyAddedTextLen: number) => {
-			if (from === 'QuickEdit') {
-				return extractCodeFromFIM({ text: fullText, recentlyAddedTextLen, midTag: quickEditFIMTags.midTag })
-			}
-			else if (from === 'ClickApply') {
-				return extractCodeFromRegular({ text: fullText, recentlyAddedTextLen })
-			}
-			throw new Error('Void 1')
-		}
-
-		// refresh now in case onText takes a while to get 1st message
-		this._refreshStylesAndDiffsInURI(uri)
-
-		const latestStreamLocationMutable: StreamLocationMutable = { line: diffZone.startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-
-		// allowed to throw errors - this is called inside a promise that handles everything
-		const runWriteover = async () => {
-			let shouldSendAnotherMessage = true
-			while (shouldSendAnotherMessage) {
-				shouldSendAnotherMessage = false
-
-				let resMessageDonePromise: () => void = () => { }
-				const messageDonePromise = new Promise<void>((res_) => { resMessageDonePromise = res_ })
-
-				// state used in onText:
-				let fullTextSoFar = '' // so far (INCLUDING ignored suffix)
-				let prevIgnoredSuffix = ''
-				let aborted = false
-				let weAreAborting = false
-
-
-				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					logging: { loggingName: `Edit (Writeover) - ${from}` },
-					messages,
-					modelSelection,
-					modelSelectionOptions,
-					overridesOfModel,
-					separateSystemMessage,
-					chatMode: null, // not chat
-					onText: (params) => {
-						const { fullText: fullText_ } = params
-						const newText_ = fullText_.substring(fullTextSoFar.length, Infinity)
-
-						const newText = prevIgnoredSuffix + newText_ // add the previously ignored suffix because it's no longer the suffix!
-						fullTextSoFar += newText // full text, including ```, etc
-
-						const [croppedText, deltaCroppedText, croppedSuffix] = extractText(fullTextSoFar, newText.length)
-						const { endLineInLlmTextSoFar } = this._writeStreamedDiffZoneLLMText(uri, originalCode, croppedText, deltaCroppedText, latestStreamLocationMutable)
-						diffZone._streamState.line = (diffZone.startLine - 1) + endLineInLlmTextSoFar // change coordinate systems from originalCode to full file
-
-						this._refreshStylesAndDiffsInURI(uri)
-
-						prevIgnoredSuffix = croppedSuffix
-					},
-					onFinalMessage: (params) => {
-						const { fullText } = params
-						// console.log('DONE! FULL TEXT\n', extractText(fullText), diffZone.startLine, diffZone.endLine)
-						// at the end, re-write whole thing to make sure no sync errors
-						const [croppedText, _1, _2] = extractText(fullText, 0)
-						this._writeURIText(uri, croppedText,
-							{ startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-							{ shouldRealignDiffAreas: true }
-						)
-
-						onDone()
-						resMessageDonePromise()
-					},
-					onError: (e) => {
-						onError(e)
-					},
-					onAbort: () => {
-						if (weAreAborting) return
-						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						aborted = true
-						resMessageDonePromise()
-					},
-				})
-				// should never happen, just for safety
-				if (streamRequestIdRef.current === null) { return }
-
-				await messageDonePromise
-				if (aborted) {
-					throw new Error(`Edit was interrupted by the user.`)
-				}
-			} // end while
-		} // end writeover
-
-		const applyDonePromise = new Promise<void>((res, rej) => { runWriteover().then(res).catch(rej) })
-		return [diffZone, applyDonePromise]
-	}
-
 
 
 	_uriOfGivenURI(givenURI: URI | 'current') {
@@ -1575,6 +2194,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 		return givenURI
 	}
+
 	_fileLengthOfGivenURI(givenURI: URI | 'current') {
 		const uri = this._uriOfGivenURI(givenURI)
 		if (!uri) return null
@@ -1584,436 +2204,372 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		return numCharsInFile
 	}
 
+	public async acceptOrRejectDiffAreasByApplyBox(
+		{ uri, applyBoxId, behavior }: { uri: URI; applyBoxId: string; behavior: 'accept' | 'reject' }
+	): Promise<void> {
+		const diffareaids = this.diffAreasOfURI[uri.fsPath];
+		this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] start uri=${uri.fsPath} applyBoxId=${applyBoxId} behavior=${behavior} totalAreas=${diffareaids?.size ?? 0}`);
+		if (!diffareaids || diffareaids.size === 0) return;
 
-	/**
-	 * Generates a human-readable error message for an invalid ORIGINAL search block.
-	 */
-	private _errContentOfInvalidStr = (
-		str: 'Not found' | 'Not unique' | 'Has overlap',
-		blockOrig: string,
-	): string => {
-		const problematicCode = `${tripleTick[0]}\n${JSON.stringify(blockOrig)}\n${tripleTick[1]}`
+		const { onFinishEdit } = this._addToHistory(uri);
+		const serializeZones = (zones: DiffZone[]) => {
+			try {
+				return JSON.stringify(zones.map(z => ({
+					diffareaid: z.diffareaid,
+					startLine: z.startLine,
+					endLine: z.endLine,
+					applyBoxId: z.applyBoxId ?? null,
+					isEditFileSimple: !!(z as any)._editFileSimple
+				})));
+			} catch {
+				return String(zones.map(z => z.diffareaid).join(','));
+			}
+		};
 
-		// use a switch for better readability / exhaustiveness check
-		let descStr: string
-		switch (str) {
-			case 'Not found':
-				descStr = `The edit was not applied. The text in ORIGINAL must EXACTLY match lines of code in the file, but there was no match for:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code matches a code excerpt exactly.`
-				break
-			case 'Not unique':
-				descStr = `The edit was not applied. The text in ORIGINAL must be unique in the file being edited, but the following ORIGINAL code appears multiple times in the file:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code is unique.`
-				break
-			case 'Has overlap':
-				descStr = `The edit was not applied. The text in the ORIGINAL blocks must not overlap, but the following ORIGINAL code had overlap with another ORIGINAL string:\n${problematicCode}. Ensure you have the latest version of the file, and ensure the ORIGINAL code blocks do not overlap.`
-				break
-			default:
-				descStr = ''
+		if (behavior === 'reject') {
+			const diffZones: DiffZone[] = [];
+			for (const id of diffareaids) {
+				const da = this.diffAreaOfId[id];
+				if (da && da.type === 'DiffZone' && da.applyBoxId === applyBoxId) {
+					diffZones.push(da);
+				}
+			}
+			this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] reject targetZones(beforeSort)=${serializeZones(diffZones)}`);
+			// Revert bottom-to-top so earlier rewrites do not shift later ranges.
+			diffZones.sort((a, b) => {
+				if (a.startLine !== b.startLine) return b.startLine - a.startLine;
+				return b.diffareaid - a.diffareaid;
+			});
+			this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] reject targetZones(sorted)=${serializeZones(diffZones)}`);
+			for (const dz of diffZones) {
+				this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] reject revert diffareaid=${dz.diffareaid} start=${dz.startLine} end=${dz.endLine}`);
+				this._revertDiffZone(dz);
+				this._deleteDiffZone(dz);
+			}
+
+			this._refreshStylesAndDiffsInURI(uri);
+			await onFinishEdit();
+			this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] done uri=${uri.fsPath} applyBoxId=${applyBoxId} behavior=reject remainingAreas=${this.diffAreasOfURI[uri.fsPath]?.size ?? 0}`);
+			return;
 		}
-		return descStr
-	}
 
-
-	private _instantlyApplySRBlocks(uri: URI, blocksStr: string) {
-		const blocks = extractSearchReplaceBlocks(blocksStr)
-		if (blocks.length === 0) throw new Error(`No Search/Replace blocks were received!`)
-
-		const { model } = this._voidModelService.getModel(uri)
-		if (!model) throw new Error(`Error applying Search/Replace blocks: File does not exist.`)
-		const modelStr = model.getValue(EndOfLinePreference.LF)
-		// .split('\n').map(l => '\t' + l).join('\n') // for testing purposes only, remember to remove this
-		const modelStrLines = modelStr.split('\n')
-
-
-
-
-		const replacements: { origStart: number; origEnd: number; block: ExtractedSearchReplaceBlock }[] = []
-		for (const b of blocks) {
-			const res = findTextInCode(b.orig, modelStr, true, { returnType: 'lines' })
-			if (typeof res === 'string')
-				throw new Error(this._errContentOfInvalidStr(res, b.orig))
-			let [startLine, endLine] = res
-			startLine -= 1 // 0-index
-			endLine -= 1
-
-			// including newline before start
-			const origStart = (startLine !== 0 ?
-				modelStrLines.slice(0, startLine).join('\n') + '\n'
-				: '').length
-
-			// including endline at end
-			const origEnd = modelStrLines.slice(0, endLine + 1).join('\n').length - 1
-
-			replacements.push({ origStart, origEnd, block: b });
-		}
-		// sort in increasing order
-		replacements.sort((a, b) => a.origStart - b.origStart)
-
-		// ensure no overlap
-		for (let i = 1; i < replacements.length; i++) {
-			if (replacements[i].origStart <= replacements[i - 1].origEnd) {
-				throw new Error(this._errContentOfInvalidStr('Has overlap', replacements[i]?.block?.orig))
+		// === accept ===
+		const acceptedZones: DiffZone[] = [];
+		for (const id of diffareaids) {
+			const da = this.diffAreaOfId[id];
+			if (da && da.type === 'DiffZone' && da.applyBoxId === applyBoxId) {
+				acceptedZones.push(da);
+				this._deleteDiffZone(da);
 			}
 		}
+		this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] accept deletedZones=${serializeZones(acceptedZones)}`);
 
-		// apply each replacement from right to left (so indexes don't shift)
-		let newCode: string = modelStr
-		for (let i = replacements.length - 1; i >= 0; i--) {
-			const { origStart, origEnd, block } = replacements[i]
-			newCode = newCode.slice(0, origStart) + block.final + newCode.slice(origEnd + 1, Infinity)
-		}
+		this._refreshStylesAndDiffsInURI(uri);
 
-		this._writeURIText(uri, newCode,
-			'wholeFileRange',
-			{ shouldRealignDiffAreas: true }
-		)
+		// Auto format after accept (Format Document)
+		await this._formatDocumentAtUri(uri);
+
+		// Formatting may change lines → refresh decorations again
+		this._refreshStylesAndDiffsInURI(uri);
+
+		await onFinishEdit();
+		this.logService.debug(`[acceptOrRejectDiffAreasByApplyBox] done uri=${uri.fsPath} applyBoxId=${applyBoxId} behavior=accept remainingAreas=${this.diffAreasOfURI[uri.fsPath]?.size ?? 0}`);
 	}
 
-	private _initializeSearchAndReplaceStream(opts: StartApplyingOpts & { from: 'ClickApply' }): [DiffZone, Promise<void>] | undefined {
-		const { from, applyStr, } = opts
-		const featureName: FeatureName = 'Apply'
-		const overridesOfModel = this._settingsService.state.overridesOfModel
-		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
-		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
-
-		const uri = this._getURIBeforeStartApplying(opts)
-		if (!uri) return
-
-		const { model } = this._voidModelService.getModel(uri)
-		if (!model) return
-
-		let streamRequestIdRef: { current: string | null } = { current: null } // can use this as a proxy to set the diffArea's stream state requestId
+	private _previewAndPrepareEditFileSimple(
+		paramsOrOpts: StartApplyingOpts | {
+			uri: URI; originalSnippet: string; updatedSnippet: string;
+			occurrence?: number | null; replaceAll?: boolean;
+			locationHint?: any; encoding?: string | null; newline?: string | null; applyBoxId?: string
+		}
+	): [DiffZone, Promise<void>] | undefined {
+		const safeStringify = (o: any) => { try { return JSON.stringify(o, null, 2) } catch { return String(o) } }
 
 
-		// build messages - ask LLM to generate search/replace block text
-		const originalFileCode = model.getValue(EndOfLinePreference.LF)
-		const userMessageContent = searchReplaceGivenDescription_userMessage({ originalCode: originalFileCode, applyStr: applyStr })
+		if ((paramsOrOpts as StartApplyingOpts).from) {
+			const opts = paramsOrOpts as StartApplyingOpts
+			const uri = this._getURIBeforeStartApplying(opts)
+			this.logService.debug(`[_previewAndPrepareEditFileSimple] called with StartApplyingOpts: ${safeStringify({ opts, resolvedUri: uri?.fsPath ?? null })}`)
+			if (!uri) return undefined
 
-		const { messages, separateSystemMessage: separateSystemMessage } = this._convertToLLMMessageService.prepareLLMSimpleMessages({
-			systemMessage: searchReplaceGivenDescription_systemMessage,
-			simpleMessages: [{ role: 'user', content: userMessageContent, }],
-			featureName,
-			modelSelection,
-		})
+			for (const diffareaid of this.diffAreasOfURI[uri.fsPath] || []) {
+				const da = this.diffAreaOfId[diffareaid]
+				if (da?.type === 'DiffZone' && (da as any)._editFileSimple) {
+					const optsApplyBoxId = opts.from === 'ClickApply' ? opts.applyBoxId : undefined
+					if (optsApplyBoxId && da.applyBoxId === optsApplyBoxId) {
+						return [da as DiffZone, Promise.resolve()]
+					}
+				}
+			}
+			this.logService.debug(`[_previewAndPrepareEditFileSimple] No preview available via UI state: ${safeStringify({ uri: uri.fsPath })}`)
+			return undefined
+		}
 
-		// if URI is already streaming, return (should never happen, caller is responsible for checking)
-		if (this._uriIsStreaming(uri)) return
 
-		// start diffzone
-		const res = this._startStreamingDiffZone({
+		this.logService.debug(`[_previewAndPrepareEditFileSimple] called with explicit params: ${safeStringify(paramsOrOpts)}`)
+
+
+		const opts = paramsOrOpts as StartApplyingOpts
+		const applyBoxId = opts.from === 'ClickApply' ? opts.applyBoxId :
+			(paramsOrOpts as any).applyBoxId
+
+		const { uri, originalSnippet, updatedSnippet, occurrence, replaceAll, locationHint, encoding, newline } =
+			paramsOrOpts as { uri: URI; originalSnippet: string; updatedSnippet: string; occurrence?: number | null; replaceAll?: boolean; locationHint?: any; encoding?: string | null; newline?: string | null }
+
+
+		const beforeIds = new Set(this.diffAreasOfURI[uri.fsPath] || [])
+
+
+
+		this.logService.debug(`[_previewAndPrepareEditFileSimple] Calling previewEditFileSimple with applyBoxId: ${applyBoxId}`)
+		const donePromise = this.previewEditFileSimple({
+			uri, originalSnippet, updatedSnippet, occurrence, replaceAll, locationHint, encoding, newline, applyBoxId
+		}).then(() => { /* no-op */ })
+
+
+		let newId: string | undefined
+		for (const id of this.diffAreasOfURI[uri.fsPath] || []) {
+			if (!beforeIds.has(id)) { newId = id; break }
+		}
+
+		let diffZone: DiffZone | undefined
+		if (newId) {
+			const da = this.diffAreaOfId[newId]
+			if (da?.type === 'DiffZone') diffZone = da as DiffZone
+		}
+
+		if (!diffZone) {
+			const list = [...(this.diffAreasOfURI[uri.fsPath] || [])]
+				.map(id => this.diffAreaOfId[id])
+				.filter(da => da?.type === 'DiffZone') as DiffZone[]
+			diffZone = list.sort((a, b) => a.diffareaid - b.diffareaid).pop()
+		}
+
+		if (!diffZone) {
+			this.logService.warn('[_previewAndPrepareEditFileSimple] Could not locate created DiffZone after previewEditFileSimple')
+			return undefined
+		}
+
+		return [diffZone, donePromise]
+	}
+
+	private _initializeWriteoverStream(opts: StartApplyingOpts): [DiffZone, Promise<void>] | undefined {
+		const { from } = opts;
+		if (from !== 'QuickEdit') return undefined;
+
+		this.logService.debug('[DEBUG] _initializeWriteoverStreamSimple2 opts:', JSON.stringify(opts, null, 2));
+
+		const uri = this._getURIBeforeStartApplying(opts);
+		if (!uri) {
+			this.logService.debug('[DEBUG] No URI found, returning undefined');
+			return undefined;
+		}
+
+		this.logService.debug('[DEBUG] URI found:', uri);
+		this.logService.debug('[DEBUG] URI type:', typeof uri);
+		this.logService.debug('[DEBUG] URI keys:', Object.keys(uri));
+
+		const { model } = this._voidModelService.getModel(uri);
+		if (!model) return undefined;
+
+		const { diffareaid } = opts as any;
+		const ctrlKZone = this.diffAreaOfId[diffareaid];
+		if (!ctrlKZone || ctrlKZone.type !== 'CtrlKZone') return undefined;
+
+
+		const selectionRange = {
+			startLineNumber: ctrlKZone.startLine,
+			startColumn: 1,
+			endLineNumber: ctrlKZone.endLine,
+			endColumn: Number.MAX_SAFE_INTEGER
+		};
+		const selectionCode = model.getValueInRange(selectionRange, EndOfLinePreference.LF);
+
+		const language = model.getLanguageId();
+
+
+		const streamRequestIdRef: { current: string | null } = { current: null };
+		const started = this._startStreamingDiffZone({
 			uri,
+			startBehavior: 'keep-conflicts',
 			streamRequestIdRef,
-			startBehavior: opts.startBehavior,
-			linkedCtrlKZone: null,
-			onWillUndo: () => {
-				if (streamRequestIdRef.current) {
-					this._llmMessageService.abort(streamRequestIdRef.current) // triggers onAbort()
+			linkedCtrlKZone: ctrlKZone,
+			onWillUndo: () => { },
+			applyBoxId: undefined,
+		});
+		if (!started) return undefined;
+
+		const { diffZone, onFinishEdit } = started;
+
+		const instructions = ctrlKZone._mountInfo?.textAreaRef.current?.value ?? '';
+
+
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature['Ctrl+K'];
+		const overridesOfModel = this._settingsService.state.overridesOfModel;
+		const { specialToolFormat } = getModelCapabilities(
+			modelSelection?.providerName ?? 'openAI',
+			modelSelection?.modelName ?? '',
+			overridesOfModel
+		);
+
+		let systemMessage: string;
+		let userMessageContent: string;
+
+		if (!specialToolFormat || specialToolFormat === 'disabled') {
+			systemMessage = buildXmlSysMessageForCtrlK();
+			userMessageContent = buildXmlUserMessageForCtrlK({
+				selectionRange,
+				selectionCode,
+				instructions,
+				language
+			});
+		} else {
+			systemMessage = buildNativeSysMessageForCtrlK;
+			userMessageContent = buildNativeUserMessageForCtrlK({
+				selectionRange,
+				selectionCode,
+				instructions,
+				language
+			});
+		}
+
+		// Logging for debugging
+		this.logService.debug('[Ctrl+K] User message content:', userMessageContent);
+		this.logService.debug('[Ctrl+K] System message:', systemMessage);
+
+		const prepared = this._convertToLLMMessageService.prepareLLMSimpleMessages({
+			systemMessage,
+			simpleMessages: [{
+				role: 'user',
+				content: userMessageContent
+			}],
+			featureName: 'Ctrl+K',
+			modelSelection: this._settingsService.state.modelSelectionOfFeature['Ctrl+K']
+		});
+
+		const messages = prepared.messages;
+		const separateSystemMessage = prepared.separateSystemMessage;
+
+		// Logging for debugging
+		this.logService.debug('[Ctrl+K] Prepared messages:', JSON.stringify(messages, null, 2));
+		this.logService.debug('[Ctrl+K] Separate system message:', separateSystemMessage);
+
+		const modelSelectionOptions = modelSelection
+			? this._settingsService.state.optionsOfModelSelection['Ctrl+K'][modelSelection.providerName]?.[modelSelection.modelName]
+			: undefined;
+
+		let resolveDone: () => void = () => { };
+		const donePromise = new Promise<void>((res) => { resolveDone = res; });
+
+
+		let toolChoice: any = undefined;
+		if (specialToolFormat === 'openai-style') {
+			toolChoice = { type: 'function', function: { name: 'edit_file' } };
+		} else if (specialToolFormat === 'anthropic-style') {
+			toolChoice = { type: 'tool', name: 'edit_file' };
+		} else if (specialToolFormat === 'gemini-style') {
+			toolChoice = 'auto';
+		}
+
+		const requestId = this._llmMessageService.sendLLMMessage({
+			messagesType: 'chatMessages',
+			logging: { loggingName: `Edit (Ctrl+K)` },
+			messages,
+			modelSelection,
+			modelSelectionOptions,
+			overridesOfModel,
+			separateSystemMessage,
+			...(toolChoice !== undefined ? { tool_choice: toolChoice } : {}),
+			chatMode: 'agent',
+
+			onText: (_chunk) => { },
+
+			onFinalMessage: async (params) => {
+				try {
+					let toolApplied = false;
+
+
+					if (params.toolCall && params.toolCall.name === 'edit_file') {
+						const toolsService = this._instantiationService.invokeFunction((a: any) => a.get(IToolsService)) as any;
+						if (toolsService?.validateParams?.['edit_file'] && toolsService?.callTool?.['edit_file']) {
+							const rawParams = params.toolCall.rawParams || {};
+							const paramsWithUri = {
+								...rawParams,
+								uri: uri.fsPath
+							};
+
+							this.logService.debug('[DEBUG] Params with injected URI:', JSON.stringify(paramsWithUri, null, 2));
+
+
+							await this.interruptStreamingIfActive(uri);
+
+							const validated = toolsService.validateParams['edit_file'](paramsWithUri);
+							const { result } = await toolsService.callTool['edit_file'](validated);
+							await result;
+							toolApplied = true;
+						}
+					}
+
+					if (!toolApplied) {
+						this.logService.warn('[Ctrl+K] No tool applied.');
+						this._notificationService.warn('No changes applied: Model did not return a valid edit_file tool call.');
+					}
+				} catch (toolErr) {
+					this.logService.error('Ctrl+K tool/codex apply error:', toolErr);
+					this._notificationService.error(`Edit failed: ${toolErr.message}`);
+				} finally {
+
+					diffZone._streamState = { isStreaming: false };
+					this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid });
+					resolveDone();
+					onFinishEdit();
 				}
 			},
-		})
-		if (!res) return
-		const { diffZone, onFinishEdit } = res
 
+			onError: (e) => {
+				this.logService.error('LLM error in Ctrl+K:', e);
+				diffZone._streamState = { isStreaming: false };
+				this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid });
+				resolveDone();
+				onFinishEdit();
+			},
 
-		// helpers
-		type SearchReplaceDiffAreaMetadata = {
-			originalBounds: [number, number], // 1-indexed
-			originalCode: string,
-		}
-		const convertOriginalRangeToFinalRange = (originalRange: readonly [number, number]): [number, number] => {
-			// adjust based on the changes by computing line offset
-			const [originalStart, originalEnd] = originalRange
-			let lineOffset = 0
-			for (const blockDiffArea of addedTrackingZoneOfBlockNum) {
-				const {
-					startLine, endLine,
-					metadata: { originalBounds: [originalStart2, originalEnd2], },
-				} = blockDiffArea
-				if (originalStart2 >= originalEnd) continue
-				const numNewLines = endLine - startLine + 1
-				const numOldLines = originalEnd2 - originalStart2 + 1
-				lineOffset += numNewLines - numOldLines
+			onAbort: () => {
+				diffZone._streamState = { isStreaming: false };
+				this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid });
+				resolveDone();
+				onFinishEdit();
 			}
-			return [originalStart + lineOffset, originalEnd + lineOffset]
-		}
+		});
 
 
-		const onDone = () => {
-			diffZone._streamState = { isStreaming: false, }
-			this._onDidChangeStreamingInDiffZone.fire({ uri, diffareaid: diffZone.diffareaid })
-			this._refreshStylesAndDiffsInURI(uri)
+		streamRequestIdRef.current = requestId;
 
-			// delete the tracking zones
-			for (const trackingZone of addedTrackingZoneOfBlockNum)
-				this._deleteTrackingZone(trackingZone)
-
-			onFinishEdit()
-
-			// auto accept
-			if (this._settingsService.state.globalSettings.autoAcceptLLMChanges) {
-				this.acceptOrRejectAllDiffAreas({ uri, removeCtrlKs: false, behavior: 'accept' })
-			}
-		}
-
-		const onError = (e: { message: string; fullError: Error | null; }) => {
-			// this._notifyError(e)
-			onDone()
-			this._undoHistory(uri)
-			throw e.fullError || new Error(e.message)
-		}
-
-		// refresh now in case onText takes a while to get 1st message
-		this._refreshStylesAndDiffsInURI(uri)
-
-		// stream style related - TODO replace these with whatever block we're on initially if already started (if add caching of apply S/R blocks)
-		let latestStreamLocationMutable: StreamLocationMutable | null = null
-		let shouldUpdateOrigStreamStyle = true
-		let oldBlocks: ExtractedSearchReplaceBlock[] = []
-		const addedTrackingZoneOfBlockNum: TrackingZone<SearchReplaceDiffAreaMetadata>[] = []
-		diffZone._streamState.line = 1
-
-		const N_RETRIES = 4
-
-		// allowed to throw errors - this is called inside a promise that handles everything
-		const runSearchReplace = async () => {
-			// this generates >>>>>>> ORIGINAL <<<<<<< REPLACE blocks and and simultaneously applies it
-			let shouldSendAnotherMessage = true
-			let nMessagesSent = 0
-			let currStreamingBlockNum = 0
-			let aborted = false
-			let weAreAborting = false
-			while (shouldSendAnotherMessage) {
-				shouldSendAnotherMessage = false
-				nMessagesSent += 1
-				if (nMessagesSent >= N_RETRIES) {
-					const e = {
-						message: `Tried to Fast Apply ${N_RETRIES} times but failed. This may be related to model intelligence, or it may an edit that's too complex. Please retry or disable Fast Apply.`,
-						fullError: null
-					}
-					onError(e)
-					break
-				}
-
-				let resMessageDonePromise: () => void = () => { }
-				const messageDonePromise = new Promise<void>((res, rej) => { resMessageDonePromise = res })
-
-
-				const onText = (params: { fullText: string; fullReasoning: string }) => {
-					const { fullText } = params
-					// blocks are [done done done ... {writingFinal|writingOriginal}]
-					//               ^
-					//              currStreamingBlockNum
-
-					const blocks = extractSearchReplaceBlocks(fullText)
-
-					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
-						const block = blocks[blockNum]
-
-						if (block.state === 'writingOriginal') {
-							// update stream state to the first line of original if some portion of original has been written
-							if (shouldUpdateOrigStreamStyle && block.orig.trim().length >= 20) {
-								const startingAtLine = diffZone._streamState.line ?? 1 // dont go backwards if already have a stream line
-								const originalRange = findTextInCode(block.orig, originalFileCode, false, { startingAtLine, returnType: 'lines' })
-								if (typeof originalRange !== 'string') {
-									const [startLine, _] = convertOriginalRangeToFinalRange(originalRange)
-									diffZone._streamState.line = startLine
-									shouldUpdateOrigStreamStyle = false
-								}
-							}
-
-							// // starting line is at least the number of lines in the generated code minus 1
-							// const numLinesInOrig = numLinesOfStr(block.orig)
-							// const newLine = Math.max(numLinesInOrig - 1, 1, diffZone._streamState.line ?? 1)
-							// if (newLine !== diffZone._streamState.line) {
-							// 	diffZone._streamState.line = newLine
-							// 	this._refreshStylesAndDiffsInURI(uri)
-							// }
-
-
-							// must be done writing original to move on to writing streamed content
-							continue
-						}
-						shouldUpdateOrigStreamStyle = true
-
-
-						// if this is the first time we're seeing this block, add it as a diffarea so we can start streaming in it
-						if (!(blockNum in addedTrackingZoneOfBlockNum)) {
-
-							const originalBounds = findTextInCode(block.orig, originalFileCode, true, { returnType: 'lines' })
-							// if error
-							// Check for overlap with existing modified ranges
-							const hasOverlap = addedTrackingZoneOfBlockNum.some(trackingZone => {
-								const [existingStart, existingEnd] = trackingZone.metadata.originalBounds;
-								const hasNoOverlap = endLine < existingStart || startLine > existingEnd
-								return !hasNoOverlap
-							});
-
-							if (typeof originalBounds === 'string' || hasOverlap) {
-								const errorMessage = typeof originalBounds === 'string' ? originalBounds : 'Has overlap' as const
-
-								console.log('--------------Error finding text in code:')
-								console.log('originalFileCode', { originalFileCode })
-								console.log('fullText', { fullText })
-								console.log('error:', errorMessage)
-								console.log('block.orig:', block.orig)
-								console.log('---------')
-								const content = this._errContentOfInvalidStr(errorMessage, block.orig)
-								const retryMsg = 'All of your previous outputs have been ignored. Please re-output ALL SEARCH/REPLACE blocks starting from the first one, and avoid the error this time.'
-								messages.push(
-									{ role: 'assistant', content: fullText }, // latest output
-									{ role: 'user', content: content + '\n' + retryMsg } // user explanation of what's wrong
-								)
-
-								// REVERT ALL BLOCKS
-								currStreamingBlockNum = 0
-								latestStreamLocationMutable = null
-								shouldUpdateOrigStreamStyle = true
-								oldBlocks = []
-								for (const trackingZone of addedTrackingZoneOfBlockNum)
-									this._deleteTrackingZone(trackingZone)
-								addedTrackingZoneOfBlockNum.splice(0, Infinity)
-
-								this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
-
-								// abort and resolve
-								shouldSendAnotherMessage = true
-								if (streamRequestIdRef.current) {
-									weAreAborting = true
-									this._llmMessageService.abort(streamRequestIdRef.current)
-									weAreAborting = false
-								}
-								diffZone._streamState.line = 1
-								resMessageDonePromise()
-								this._refreshStylesAndDiffsInURI(uri)
-								return
-							}
-
-
-
-							const [startLine, endLine] = convertOriginalRangeToFinalRange(originalBounds)
-
-							// console.log('---------adding-------')
-							// console.log('CURRENT TEXT!!!', { current: model?.getValue(EndOfLinePreference.LF) })
-							// console.log('block', deepClone(block))
-							// console.log('origBounds', originalBounds)
-							// console.log('start end', startLine, endLine)
-
-							// otherwise if no error, add the position as a diffarea
-							const adding: Omit<TrackingZone<SearchReplaceDiffAreaMetadata>, 'diffareaid'> = {
-								type: 'TrackingZone',
-								startLine: startLine,
-								endLine: endLine,
-								_URI: uri,
-								metadata: {
-									originalBounds: [...originalBounds],
-									originalCode: block.orig,
-								},
-							}
-							const trackingZone = this._addDiffArea(adding)
-							addedTrackingZoneOfBlockNum.push(trackingZone)
-							latestStreamLocationMutable = { line: startLine, addedSplitYet: false, col: 1, originalCodeStartLine: 1 }
-						} // end adding diffarea
-
-
-						// should always be in streaming state here
-						if (!diffZone._streamState.isStreaming) {
-							console.error('DiffZone was not in streaming state in _initializeSearchAndReplaceStream')
-							continue
-						}
-
-						// if a block is done, finish it by writing all
-						if (block.state === 'done') {
-							const { startLine: finalStartLine, endLine: finalEndLine } = addedTrackingZoneOfBlockNum[blockNum]
-							this._writeURIText(uri, block.final,
-								{ startLineNumber: finalStartLine, startColumn: 1, endLineNumber: finalEndLine, endColumn: Number.MAX_SAFE_INTEGER }, // 1-indexed
-								{ shouldRealignDiffAreas: true }
-							)
-							diffZone._streamState.line = finalEndLine + 1
-							currStreamingBlockNum = blockNum + 1
-							continue
-						}
-
-						// write the added text to the file
-						if (!latestStreamLocationMutable) continue
-						const oldBlock = oldBlocks[blockNum]
-						const oldFinalLen = (oldBlock?.final ?? '').length
-						const deltaFinalText = block.final.substring(oldFinalLen, Infinity)
-
-						this._writeStreamedDiffZoneLLMText(uri, block.orig, block.final, deltaFinalText, latestStreamLocationMutable)
-						oldBlocks = blocks // oldblocks is only used if writingFinal
-
-						// const { endLine: currentEndLine } = addedTrackingZoneOfBlockNum[blockNum] // would be bad to do this because a lot of the bottom lines might be the same. more accurate to go with latestStreamLocationMutable
-						// diffZone._streamState.line = currentEndLine
-						diffZone._streamState.line = latestStreamLocationMutable.line
-
-					} // end for
-
-					this._refreshStylesAndDiffsInURI(uri)
-				}
-
-				streamRequestIdRef.current = this._llmMessageService.sendLLMMessage({
-					messagesType: 'chatMessages',
-					logging: { loggingName: `Edit (Search/Replace) - ${from}` },
-					messages,
-					modelSelection,
-					modelSelectionOptions,
-					overridesOfModel,
-					separateSystemMessage,
-					chatMode: null, // not chat
-					onText: (params) => {
-						onText(params)
-					},
-					onFinalMessage: async (params) => {
-						const { fullText } = params
-						onText(params)
-
-						const blocks = extractSearchReplaceBlocks(fullText)
-						if (blocks.length === 0) {
-							this._notificationService.info(`Void: We ran Fast Apply, but the LLM didn't output any changes.`)
-						}
-						this._writeURIText(uri, originalFileCode, 'wholeFileRange', { shouldRealignDiffAreas: true })
-
-
-						try {
-							this._instantlyApplySRBlocks(uri, fullText)
-							onDone()
-							resMessageDonePromise()
-						}
-						catch (e) {
-							onError(e)
-						}
-					},
-					onError: (e) => {
-						onError(e)
-					},
-					onAbort: () => {
-						if (weAreAborting) return
-						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
-						aborted = true
-						resMessageDonePromise()
-					},
-				})
-
-				// should never happen, just for safety
-				if (streamRequestIdRef.current === null) { break }
-
-				await messageDonePromise
-				if (aborted) {
-					throw new Error(`Edit was interrupted by the user.`)
-				}
-			} // end while
-
-		} // end retryLoop
-
-		const applyDonePromise = new Promise<void>((res, rej) => { runSearchReplace().then(res).catch(rej) })
-		return [diffZone, applyDonePromise]
+		return [diffZone, donePromise];
 	}
 
+	private async interruptStreamingIfActive(uri: URI): Promise<void> {
+		try {
+			const cmdBar = this._instantiationService.invokeFunction((a: any) => a.get(IVoidCommandBarService)) as any;
+			if (cmdBar && typeof cmdBar.getStreamState === 'function') {
+				const state = cmdBar.getStreamState(uri);
+				if (state === 'streaming') {
+					try {
+						await this.interruptURIStreaming({ uri });
+						this.logService.debug('[DEBUG] Successfully interrupted streaming for', uri.fsPath);
+					} catch (ie) {
+						this.logService.warn('Interrupt failed for URI:', uri.fsPath, ie);
+					}
+				}
+			}
+		} catch (e) {
+			this.logService.warn('Error checking stream state before tool call:', e);
+		}
+	}
 
 	_undoHistory(uri: URI) {
 		this._undoRedoService.undo(uri)
 	}
-
-
 
 	isCtrlKZoneStreaming({ diffareaid }: { diffareaid: number }) {
 		const ctrlKZone = this.diffAreaOfId[diffareaid]
@@ -2021,7 +2577,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		if (ctrlKZone.type !== 'CtrlKZone') return false
 		return !!ctrlKZone._linkedStreamingDiffZone
 	}
-
 
 	private _stopIfStreaming(diffZone: DiffZone) {
 		const uri = diffZone._URI
@@ -2063,23 +2618,18 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		}
 	}
 
-
-	// public removeDiffZone(diffZone: DiffZone, behavior: 'reject' | 'accept') {
-	// 	const uri = diffZone._URI
-	// 	const { onFinishEdit } = this._addToHistory(uri)
-
-	// 	if (behavior === 'reject') this._revertAndDeleteDiffZone(diffZone)
-	// 	else if (behavior === 'accept') this._deleteDiffZone(diffZone)
-
-	// 	this._refreshStylesAndDiffsInURI(uri)
-	// 	onFinishEdit()
-	// }
-
 	private _revertDiffZone(diffZone: DiffZone) {
 		const uri = diffZone._URI
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return
 
 		const writeText = diffZone.originalCode
-		const toRange: IRange = { startLineNumber: diffZone.startLine, startColumn: 1, endLineNumber: diffZone.endLine, endColumn: Number.MAX_SAFE_INTEGER }
+		const lineCount = model.getLineCount()
+		const startLineNumber = Math.max(1, Math.min(diffZone.startLine, lineCount))
+		const endLineNumber = Math.max(startLineNumber, Math.min(diffZone.endLine, lineCount))
+
+		const toRange: IRange = { startLineNumber, startColumn: 1, endLineNumber, endColumn: Number.MAX_SAFE_INTEGER }
+		this.logService.debug(`[_revertDiffZone] uri=${uri.fsPath} diffareaid=${diffZone.diffareaid} applyBoxId=${diffZone.applyBoxId ?? 'none'} from=${diffZone.startLine}-${diffZone.endLine} to=${startLineNumber}-${endLineNumber} originalLen=${writeText.length}`)
 		this._writeURIText(uri, writeText, toRange, { shouldRealignDiffAreas: true })
 	}
 
@@ -2087,117 +2637,954 @@ class EditCodeService extends Disposable implements IEditCodeService {
 	// remove a batch of diffareas all at once (and handle accept/reject of their diffs)
 	public acceptOrRejectAllDiffAreas: IEditCodeService['acceptOrRejectAllDiffAreas'] = async ({ uri, behavior, removeCtrlKs, _addToHistory }) => {
 
-		const diffareaids = this.diffAreasOfURI[uri.fsPath]
-		if ((diffareaids?.size ?? 0) === 0) return // do nothing
-
-		const { onFinishEdit } = _addToHistory === false ? { onFinishEdit: () => { } } : this._addToHistory(uri)
-
-		for (const diffareaid of diffareaids ?? []) {
-			const diffArea = this.diffAreaOfId[diffareaid]
-			if (!diffArea) continue
-
-			if (diffArea.type === 'DiffZone') {
-				if (behavior === 'reject') {
-					this._revertDiffZone(diffArea)
-					this._deleteDiffZone(diffArea)
-				}
-				else if (behavior === 'accept') this._deleteDiffZone(diffArea)
-			}
-			else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
-				this._deleteCtrlKZone(diffArea)
-			}
+		const uriKey = uri.fsPath
+		if (this._activeBulkAcceptRejectUris.has(uriKey)) {
+			this.logService.warn(`[acceptOrRejectAllDiffAreas] reentrant start uri=${uriKey} behavior=${behavior}`)
 		}
+		this._activeBulkAcceptRejectUris.add(uriKey)
 
-		this._refreshStylesAndDiffsInURI(uri)
-		onFinishEdit()
+		try {
+			const diffareaids = this.diffAreasOfURI[uri.fsPath]
+			this.logService.debug(`[acceptOrRejectAllDiffAreas] start uri=${uri.fsPath} behavior=${behavior} removeCtrlKs=${removeCtrlKs} addToHistory=${_addToHistory !== false} totalAreas=${diffareaids?.size ?? 0}`)
+			if ((diffareaids?.size ?? 0) === 0) return // do nothing
+
+			const { onFinishEdit } = _addToHistory === false ? { onFinishEdit: () => { } } : this._addToHistory(uri)
+			const serializeZones = (zones: DiffZone[]) => {
+				try {
+					return JSON.stringify(zones.map(z => ({
+						diffareaid: z.diffareaid,
+						startLine: z.startLine,
+						endLine: z.endLine,
+						applyBoxId: z.applyBoxId ?? null,
+						isEditFileSimple: !!(z as any)._editFileSimple
+					})));
+				} catch {
+					return String(zones.map(z => z.diffareaid).join(','));
+				}
+			};
+
+			if (behavior === 'reject') {
+
+				const diffZones: DiffZone[] = [];
+				for (const diffareaid of diffareaids ?? []) {
+					const diffArea = this.diffAreaOfId[diffareaid];
+					if (diffArea && diffArea.type === 'DiffZone') {
+						diffZones.push(diffArea);
+					}
+				}
+				this.logService.debug(`[acceptOrRejectAllDiffAreas] reject targetZones(beforeSort)=${serializeZones(diffZones)}`)
+
+				// Revert bottom-to-top so earlier rewrites do not shift later ranges.
+				diffZones.sort((a, b) => {
+					if (a.startLine !== b.startLine) return b.startLine - a.startLine;
+					return b.diffareaid - a.diffareaid;
+				});
+				this.logService.debug(`[acceptOrRejectAllDiffAreas] reject targetZones(sorted)=${serializeZones(diffZones)}`)
+				for (const diffZone of diffZones) {
+					this.logService.debug(`[acceptOrRejectAllDiffAreas] reject revert diffareaid=${diffZone.diffareaid} start=${diffZone.startLine} end=${diffZone.endLine}`)
+					this._revertDiffZone(diffZone);
+					this._deleteDiffZone(diffZone);
+				}
+
+
+				if (removeCtrlKs) {
+					for (const diffareaid of diffareaids ?? []) {
+						const diffArea = this.diffAreaOfId[diffareaid];
+						if (diffArea && diffArea.type === 'CtrlKZone') {
+							this.logService.debug(`[acceptOrRejectAllDiffAreas] reject removeCtrlK diffareaid=${diffArea.diffareaid} start=${diffArea.startLine} end=${diffArea.endLine}`)
+							this._deleteCtrlKZone(diffArea);
+						}
+					}
+				}
+			} else {
+				const acceptedZones: DiffZone[] = [];
+				const removedCtrlKs: CtrlKZone[] = [];
+
+				for (const diffareaid of diffareaids ?? []) {
+					const diffArea = this.diffAreaOfId[diffareaid];
+					if (!diffArea) {
+						continue;
+					}
+
+					if (diffArea.type === 'DiffZone') {
+						if (behavior === 'accept') {
+							acceptedZones.push(diffArea);
+							this._deleteDiffZone(diffArea);
+						}
+					}
+					else if (diffArea.type === 'CtrlKZone' && removeCtrlKs) {
+						removedCtrlKs.push(diffArea);
+						this._deleteCtrlKZone(diffArea);
+					}
+				}
+				if (behavior === 'accept') {
+					this.logService.debug(`[acceptOrRejectAllDiffAreas] accept deletedZones=${serializeZones(acceptedZones)}`)
+				}
+				if (removedCtrlKs.length > 0) {
+					this.logService.debug(`[acceptOrRejectAllDiffAreas] accept/removeCtrlKs removedCtrlKs=${JSON.stringify(removedCtrlKs.map(z => ({ diffareaid: z.diffareaid, startLine: z.startLine, endLine: z.endLine })))}`)
+				}
+			}
+
+			this._refreshStylesAndDiffsInURI(uri)
+			this.logService.debug(`[acceptOrRejectAllDiffAreas] finishEdit(start) uri=${uri.fsPath} behavior=${behavior}`)
+			await onFinishEdit()
+			this.logService.debug(`[acceptOrRejectAllDiffAreas] finishEdit(done) uri=${uri.fsPath} behavior=${behavior}`)
+			this.logService.debug(`[acceptOrRejectAllDiffAreas] done uri=${uri.fsPath} behavior=${behavior} remainingAreas=${this.diffAreasOfURI[uri.fsPath]?.size ?? 0}`)
+		} finally {
+			this._activeBulkAcceptRejectUris.delete(uriKey)
+		}
+	}
+
+	private decodeHtmlEntities(text: string): string {
+		if (!text) return text;
+		const entities: Record<string, string> = {
+			'&lt;': '<',
+			'&gt;': '>',
+			'&amp;': '&',
+			'&quot;': '"',
+			'&#39;': '\'',
+			'&apos;': '\'',
+			'&nbsp;': ' ',
+			'&#x27;': '\'',
+			'&#x2F;': '/',
+			'&#60;': '<',
+			'&#62;': '>',
+			'&#38;': '&',
+			'&#34;': '"',
+		};
+
+		const pattern = Object.keys(entities)
+			.sort((a, b) => b.length - a.length)
+			.map(entity => entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+			.join('|');
+
+		const regex = new RegExp(pattern, 'g');
+		const result = text.replace(regex, match => entities[match] || match);
+		return result;
 	}
 
 
+	private hasHtmlEntities(text: string): boolean {
+		if (!text) return false;
+		const hasEntities = /&(?:lt|gt|amp|quot|#39|apos|nbsp|#x27|#x2F|#60|#62|#38|#34);/i.test(text);
+		return hasEntities;
+	}
 
-	// called on void.acceptDiff
-	public async acceptDiff({ diffid }: { diffid: number }) {
 
-		// TODO could use an ITextModelto do this instead, would be much simpler
+	private shouldDecodeEntities(originalSnippet: string, updatedSnippet: string, fileExtension?: string): boolean {
 
-		const diff = this.diffOfId[diffid]
-		if (!diff) return
+		if (!this.hasHtmlEntities(originalSnippet) && !this.hasHtmlEntities(updatedSnippet)) {
+			return false;
+		}
 
-		const { diffareaid } = diff
-		const diffArea = this.diffAreaOfId[diffareaid]
-		if (!diffArea) return
+		const originalHasEntities = this.hasHtmlEntities(originalSnippet);
+		const updatedHasEntities = this.hasHtmlEntities(updatedSnippet);
 
-		if (diffArea.type !== 'DiffZone') return
+		const looksLikeJSXTag = (text: string): boolean => {
+			const patterns = [
+				/&lt;(\w+)[\s>]/,  // &lt;div> or &lt;Component
+				/&lt;\/(\w+)&gt;/, // &lt;/div&gt;
+				/&lt;(\w+)\s+\w+=/,  // &lt;div className=
+				/&lt;(\w+)\s*\/&gt;/, // &lt;Component /&gt;
+			];
+			const isJSX = patterns.some(p => p.test(text));
+			return isJSX;
+		};
 
-		const uri = diffArea._URI
+		const entitiesInString = (text: string): boolean => {
+			const lines = text.split('\n');
+			for (const line of lines) {
+				const entityMatch = /&(?:lt|gt|amp|quot|#39);/.exec(line);
+				if (entityMatch) {
+					const beforeEntity = line.substring(0, entityMatch.index);
+					const afterEntity = line.substring(entityMatch.index + entityMatch[0].length);
 
-		// add to history
+					const quotesBefore = (beforeEntity.match(/['"]/g) || []).length;
+					const quotesAfter = (afterEntity.match(/['"]/g) || []).length;
+
+					if (quotesBefore % 2 === 1 && quotesAfter % 2 === 1) {
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+
+		const codeExtensions = ['js', 'jsx', 'ts', 'tsx', 'vue', 'svelte', 'html', 'htm'];
+		const dataExtensions = ['json', 'xml', 'yaml', 'yml'];
+
+		const isCodeFile = fileExtension ? codeExtensions.includes(fileExtension.toLowerCase()) : false;
+		const isDataFile = fileExtension ? dataExtensions.includes(fileExtension.toLowerCase()) : false;
+
+		if (!originalHasEntities && updatedHasEntities) {
+			const looksLikeJSX = looksLikeJSXTag(updatedSnippet);
+			const inString = entitiesInString(updatedSnippet);
+
+			if (looksLikeJSX && !inString) {
+				return true;
+			}
+			return false;
+		}
+
+		if (originalHasEntities && updatedHasEntities) {
+			const origDecoded = this.decodeHtmlEntities(originalSnippet);
+			const hasDecodedTags = origDecoded.includes('<') && origDecoded.includes('>');
+			const hasOriginalTags = originalSnippet.includes('<') && originalSnippet.includes('>');
+
+			if (hasDecodedTags && !hasOriginalTags) {
+				const decision = isCodeFile && !isDataFile;
+				return decision;
+			}
+		}
+
+		if (updatedHasEntities && !originalHasEntities) {
+			const decodedUpdated = this.decodeHtmlEntities(updatedSnippet);
+			const areIdentical = decodedUpdated === originalSnippet;
+
+			if (areIdentical) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	public async previewEditFileSimple({
+		uri, originalSnippet, updatedSnippet, occurrence, replaceAll, locationHint, encoding, newline, applyBoxId
+	}: {
+		uri: URI; originalSnippet: string; updatedSnippet: string;
+		occurrence?: number | null; replaceAll?: boolean; locationHint?: any; encoding?: string | null; newline?: string | null; applyBoxId?: string
+	}) {
+		this.logService.debug(`[previewEditFileSimple] Called with applyBoxId: ${applyBoxId}`)
+		const fileExtension = uri.path ? uri.path.split('.').pop()?.toLowerCase() : undefined;
+
+		let cleanOriginalSnippet = originalSnippet;
+		let cleanUpdatedSnippet = updatedSnippet;
+		let entitiesDetected = false;
+		let entitiesAutoFixed = false;
+
+		if (this.shouldDecodeEntities(originalSnippet, updatedSnippet, fileExtension)) {
+			entitiesDetected = true;
+
+			const decodedOriginal = this.decodeHtmlEntities(originalSnippet);
+			const decodedUpdated = this.decodeHtmlEntities(updatedSnippet);
+
+			const looksValidAfterDecode = (original: string, decoded: string): boolean => {
+				const hasValidTags = /<\w+[\s>]/.test(decoded) || /<\/\w+>/.test(decoded);
+				const hasValidJSX = /\/>/.test(decoded) || /\{.*\}/.test(decoded);
+
+				if (hasValidTags || hasValidJSX) return true;
+
+				const lengthRatio = decoded.length / original.length;
+				if (lengthRatio < 0.7 || lengthRatio > 1.3) return false;
+				return true;
+			};
+
+			if (looksValidAfterDecode(originalSnippet, decodedOriginal) &&
+				looksValidAfterDecode(updatedSnippet, decodedUpdated)) {
+				cleanOriginalSnippet = decodedOriginal;
+				cleanUpdatedSnippet = decodedUpdated;
+				entitiesAutoFixed = true;
+			}
+		}
+
+		cleanOriginalSnippet = stripMarkdownFence(cleanOriginalSnippet);
+		cleanUpdatedSnippet = stripMarkdownFence(cleanUpdatedSnippet);
+
+		const { model } = this._voidModelService.getModel(uri)
+		if (!model) return {
+			applied: false,
+			occurrences_found: 0,
+			error: 'File not found',
+			preview: { before: '', after: '' },
+			entities_detected: entitiesDetected,
+			entities_auto_fixed: entitiesAutoFixed,
+			match_kind: 'none',
+			match_range: { startLine: 0, endLine: 0, startColumn: 0, endColumn: 0 },
+			debug_cmd: null,
+			debug_cmd_alt: null
+		}
+
+		const fullText = model.getValue(EndOfLinePreference.LF)
+
+		let matchKind: 'exact' | 'whitespace' | 'inferred' | 'location_hint' | 'none' = 'none';
+		let fallbackReason: string | null = null;
+		let debugCmd: { gnu: string; bsd: string } | null = null;
+
+		const recordFallbackLater = (reason: string) => {
+			fallbackReason = reason;
+		};
+
+		const origNorm = normalizeEol(cleanOriginalSnippet)
+		const updNorm = normalizeEol(cleanUpdatedSnippet)
+
+		const collapseWsKeepNL = (s: string) => {
+			const out: string[] = [];
+			const map: number[] = [];
+			let i = 0;
+			while (i < s.length) {
+				const ch = s[i];
+				// For the whitespace-agnostic search we ignore spaces/tabs completely
+				// but keep newlines so multi-line structure is preserved.
+				if (ch === ' ' || ch === '\t') {
+					i++;
+					continue;
+				}
+				out.push(ch);
+				map.push(i);
+				i++;
+			}
+			return { text: out.join(''), map };
+		};
+
+		const startsWithWsAgnostic = (a: string, b: string) => {
+			const A = collapseWsKeepNL(a).text;
+			const B = collapseWsKeepNL(b).text;
+			return A.startsWith(B);
+		};
+
+		const findAllWsAgnostic = (haystack: string, needle: string): Array<{ start: number; end: number }> => {
+			const H = collapseWsKeepNL(haystack);
+			const N = collapseWsKeepNL(needle);
+			const found: Array<{ start: number; end: number }> = [];
+			let from = 0;
+			while (true) {
+				const pos = H.text.indexOf(N.text, from);
+				if (pos === -1) break;
+				const rawStart = H.map[pos];
+				const rawEnd = H.map[Math.min(pos + N.text.length - 1, H.map.length - 1)] + 1; // exclusive
+				found.push({ start: rawStart, end: rawEnd });
+				from = pos + Math.max(1, N.text.length);
+			}
+			return found;
+		};
+
+		const findMatchingCurlyForward = (text: string, openIndex: number): number => {
+			let i = openIndex + 1;
+			let depth = 1;
+
+			let inSgl = false;   // '
+			let inDbl = false;   // "
+			let inBT = false;    // `
+			let inLine = false;  // //
+			let inBlock = false; // /* */
+			let prev = '';
+
+			while (i < text.length) {
+				const ch = text[i];
+				const next = text[i + 1];
+
+				if (!inSgl && !inDbl && !inBT) {
+					if (!inBlock && !inLine && ch === '/' && next === '/') { inLine = true; i += 2; prev = ''; continue; }
+					if (!inBlock && !inLine && ch === '/' && next === '*') { inBlock = true; i += 2; prev = ''; continue; }
+					if (inLine && ch === '\n') { inLine = false; i++; prev = ch; continue; }
+					if (inBlock && ch === '*' && next === '/') { inBlock = false; i += 2; prev = ''; continue; }
+					if (inLine || inBlock) { i++; prev = ch; continue; }
+				}
+
+				if (!inBlock && !inLine) {
+					if (!inDbl && !inBT && ch === '\'' && prev !== '\\') { inSgl = !inSgl; i++; prev = ch; continue; }
+					if (!inSgl && !inBT && ch === '"' && prev !== '\\') { inDbl = !inDbl; i++; prev = ch; continue; }
+					if (!inSgl && !inDbl && ch === '`' && prev !== '\\') { inBT = !inBT; i++; prev = ch; continue; }
+				}
+
+				if (!inSgl && !inDbl && !inBT && !inBlock && !inLine) {
+					if (ch === '{') { depth++; i++; prev = ch; continue; }
+					if (ch === '}') { depth--; if (depth === 0) return i; i++; prev = ch; continue; }
+				}
+
+				prev = ch;
+				i++;
+			}
+			return -1;
+		};
+
+		const updatedLooksLikeFullCurlyBlock = (updated: string): boolean => {
+			const open = updated.indexOf('{');
+			if (open === -1) return false;
+
+			const close = findMatchingCurlyForward(updated, open);
+			if (close === -1) return false;
+
+			const tail = updated.slice(close + 1).trim();
+			return tail === '' || tail === ';' || tail === ',';
+		};
+
+		const tryExpandHeaderRange = (text: string, guessStart: number, guessEnd: number, searchWindow = 200) => {
+			let startOffset = guessStart;
+			let endOffset = guessEnd;
+			const origTrim = (origNorm ?? '').trimEnd();
+			const looksLikeHeaderOnly = /{\s*$/.test(origTrim) && !origTrim.includes('}');
+
+			const looksLikeExpansion =
+				(updNorm ?? '').length > (origNorm ?? '').length &&
+				startsWithWsAgnostic(updNorm ?? '', origNorm ?? '');
+
+			const allowBlockExpansion =
+				looksLikeHeaderOnly &&
+				looksLikeExpansion &&
+				updatedLooksLikeFullCurlyBlock(updNorm ?? '');
+
+			if (!allowBlockExpansion) {
+				return { startOffset, endOffset };
+			}
+
+			let inS = false, inD = false, inT = false, inSL = false, inML = false;
+			let openPos = -1;
+
+			const limit = Math.min(text.length, guessStart + Math.max((origNorm ?? '').length + 20, searchWindow));
+			for (let pos = guessStart; pos < limit; pos++) {
+				const c = text[pos];
+				const next = pos + 1 < text.length ? text[pos + 1] : '';
+
+
+				if (!inS && !inD && !inT) {
+					if (!inML && !inSL && c === '/' && next === '/') { inSL = true; pos++; continue; }
+					if (!inML && !inSL && c === '/' && next === '*') { inML = true; pos++; continue; }
+					if (inSL && c === '\n') { inSL = false; continue; }
+					if (inML && c === '*' && next === '/') { inML = false; pos++; continue; }
+					if (inSL || inML) continue;
+				}
+
+
+				if (!inML && !inSL) {
+					if (!inD && !inT && c === '\'') { inS = !inS; continue; }
+					if (!inS && !inT && c === '"') { inD = !inD; continue; }
+					if (!inS && !inD && c === '`') { inT = !inT; continue; }
+				}
+				if (inS || inD || inT) continue;
+
+				if (c === '{') { openPos = pos; break; }
+			}
+
+			if (openPos !== -1) {
+				const closePos = findMatchingCurlyForward(text, openPos);
+				if (closePos !== -1) {
+					endOffset = Math.max(endOffset, closePos + 1);
+				}
+			}
+
+			return { startOffset, endOffset };
+		};
+
+		const escapeRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const endsWithToken = (s: string, token: string) => new RegExp(`${escapeRx(token)}\\s*$`).test(s);
+		const nextNonWsIndex = (text: string, from: number) => {
+			let i = from;
+			while (i < text.length && /\s/.test(text[i])) i++;
+			return i;
+		};
+
+		const swallowTrailingTokenLen = (full: string, endOff: number, updated: string, original: string) => {
+			const i = nextNonWsIndex(full, endOff);
+			const ch = full[i];
+			const tokens = [';', ','];
+			for (const tok of tokens) {
+				if (ch === tok && endsWithToken(updated, tok) && !endsWithToken(original, tok)) {
+
+					return (i - endOff) + 1;
+				}
+			}
+			return 0;
+		};
+
+
+		const indices: number[] = []
+		for (let from = 0; ;) {
+			const i = fullText.indexOf(origNorm, from)
+			if (i === -1) break
+			indices.push(i)
+			from = i + Math.max(origNorm.length, 1)
+		}
+
+		let wsAgnosticMatches: Array<{ start: number; end: number }> = []
+		if (indices.length === 0) {
+			wsAgnosticMatches = findAllWsAgnostic(fullText, origNorm)
+			if (wsAgnosticMatches.length > 0) {
+				matchKind = 'whitespace';
+				recordFallbackLater('LLM did not correctly provide an ORIGINAL code block (whitespace-insensitive match used).');
+			}
+		}
+
+		const linesCount = fullText.split('\n').length
+		let updatedText = fullText
+		let startLine = 1
+		let endLine = linesCount
+		let startColumn = 1
+		let endColumn = Number.MAX_SAFE_INTEGER
+		let occurrenceApplied = 0
+		let originalCodeForZone = ''
+
+		const offsetToLine = (text: string, offset: number) => text.slice(0, offset).split('\n').length
+		const offsetToLineCol = (text: string, offset: number) => {
+			const line = offsetToLine(text, offset)
+			const prevNL = text.lastIndexOf('\n', Math.max(0, offset - 1))
+			const col = (prevNL === -1 ? offset : (offset - (prevNL + 1))) + 1
+			return { line, column: col }
+		}
+
+		// replaceAll
+		if (replaceAll) {
+			if (indices.length > 0) {
+
+				let textAcc = fullText
+				for (let k = indices.length - 1; k >= 0; k--) {
+					const start = indices[k]
+					let end = start + origNorm.length
+
+					{
+						const r = tryExpandHeaderRange(textAcc, start, end)
+						end = r.endOffset
+					}
+
+					const swallow = swallowTrailingTokenLen(textAcc, end, updNorm, origNorm)
+					textAcc = textAcc.slice(0, start) + updNorm + textAcc.slice(end + swallow)
+				}
+				updatedText = textAcc
+				startLine = 1
+				endLine = linesCount
+				startColumn = 1
+				endColumn = Number.MAX_SAFE_INTEGER
+				originalCodeForZone = fullText
+			} else if (wsAgnosticMatches.length > 0) {
+
+				let textAcc = fullText
+				const matches = [...wsAgnosticMatches].sort((a, b) => b.start - a.start)
+				for (const m of matches) {
+					const start = m.start
+					let end = m.end
+
+					{
+						const r = tryExpandHeaderRange(textAcc, start, end)
+						end = r.endOffset
+					}
+
+					const swallow = swallowTrailingTokenLen(textAcc, end, updNorm, origNorm)
+					textAcc = textAcc.slice(0, start) + updNorm + textAcc.slice(end + swallow)
+				}
+				updatedText = textAcc
+				startLine = 1
+				endLine = linesCount
+				startColumn = 1
+				endColumn = Number.MAX_SAFE_INTEGER
+				originalCodeForZone = fullText
+			} else {
+				originalCodeForZone = fullText
+			}
+		} else {
+
+			if (indices.length === 0 && wsAgnosticMatches.length === 0) {
+
+				let inferred: any = null
+				try {
+					const model = this._modelService.getModel(uri)
+					const astContext = this._getCachedAstContext(uri, model)
+					inferred = inferSelectionFromCode({
+						codeStr: cleanOriginalSnippet,
+						fileText: fullText,
+						astContext: astContext ?? undefined
+					})
+				} catch { }
+
+				if (!inferred) {
+					const sample = fullText.split('\n').slice(0, 20).join('\n')
+					return {
+						applied: false,
+						occurrences_found: 0,
+						error: 'original_snippet not found',
+						preview: { before: sample, after: '' },
+						entities_detected: entitiesDetected,
+						entities_auto_fixed: entitiesAutoFixed
+					}
+				}
+
+				matchKind = 'inferred';
+				recordFallbackLater('LLM did not correctly provide an ORIGINAL code block (inferred selection used).');
+
+				originalCodeForZone = inferred.text
+				if (inferred.range) {
+					startLine = inferred.range[0]
+					endLine = inferred.range[1]
+				} else {
+					const idx2 = fullText.indexOf(originalCodeForZone)
+					if (idx2 !== -1) {
+						const s = offsetToLineCol(fullText, idx2)
+						startLine = s.line
+						startColumn = s.column
+						endLine = startLine + originalCodeForZone.split('\n').length - 1
+						const endOffset = idx2 + originalCodeForZone.length
+						const e = offsetToLineCol(fullText, endOffset)
+						endColumn = e.column
+					}
+				}
+				return {
+					applied: false,
+					occurrences_found: 0,
+					error: 'original_snippet not found (inferred)',
+					preview: { before: originalCodeForZone.slice(0, 1000), after: '' },
+					entities_detected: entitiesDetected,
+					entities_auto_fixed: entitiesAutoFixed
+				}
+			}
+
+			if (indices.length > 0) {
+
+				let pickIndexInText = indices[0]
+				let which = 1
+				if (typeof occurrence === 'number') {
+					const idxNum = occurrence < 0 ? indices.length + occurrence : occurrence - 1
+					if (idxNum < 0 || idxNum >= indices.length) {
+						return {
+							applied: false,
+							occurrences_found: indices.length,
+							error: `occurrence ${occurrence} out of range`,
+							entities_detected: entitiesDetected,
+							entities_auto_fixed: entitiesAutoFixed
+						}
+					}
+					pickIndexInText = indices[idxNum]
+					which = idxNum + 1
+				}
+				occurrenceApplied = which
+
+				let startReplaceOffset = pickIndexInText
+				let endReplaceOffset = pickIndexInText + origNorm.length
+
+				{
+					const r = tryExpandHeaderRange(fullText, startReplaceOffset, endReplaceOffset)
+					startReplaceOffset = r.startOffset
+					endReplaceOffset = r.endOffset
+				}
+
+				endReplaceOffset += swallowTrailingTokenLen(fullText, endReplaceOffset, updNorm, origNorm)
+
+				const s = offsetToLineCol(fullText, startReplaceOffset)
+				const e = offsetToLineCol(fullText, endReplaceOffset)
+				startLine = s.line
+				startColumn = s.column
+				endLine = e.line
+				endColumn = e.column
+
+				const originalCodeForZoneFull = model.getValueInRange(
+					{
+						startLineNumber: startLine,
+						startColumn: 1,
+						endLineNumber: endLine,
+						endColumn: Number.MAX_SAFE_INTEGER
+					},
+					EndOfLinePreference.LF
+				)
+				originalCodeForZone = originalCodeForZoneFull
+
+				updatedText = fullText.slice(0, startReplaceOffset) + updNorm + fullText.slice(endReplaceOffset)
+			} else {
+
+				let pickIdx = 0
+				if (typeof occurrence === 'number') {
+					const idxNum = occurrence < 0 ? wsAgnosticMatches.length + occurrence : occurrence - 1
+					if (idxNum < 0 || idxNum >= wsAgnosticMatches.length) {
+						return {
+							applied: false,
+							occurrences_found: wsAgnosticMatches.length,
+							error: `occurrence ${occurrence} out of range`,
+							entities_detected: entitiesDetected,
+							entities_auto_fixed: entitiesAutoFixed
+						}
+					}
+					pickIdx = idxNum
+				}
+				const picked = wsAgnosticMatches[pickIdx]
+				occurrenceApplied = pickIdx + 1
+
+				let startReplaceOffset = picked.start
+				let endReplaceOffset = picked.end
+
+				{
+					const r = tryExpandHeaderRange(fullText, startReplaceOffset, endReplaceOffset)
+					startReplaceOffset = r.startOffset
+					endReplaceOffset = r.endOffset
+				}
+
+
+				endReplaceOffset += swallowTrailingTokenLen(fullText, endReplaceOffset, updNorm, origNorm)
+
+				const s = offsetToLineCol(fullText, startReplaceOffset)
+				const e = offsetToLineCol(fullText, endReplaceOffset)
+				startLine = s.line; startColumn = s.column
+				endLine = e.line; endColumn = e.column
+
+				const originalCodeForZoneFull = model.getValueInRange(
+					{
+						startLineNumber: startLine,
+						startColumn: 1,
+						endLineNumber: endLine,
+						endColumn: Number.MAX_SAFE_INTEGER
+					},
+					EndOfLinePreference.LF
+				)
+				originalCodeForZone = originalCodeForZoneFull
+
+				updatedText = fullText.slice(0, startReplaceOffset) + updNorm + fullText.slice(endReplaceOffset)
+			}
+		}
+
+
+		const dmp = new DiffMatchPatch()
+		const diffs = dmp.diff_main(fullText, updatedText)
+		try { dmp.diff_cleanupSemantic(diffs) } catch { }
+		const fileLabel = (uri.path ?? uri.fsPath ?? 'file').toString().replace(/^[\\/]+/, '')
+		const patch_unified = createUnifiedFromLineDiffs(fileLabel, fullText, updatedText, 3)
+
+		if (fallbackReason) {
+			const linesTotal = linesCount || fullText.split('\n').length || 1;
+
+			// clamp to a reasonable window
+			let from = Math.max(1, (startLine || 1) - 3);
+			let to = Math.min(linesTotal, (endLine || startLine || 1) + 3);
+			if (to - from > 200) to = Math.min(linesTotal, from + 200);
+
+			const relForCmd = this._getWorkspaceRelativePathForCmd(uri);
+			debugCmd = buildInvisibleCharsDebugCmd(relForCmd, from, to);
+
+			this.recordFallbackMessage(uri, EDIT_FILE_FALLBACK_MSG);
+		}
+
+		const adding: Omit<DiffZone, 'diffareaid'> = {
+			type: 'DiffZone',
+			originalCode: originalCodeForZone,
+			startLine,
+			endLine,
+			_URI: uri,
+			_streamState: { isStreaming: false },
+			_diffOfId: {},
+			_removeStylesFns: new Set(),
+			applyBoxId: applyBoxId,
+		}
+		const diffZone = this._addDiffArea(adding)
+		this.logService.debug(`[previewEditFileSimple] Created DiffZone with applyBoxId: ${applyBoxId}, diffareaid: ${diffZone.diffareaid}`);
+		(diffZone as any)._editFileSimple = {
+			original_snippet: cleanOriginalSnippet,
+			updated_snippet: cleanUpdatedSnippet,
+			occurrence: occurrence ?? null,
+			replace_all: !!replaceAll,
+			location_hint: locationHint,
+			encoding,
+			newline,
+			updated_text: updatedText,
+			patch_unified,
+			entities_auto_fixed: entitiesAutoFixed
+		}
+
+		this._onDidAddOrDeleteDiffZones.fire({ uri })
+		this._refreshStylesAndDiffsInURI(uri)
+
 		const { onFinishEdit } = this._addToHistory(uri)
+		if (replaceAll) {
+			this._writeURIText(uri, updatedText, 'wholeFileRange', { shouldRealignDiffAreas: true })
+		} else {
+			const toRange: IRange = {
+				startLineNumber: startLine,
+				startColumn,
+				endLineNumber: endLine,
+				endColumn
+			}
+			this._writeURIText(uri, updNorm, toRange, { shouldRealignDiffAreas: true })
+		}
+		await onFinishEdit?.()
 
-		const originalLines = diffArea.originalCode.split('\n')
-		let newOriginalCode: string
+		const occurrencesFound = indices.length > 0 ? indices.length : wsAgnosticMatches.length
+
+		// Check if the original and updated snippets are identical
+		if (origNorm === updNorm) {
+			return {
+				applied: false,
+				occurrences_found: occurrencesFound,
+				error: 'original_snippet and updated_snippet are identical',
+				preview: { before: originalCodeForZone.slice(0, 1000), after: updNorm.slice(0, 1000) },
+				entities_detected: entitiesDetected,
+				entities_auto_fixed: entitiesAutoFixed,
+				match_kind: matchKind,
+				match_range: { startLine, endLine, startColumn, endColumn },
+				fallback_available: !!fallbackReason,
+				debug_cmd: debugCmd?.gnu ?? null,
+				debug_cmd_alt: debugCmd?.bsd ?? null
+			}
+		}
+
+		return {
+			applied: true,
+			occurrences_found: occurrencesFound,
+			occurrence_applied: occurrenceApplied || undefined,
+			updated_text: updatedText,
+			patch_unified,
+			preview: { before: originalCodeForZone.slice(0, 1000), after: updNorm.slice(0, 1000) },
+			entities_detected: entitiesDetected,
+			entities_auto_fixed: entitiesAutoFixed,
+			fallback_available: !!fallbackReason,
+			debug_cmd: debugCmd?.gnu ?? null,
+			debug_cmd_alt: debugCmd?.bsd ?? null
+		}
+	}
+
+	public async acceptDiff({ diffid }: { diffid: number }) {
+		const diff: Diff | undefined = this.diffOfId[diffid];
+		if (!diff) {
+			this.logService.debug(`[acceptDiff] skipped missing diffid=${diffid}`);
+			return;
+		}
+
+		const { diffareaid } = diff;
+		const diffArea = this.diffAreaOfId[diffareaid];
+		if (!diffArea || diffArea.type !== 'DiffZone') {
+			this.logService.debug(`[acceptDiff] skipped diffid=${diffid} invalid diffareaid=${diffareaid}`);
+			return;
+		}
+
+		const uri = diffArea._URI;
+		const loggedEndLine = diff.type === 'deletion' ? diff.startLine : diff.endLine;
+		this.logService.debug(`[acceptDiff] start uri=${uri.fsPath} diffid=${diffid} diffareaid=${diffareaid} type=${diff.type} range=${diff.startLine}-${loggedEndLine} applyBoxId=${diffArea.applyBoxId ?? 'none'} editFileSimple=${!!(diffArea as any)._editFileSimple}`);
+
+		// For edit_file preview zones, accepting a single diff should only merge that
+		// change into the baseline, keeping other diffs in the same zone intact.
+		if ((diffArea as any)._editFileSimple) {
+			try {
+				const before = diffArea.originalCode;
+				diffArea.originalCode = applyDiffToBaseline(before, diff);
+			} catch (e) {
+				console.error('[acceptDiff] Failed to update baseline for edit_file zone:', e);
+			}
+
+			// Remove this diff from the current zone bookkeeping
+			this._deleteDiff(diff);
+			if (Object.keys(diffArea._diffOfId).length === 0) {
+				this._deleteDiffZone(diffArea);
+			}
+
+			this._refreshStylesAndDiffsInURI(uri);
+			this.logService.debug(`[acceptDiff] done(edit_file) uri=${uri.fsPath} diffid=${diffid} remainingDiffs=${Object.keys(diffArea._diffOfId).length}`);
+			return;
+		}
+
+		// Default behavior for non-edit_file zones: apply the change to the model and
+		// then update the baseline for the whole zone.
+		const model = this._modelService.getModel(uri);
+		if (!model) {
+			console.warn('[acceptDiff] Model not found for URI:', uri);
+			return;
+		}
+
+		const { onFinishEdit } = this._addToHistory(uri);
+
+		let range: IRange;
+		let text: string;
 
 		if (diff.type === 'deletion') {
-			newOriginalCode = [
-				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
-				// <-- deletion has nothing here
-				...originalLines.slice((diff.originalEndLine - 1) + 1, Infinity) // everything after endLine
-			].join('\n')
-		}
-		else if (diff.type === 'insertion') {
-			newOriginalCode = [
-				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
-				diff.code, // code
-				...originalLines.slice((diff.originalStartLine - 1), Infinity) // startLine (inclusive) and on (no +1)
-			].join('\n')
-		}
-		else if (diff.type === 'edit') {
-			newOriginalCode = [
-				...originalLines.slice(0, (diff.originalStartLine - 1)), // everything before startLine
-				diff.code, // code
-				...originalLines.slice((diff.originalEndLine - 1) + 1, Infinity) // everything after endLine
-			].join('\n')
-		}
-		else {
-			throw new Error(`Void error: ${diff}.type not recognized`)
+			range = {
+				startLineNumber: diff.originalStartLine,
+				startColumn: 1,
+				endLineNumber: diff.originalEndLine + 1,
+				endColumn: 1
+			};
+			text = '';
+		} else if (diff.type === 'insertion') {
+			range = {
+				startLineNumber: diff.originalStartLine,
+				startColumn: 1,
+				endLineNumber: diff.originalStartLine,
+				endColumn: 1
+			};
+			text = diff.code;
+		} else if (diff.type === 'edit') {
+			range = {
+				startLineNumber: diff.originalStartLine,
+				startColumn: 1,
+				endLineNumber: diff.originalEndLine + 1,
+				endColumn: 1
+			};
+			text = diff.code;
+		} else {
+			throw new Error(`Void error: unknown diff type for diffid ${diffid}`);
 		}
 
-		// console.log('DIFF', diff)
-		// console.log('DIFFAREA', diffArea)
-		// console.log('ORIGINAL', diffArea.originalCode)
-		// console.log('new original Code', newOriginalCode)
+		model.pushEditOperations([], [{ range, text }], () => null);
 
-		// update code now accepted as original
-		diffArea.originalCode = newOriginalCode
+		diffArea.originalCode = model.getValueInRange({
+			startLineNumber: diffArea.startLine,
+			startColumn: 1,
+			endLineNumber: diffArea.endLine,
+			endColumn: Number.MAX_SAFE_INTEGER
+		}, EndOfLinePreference.LF);
 
-		// delete the diff
-		this._deleteDiff(diff)
-
-		// diffArea should be removed if it has no more diffs in it
+		this._deleteDiff(diff);
 		if (Object.keys(diffArea._diffOfId).length === 0) {
-			this._deleteDiffZone(diffArea)
+			this._deleteDiffZone(diffArea);
 		}
 
-		this._refreshStylesAndDiffsInURI(uri)
-
-		onFinishEdit()
-
+		this._refreshStylesAndDiffsInURI(uri);
+		await onFinishEdit();
+		this.logService.debug(`[acceptDiff] done uri=${uri.fsPath} diffid=${diffid} remainingDiffs=${Object.keys(diffArea._diffOfId).length}`);
 	}
 
+	public async applyEditFileSimpleFromDiffZone(diffZone: DiffZone & { _editFileSimple?: any }) {
+		if (!diffZone || !diffZone._editFileSimple) throw new Error('No edit_file metadata');
+		const meta = diffZone._editFileSimple;
+		const uri = diffZone._URI;
 
+		const modelEntry = this._voidModelService.getModel(uri)
+		const model = modelEntry?.model
+		if (!model) throw new Error('File not found')
+
+
+		let text = String(meta.updated_text ?? '')
+		if (!text) throw new Error('No updated_text to apply')
+		if (meta.newline === 'lf') {
+			text = text.replace(/\r\n/g, '\n')
+		} else if (meta.newline === 'crlf') {
+			text = text.replace(/\r?\n/g, '\r\n')
+		} else {
+			const eol = model.getEOL()
+			text = (eol === '\r\n') ? text.replace(/\r?\n/g, '\r\n') : text.replace(/\r\n/g, '\n')
+		}
+
+
+		const currentLF = model.getValue(EndOfLinePreference.LF)
+		const targetLF = text.replace(/\r\n/g, '\n')
+		if (currentLF === targetLF) {
+			try { this.acceptOrRejectAllDiffAreas?.({ uri, behavior: 'accept', removeCtrlKs: false }) } catch { }
+			this._refreshStylesAndDiffsInURI(uri)
+			return
+		}
+
+		this._writeURIText(uri, text, 'wholeFileRange', { shouldRealignDiffAreas: true })
+		try { await (this as any)._saveModelIfNeeded?.(uri, meta.encoding) } catch { }
+		try { this.acceptOrRejectAllDiffAreas?.({ uri, behavior: 'accept', removeCtrlKs: false }) } catch { }
+		this._refreshStylesAndDiffsInURI(uri)
+	}
 
 	// called on void.rejectDiff
 	public async rejectDiff({ diffid }: { diffid: number }) {
 
 		const diff = this.diffOfId[diffid]
-		if (!diff) return
+		if (!diff) {
+			this.logService.debug(`[rejectDiff] skipped missing diffid=${diffid}`)
+			return
+		}
 
 		const { diffareaid } = diff
 		const diffArea = this.diffAreaOfId[diffareaid]
-		if (!diffArea) return
+		if (!diffArea) {
+			this.logService.debug(`[rejectDiff] skipped diffid=${diffid} missing diffareaid=${diffareaid}`)
+			return
+		}
 
-		if (diffArea.type !== 'DiffZone') return
+		if (diffArea.type !== 'DiffZone') {
+			this.logService.debug(`[rejectDiff] skipped diffid=${diffid} diffareaid=${diffareaid} non-diffZone`)
+			return
+		}
 
 		const uri = diffArea._URI
+		const loggedEndLine = diff.type === 'deletion' ? diff.startLine : diff.endLine
+		this.logService.debug(`[rejectDiff] start uri=${uri.fsPath} diffid=${diffid} diffareaid=${diffareaid} type=${diff.type} range=${diff.startLine}-${loggedEndLine} applyBoxId=${diffArea.applyBoxId ?? 'none'}`)
 
 		// add to history
 		const { onFinishEdit } = this._addToHistory(uri)
@@ -2227,7 +3614,6 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		//  B|  <-- endLine (we want to delete this whole line)
 		//  C
 		else if (diff.type === 'insertion') {
-			// console.log('REJECTING:', diff)
 			// handle the case where the insertion was a newline at end of diffarea (applying to the next line doesnt work because it doesnt exist, vscode just doesnt delete the correct # of newlines)
 			if (diff.endLine === diffArea.endLine) {
 				// delete the line before instead of after
@@ -2252,6 +3638,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		else {
 			throw new Error(`Void error: ${diff}.type not recognized`)
 		}
+		this.logService.debug(`[rejectDiff] computedWrite uri=${uri.fsPath} diffid=${diffid} writeLen=${writeText.length} toRange=${JSON.stringify(toRange)}`)
 
 		// update the file
 		this._writeURIText(uri, writeText, toRange, { shouldRealignDiffAreas: true })
@@ -2269,15 +3656,22 @@ class EditCodeService extends Disposable implements IEditCodeService {
 		this._refreshStylesAndDiffsInURI(uri)
 
 		onFinishEdit()
-
+		this.logService.debug(`[rejectDiff] done uri=${uri.fsPath} diffid=${diffid} remainingDiffs=${Object.keys(diffArea._diffOfId).length}`)
 	}
-
 }
 
 registerSingleton(IEditCodeService, EditCodeService, InstantiationType.Eager);
 
-
-
+// Internal helpers exported for targeted unit testing
+export const __test_only = {
+	normalizeEol,
+	createUnifiedFromLineDiffs,
+	getLengthOfTextPx,
+	getLeadingWhitespacePx,
+	processRawKeybindingText: (keybindingStr: string) =>
+		EditCodeService.prototype.processRawKeybindingText.call({}, keybindingStr),
+	applyDiffToBaseline,
+};
 
 class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 
@@ -2386,7 +3780,6 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		acceptButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
 		acceptButton.style.pointerEvents = 'auto';
 
-
 		// Style reject button
 		rejectButton.onclick = onReject;
 		rejectButton.textContent = rejectText;
@@ -2404,8 +3797,6 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		rejectButton.style.height = '100%';
 		rejectButton.style.boxShadow = '0 2px 3px rgba(0,0,0,0.2)';
 		rejectButton.style.pointerEvents = 'auto';
-
-
 
 		this._domNode = buttons;
 
@@ -2429,9 +3820,9 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 			updateLeft()
 		}, 0)
 
-		this._register(editor.onDidScrollChange(e => { updateTop() }))
-		this._register(editor.onDidChangeModelContent(e => { updateTop() }))
-		this._register(editor.onDidLayoutChange(e => { updateTop(); updateLeft() }))
+		this._register(editor.onDidScrollChange(() => { updateTop() }))
+		this._register(editor.onDidChangeModelContent(() => { updateTop() }))
+		this._register(editor.onDidLayoutChange(() => { updateTop(); updateLeft() }))
 
 
 		// Listen for state changes in the command bar service
@@ -2449,7 +3840,6 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 		// mount this widget
 
 		editor.addOverlayWidget(this);
-		// console.log('created elt', this._domNode)
 	}
 
 	public override dispose(): void {
@@ -2458,8 +3848,3 @@ class AcceptRejectInlineWidget extends Widget implements IOverlayWidget {
 	}
 
 }
-
-
-
-
-

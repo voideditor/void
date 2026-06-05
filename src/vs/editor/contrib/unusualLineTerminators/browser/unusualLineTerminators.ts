@@ -10,7 +10,7 @@ import { EditorContributionInstantiation, registerEditorContribution } from '../
 import { ICodeEditorService } from '../../../browser/services/codeEditorService.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import * as nls from '../../../../nls.js';
 import { IConfirmationResult, IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 

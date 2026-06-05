@@ -5,9 +5,9 @@
 
 import { CharCode } from '../../../../base/common/charCode.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { testApplyEditsWithSyncedModels } from './editableTextModelTestUtils.js';
 
 const GENERATE_TESTS = false;

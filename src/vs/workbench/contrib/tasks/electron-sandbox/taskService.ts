@@ -15,8 +15,8 @@ import { InstantiationType, registerSingleton } from '../../../../platform/insta
 import { TerminalTaskSystem } from '../browser/terminalTaskSystem.js';
 import { IConfirmationResult, IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { TerminateResponseCode } from '../../../../base/common/processes.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';

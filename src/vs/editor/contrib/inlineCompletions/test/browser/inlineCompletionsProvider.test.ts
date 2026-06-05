@@ -8,20 +8,20 @@ import { timeout } from '../../../../../base/common/async.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { runWithFakedTimers } from '../../../../../base/test/common/timeTravelScheduler.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../common/core/range.js';
-import { InlineCompletionsProvider } from '../../../../common/languages.js';
-import { ILanguageFeaturesService } from '../../../../common/services/languageFeatures.js';
-import { LanguageFeaturesService } from '../../../../common/services/languageFeaturesService.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { InlineCompletionsProvider } from '../../../../../editor/common/language/languages.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeatures.js';
+import { LanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeaturesService.js';
 import { ViewModel } from '../../../../common/viewModel/viewModelImpl.js';
 import { InlineCompletionsController } from '../../browser/controller/inlineCompletionsController.js';
 import { InlineCompletionsModel } from '../../browser/model/inlineCompletionsModel.js';
-import { SingleTextEdit } from '../../../../common/core/textEdit.js';
+import { SingleTextEdit } from '../../../../../editor/common/language/core/textEdit.js';
 import { GhostTextContext, MockInlineCompletionsProvider } from './utils.js';
 import { ITestCodeEditor, TestCodeEditorInstantiationOptions, withAsyncTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { IAccessibilitySignalService } from '../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
 import { ServiceCollection } from '../../../../../platform/instantiation/common/serviceCollection.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { computeGhostText } from '../../browser/model/computeGhostText.js';
 
 suite('Inline Completions', () => {

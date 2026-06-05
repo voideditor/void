@@ -16,10 +16,10 @@ import { IMarkerService } from '../../../../platform/markers/common/markers.js';
 import { IEditorProgressService, Progress } from '../../../../platform/progress/common/progress.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption, ShowLightbulbIconMode } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { CodeActionProvider, CodeActionTriggerType } from '../../../common/languages.js';
+import { CodeActionProvider, CodeActionTriggerType } from '../../../../editor/common/language/languages.js';
 import { CodeActionKind, CodeActionSet, CodeActionTrigger, CodeActionTriggerSource } from '../common/types.js';
 import { getCodeActions } from './codeAction.js';
 

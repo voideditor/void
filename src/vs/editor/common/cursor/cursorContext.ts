@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ITextModel } from '../model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 import { ICoordinatesConverter } from '../viewModel.js';
 import { CursorConfiguration, ICursorSimpleModel } from '../cursorCommon.js';
 

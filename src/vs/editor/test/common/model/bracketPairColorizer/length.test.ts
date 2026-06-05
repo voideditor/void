@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Length, lengthAdd, lengthDiffNonNegative, lengthToObj, toLength } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
+import { Length, lengthAdd, lengthDiffNonNegative, lengthToObj, toLength } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
 
 suite('Bracket Pair Colorizer - Length', () => {
 

@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LineTokens } from '../tokens/lineTokens.js';
-import { Position } from '../core/position.js';
-import { IRange } from '../core/range.js';
-import { EndOfLinePreference, ITextModel, PositionAffinity } from '../model.js';
-import { LineInjectedText } from '../textModelEvents.js';
+import { LineTokens } from '../../../editor/common/language/tokens/lineTokens.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { IRange } from '../../../editor/common/language/core/range.js';
+import { EndOfLinePreference, ITextModel, PositionAffinity } from '../../../editor/common/language/model.js';
+import { LineInjectedText } from '../../../editor/common/language/textModelEvents.js';
 import { InjectedText, ModelLineProjectionData } from '../modelLineProjectionData.js';
 import { SingleLineInlineDecoration, ViewLineData } from '../viewModel.js';
 

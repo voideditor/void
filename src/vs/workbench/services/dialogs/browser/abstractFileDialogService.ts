@@ -22,7 +22,7 @@ import { IHostService } from '../../host/browser/host.js';
 import Severity from '../../../../base/common/severity.js';
 import { coalesce, distinct } from '../../../../base/common/arrays.js';
 import { trim } from '../../../../base/common/strings.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { IPathService } from '../../path/common/pathService.js';
 import { Schemas } from '../../../../base/common/network.js';

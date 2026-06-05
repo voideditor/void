@@ -5,8 +5,8 @@
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
-import { IModelDecorationOptions, IModelDecorationsChangeAccessor, MinimapPosition, TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { IModelDecorationOptions, IModelDecorationsChangeAccessor, MinimapPosition, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { IDecorationProvider } from './foldingModel.js';
 import { localize } from '../../../../nls.js';
 import { editorSelectionBackground, iconForeground, registerColor, transparent } from '../../../../platform/theme/common/colorRegistry.js';

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../../base/common/uri.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ITextModelContentProvider } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ITextModelContentProvider } from '../../../../../editor/common/language/services/resolverService.js';
 import { chatEditingSnapshotScheme, IChatEditingService } from '../../common/chatEditingService.js';
 import { ChatEditingSession } from './chatEditingSession.js';
 

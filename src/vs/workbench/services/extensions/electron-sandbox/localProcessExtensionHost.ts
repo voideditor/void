@@ -528,6 +528,12 @@ export class NativeLocalProcessExtensionHost implements IExtensionHost {
 		let last = '';
 		let isOmitting = false;
 		const event = new Emitter<string>();
+		// If the store has already been disposed, don't register a new listener to avoid
+		// adding disposables to a disposed store (which would be logged as a leak).
+		if (store.isDisposed) {
+			return event;
+		}
+
 		stream((chunk) => {
 			// not a fancy approach, but this is the same approach used by the split2
 			// module which is well-optimized (https://github.com/mcollina/split2)

@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { EndOfLinePreference, EndOfLineSequence } from '../../../common/model.js';
-import { MirrorTextModel } from '../../../common/model/mirrorTextModel.js';
-import { TextModel } from '../../../common/model/textModel.js';
-import { IModelContentChangedEvent } from '../../../common/textModelEvents.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { EndOfLinePreference, EndOfLineSequence } from '../../../../editor/common/language/model.js';
+import { MirrorTextModel } from '../../../../editor/common/language/model/mirrorTextModel.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
 import { createTextModel } from '../testTextModel.js';
 
 export function testApplyEditsWithSyncedModels(original: string[], edits: ISingleEditOperation[], expected: string[], inputEditsAreInvalid: boolean = false): void {

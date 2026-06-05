@@ -10,10 +10,10 @@ import { mock } from '../../../../test/common/workbenchTestServices.js';
 import { InstantiationService } from '../../../../../platform/instantiation/common/instantiationService.js';
 import { ServiceCollection } from '../../../../../platform/instantiation/common/serviceCollection.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { BulkFileOperations } from '../../browser/preview/bulkEditPreview.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ResourceFileEdit, ResourceTextEdit } from '../../../../../editor/browser/services/bulkEditService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 

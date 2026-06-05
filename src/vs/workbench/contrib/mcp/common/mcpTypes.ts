@@ -10,7 +10,7 @@ import { equals as objectsEqual } from '../../../../base/common/objects.js';
 import { equals as arraysEqual } from '../../../../base/common/arrays.js';
 import { IObservable } from '../../../../base/common/observable.js';
 import { URI, UriComponents } from '../../../../base/common/uri.js';
-import { Location } from '../../../../editor/common/languages.js';
+import { Location } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
@@ -99,6 +99,8 @@ export interface McpServerDefinition {
 	readonly roots?: URI[] | undefined;
 	/** If set, allows configuration variables to be resolved in the {@link launch} with the given context */
 	readonly variableReplacement?: McpServerDefinitionVariableReplacement;
+	/** Optional list of tool names to exclude for this server. */
+	readonly excludeTools?: readonly string[];
 
 	readonly presentation?: {
 		/** Sort order of the definition. */
@@ -114,6 +116,7 @@ export namespace McpServerDefinition {
 		readonly label: string;
 		readonly launch: McpServerLaunch.Serialized;
 		readonly variableReplacement?: McpServerDefinitionVariableReplacement.Serialized;
+		readonly excludeTools?: readonly string[];
 	}
 
 	export function toSerialized(def: McpServerDefinition): McpServerDefinition.Serialized {
@@ -126,6 +129,7 @@ export namespace McpServerDefinition {
 			label: def.label,
 			launch: McpServerLaunch.fromSerialized(def.launch),
 			variableReplacement: def.variableReplacement ? McpServerDefinitionVariableReplacement.fromSerialized(def.variableReplacement) : undefined,
+			excludeTools: def.excludeTools ? [...def.excludeTools] : undefined,
 		};
 	}
 
@@ -134,6 +138,7 @@ export namespace McpServerDefinition {
 			&& a.label === b.label
 			&& arraysEqual(a.roots, b.roots, (a, b) => a.toString() === b.toString())
 			&& objectsEqual(a.launch, b.launch)
+			&& arraysEqual(a.excludeTools, b.excludeTools, (a, b) => a === b)
 			&& objectsEqual(a.presentation, b.presentation)
 			&& objectsEqual(a.variableReplacement, b.variableReplacement);
 	}
@@ -177,6 +182,7 @@ export interface IMcpService {
 	readonly lazyCollectionState: IObservable<LazyCollectionState>;
 	/** Activatese extensions and runs their MCP servers. */
 	activateCollections(): Promise<void>;
+
 }
 
 export const enum LazyCollectionState {

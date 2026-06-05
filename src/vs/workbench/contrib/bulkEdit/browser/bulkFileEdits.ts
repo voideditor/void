@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { WorkspaceFileEditOptions } from '../../../../editor/common/languages.js';
+import { WorkspaceFileEditOptions } from '../../../../editor/common/language/languages.js';
 import { IFileService, FileSystemProviderCapabilities, IFileContent, IFileStatWithMetadata } from '../../../../platform/files/common/files.js';
 import { IProgress } from '../../../../platform/progress/common/progress.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';

@@ -89,7 +89,10 @@ export class MainThreadWorkspace implements MainThreadWorkspaceShape {
 		const workspaceFoldersToAdd = foldersToAdd.map(f => ({ uri: URI.revive(f.uri), name: f.name }));
 
 		// Indicate in status message
-		this._notificationService.status(this.getStatusMessage(extensionName, workspaceFoldersToAdd.length, deleteCount), { hideAfter: 10 * 1000 /* 10s */ });
+		this._toDispose.add(this._notificationService.status(
+			this.getStatusMessage(extensionName, workspaceFoldersToAdd.length, deleteCount),
+			{ hideAfter: 10 * 1000 /* 10s */ }
+		));
 
 		return this._workspaceEditingService.updateFolders(index, deleteCount, workspaceFoldersToAdd, true);
 	}

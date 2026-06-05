@@ -7,7 +7,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { toDisposable } from '../../../../base/common/lifecycle.js';
 import { IDocumentDiff, IDocumentDiffProvider, IDocumentDiffProviderOptions } from '../../../common/diff/documentDiffProvider.js';
 import { linesDiffComputers } from '../../../common/diff/linesDiffComputers.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { Event } from '../../../../base/common/event.js';
 import { IDiffProviderFactoryService } from '../../../browser/widget/diffEditor/diffProviderFactoryService.js';
 

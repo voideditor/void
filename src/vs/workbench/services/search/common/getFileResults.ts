@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ITextSearchMatch, ITextSearchPreviewOptions, ITextSearchResult } from './search.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 export const getFileResults = (
 	bytes: Uint8Array,

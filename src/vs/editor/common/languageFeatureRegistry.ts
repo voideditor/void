@@ -5,8 +5,8 @@
 
 import { Emitter } from '../../base/common/event.js';
 import { IDisposable, toDisposable } from '../../base/common/lifecycle.js';
-import { ITextModel, shouldSynchronizeModel } from './model.js';
-import { LanguageFilter, LanguageSelector, score } from './languageSelector.js';
+import { ITextModel, shouldSynchronizeModel } from '../../editor/common/language/model.js';
+import { LanguageFilter, LanguageSelector, score } from '../../editor/common/language/languageSelector.js';
 import { URI } from '../../base/common/uri.js';
 
 interface Entry<T> {

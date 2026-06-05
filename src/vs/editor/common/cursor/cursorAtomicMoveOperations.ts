@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../../../base/common/charCode.js';
-import { CursorColumns } from '../core/cursorColumns.js';
+import { CursorColumns } from '../../../editor/common/language/core/cursorColumns.js';
 
 export const enum Direction {
 	Left,

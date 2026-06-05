@@ -6,10 +6,10 @@
 import assert from 'assert';
 import { splitLines } from '../../../../../base/common/strings.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Position } from '../../../../common/core/position.js';
-import { IRange, Range } from '../../../../common/core/range.js';
-import { BeforeEditPositionMapper, TextEditInfo } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/beforeEditPositionMapper.js';
-import { Length, lengthOfString, lengthToObj, lengthToPosition, toLength } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../../editor/common/language/core/range.js';
+import { BeforeEditPositionMapper, TextEditInfo } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/beforeEditPositionMapper.js';
+import { Length, lengthOfString, lengthToObj, lengthToPosition, toLength } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
 
 suite('Bracket Pair Colorizer - BeforeEditPositionMapper', () => {
 

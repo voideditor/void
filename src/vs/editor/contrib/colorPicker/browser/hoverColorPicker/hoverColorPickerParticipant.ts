@@ -6,9 +6,9 @@
 import { AsyncIterableObject } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
-import { Range } from '../../../../common/core/range.js';
-import { IModelDecoration } from '../../../../common/model.js';
-import { DocumentColorProvider } from '../../../../common/languages.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { IModelDecoration } from '../../../../../editor/common/language/model.js';
+import { DocumentColorProvider } from '../../../../../editor/common/language/languages.js';
 import { ColorDetector } from '../colorDetector.js';
 import { ColorPickerModel } from '../colorPickerModel.js';
 import { ColorPickerWidget } from '../colorPickerWidget.js';

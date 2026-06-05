@@ -19,7 +19,7 @@ import { WORKSPACE_STANDALONE_CONFIGURATIONS, FOLDER_SETTINGS_PATH, USER_STANDAL
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ITextFileService } from '../../../textfile/common/textfiles.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { TextModelResolverService } from '../../../textmodelResolver/common/textModelResolverService.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';

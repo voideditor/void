@@ -13,9 +13,9 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { VOID_VIEW_CONTAINER_ID, VOID_VIEW_ID } from './sidebarPane.js';
-import { IMetricsService } from '../common/metricsService.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { VOID_TOGGLE_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 import { VOID_CTRL_L_ACTION_ID } from './actionIDs.js';
@@ -250,32 +250,3 @@ registerAction2(class extends Action2 {
 		commandService.executeCommand(VOID_TOGGLE_SETTINGS_ACTION_ID)
 	}
 })
-
-
-
-
-// export class TabSwitchListener extends Disposable {
-
-// 	constructor(
-// 		onSwitchTab: () => void,
-// 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
-// 	) {
-// 		super()
-
-// 		// when editor switches tabs (models)
-// 		const addTabSwitchListeners = (editor: ICodeEditor) => {
-// 			this._register(editor.onDidChangeModel(e => {
-// 				if (e.newModelUrl?.scheme !== 'file') return
-// 				onSwitchTab()
-// 			}))
-// 		}
-
-// 		const initializeEditor = (editor: ICodeEditor) => {
-// 			addTabSwitchListeners(editor)
-// 		}
-
-// 		// initialize current editors + any new editors
-// 		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
-// 		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
-// 	}
-// }

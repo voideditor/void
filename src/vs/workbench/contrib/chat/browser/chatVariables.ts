@@ -5,7 +5,7 @@
 
 import { coalesce } from '../../../../base/common/arrays.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Location } from '../../../../editor/common/languages.js';
+import { Location } from '../../../../editor/common/language/languages.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IChatRequestVariableData, IChatRequestVariableEntry } from '../common/chatModel.js';

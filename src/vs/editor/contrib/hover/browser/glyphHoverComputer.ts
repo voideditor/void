@@ -7,7 +7,7 @@ import { asArray } from '../../../../base/common/arrays.js';
 import { IMarkdownString, isEmptyMarkdownString } from '../../../../base/common/htmlContent.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { IHoverComputer } from './hoverOperation.js';
-import { GlyphMarginLane } from '../../../common/model.js';
+import { GlyphMarginLane } from '../../../../editor/common/language/model.js';
 
 export type LaneOrLineNumber = GlyphMarginLane | 'lineNo';
 

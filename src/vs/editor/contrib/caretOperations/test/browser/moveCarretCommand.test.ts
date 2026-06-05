@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { MoveCaretCommand } from '../../browser/moveCaretCommand.js';
 import { testCommand } from '../../../../test/browser/testCommand.js';
 

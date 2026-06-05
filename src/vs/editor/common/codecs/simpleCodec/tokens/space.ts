@@ -5,8 +5,8 @@
 
 import { BaseToken } from '../../baseToken.js';
 import { Line } from '../../linesCodec/tokens/line.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 
 /**
  * A token that represent a `space` with a `range`. The `range`

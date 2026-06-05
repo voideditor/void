@@ -11,8 +11,8 @@ import { Disposable, IDisposable, toDisposable } from '../../../../base/common/l
 import { observableValue } from '../../../../base/common/observable.js';
 import { isDefined } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Location } from '../../../../editor/common/languages.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Location } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';

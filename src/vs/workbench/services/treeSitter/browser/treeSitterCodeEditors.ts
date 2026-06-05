@@ -7,9 +7,9 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableMap, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { ITreeSitterParserService } from '../../../../editor/common/services/treeSitterParserService.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ITreeSitterParserService } from '../../../../editor/common/language/services/treeSitterParserService.js';
 
 export interface IViewPortChangeEvent {
 	model: ITextModel;

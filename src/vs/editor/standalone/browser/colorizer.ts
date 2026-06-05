@@ -5,11 +5,11 @@
 
 import { createTrustedTypesPolicy } from '../../../base/browser/trustedTypes.js';
 import * as strings from '../../../base/common/strings.js';
-import { ColorId, FontStyle, MetadataConsts } from '../../common/encodedTokenAttributes.js';
-import { ILanguageIdCodec, ITokenizationSupport, TokenizationRegistry } from '../../common/languages.js';
-import { ILanguageService } from '../../common/languages/language.js';
-import { ITextModel } from '../../common/model.js';
-import { IViewLineTokens, LineTokens } from '../../common/tokens/lineTokens.js';
+import { ColorId, FontStyle, MetadataConsts } from '../../../editor/common/language/encodedTokenAttributes.js';
+import { ILanguageIdCodec, ITokenizationSupport, TokenizationRegistry } from '../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
+import { IViewLineTokens, LineTokens } from '../../../editor/common/language/tokens/lineTokens.js';
 import { RenderLineInput, renderViewLine2 as renderViewLine } from '../../common/viewLayout/viewLineRenderer.js';
 import { ViewLineRenderingData } from '../../common/viewModel.js';
 import { MonarchTokenizer } from '../common/monarch/monarchLexer.js';

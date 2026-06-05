@@ -5,11 +5,11 @@
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { EditorAutoIndentStrategy } from '../../../../common/config/editorOptions.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { IndentationRule } from '../../../../common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
-import { LanguageService } from '../../../../common/services/languageService.js';
+import { LanguageService } from '../../../../../editor/common/language/services/languageService.js';
 import { MoveLinesCommand } from '../../browser/moveLinesCommand.js';
 import { testCommand } from '../../../../test/browser/testCommand.js';
 import { TestLanguageConfigurationService } from '../../../../test/common/modes/testLanguageConfigurationService.js';

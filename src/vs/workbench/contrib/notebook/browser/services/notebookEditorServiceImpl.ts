@@ -215,7 +215,6 @@ export class NotebookEditorWidgetService implements INotebookEditorService {
 		let value = this._borrowableEditors.get(groupId)?.get(input.resource)?.find(widget => widget.editorType === input.typeId);
 
 		if (!value) {
-			// NEW widget
 			const editorGroupContextKeyService = accessor.get(IContextKeyService);
 			const editorGroupEditorProgressService = accessor.get(IEditorProgressService);
 			const widgetDisposeStore = new DisposableStore();

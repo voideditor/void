@@ -5,9 +5,9 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { TextLength } from '../../../../../editor/common/core/textLength.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextLength } from '../../../../../editor/common/language/core/textLength.js';
 import { DocumentRangeMap, RangeMapping } from '../../browser/model/mapping.js';
 
 suite('merge editor mapping', () => {

@@ -9,7 +9,7 @@ import { CancellationToken } from '../../../../../../base/common/cancellation.js
 import { IReference } from '../../../../../../base/common/lifecycle.js';
 import { mock } from '../../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { IOutlineModelService, OutlineModel } from '../../../../../../editor/contrib/documentSymbols/browser/outlineModel.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestThemeService } from '../../../../../../platform/theme/test/common/testThemeService.js';
@@ -20,7 +20,7 @@ import { NotebookOutlineEntryFactory } from '../../../browser/viewModel/notebook
 import { OutlineEntry } from '../../../browser/viewModel/OutlineEntry.js';
 import { INotebookExecutionStateService } from '../../../common/notebookExecutionStateService.js';
 import { MockDocumentSymbol } from '../testNotebookEditor.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../../../editor/common/services/resolverService.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../../../editor/common/language/services/resolverService.js';
 import { URI } from '../../../../../../base/common/uri.js';
 
 suite('Notebook Outline View Providers', function () {

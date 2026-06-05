@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { EditorOptions, WrappingIndent, EditorAutoIndentStrategy } from './common/config/editorOptions.js';
-import { createMonacoBaseAPI } from './common/services/editorBaseApi.js';
+import { createMonacoBaseAPI } from '../editor/common/language/services/editorBaseApi.js';
 import { createMonacoEditorAPI } from './standalone/browser/standaloneEditor.js';
 import { createMonacoLanguagesAPI } from './standalone/browser/standaloneLanguages.js';
 import { FormattingConflicts } from './contrib/format/browser/format.js';

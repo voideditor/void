@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { parseLogEntryAt } from '../../common/outputChannelModel.js';
-import { TextModel } from '../../../../../editor/common/model/textModel.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { LogLevel } from '../../../../../platform/log/common/log.js';
 import { workbenchInstantiationService } from '../../../../test/browser/workbenchTestServices.js';

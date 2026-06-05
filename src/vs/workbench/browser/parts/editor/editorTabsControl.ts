@@ -34,7 +34,7 @@ import { isCancellationError } from '../../../../base/common/errors.js';
 import { SideBySideEditorInput } from '../../../common/editor/sideBySideEditorInput.js';
 import { WorkbenchToolBar } from '../../../../platform/actions/browser/toolbar.js';
 import { LocalSelectionTransfer } from '../../../../platform/dnd/browser/dnd.js';
-import { DraggedTreeItemsIdentifier } from '../../../../editor/common/services/treeViewsDnd.js';
+import { DraggedTreeItemsIdentifier } from '../../../../editor/common/language/services/treeViewsDnd.js';
 import { IEditorResolverService } from '../../../services/editor/common/editorResolverService.js';
 import { IEditorTitleControlDimensions } from './editorTitleControl.js';
 import { IReadonlyEditorGroupModel } from '../../../common/editor/editorGroupModel.js';

@@ -21,7 +21,7 @@ import { CellContentPart } from '../cellPart.js';
 import { NotebookCellInternalMetadata, NOTEBOOK_EDITOR_ID } from '../../../common/notebookCommon.js';
 import { NotebookOptions } from '../../notebookOptions.js';
 import { CellViewModelStateChangeEvent } from '../../notebookViewEvents.js';
-import { ITextModelUpdateOptions } from '../../../../../../editor/common/model.js';
+import { ITextModelUpdateOptions } from '../../../../../../editor/common/language/model.js';
 
 //todo@Yoyokrazy implenets is needed or not?
 export class CellEditorOptions extends CellContentPart implements ITextModelUpdateOptions {

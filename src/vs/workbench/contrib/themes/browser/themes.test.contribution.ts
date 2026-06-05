@@ -5,7 +5,7 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import type * as Parser from '@vscode/tree-sitter-wasm';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchThemeService, IWorkbenchColorTheme } from '../../../services/themes/common/workbenchThemeService.js';
@@ -13,19 +13,19 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { ITextMateTokenizationService } from '../../../services/textMate/browser/textMateTokenizationFeature.js';
 import type { IGrammar, StateStack } from 'vscode-textmate';
-import { TokenizationRegistry, TreeSitterTokenizationRegistry } from '../../../../editor/common/languages.js';
-import { TokenMetadata } from '../../../../editor/common/encodedTokenAttributes.js';
+import { TokenizationRegistry, TreeSitterTokenizationRegistry } from '../../../../editor/common/language/languages.js';
+import { TokenMetadata } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { ThemeRule, findMatchingThemeRule } from '../../../services/textMate/common/TMHelper.js';
 import { Color } from '../../../../base/common/color.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { basename } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { splitLines } from '../../../../base/common/strings.js';
-import { ITextModelTreeSitter, ITreeSitterParserService } from '../../../../editor/common/services/treeSitterParserService.js';
+import { ITextModelTreeSitter, ITreeSitterParserService } from '../../../../editor/common/language/services/treeSitterParserService.js';
 import { ColorThemeData, findMetadata } from '../../../services/themes/common/colorThemeData.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { Event } from '../../../../base/common/event.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 interface IToken {
 	c: string; // token

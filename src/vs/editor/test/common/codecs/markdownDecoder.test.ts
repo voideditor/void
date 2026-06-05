@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { TestDecoder } from '../utils/testDecoder.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { newWriteableStream } from '../../../../base/common/stream.js';
 import { Tab } from '../../../common/codecs/simpleCodec/tokens/tab.js';

@@ -9,10 +9,10 @@ import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.
 import { IObservable, observableValue, ISettableObservable, autorun, transaction, IReader } from '../../../../base/common/observable.js';
 import { ContextKeyValue, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { bindContextKey } from '../../../../platform/observable/common/platformObservableUtils.js';
-import { Position } from '../../../common/core/position.js';
-import { PositionOffsetTransformer } from '../../../common/core/positionToOffset.js';
-import { Range } from '../../../common/core/range.js';
-import { SingleTextEdit, TextEdit } from '../../../common/core/textEdit.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { PositionOffsetTransformer } from '../../../../editor/common/language/core/positionToOffset.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { SingleTextEdit, TextEdit } from '../../../../editor/common/language/core/textEdit.js';
 
 const array: ReadonlyArray<any> = [];
 export function getReadonlyEmptyArray<T>(): readonly T[] {

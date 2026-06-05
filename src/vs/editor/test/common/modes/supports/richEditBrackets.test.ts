@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { BracketsUtils } from '../../../../common/languages/supports/richEditBrackets.js';
 
 suite('richEditBrackets', () => {

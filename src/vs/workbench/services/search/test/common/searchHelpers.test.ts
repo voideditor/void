@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { FindMatch, ITextModel } from '../../../../../editor/common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { FindMatch, ITextModel } from '../../../../../editor/common/language/model.js';
 import { ISearchRange, ITextQuery, ITextSearchContext, ITextSearchResult, QueryType } from '../../common/search.js';
 import { getTextSearchMatchWithModelContext, editorMatchesToTextSearchResults } from '../../common/searchHelpers.js';
 

@@ -5,12 +5,12 @@
 import assert from 'assert';
 import { escapeRegExpCharacters } from '../../../../../base/common/strings.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { EditOperation } from '../../../../common/core/editOperation.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { IModelDecorationsChangeAccessor, ITextModel, TrackedRangeStickiness } from '../../../../common/model.js';
-import { ModelDecorationOptions } from '../../../../common/model/textModel.js';
+import { EditOperation } from '../../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { IModelDecorationsChangeAccessor, ITextModel, TrackedRangeStickiness } from '../../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../../editor/common/language/model/textModel.js';
 import { toSelectedLines } from '../../browser/folding.js';
 import { FoldingModel, getNextFoldLine, getParentFoldLine, getPreviousFoldLine, setCollapseStateAtLevel, setCollapseStateForMatchingLines, setCollapseStateForRest, setCollapseStateLevelsDown, setCollapseStateLevelsUp, setCollapseStateUp } from '../../browser/foldingModel.js';
 import { FoldingRegion } from '../../browser/foldingRanges.js';

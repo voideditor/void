@@ -10,7 +10,7 @@ import { IAccessibleViewImplementation } from '../../../../platform/accessibilit
 import { IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
-import { HoverVerbosityAction } from '../../../common/languages.js';
+import { HoverVerbosityAction } from '../../../../editor/common/language/languages.js';
 import { DECREASE_HOVER_VERBOSITY_ACCESSIBLE_ACTION_ID, DECREASE_HOVER_VERBOSITY_ACTION_ID, INCREASE_HOVER_VERBOSITY_ACCESSIBLE_ACTION_ID, INCREASE_HOVER_VERBOSITY_ACTION_ID } from './hoverActionIds.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../browser/services/codeEditorService.js';

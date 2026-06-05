@@ -12,7 +12,7 @@ import { FileChangesEvent, FileChangeType, FileOperationError, FileOperationResu
 import { ensureNoDisposablesAreLeakedInTestSuite, toResource } from '../../../../../base/test/common/utils.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../../editor/common/languages/modesRegistry.js';
 import { ITextFileEditorModel } from '../../common/textfiles.js';
-import { createTextBufferFactory } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 import { timeout } from '../../../../../base/common/async.js';
 import { DisposableStore, toDisposable } from '../../../../../base/common/lifecycle.js';
 

@@ -7,7 +7,7 @@ import { IGrammarContributions, EmmetEditorAction } from '../../browser/emmetAct
 import { withTestCodeEditor } from '../../../../../editor/test/browser/testCodeEditor.js';
 import assert from 'assert';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 class MockGrammarContributions implements IGrammarContributions {

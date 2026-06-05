@@ -7,7 +7,7 @@ import { h, reset } from '../../../../../../base/browser/dom.js';
 import { renderLabelWithIcons } from '../../../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { BugIndicatingError } from '../../../../../../base/common/errors.js';
 import { IObservable, autorun, autorunWithStore, derived } from '../../../../../../base/common/observable.js';
-import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/model.js';
+import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../../nls.js';
 import { MenuId } from '../../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';

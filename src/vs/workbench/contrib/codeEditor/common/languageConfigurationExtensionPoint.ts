@@ -10,7 +10,7 @@ import * as types from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { CharacterPair, CommentRule, EnterAction, ExplicitLanguageConfiguration, FoldingMarkers, FoldingRules, IAutoClosingPair, IAutoClosingPairConditional, IndentAction, IndentationRule, OnEnterRule } from '../../../../editor/common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../../editor/common/languages/languageConfigurationRegistry.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { Extensions, IJSONContributionRegistry } from '../../../../platform/jsonschemas/common/jsonContributionRegistry.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';

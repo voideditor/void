@@ -6,8 +6,8 @@
 import { Comparator, compareBy, numberComparator } from '../../../../../base/common/arrays.js';
 import { BugIndicatingError } from '../../../../../base/common/errors.js';
 import { Constants } from '../../../../../base/common/uint.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 
 export class LineRange {
 	public static readonly compareByStart: Comparator<LineRange> = compareBy(l => l.startLineNumber, numberComparator);

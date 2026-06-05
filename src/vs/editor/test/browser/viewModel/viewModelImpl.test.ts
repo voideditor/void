@@ -5,9 +5,9 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { EndOfLineSequence, PositionAffinity } from '../../../common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { EndOfLineSequence, PositionAffinity } from '../../../../editor/common/language/model.js';
 import { ViewEventHandler } from '../../../common/viewEventHandler.js';
 import { ViewEvent } from '../../../common/viewEvents.js';
 import { testViewModel } from './testViewModel.js';

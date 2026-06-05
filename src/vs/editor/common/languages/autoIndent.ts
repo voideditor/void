@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as strings from '../../../base/common/strings.js';
-import { Range } from '../core/range.js';
-import { ITextModel } from '../model.js';
+import { Range } from '../language/core/range.js';
+import { ITextModel } from '../language/model.js';
 import { IndentAction } from './languageConfiguration.js';
 import { IndentConsts } from './supports/indentRules.js';
 import { EditorAutoIndentStrategy } from '../config/editorOptions.js';
 import { ILanguageConfigurationService } from './languageConfigurationRegistry.js';
-import { IViewLineTokens } from '../tokens/lineTokens.js';
+import { IViewLineTokens } from '../language/tokens/lineTokens.js';
 import { IndentationContextProcessor, isLanguageDifferentFromLineStart, ProcessedIndentRulesSupport } from './supports/indentationLineProcessor.js';
 import { CursorConfiguration } from '../cursorCommon.js';
 

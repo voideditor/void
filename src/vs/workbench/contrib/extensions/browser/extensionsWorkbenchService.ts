@@ -43,7 +43,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IExtensionManifest, ExtensionType, IExtension as IPlatformExtension, TargetPlatform, ExtensionIdentifier, IExtensionIdentifier, IExtensionDescription, isApplicationScopedExtension } from '../../../../platform/extensions/common/extensions.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { FileAccess } from '../../../../base/common/network.js';
 import { IIgnoredExtensionsManagementService } from '../../../../platform/userDataSync/common/ignoredExtensions.js';

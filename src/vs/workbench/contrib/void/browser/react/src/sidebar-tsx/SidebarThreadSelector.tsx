@@ -3,12 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useMemo, useState } from 'react';
-import { CopyButton, IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
-import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useFullChatThreadsStreamState, useSettingsState } from '../util/services.js';
-import { IconX } from './SidebarChat.js';
-import { Check, Copy, Icon, LoaderCircle, MessageCircleQuestion, Trash2, UserCheck, X } from 'lucide-react';
-import { IsRunningType, ThreadType } from '../../../chatThreadService.js';
+import { useState } from 'react';
+import { IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
+import { useAccessor, useChatThreadsState, useFullChatThreadsStreamState } from '../util/services.js';
+import { Check, Copy, LoaderCircle, MessageCircleQuestion, Trash2, X } from 'lucide-react';
+import { IsRunningType } from '../../../ChatExecutionEngine.js';
+import { ThreadType } from '../../../chatThreadService.js';
 
 
 const numInitialThreads = 3
@@ -85,10 +85,6 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 	);
 };
 
-
-
-
-
 // Format date to display as today, yesterday, or date
 const formatDate = (date: Date) => {
 	const now = new Date();
@@ -114,7 +110,6 @@ const formatTime = (date: Date) => {
 	});
 };
 
-
 const DuplicateButton = ({ threadId }: { threadId: string }) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -127,7 +122,6 @@ const DuplicateButton = ({ threadId }: { threadId: string }) => {
 		data-tooltip-content='Duplicate thread'
 	>
 	</IconShell1>
-
 }
 
 const TrashButton = ({ threadId }: { threadId: string }) => {
@@ -182,31 +176,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
-	// const settingsState = useSettingsState()
-	// const convertService = accessor.get('IConvertToLLMMessageService')
-	// const chatMode = settingsState.globalSettings.chatMode
-	// const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
-	// const copyChatButton = <CopyButton
-	// 	codeStr={async () => {
-	// 		const { messages } = await convertService.prepareLLMChatMessages({
-	// 			chatMessages: currentThread.messages,
-	// 			chatMode,
-	// 			modelSelection,
-	// 		})
-	// 		return JSON.stringify(messages, null, 2)
-	// 	}}
-	// 	toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
-	// />
-
-
-	// const currentThread = chatThreadsService.getCurrentThread()
-	// const copyChatButton2 = <CopyButton
-	// 	codeStr={async () => {
-	// 		return JSON.stringify(currentThread.messages, null, 2)
-	// 	}}
-	// 	toolTipName={`Copy As Void Chat`}
-	// />
-
 	let firstMsg = null;
 	const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role === 'user');
 
@@ -220,9 +189,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
 	const detailsHTML = <span
-	// data-tooltip-id='void-tooltip'
-	// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
-	// data-tooltip-place='top'
 	>
 		<span className='opacity-60'>{numMessages}</span>
 		{` `}

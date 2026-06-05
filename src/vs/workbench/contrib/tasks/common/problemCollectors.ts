@@ -8,7 +8,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { IDisposable, DisposableStore, Disposable } from '../../../../base/common/lifecycle.js';
 
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 
 import { ILineMatcher, createLineMatcher, ProblemMatcher, IProblemMatch, ApplyToKind, IWatchingPattern, getResource } from './problemMatcher.js';
 import { IMarkerService, IMarkerData, MarkerSeverity } from '../../../../platform/markers/common/markers.js';

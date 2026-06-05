@@ -17,7 +17,7 @@ import { IEditorService } from '../../../services/editor/common/editorService.js
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
 import { CommentController, ID } from './commentsController.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { CommentContextKeys } from '../common/commentContextKeys.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';

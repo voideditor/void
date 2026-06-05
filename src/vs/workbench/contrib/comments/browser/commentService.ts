@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CommentThreadChangedEvent, CommentInfo, Comment, CommentReaction, CommentingRanges, CommentThread, CommentOptions, PendingCommentThread, CommentingRangeResourceHint } from '../../../../editor/common/languages.js';
+import { CommentThreadChangedEvent, CommentInfo, Comment, CommentReaction, CommentingRanges, CommentThread, CommentOptions, PendingCommentThread, CommentingRangeResourceHint } from '../../../../editor/common/language/languages.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
 import { URI, UriComponents } from '../../../../base/common/uri.js';
-import { Range, IRange } from '../../../../editor/common/core/range.js';
+import { Range, IRange } from '../../../../editor/common/language/core/range.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ICommentThreadChangedEvent } from '../common/commentModel.js';
 import { CommentMenus } from './commentMenus.js';
@@ -21,7 +21,7 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { CommentContextKeys } from '../common/commentContextKeys.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { CommentsModel, ICommentsModel } from './commentsModel.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { Schemas } from '../../../../base/common/network.js';
 
 export const ICommentService = createDecorator<ICommentService>('commentService');

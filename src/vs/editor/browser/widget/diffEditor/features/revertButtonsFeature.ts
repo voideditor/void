@@ -13,10 +13,10 @@ import { DiffEditorEditors } from '../components/diffEditorEditors.js';
 import { DiffEditorOptions } from '../diffEditorOptions.js';
 import { DiffEditorViewModel } from '../diffEditorViewModel.js';
 import { DiffEditorWidget } from '../diffEditorWidget.js';
-import { LineRange, LineRangeSet } from '../../../../common/core/lineRange.js';
-import { Range } from '../../../../common/core/range.js';
+import { LineRange, LineRangeSet } from '../../../../../editor/common/language/core/lineRange.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { LineRangeMapping, RangeMapping } from '../../../../common/diff/rangeMapping.js';
-import { GlyphMarginLane } from '../../../../common/model.js';
+import { GlyphMarginLane } from '../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../nls.js';
 
 const emptyArr: never[] = [];

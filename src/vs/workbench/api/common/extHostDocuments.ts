@@ -6,7 +6,7 @@
 import { Emitter, Event } from '../../../base/common/event.js';
 import { DisposableStore } from '../../../base/common/lifecycle.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
-import { IModelChangedEvent } from '../../../editor/common/model/mirrorTextModel.js';
+import { IModelChangedEvent } from '../../../editor/common/language/model/mirrorTextModel.js';
 import { ExtHostDocumentsShape, IMainContext, MainContext, MainThreadDocumentsShape } from './extHost.protocol.js';
 import { ExtHostDocumentData, setWordDefinitionFor } from './extHostDocumentData.js';
 import { ExtHostDocumentsAndEditors } from './extHostDocumentsAndEditors.js';

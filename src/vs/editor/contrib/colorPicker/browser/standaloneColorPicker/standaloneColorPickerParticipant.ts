@@ -9,14 +9,14 @@ import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { IActiveCodeEditor, ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import { DocumentColorProvider, IColorInformation } from '../../../../common/languages.js';
+import { DocumentColorProvider, IColorInformation } from '../../../../../editor/common/language/languages.js';
 import { IEditorHoverRenderContext } from '../../../hover/browser/hoverTypes.js';
 import { getColors } from '../color.js';
 import { ColorDetector } from '../colorDetector.js';
 import { ColorPickerModel } from '../colorPickerModel.js';
 import { BaseColor, ColorPickerWidgetType, createColorHover, updateColorPresentations, updateEditorModel } from '../colorPickerParticipantUtils.js';
 import { ColorPickerWidget } from '../colorPickerWidget.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
 import { Dimension } from '../../../../../base/browser/dom.js';
 

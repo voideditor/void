@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { Selection, SelectionDirection } from '../core/selection.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection, SelectionDirection } from '../../../editor/common/language/core/selection.js';
 import { ICommand, ICursorStateComputerData, IEditOperationBuilder } from '../editorCommon.js';
-import { ITextModel } from '../model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 
 export class ReplaceCommand implements ICommand {
 

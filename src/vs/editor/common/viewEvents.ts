@@ -5,11 +5,11 @@
 
 import { ScrollEvent } from '../../base/common/scrollable.js';
 import { ConfigurationChangedEvent, EditorOption } from './config/editorOptions.js';
-import { Range } from './core/range.js';
-import { Selection } from './core/selection.js';
+import { Range } from '../../editor/common/language/core/range.js';
+import { Selection } from '../../editor/common/language/core/selection.js';
 import { CursorChangeReason } from './cursorEvents.js';
 import { ScrollType } from './editorCommon.js';
-import { IModelDecorationsChangedEvent } from './textModelEvents.js';
+import { IModelDecorationsChangedEvent } from '../../editor/common/language/textModelEvents.js';
 import { IColorTheme } from '../../platform/theme/common/themeService.js';
 
 export const enum ViewEventType {

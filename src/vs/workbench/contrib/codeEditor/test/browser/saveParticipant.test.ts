@@ -9,8 +9,8 @@ import { FinalNewLineParticipant, TrimFinalNewLinesParticipant, TrimWhitespacePa
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { workbenchInstantiationService, TestServiceAccessor } from '../../../../test/browser/workbenchTestServices.js';
 import { ensureNoDisposablesAreLeakedInTestSuite, toResource } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { TextFileEditorModel } from '../../../../services/textfile/common/textFileEditorModel.js';
 import { IResolvedTextFileEditorModel, snapshotToString } from '../../../../services/textfile/common/textfiles.js';
 import { SaveReason } from '../../../../common/editor.js';

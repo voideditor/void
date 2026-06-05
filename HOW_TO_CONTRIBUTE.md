@@ -117,6 +117,14 @@ If you're certain you want to build a local executible of Void, follow these ste
 
 Make sure you've already entered Developer Mode with Void first, then run one of the following commands. This will create a folder named `VSCode-darwin-arm64` or similar outside of the void/ repo (see below). 
 
+You can optionally tune the local executable build with these environment variables:
+
+- `VSCODE_MANGLE_MAX_WORKERS` (default: `4`) controls how many parallel mangler workers are used during build. Lower it on low-memory machines.
+- `VSCODE_TSC_IGNORE_UNUSED` (set to any non-empty value, for example `1`) disables `noUnusedLocals` and `noUnusedParameters` checks for faster local builds.
+
+Example:
+
+- `VSCODE_MANGLE_MAX_WORKERS=2 VSCODE_TSC_IGNORE_UNUSED=1 npm run gulp vscode-linux-x64`
 
 ##### Mac
 - `npm run gulp vscode-darwin-arm64` - most common (Apple Silicon)
@@ -130,6 +138,17 @@ Make sure you've already entered Developer Mode with Void first, then run one of
 - `npm run gulp vscode-linux-x64` - most common
 - `npm run gulp vscode-linux-arm64`
 
+
+##### Linux: `vscode-reh-linux-x64` Component
+
+`vscode-reh-linux-x64` builds the server-side REH package (Remote Extension Host), not the full desktop app UI.
+
+- Use it when you only need the server component (for remote/SSH-style setups).
+- Output folder: `../vscode-reh-linux-x64/`
+- Main server launcher inside that folder: `bin/void-server`
+- Useful variant for faster packaging in CI flows: 
+
+`VSCODE_MANGLE_MAX_WORKERS=8 VSCODE_TSC_IGNORE_UNUSED=1 npm run gulp vscode-reh-linux-x64 --max-old-space-size=48000`
 
 ##### Local Executible Output
 
@@ -149,7 +168,5 @@ workspace/
 - Please submit a pull request once you've made a change.
 - No need to submit an Issue unless you're creating a new feature that might involve multiple PRs.
 - Please don't use AI to write your PR 🙂
-
-
 
 

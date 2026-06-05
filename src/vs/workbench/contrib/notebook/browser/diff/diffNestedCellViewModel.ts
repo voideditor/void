@@ -6,7 +6,7 @@
 import { Emitter } from '../../../../../base/common/event.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
-import { PrefixSumComputer } from '../../../../../editor/common/model/prefixSumComputer.js';
+import { PrefixSumComputer } from '../../../../../editor/common/language/model/prefixSumComputer.js';
 import { IDiffNestedCellViewModel } from './notebookDiffEditorBrowser.js';
 import { ICellOutputViewModel, IGenericCellViewModel } from '../notebookBrowser.js';
 import { CellViewModelStateChangeEvent } from '../notebookViewEvents.js';

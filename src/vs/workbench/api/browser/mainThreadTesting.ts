@@ -10,7 +10,7 @@ import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposab
 import { ISettableObservable, observableValue, transaction } from '../../../base/common/observable.js';
 import { WellDefinedPrefixTree } from '../../../base/common/prefixTree.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
-import { Range } from '../../../editor/common/core/range.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { IUriIdentityService } from '../../../platform/uriIdentity/common/uriIdentity.js';
 import { TestCoverage } from '../../contrib/testing/common/testCoverage.js';
 import { TestId } from '../../contrib/testing/common/testId.js';

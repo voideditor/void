@@ -9,7 +9,7 @@ import { isEqual } from '../../../../../base/common/resources.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI, UriComponents } from '../../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { MenuId, MenuRegistry, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';

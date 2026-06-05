@@ -8,8 +8,8 @@ import { Throttler } from '../../../../../base/common/async.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { autorunDelta, ISettableObservable, observableValue } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { Location } from '../../../../../editor/common/languages.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { Location } from '../../../../../editor/common/language/languages.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { getMcpServerMapping } from '../mcpConfigFileUtils.js';
 import { IMcpConfigPath, IMcpConfigPathsService } from '../mcpConfigPathsService.js';
@@ -118,6 +118,9 @@ export class ConfigMcpDiscovery extends Disposable implements IMcpDiscovery {
 			const nextDefinitions = Object.entries(value?.servers || {}).map(([name, value]): McpServerDefinition => ({
 				id: `${collectionId}.${name}`,
 				label: name,
+				excludeTools: Array.isArray((value as any).excludeTools)
+					? (value as any).excludeTools.filter((t: unknown) => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
+					: undefined,
 				launch: 'type' in value && value.type === 'sse' ? {
 					type: McpServerTransportType.SSE,
 					uri: URI.parse(value.url),

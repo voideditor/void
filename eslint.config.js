@@ -804,6 +804,8 @@ export default tseslint.config(
 						'console',
 						'cookie',
 						'crypto',
+						'ws',
+						'@agentclientprotocol/sdk',
 						'dns',
 						'events',
 						'fs',

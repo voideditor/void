@@ -13,7 +13,7 @@ import { DiffEditorWidget } from '../diffEditorWidget.js';
 import { MovedBlocksLinesFeature } from '../features/movedBlocksLinesFeature.js';
 import { diffAddDecoration, diffAddDecorationEmpty, diffDeleteDecoration, diffDeleteDecorationEmpty, diffLineAddDecorationBackground, diffLineAddDecorationBackgroundWithIndicator, diffLineDeleteDecorationBackground, diffLineDeleteDecorationBackgroundWithIndicator, diffWholeLineAddDecoration, diffWholeLineDeleteDecoration } from '../registrations.contribution.js';
 import { applyObservableDecorations } from '../utils.js';
-import { IModelDeltaDecoration } from '../../../../common/model.js';
+import { IModelDeltaDecoration } from '../../../../../editor/common/language/model.js';
 
 export class DiffEditorDecorations extends Disposable {
 	constructor(

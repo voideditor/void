@@ -13,12 +13,12 @@ import { IFileService } from '../../../platform/files/common/files.js';
 import { ILabelService } from '../../../platform/label/common/label.js';
 import { Schemas } from '../../../base/common/network.js';
 import { isEqual } from '../../../base/common/resources.js';
-import { ITextEditorModel, ITextModelService } from '../../../editor/common/services/resolverService.js';
+import { ITextEditorModel, ITextModelService } from '../../../editor/common/language/services/resolverService.js';
 import { TextResourceEditorModel } from './textResourceEditorModel.js';
 import { IReference } from '../../../base/common/lifecycle.js';
-import { createTextBufferFactory } from '../../../editor/common/model/textModel.js';
+import { createTextBufferFactory } from '../../../editor/common/language/model/textModel.js';
 import { IFilesConfigurationService } from '../../services/filesConfiguration/common/filesConfigurationService.js';
-import { ITextResourceConfigurationService } from '../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../editor/common/language/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../services/editor/common/customEditorLabelService.js';
 
 /**

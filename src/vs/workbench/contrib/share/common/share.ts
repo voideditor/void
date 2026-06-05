@@ -6,8 +6,8 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
-import { LanguageSelector } from '../../../../editor/common/languageSelector.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { LanguageSelector } from '../../../../editor/common/language/languageSelector.js';
 import { ISubmenuItem } from '../../../../platform/actions/common/actions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 

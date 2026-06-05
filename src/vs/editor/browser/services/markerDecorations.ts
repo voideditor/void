@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IMarkerDecorationsService } from '../../common/services/markerDecorations.js';
+import { IMarkerDecorationsService } from '../../../editor/common/language/services/markerDecorations.js';
 import { EditorContributionInstantiation, registerEditorContribution } from '../editorExtensions.js';
 import { ICodeEditor } from '../editorBrowser.js';
 import { IEditorContribution } from '../../common/editorCommon.js';

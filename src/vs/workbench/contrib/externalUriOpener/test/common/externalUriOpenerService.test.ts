@@ -8,7 +8,7 @@ import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ExternalUriOpenerPriority } from '../../../../../editor/common/languages.js';
+import { ExternalUriOpenerPriority } from '../../../../../editor/common/language/languages.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';

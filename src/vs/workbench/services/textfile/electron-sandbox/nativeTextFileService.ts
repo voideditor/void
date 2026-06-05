@@ -9,11 +9,11 @@ import { ITextFileService, ITextFileStreamContent, ITextFileContent, IReadTextFi
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IFileService, IFileReadLimits } from '../../../../platform/files/common/files.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IUntitledTextEditorModelManager, IUntitledTextEditorService } from '../../untitled/common/untitledTextEditorService.js';
 import { ILifecycleService } from '../../lifecycle/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { INativeWorkbenchEnvironmentService } from '../../environment/electron-sandbox/environmentService.js';
 import { IDialogService, IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IFilesConfigurationService } from '../../filesConfiguration/common/filesConfigurationService.js';
@@ -21,7 +21,7 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { IPathService } from '../../path/common/pathService.js';
 import { IWorkingCopyFileService } from '../../workingCopy/common/workingCopyFileService.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IElevatedFileService } from '../../files/common/elevatedFileService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { Promises } from '../../../../base/common/async.js';

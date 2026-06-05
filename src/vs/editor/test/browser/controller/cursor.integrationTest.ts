@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { Selection } from '../../../common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { withTestCodeEditor } from '../testCodeEditor.js';
 
 suite('Editor Controller', () => {

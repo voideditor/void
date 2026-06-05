@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { Range } from '../../../../../../editor/common/core/range.js';
-import { FindMatch, ITextBuffer, ValidAnnotatedEditOperation } from '../../../../../../editor/common/model.js';
-import { USUAL_WORD_SEPARATORS } from '../../../../../../editor/common/core/wordHelper.js';
-import { ILanguageService } from '../../../../../../editor/common/languages/language.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
+import { FindMatch, ITextBuffer, ValidAnnotatedEditOperation } from '../../../../../../editor/common/language/model.js';
+import { USUAL_WORD_SEPARATORS } from '../../../../../../editor/common/language/core/wordHelper.js';
+import { ILanguageService } from '../../../../../../editor/common/language/language.js';
 import { FindReplaceState } from '../../../../../../editor/contrib/find/browser/findState.js';
 import { IConfigurationService, IConfigurationValue } from '../../../../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';

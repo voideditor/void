@@ -12,8 +12,8 @@ import { IConfigurationRegistry, Extensions as ConfigurationExtensions } from '.
 import { editorConfigurationBaseNode } from '../../../../editor/common/config/editorConfigurationSchema.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
-import { FoldingRangeProvider } from '../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { FoldingRangeProvider } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IExtensionDescription } from '../../../../platform/extensions/common/extensions.js';
 

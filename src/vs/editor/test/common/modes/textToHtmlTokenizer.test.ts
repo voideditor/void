@@ -6,11 +6,11 @@
 import assert from 'assert';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ColorId, FontStyle, MetadataConsts } from '../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../common/languages.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ColorId, FontStyle, MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { _tokenizeToString, tokenizeLineToHTML } from '../../../common/languages/textToHtmlTokenizer.js';
-import { LanguageIdCodec } from '../../../common/services/languagesRegistry.js';
+import { LanguageIdCodec } from '../../../../editor/common/language/services/languagesRegistry.js';
 import { TestLineToken, TestLineTokens } from '../core/testLineToken.js';
 import { createModelServices } from '../testTextModel.js';
 import { TestInstantiationService } from '../../../../platform/instantiation/test/common/instantiationServiceMock.js';

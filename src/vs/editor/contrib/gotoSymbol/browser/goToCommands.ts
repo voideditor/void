@@ -15,12 +15,12 @@ import { EditorAction2, ServicesAccessor } from '../../../browser/editorExtensio
 import { ICodeEditorService } from '../../../browser/services/codeEditorService.js';
 import { EmbeddedCodeEditorWidget } from '../../../browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorOption, GoToLocationValues } from '../../../common/config/editorOptions.js';
-import * as corePosition from '../../../common/core/position.js';
-import { IRange, Range } from '../../../common/core/range.js';
+import * as corePosition from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { ScrollType } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { ITextModel } from '../../../common/model.js';
-import { isLocationLink, Location, LocationLink } from '../../../common/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { isLocationLink, Location, LocationLink } from '../../../../editor/common/language/languages.js';
 import { ReferencesController } from './peek/referencesController.js';
 import { ReferencesModel } from './referencesModel.js';
 import { ISymbolNavigationService } from './symbolNavigation.js';
@@ -36,8 +36,8 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IEditorProgressService } from '../../../../platform/progress/common/progress.js';
 import { getDeclarationsAtPosition, getDefinitionsAtPosition, getImplementationsAtPosition, getReferencesAtPosition, getTypeDefinitionsAtPosition } from './goToSymbol.js';
-import { IWordAtPosition } from '../../../common/core/wordHelper.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { IWordAtPosition } from '../../../../editor/common/language/core/wordHelper.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { Iterable } from '../../../../base/common/iterator.js';
 import { IsWebContext } from '../../../../platform/contextkey/common/contextkeys.js';
 

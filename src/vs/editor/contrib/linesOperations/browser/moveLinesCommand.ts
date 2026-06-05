@@ -6,10 +6,10 @@
 import * as strings from '../../../../base/common/strings.js';
 import { ShiftCommand } from '../../../common/commands/shiftCommand.js';
 import { EditorAutoIndentStrategy } from '../../../common/config/editorOptions.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { ICommand, ICursorStateComputerData, IEditOperationBuilder } from '../../../common/editorCommon.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { CompleteEnterAction, IndentAction } from '../../../common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { IndentConsts } from '../../../common/languages/supports/indentRules.js';

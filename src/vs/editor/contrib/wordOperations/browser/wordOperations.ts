@@ -11,13 +11,13 @@ import { EditorOption, EditorOptions } from '../../../common/config/editorOption
 import { CursorState } from '../../../common/cursorCommon.js';
 import { CursorChangeReason } from '../../../common/cursorEvents.js';
 import { DeleteWordContext, WordNavigationType, WordOperations } from '../../../common/cursor/cursorWordOperations.js';
-import { getMapForWordSeparators, WordCharacterClassifier } from '../../../common/core/wordCharacterClassifier.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { getMapForWordSeparators, WordCharacterClassifier } from '../../../../editor/common/language/core/wordCharacterClassifier.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { ScrollType } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import * as nls from '../../../../nls.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';

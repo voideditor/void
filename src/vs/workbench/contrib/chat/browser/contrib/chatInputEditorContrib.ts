@@ -6,7 +6,7 @@
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { Disposable, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { IDecorationOptions } from '../../../../../editor/common/editorCommon.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { inputPlaceholderForeground } from '../../../../../platform/theme/common/colorRegistry.js';

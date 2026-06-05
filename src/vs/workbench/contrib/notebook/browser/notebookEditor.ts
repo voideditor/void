@@ -13,7 +13,7 @@ import { DisposableStore, MutableDisposable } from '../../../../base/common/life
 import { extname, isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { localize } from '../../../../nls.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IEditorOptions } from '../../../../platform/editor/common/editor.js';
@@ -22,7 +22,7 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
 import { DEFAULT_EDITOR_ASSOCIATION, EditorPaneSelectionChangeReason, EditorPaneSelectionCompareResult, EditorResourceAccessor, IEditorMemento, IEditorOpenContext, IEditorPaneScrollPosition, IEditorPaneSelection, IEditorPaneSelectionChangeEvent, IEditorPaneWithScrolling, createEditorOpenError, createTooLargeFileError, isEditorOpenError } from '../../../common/editor.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';

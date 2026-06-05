@@ -5,7 +5,7 @@
 import assert from 'assert';
 import { URI } from '../../../../../base/common/uri.js';
 import { ILanguageConfigurationService } from '../../../../../editor/common/languages/languageConfigurationRegistry.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { TestLanguageConfigurationService } from '../../../../../editor/test/common/modes/testLanguageConfigurationService.js';
 import { FileService } from '../../../../../platform/files/common/fileService.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';

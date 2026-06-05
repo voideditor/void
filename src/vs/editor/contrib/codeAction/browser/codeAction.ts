@@ -18,13 +18,13 @@ import { IProgress, Progress } from '../../../../platform/progress/common/progre
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { IBulkEditService } from '../../../browser/services/bulkEditService.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import * as languages from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { IModelService } from '../../../common/services/model.js';
+import * as languages from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { TextModelCancellationTokenSource } from '../../editorState/browser/editorState.js';
 import { CodeActionFilter, CodeActionItem, CodeActionKind, CodeActionSet, CodeActionTrigger, CodeActionTriggerSource, filtersAction, mayIncludeActionsOfKind } from '../common/types.js';
 
@@ -166,6 +166,7 @@ export async function getCodeActions(
 		];
 		return new ManagedCodeActionSet(allActions, allDocumentation, disposables);
 	} catch (err) {
+		await Promise.allSettled(promises);
 		disposables.dispose();
 		throw err;
 	} finally {

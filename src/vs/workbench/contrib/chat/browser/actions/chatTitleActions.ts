@@ -13,7 +13,7 @@ import { basename } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions.js';
 import { IBulkEditService } from '../../../../../editor/browser/services/bulkEditService.js';
-import { isLocation } from '../../../../../editor/common/languages.js';
+import { isLocation } from '../../../../../editor/common/language/languages.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';

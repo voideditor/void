@@ -17,18 +17,18 @@ import { IResolvedWorkingCopyBackup, IWorkingCopyBackupService } from '../../ser
 import { IConfigurationService, ConfigurationTarget, IConfigurationValue } from '../../../platform/configuration/common/configuration.js';
 import { IWorkbenchLayoutService, PanelAlignment, Parts, Position as PartPosition } from '../../services/layout/browser/layoutService.js';
 import { TextModelResolverService } from '../../services/textmodelResolver/common/textModelResolverService.js';
-import { ITextModelService } from '../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../editor/common/language/services/resolverService.js';
 import { IEditorOptions, IResourceEditorInput, IResourceEditorInputIdentifier, ITextResourceEditorInput, ITextEditorOptions } from '../../../platform/editor/common/editor.js';
 import { IUntitledTextEditorModelManager, IUntitledTextEditorService, UntitledTextEditorService } from '../../services/untitled/common/untitledTextEditorService.js';
 import { IWorkspaceContextService, IWorkspaceIdentifier } from '../../../platform/workspace/common/workspace.js';
 import { ILifecycleService, ShutdownReason, StartupKind, LifecyclePhase, WillShutdownEvent, BeforeShutdownErrorEvent, InternalBeforeShutdownEvent, IWillShutdownEventJoiner } from '../../services/lifecycle/common/lifecycle.js';
 import { ServiceCollection } from '../../../platform/instantiation/common/serviceCollection.js';
 import { FileOperationEvent, IFileService, IFileStat, IFileStatResult, FileChangesEvent, IResolveFileOptions, ICreateFileOptions, IFileSystemProvider, FileSystemProviderCapabilities, IFileChange, IWatchOptions, IStat, FileType, IFileDeleteOptions, IFileOverwriteOptions, IFileWriteOptions, IFileOpenOptions, IFileStatWithMetadata, IResolveMetadataFileOptions, IWriteFileOptions, IReadFileOptions, IFileContent, IFileStreamContent, FileOperationError, IFileSystemProviderWithFileReadStreamCapability, IFileReadStreamOptions, IReadFileStreamOptions, IFileSystemProviderCapabilitiesChangeEvent, IFileStatWithPartialMetadata, IFileSystemWatcher, IWatchOptionsWithCorrelation, IFileSystemProviderActivationEvent } from '../../../platform/files/common/files.js';
-import { IModelService } from '../../../editor/common/services/model.js';
-import { LanguageService } from '../../../editor/common/services/languageService.js';
-import { ModelService } from '../../../editor/common/services/modelService.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { LanguageService } from '../../../editor/common/language/services/languageService.js';
+import { ModelService } from '../../../editor/common/language/services/modelService.js';
 import { IResourceEncoding, ITextFileService, IReadTextFileOptions, ITextFileStreamContent, IWriteTextFileOptions, ITextFileEditorModel, ITextFileEditorModelManager } from '../../services/textfile/common/textfiles.js';
-import { ILanguageService } from '../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
 import { IHistoryService } from '../../services/history/common/history.js';
 import { IInstantiationService, ServiceIdentifier } from '../../../platform/instantiation/common/instantiation.js';
 import { TestConfigurationService } from '../../../platform/configuration/test/common/testConfigurationService.js';
@@ -38,13 +38,13 @@ import { IEnvironmentService } from '../../../platform/environment/common/enviro
 import { IThemeService } from '../../../platform/theme/common/themeService.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
 import { TestThemeService } from '../../../platform/theme/test/common/testThemeService.js';
-import { ITextResourceConfigurationService, ITextResourcePropertiesService } from '../../../editor/common/services/textResourceConfiguration.js';
-import { IPosition, Position as EditorPosition } from '../../../editor/common/core/position.js';
+import { ITextResourceConfigurationService, ITextResourcePropertiesService } from '../../../editor/common/language/services/textResourceConfiguration.js';
+import { IPosition, Position as EditorPosition } from '../../../editor/common/language/core/position.js';
 import { IMenuService, MenuId, IMenu, IMenuChangeEvent, IMenuActionOptions, MenuItemAction, SubmenuItemAction } from '../../../platform/actions/common/actions.js';
 import { ContextKeyValue, IContextKeyService } from '../../../platform/contextkey/common/contextkey.js';
 import { MockContextKeyService, MockKeybindingService } from '../../../platform/keybinding/test/common/mockKeybindingService.js';
-import { ITextBufferFactory, DefaultEndOfLine, EndOfLinePreference, ITextSnapshot } from '../../../editor/common/model.js';
-import { Range } from '../../../editor/common/core/range.js';
+import { ITextBufferFactory, DefaultEndOfLine, EndOfLinePreference, ITextSnapshot } from '../../../editor/common/language/model.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { IDialogService, IPickAndOpenOptions, ISaveDialogOptions, IOpenDialogOptions, IFileDialogService, ConfirmResult } from '../../../platform/dialogs/common/dialogs.js';
 import { INotificationService } from '../../../platform/notification/common/notification.js';
 import { TestNotificationService } from '../../../platform/notification/test/common/testNotificationService.js';
@@ -77,7 +77,7 @@ import { IAccessibilityService } from '../../../platform/accessibility/common/ac
 import { BrowserWorkbenchEnvironmentService } from '../../services/environment/browser/environmentService.js';
 import { BrowserTextFileService } from '../../services/textfile/browser/browserTextFileService.js';
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
-import { createTextBufferFactoryFromStream } from '../../../editor/common/model/textModel.js';
+import { createTextBufferFactoryFromStream } from '../../../editor/common/language/model/textModel.js';
 import { IPathService } from '../../services/path/common/pathService.js';
 import { Direction, IViewSize } from '../../../base/browser/ui/grid/grid.js';
 import { IProgressService, IProgressOptions, IProgressWindowOptions, IProgressNotificationOptions, IProgressCompositeOptions, IProgress, IProgressStep, Progress, IProgressDialogOptions, IProgressIndicator } from '../../../platform/progress/common/progress.js';
@@ -131,7 +131,7 @@ import { IEditorResolverService } from '../../services/editor/common/editorResol
 import { IWorkingCopyEditorService, WorkingCopyEditorService } from '../../services/workingCopy/common/workingCopyEditorService.js';
 import { IElevatedFileService } from '../../services/files/common/elevatedFileService.js';
 import { BrowserElevatedFileService } from '../../services/files/browser/elevatedFileService.js';
-import { IEditorWorkerService } from '../../../editor/common/services/editorWorker.js';
+import { IEditorWorkerService } from '../../../editor/common/language/services/editorWorker.js';
 import { ResourceMap } from '../../../base/common/map.js';
 import { SideBySideEditorInput } from '../../common/editor/sideBySideEditorInput.js';
 import { ITextEditorService, TextEditorService } from '../../services/textfile/common/textEditorService.js';
@@ -144,11 +144,11 @@ import { IGroupModelChangeEvent } from '../../common/editor/editorGroupModel.js'
 import { env } from '../../../base/common/process.js';
 import { isValidBasename } from '../../../base/common/extpath.js';
 import { TestAccessibilityService } from '../../../platform/accessibility/test/common/testAccessibilityService.js';
-import { ILanguageFeatureDebounceService, LanguageFeatureDebounceService } from '../../../editor/common/services/languageFeatureDebounce.js';
-import { ILanguageFeaturesService } from '../../../editor/common/services/languageFeatures.js';
-import { LanguageFeaturesService } from '../../../editor/common/services/languageFeaturesService.js';
+import { ILanguageFeatureDebounceService, LanguageFeatureDebounceService } from '../../../editor/common/language/services/languageFeatureDebounce.js';
+import { ILanguageFeaturesService } from '../../../editor/common/language/services/languageFeatures.js';
+import { LanguageFeaturesService } from '../../../editor/common/language/services/languageFeaturesService.js';
 import { TextEditorPaneSelection } from '../../browser/parts/editor/textEditor.js';
-import { Selection } from '../../../editor/common/core/selection.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
 import { IFolderBackupInfo, IWorkspaceBackupInfo } from '../../../platform/backup/common/backup.js';
 import { TestEditorWorkerService } from '../../../editor/test/common/services/testEditorWorkerService.js';
 import { IExtensionHostExitInfo, IRemoteAgentConnection, IRemoteAgentService } from '../../services/remote/common/remoteAgentService.js';
@@ -298,7 +298,7 @@ export function workbenchInstantiationService(
 	instantiationService.stub(IAccessibilityService, accessibilityService);
 	instantiationService.stub(IAccessibilitySignalService, {
 		playSignal: async () => { },
-		isSoundEnabled(signal: unknown) { return false; },
+		isSoundEnabled(_signal: unknown) { return false; },
 	} as any);
 	instantiationService.stub(IFileDialogService, instantiationService.createInstance(TestFileDialogService));
 	instantiationService.stub(ILanguageService, disposables.add(instantiationService.createInstance(LanguageService)));
@@ -519,7 +519,7 @@ export class TestEncodingOracle extends EncodingOracle {
 		];
 	}
 
-	protected override set encodingOverrides(overrides: IEncodingOverride[]) { }
+	protected override set encodingOverrides(_overrides: IEncodingOverride[]) { }
 }
 
 class TestEnvironmentServiceWithArgs extends BrowserWorkbenchEnvironmentService {
@@ -533,9 +533,9 @@ export class TestProgressService implements IProgressService {
 	declare readonly _serviceBrand: undefined;
 
 	withProgress(
-		options: IProgressOptions | IProgressDialogOptions | IProgressWindowOptions | IProgressNotificationOptions | IProgressCompositeOptions,
+		_options: IProgressOptions | IProgressDialogOptions | IProgressWindowOptions | IProgressNotificationOptions | IProgressCompositeOptions,
 		task: (progress: IProgress<IProgressStep>) => Promise<any>,
-		onDidCancel?: ((choice?: number | undefined) => void) | undefined
+		_onDidCancel?: ((choice?: number | undefined) => void) | undefined
 	): Promise<any> {
 		return task(Progress.None);
 	}
@@ -563,11 +563,11 @@ export class TestMenuService implements IMenuService {
 		};
 	}
 
-	getMenuActions(id: MenuId, contextKeyService: IContextKeyService, options?: IMenuActionOptions): [string, Array<MenuItemAction | SubmenuItemAction>][] {
+	getMenuActions(_id: MenuId, _contextKeyService: IContextKeyService, _options?: IMenuActionOptions): [string, Array<MenuItemAction | SubmenuItemAction>][] {
 		throw new Error('Method not implemented.');
 	}
 
-	getMenuContexts(id: MenuId): ReadonlySet<string> {
+	getMenuContexts(_id: MenuId): ReadonlySet<string> {
 		throw new Error('Method not implemented.');
 	}
 
@@ -596,13 +596,13 @@ export class TestFileDialogService implements IFileDialogService {
 
 	private fileToSave!: URI;
 	setPickFileToSave(path: URI): void { this.fileToSave = path; }
-	pickFileToSave(defaultUri: URI, availableFileSystems?: string[]): Promise<URI | undefined> { return Promise.resolve(this.fileToSave); }
+	pickFileToSave(_defaultUri: URI, _availableFileSystems?: string[]): Promise<URI | undefined> { return Promise.resolve(this.fileToSave); }
 
 	showSaveDialog(_options: ISaveDialogOptions): Promise<URI | undefined> { return Promise.resolve(undefined); }
 	showOpenDialog(_options: IOpenDialogOptions): Promise<URI[] | undefined> { return Promise.resolve(undefined); }
 
 	setConfirmResult(result: ConfirmResult): void { this.confirmResult = result; }
-	showSaveConfirm(fileNamesOrResources: (string | URI)[]): Promise<ConfirmResult> { return Promise.resolve(this.confirmResult); }
+	showSaveConfirm(_fileNamesOrResources: (string | URI)[]): Promise<ConfirmResult> { return Promise.resolve(this.confirmResult); }
 }
 
 export class TestLayoutService implements IWorkbenchLayoutService {
@@ -653,7 +653,7 @@ export class TestLayoutService implements IWorkbenchLayoutService {
 	async setEditorHidden(_hidden: boolean): Promise<void> { }
 	async setSideBarHidden(_hidden: boolean): Promise<void> { }
 	async setAuxiliaryBarHidden(_hidden: boolean): Promise<void> { }
-	async setPartHidden(_hidden: boolean, part: Parts): Promise<void> { }
+	async setPartHidden(_hidden: boolean, _part: Parts): Promise<void> { }
 	isPanelHidden(): boolean { return false; }
 	async setPanelHidden(_hidden: boolean): Promise<void> { }
 	toggleMaximizedPanel(): void { }
@@ -672,12 +672,12 @@ export class TestLayoutService implements IWorkbenchLayoutService {
 	isMainEditorLayoutCentered(): boolean { return false; }
 	centerMainEditorLayout(_active: boolean): void { }
 	resizePart(_part: Parts, _sizeChangeWidth: number, _sizeChangeHeight: number): void { }
-	getSize(part: Parts): IViewSize { throw new Error('Method not implemented.'); }
-	setSize(part: Parts, size: IViewSize): void { throw new Error('Method not implemented.'); }
-	registerPart(part: Part): IDisposable { return Disposable.None; }
-	isWindowMaximized(targetWindow: Window) { return false; }
-	updateWindowMaximizedState(targetWindow: Window, maximized: boolean): void { }
-	getVisibleNeighborPart(part: Parts, direction: Direction): Parts | undefined { return undefined; }
+	getSize(_part: Parts): IViewSize { throw new Error('Method not implemented.'); }
+	setSize(_part: Parts, _size: IViewSize): void { throw new Error('Method not implemented.'); }
+	registerPart(_part: Part): IDisposable { return Disposable.None; }
+	isWindowMaximized(_targetWindow: Window) { return false; }
+	updateWindowMaximizedState(_targetWindow: Window, _maximized: boolean): void { }
+	getVisibleNeighborPart(_part: Parts, _direction: Direction): Parts | undefined { return undefined; }
 	focus() { }
 }
 
@@ -723,15 +723,15 @@ export class TestPaneCompositeService extends Disposable implements IPaneComposi
 		return this.getPartByLocation(viewContainerLocation).getLastActivePaneCompositeId();
 	}
 
-	getPinnedPaneCompositeIds(viewContainerLocation: ViewContainerLocation): string[] {
+	getPinnedPaneCompositeIds(_viewContainerLocation: ViewContainerLocation): string[] {
 		throw new Error('Method not implemented.');
 	}
 
-	getVisiblePaneCompositeIds(viewContainerLocation: ViewContainerLocation): string[] {
+	getVisiblePaneCompositeIds(_viewContainerLocation: ViewContainerLocation): string[] {
 		throw new Error('Method not implemented.');
 	}
 
-	getPaneCompositeIds(viewContainerLocation: ViewContainerLocation): string[] {
+	getPaneCompositeIds(_viewContainerLocation: ViewContainerLocation): string[] {
 		throw new Error('Method not implemented.');
 	}
 
@@ -758,20 +758,20 @@ export class TestSideBarPart implements IPaneCompositePart {
 	onDidPaneCompositeOpen = this.onDidViewletOpenEmitter.event;
 	onDidPaneCompositeClose = this.onDidViewletCloseEmitter.event;
 
-	openPaneComposite(id: string, focus?: boolean): Promise<IPaneComposite | undefined> { return Promise.resolve(undefined); }
+	openPaneComposite(_id: string, _focus?: boolean): Promise<IPaneComposite | undefined> { return Promise.resolve(undefined); }
 	getPaneComposites(): PaneCompositeDescriptor[] { return []; }
 	getAllViewlets(): PaneCompositeDescriptor[] { return []; }
 	getActivePaneComposite(): IPaneComposite { return activeViewlet; }
 	getDefaultViewletId(): string { return 'workbench.view.explorer'; }
-	getPaneComposite(id: string): PaneCompositeDescriptor | undefined { return undefined; }
-	getProgressIndicator(id: string) { return undefined; }
+	getPaneComposite(_id: string): PaneCompositeDescriptor | undefined { return undefined; }
+	getProgressIndicator(_id: string) { return undefined; }
 	hideActivePaneComposite(): void { }
 	getLastActivePaneCompositeId(): string { return undefined!; }
 	dispose() { }
 	getPinnedPaneCompositeIds() { return []; }
 	getVisiblePaneCompositeIds() { return []; }
 	getPaneCompositeIds() { return []; }
-	layout(width: number, height: number, top: number, left: number): void { }
+	layout(_width: number, _height: number, _top: number, _left: number): void { }
 }
 
 export class TestPanelPart implements IPaneCompositePart {
@@ -787,19 +787,19 @@ export class TestPanelPart implements IPaneCompositePart {
 	onDidPaneCompositeClose = new Emitter<IPaneComposite>().event;
 	readonly partId = Parts.AUXILIARYBAR_PART;
 
-	async openPaneComposite(id?: string, focus?: boolean): Promise<undefined> { return undefined; }
-	getPaneComposite(id: string): any { return activeViewlet; }
+	async openPaneComposite(_id?: string, _focus?: boolean): Promise<undefined> { return undefined; }
+	getPaneComposite(_id: string): any { return activeViewlet; }
 	getPaneComposites() { return []; }
 	getPinnedPaneCompositeIds() { return []; }
 	getVisiblePaneCompositeIds() { return []; }
 	getPaneCompositeIds() { return []; }
 	getActivePaneComposite(): IPaneComposite { return activeViewlet; }
-	setPanelEnablement(id: string, enabled: boolean): void { }
+	setPanelEnablement(_id: string, _enabled: boolean): void { }
 	dispose() { }
-	getProgressIndicator(id: string) { return null!; }
+	getProgressIndicator(_id: string) { return null!; }
 	hideActivePaneComposite(): void { }
 	getLastActivePaneCompositeId(): string { return undefined!; }
-	layout(width: number, height: number, top: number, left: number): void { }
+	layout(_width: number, _height: number, _top: number, _left: number): void { }
 }
 
 export class TestViewsService implements IViewsService {
@@ -807,23 +807,23 @@ export class TestViewsService implements IViewsService {
 
 
 	onDidChangeViewContainerVisibility = new Emitter<{ id: string; visible: boolean; location: ViewContainerLocation }>().event;
-	isViewContainerVisible(id: string): boolean { return true; }
-	isViewContainerActive(id: string): boolean { return true; }
+	isViewContainerVisible(_id: string): boolean { return true; }
+	isViewContainerActive(_id: string): boolean { return true; }
 	getVisibleViewContainer(): ViewContainer | null { return null; }
-	openViewContainer(id: string, focus?: boolean): Promise<IPaneComposite | null> { return Promise.resolve(null); }
-	closeViewContainer(id: string): void { }
+	openViewContainer(_id: string, _focus?: boolean): Promise<IPaneComposite | null> { return Promise.resolve(null); }
+	closeViewContainer(_id: string): void { }
 
 	onDidChangeViewVisibilityEmitter = new Emitter<{ id: string; visible: boolean }>();
 	onDidChangeViewVisibility = this.onDidChangeViewVisibilityEmitter.event;
 	onDidChangeFocusedViewEmitter = new Emitter<void>();
 	onDidChangeFocusedView = this.onDidChangeFocusedViewEmitter.event;
-	isViewVisible(id: string): boolean { return true; }
-	getActiveViewWithId<T extends IView>(id: string): T | null { return null; }
-	getViewWithId<T extends IView>(id: string): T | null { return null; }
-	openView<T extends IView>(id: string, focus?: boolean | undefined): Promise<T | null> { return Promise.resolve(null); }
-	closeView(id: string): void { }
-	getViewProgressIndicator(id: string) { return null!; }
-	getActiveViewPaneContainerWithId(id: string) { return null; }
+	isViewVisible(_id: string): boolean { return true; }
+	getActiveViewWithId<T extends IView>(_id: string): T | null { return null; }
+	getViewWithId<T extends IView>(_id: string): T | null { return null; }
+	openView<T extends IView>(_id: string, _focus?: boolean | undefined): Promise<T | null> { return Promise.resolve(null); }
+	closeView(_id: string): void { }
+	getViewProgressIndicator(_id: string) { return null!; }
+	getActiveViewPaneContainerWithId(_id: string) { return null; }
 	getFocusedViewName(): string { return ''; }
 	getFocusedView(): IViewDescriptor | null { return null; }
 }
@@ -865,11 +865,11 @@ export class TestEditorGroupsService implements IEditorGroupsService {
 	get sideGroup(): IEditorGroup { return this.groups[0]; }
 	get count(): number { return this.groups.length; }
 
-	getPart(group: number | IEditorGroup): IEditorPart { return this; }
-	saveWorkingSet(name: string): IEditorWorkingSet { throw new Error('Method not implemented.'); }
+	getPart(_group: number | IEditorGroup): IEditorPart { return this; }
+	saveWorkingSet(_name: string): IEditorWorkingSet { throw new Error('Method not implemented.'); }
 	getWorkingSets(): IEditorWorkingSet[] { throw new Error('Method not implemented.'); }
-	applyWorkingSet(workingSet: IEditorWorkingSet | 'empty', options?: IEditorWorkingSetOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
-	deleteWorkingSet(workingSet: IEditorWorkingSet): Promise<boolean> { throw new Error('Method not implemented.'); }
+	applyWorkingSet(_workingSet: IEditorWorkingSet | 'empty', _options?: IEditorWorkingSetOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
+	deleteWorkingSet(_workingSet: IEditorWorkingSet): Promise<boolean> { throw new Error('Method not implemented.'); }
 	getGroups(_order?: GroupsOrder): readonly IEditorGroup[] { return this.groups; }
 	getGroup(identifier: number): IEditorGroup | undefined { return this.groups.find(group => group.id === identifier); }
 	getLabel(_identifier: number): string { return 'Group 1'; }
@@ -891,17 +891,17 @@ export class TestEditorGroupsService implements IEditorGroupsService {
 	mergeGroup(_group: number | IEditorGroup, _target: number | IEditorGroup, _options?: IMergeGroupOptions): boolean { throw new Error('not implemented'); }
 	mergeAllGroups(_group: number | IEditorGroup, _options?: IMergeGroupOptions): boolean { throw new Error('not implemented'); }
 	copyGroup(_group: number | IEditorGroup, _location: number | IEditorGroup, _direction: GroupDirection): IEditorGroup { throw new Error('not implemented'); }
-	centerLayout(active: boolean): void { }
+	centerLayout(_active: boolean): void { }
 	isLayoutCentered(): boolean { return false; }
-	createEditorDropTarget(container: HTMLElement, delegate: IEditorDropTargetDelegate): IDisposable { return Disposable.None; }
+	createEditorDropTarget(_container: HTMLElement, _delegate: IEditorDropTargetDelegate): IDisposable { return Disposable.None; }
 	registerContextKeyProvider<T extends ContextKeyValue>(_provider: IEditorGroupContextKeyProvider<T>): IDisposable { throw new Error('not implemented'); }
-	getScopedInstantiationService(part: IEditorPart): IInstantiationService { throw new Error('Method not implemented.'); }
+	getScopedInstantiationService(_part: IEditorPart): IInstantiationService { throw new Error('Method not implemented.'); }
 
 	partOptions!: IEditorPartOptions;
-	enforcePartOptions(options: IEditorPartOptions): IDisposable { return Disposable.None; }
+	enforcePartOptions(_options: IEditorPartOptions): IDisposable { return Disposable.None; }
 
 	readonly mainPart = this;
-	registerEditorPart(part: any): IDisposable { return Disposable.None; }
+	registerEditorPart(_part: any): IDisposable { return Disposable.None; }
 	createAuxiliaryEditorPart(): Promise<IAuxiliaryEditorPart> { throw new Error('Method not implemented.'); }
 }
 
@@ -949,8 +949,8 @@ export class TestEditorGroupView implements IEditorGroupView {
 	findEditors(_resource: URI): readonly EditorInput[] { return []; }
 	getEditorByIndex(_index: number): EditorInput { throw new Error('not implemented'); }
 	getIndexOfEditor(_editor: EditorInput): number { return -1; }
-	isFirst(editor: EditorInput): boolean { return false; }
-	isLast(editor: EditorInput): boolean { return false; }
+	isFirst(_editor: EditorInput): boolean { return false; }
+	isLast(_editor: EditorInput): boolean { return false; }
 	openEditor(_editor: EditorInput, _options?: IEditorOptions): Promise<IEditorPane> { throw new Error('not implemented'); }
 	openEditors(_editors: EditorInputWithOptions[]): Promise<IEditorPane> { throw new Error('not implemented'); }
 	isPinned(_editor: EditorInput): boolean { return false; }
@@ -959,19 +959,19 @@ export class TestEditorGroupView implements IEditorGroupView {
 	isActive(_editor: EditorInput | IUntypedEditorInput): boolean { return false; }
 	setSelection(_activeSelectedEditor: EditorInput, _inactiveSelectedEditors: EditorInput[]): Promise<void> { throw new Error('not implemented'); }
 	isSelected(_editor: EditorInput): boolean { return false; }
-	contains(candidate: EditorInput | IUntypedEditorInput): boolean { return false; }
+	contains(_candidate: EditorInput | IUntypedEditorInput): boolean { return false; }
 	moveEditor(_editor: EditorInput, _target: IEditorGroup, _options?: IEditorOptions): boolean { return true; }
 	moveEditors(_editors: EditorInputWithOptions[], _target: IEditorGroup): boolean { return true; }
 	copyEditor(_editor: EditorInput, _target: IEditorGroup, _options?: IEditorOptions): void { }
 	copyEditors(_editors: EditorInputWithOptions[], _target: IEditorGroup): void { }
-	async closeEditor(_editor?: EditorInput, options?: ICloseEditorOptions): Promise<boolean> { return true; }
-	async closeEditors(_editors: EditorInput[] | ICloseEditorsFilter, options?: ICloseEditorOptions): Promise<boolean> { return true; }
-	async closeAllEditors(options?: ICloseAllEditorsOptions): Promise<boolean> { return true; }
+	async closeEditor(_editor?: EditorInput, _options?: ICloseEditorOptions): Promise<boolean> { return true; }
+	async closeEditors(_editors: EditorInput[] | ICloseEditorsFilter, _options?: ICloseEditorOptions): Promise<boolean> { return true; }
+	async closeAllEditors(_options?: ICloseAllEditorsOptions): Promise<boolean> { return true; }
 	async replaceEditors(_editors: IEditorReplacement[]): Promise<void> { }
 	pinEditor(_editor?: EditorInput): void { }
-	stickEditor(editor?: EditorInput | undefined): void { }
-	unstickEditor(editor?: EditorInput | undefined): void { }
-	lock(locked: boolean): void { }
+	stickEditor(_editor?: EditorInput | undefined): void { }
+	unstickEditor(_editor?: EditorInput | undefined): void { }
+	lock(_locked: boolean): void { }
 	focus(): void { }
 	get scopedContextKeyService(): IContextKeyService { throw new Error('not implemented'); }
 	setActive(_isActive: boolean): void { }
@@ -997,18 +997,18 @@ export class TestEditorGroupAccessor implements IEditorGroupsView {
 	onDidChangeEditorPartOptions = Event.None;
 	onDidVisibilityChange = Event.None;
 
-	getGroup(identifier: number): IEditorGroupView | undefined { throw new Error('Method not implemented.'); }
-	getGroups(order: GroupsOrder): IEditorGroupView[] { throw new Error('Method not implemented.'); }
-	activateGroup(identifier: number | IEditorGroupView): IEditorGroupView { throw new Error('Method not implemented.'); }
-	restoreGroup(identifier: number | IEditorGroupView): IEditorGroupView { throw new Error('Method not implemented.'); }
-	addGroup(location: number | IEditorGroupView, direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
-	mergeGroup(group: number | IEditorGroupView, target: number | IEditorGroupView, options?: IMergeGroupOptions | undefined): boolean { throw new Error('Method not implemented.'); }
-	moveGroup(group: number | IEditorGroupView, location: number | IEditorGroupView, direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
-	copyGroup(group: number | IEditorGroupView, location: number | IEditorGroupView, direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
-	removeGroup(group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
-	arrangeGroups(arrangement: GroupsArrangement, target?: number | IEditorGroupView | undefined): void { throw new Error('Method not implemented.'); }
-	toggleMaximizeGroup(group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
-	toggleExpandGroup(group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
+	getGroup(_identifier: number): IEditorGroupView | undefined { throw new Error('Method not implemented.'); }
+	getGroups(_order: GroupsOrder): IEditorGroupView[] { throw new Error('Method not implemented.'); }
+	activateGroup(_identifier: number | IEditorGroupView): IEditorGroupView { throw new Error('Method not implemented.'); }
+	restoreGroup(_identifier: number | IEditorGroupView): IEditorGroupView { throw new Error('Method not implemented.'); }
+	addGroup(_location: number | IEditorGroupView, _direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
+	mergeGroup(_group: number | IEditorGroupView, _target: number | IEditorGroupView, _options?: IMergeGroupOptions | undefined): boolean { throw new Error('Method not implemented.'); }
+	moveGroup(_group: number | IEditorGroupView, _location: number | IEditorGroupView, _direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
+	copyGroup(_group: number | IEditorGroupView, _location: number | IEditorGroupView, _direction: GroupDirection): IEditorGroupView { throw new Error('Method not implemented.'); }
+	removeGroup(_group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
+	arrangeGroups(_arrangement: GroupsArrangement, _target?: number | IEditorGroupView | undefined): void { throw new Error('Method not implemented.'); }
+	toggleMaximizeGroup(_group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
+	toggleExpandGroup(_group: number | IEditorGroupView): void { throw new Error('Method not implemented.'); }
 }
 
 export class TestEditorService extends Disposable implements EditorServiceImpl {
@@ -1038,20 +1038,20 @@ export class TestEditorService extends Disposable implements EditorServiceImpl {
 	mostRecentlyActiveEditors: readonly IEditorIdentifier[] = [];
 	visibleEditorPanes: readonly IVisibleEditorPane[] = [];
 	visibleTextEditorControls = [];
-	getVisibleTextEditorControls(order: EditorsOrder): readonly (IEditor | IDiffEditor)[] { return this.visibleTextEditorControls; }
+	getVisibleTextEditorControls(_order: EditorsOrder): readonly (IEditor | IDiffEditor)[] { return this.visibleTextEditorControls; }
 	visibleEditors: readonly EditorInput[] = [];
 	count = this.editors.length;
 
 	constructor(private editorGroupService?: IEditorGroupsService) {
 		super();
 	}
-	createScoped(editorGroupsContainer: IEditorGroupsContainer): IEditorService { return this; }
+	createScoped(_editorGroupsContainer: IEditorGroupsContainer): IEditorService { return this; }
 	getEditors() { return []; }
 	findEditors() { return [] as any; }
 	openEditor(editor: EditorInput, options?: IEditorOptions, group?: PreferredGroup): Promise<IEditorPane | undefined>;
 	openEditor(editor: IResourceEditorInput | IUntitledTextResourceEditorInput, group?: PreferredGroup): Promise<IEditorPane | undefined>;
 	openEditor(editor: IResourceDiffEditorInput, group?: PreferredGroup): Promise<ITextDiffEditorPane | undefined>;
-	async openEditor(editor: EditorInput | IUntypedEditorInput, optionsOrGroup?: IEditorOptions | PreferredGroup, group?: PreferredGroup): Promise<IEditorPane | undefined> {
+	async openEditor(editor: EditorInput | IUntypedEditorInput, _optionsOrGroup?: IEditorOptions | PreferredGroup, _group?: PreferredGroup): Promise<IEditorPane | undefined> {
 		// openEditor takes ownership of the input, register it to the TestEditorService
 		// so it's not marked as leaked during tests.
 		if ('dispose' in editor) {
@@ -1059,8 +1059,8 @@ export class TestEditorService extends Disposable implements EditorServiceImpl {
 		}
 		return undefined;
 	}
-	async closeEditor(editor: IEditorIdentifier, options?: ICloseEditorOptions): Promise<void> { }
-	async closeEditors(editors: IEditorIdentifier[], options?: ICloseEditorOptions): Promise<void> { }
+	async closeEditor(_editor: IEditorIdentifier, _options?: ICloseEditorOptions): Promise<void> { }
+	async closeEditors(_editors: IEditorIdentifier[], _options?: ICloseEditorOptions): Promise<void> { }
 	doResolveEditorOpenRequest(editor: EditorInput | IUntypedEditorInput): [IEditorGroup, EditorInput, IEditorOptions | undefined] | undefined {
 		if (!this.editorGroupService) {
 			return undefined;
@@ -1072,10 +1072,10 @@ export class TestEditorService extends Disposable implements EditorServiceImpl {
 	isOpened(_editor: IResourceEditorInputIdentifier): boolean { return false; }
 	isVisible(_editor: EditorInput): boolean { return false; }
 	replaceEditors(_editors: any, _group: any) { return Promise.resolve(undefined); }
-	save(editors: IEditorIdentifier[], options?: ISaveEditorsOptions): Promise<ISaveEditorsResult> { throw new Error('Method not implemented.'); }
-	saveAll(options?: ISaveEditorsOptions): Promise<ISaveEditorsResult> { throw new Error('Method not implemented.'); }
-	revert(editors: IEditorIdentifier[], options?: IRevertOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
-	revertAll(options?: IRevertAllEditorsOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
+	save(_editors: IEditorIdentifier[], _options?: ISaveEditorsOptions): Promise<ISaveEditorsResult> { throw new Error('Method not implemented.'); }
+	saveAll(_options?: ISaveEditorsOptions): Promise<ISaveEditorsResult> { throw new Error('Method not implemented.'); }
+	revert(_editors: IEditorIdentifier[], _options?: IRevertOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
+	revertAll(_options?: IRevertAllEditorsOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
 }
 
 export class TestFileService implements IFileService {
@@ -1129,7 +1129,7 @@ export class TestFileService implements IFileService {
 
 	readShouldThrowError: Error | undefined = undefined;
 
-	async readFile(resource: URI, options?: IReadFileOptions | undefined): Promise<IFileContent> {
+	async readFile(resource: URI, _options?: IReadFileOptions | undefined): Promise<IFileContent> {
 		if (this.readShouldThrowError) {
 			throw this.readShouldThrowError;
 		}
@@ -1142,7 +1142,7 @@ export class TestFileService implements IFileService {
 		};
 	}
 
-	async readFileStream(resource: URI, options?: IReadFileStreamOptions | undefined): Promise<IFileStreamContent> {
+	async readFileStream(resource: URI, _options?: IReadFileStreamOptions | undefined): Promise<IFileStreamContent> {
 		if (this.readShouldThrowError) {
 			throw this.readShouldThrowError;
 		}
@@ -1157,7 +1157,7 @@ export class TestFileService implements IFileService {
 
 	writeShouldThrowError: Error | undefined = undefined;
 
-	async writeFile(resource: URI, bufferOrReadable: VSBuffer | VSBufferReadable, options?: IWriteFileOptions): Promise<IFileStatWithMetadata> {
+	async writeFile(resource: URI, _bufferOrReadable: VSBuffer | VSBufferReadable, _options?: IWriteFileOptions): Promise<IFileStatWithMetadata> {
 		await timeout(0);
 
 		if (this.writeShouldThrowError) {
@@ -1210,7 +1210,7 @@ export class TestFileService implements IFileService {
 
 	async del(_resource: URI, _options?: { useTrash?: boolean; recursive?: boolean }): Promise<void> { }
 
-	createWatcher(resource: URI, options: IWatchOptions): IFileSystemWatcher {
+	createWatcher(_resource: URI, _options: IWatchOptions): IFileSystemWatcher {
 		return {
 			onDidChange: Event.None,
 			dispose: () => { }
@@ -1230,10 +1230,10 @@ export class TestFileService implements IFileService {
 	getWriteEncoding(_resource: URI): IResourceEncoding { return { encoding: 'utf8', hasBOM: false }; }
 	dispose(): void { }
 
-	async canCreateFile(source: URI, options?: ICreateFileOptions): Promise<Error | true> { return true; }
-	async canMove(source: URI, target: URI, overwrite?: boolean | undefined): Promise<Error | true> { return true; }
-	async canCopy(source: URI, target: URI, overwrite?: boolean | undefined): Promise<Error | true> { return true; }
-	async canDelete(resource: URI, options?: { useTrash?: boolean | undefined; recursive?: boolean | undefined } | undefined): Promise<Error | true> { return true; }
+	async canCreateFile(_source: URI, _options?: ICreateFileOptions): Promise<Error | true> { return true; }
+	async canMove(_source: URI, _target: URI, _overwrite?: boolean | undefined): Promise<Error | true> { return true; }
+	async canCopy(_source: URI, _target: URI, _overwrite?: boolean | undefined): Promise<Error | true> { return true; }
+	async canDelete(_resource: URI, _options?: { useTrash?: boolean | undefined; recursive?: boolean | undefined } | undefined): Promise<Error | true> { return true; }
 }
 
 export class TestWorkingCopyBackupService extends InMemoryWorkingCopyBackupService {
@@ -1434,7 +1434,7 @@ export class TestWillShutdownEvent implements WillShutdownEvent {
 	reason = ShutdownReason.CLOSE;
 	token = CancellationToken.None;
 
-	join(promise: Promise<void> | (() => Promise<void>), joiner: IWillShutdownEventJoiner): void {
+	join(promise: Promise<void> | (() => Promise<void>), _joiner: IWillShutdownEventJoiner): void {
 		this.value.push(typeof promise === 'function' ? promise() : promise);
 	}
 
@@ -1457,11 +1457,11 @@ export class TestTextResourceConfigurationService implements ITextResourceConfig
 		return this.configurationService.getValue(section, { resource });
 	}
 
-	inspect<T>(resource: URI | undefined, position: IPosition | null, section: string): IConfigurationValue<Readonly<T>> {
+	inspect<T>(resource: URI | undefined, _position: IPosition | null, section: string): IConfigurationValue<Readonly<T>> {
 		return this.configurationService.inspect<T>(section, { resource });
 	}
 
-	updateValue(resource: URI, key: string, value: any, configurationTarget?: ConfigurationTarget): Promise<void> {
+	updateValue(_resource: URI, key: string, value: any, _configurationTarget?: ConfigurationTarget): Promise<void> {
 		return this.configurationService.updateValue(key, value);
 	}
 }
@@ -1573,7 +1573,7 @@ export class TestHostService implements IHostService {
 	async moveTop(): Promise<void> { }
 	async getCursorScreenPoint(): Promise<undefined> { return undefined; }
 
-	async openWindow(arg1?: IOpenEmptyWindowOptions | IWindowOpenable[], arg2?: IOpenWindowOptions): Promise<void> { }
+	async openWindow(_arg1?: IOpenEmptyWindowOptions | IWindowOpenable[], _arg2?: IOpenWindowOptions): Promise<void> { }
 
 	async toggleFullScreen(): Promise<void> { }
 
@@ -1655,7 +1655,7 @@ export function registerTestEditor(id: string, inputs: SyncDescriptor<EditorInpu
 
 		class EditorsObserverTestEditorInputSerializer implements IEditorSerializer {
 
-			canSerialize(editorInput: EditorInput): boolean {
+			canSerialize(_editorInput: EditorInput): boolean {
 				return true;
 			}
 
@@ -1668,7 +1668,7 @@ export function registerTestEditor(id: string, inputs: SyncDescriptor<EditorInpu
 				return JSON.stringify(testInput);
 			}
 
-			deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): EditorInput {
+			deserialize(_instantiationService: IInstantiationService, serializedEditorInput: string): EditorInput {
 				const testInput: ISerializedTestInput = JSON.parse(serializedEditorInput);
 
 				return new TestFileEditorInput(URI.parse(testInput.resource), serializerInputId!);
@@ -1776,29 +1776,29 @@ export class TestFileEditorInput extends EditorInput implements IFileEditorInput
 		}
 		return isEqual(this.resource, other.resource) && (this.editorId === other.options?.override || other.options?.override === undefined);
 	}
-	setPreferredResource(resource: URI): void { }
-	async setEncoding(encoding: string) { }
+	setPreferredResource(_resource: URI): void { }
+	async setEncoding(_encoding: string) { }
 	getEncoding() { return undefined; }
-	setPreferredName(name: string): void { }
-	setPreferredDescription(description: string): void { }
-	setPreferredEncoding(encoding: string) { }
-	setPreferredContents(contents: string): void { }
-	setLanguageId(languageId: string, source?: string) { }
-	setPreferredLanguageId(languageId: string) { }
+	setPreferredName(_name: string): void { }
+	setPreferredDescription(_description: string): void { }
+	setPreferredEncoding(_encoding: string) { }
+	setPreferredContents(_contents: string): void { }
+	setLanguageId(_languageId: string, _source?: string) { }
+	setPreferredLanguageId(_languageId: string) { }
 	setForceOpenAsBinary(): void { }
 	setFailToOpen(): void {
 		this.fails = true;
 	}
-	override async save(groupId: GroupIdentifier, options?: ISaveOptions): Promise<EditorInput | undefined> {
+	override async save(_groupId: GroupIdentifier, _options?: ISaveOptions): Promise<EditorInput | undefined> {
 		this.gotSaved = true;
 		this.dirty = false;
 		return this;
 	}
-	override async saveAs(groupId: GroupIdentifier, options?: ISaveOptions): Promise<EditorInput | undefined> {
+	override async saveAs(_groupId: GroupIdentifier, _options?: ISaveOptions): Promise<EditorInput | undefined> {
 		this.gotSavedAs = true;
 		return this;
 	}
-	override async revert(group: GroupIdentifier, options?: IRevertOptions): Promise<void> {
+	override async revert(_group: GroupIdentifier, _options?: IRevertOptions): Promise<void> {
 		this.gotReverted = true;
 		this.gotSaved = false;
 		this.gotSavedAs = false;
@@ -1869,7 +1869,7 @@ export class TestEditorPart extends MainEditorPart implements IEditorGroupsServi
 		}
 	}
 
-	registerEditorPart(part: IEditorPart): IDisposable {
+	registerEditorPart(_part: IEditorPart): IDisposable {
 		return Disposable.None;
 	}
 
@@ -1877,18 +1877,18 @@ export class TestEditorPart extends MainEditorPart implements IEditorGroupsServi
 		throw new Error('Method not implemented.');
 	}
 
-	getScopedInstantiationService(part: IEditorPart): IInstantiationService {
+	getScopedInstantiationService(_part: IEditorPart): IInstantiationService {
 		throw new Error('Method not implemented.');
 	}
 
-	getPart(group: number | IEditorGroup): IEditorPart { return this; }
+	getPart(_group: number | IEditorGroup): IEditorPart { return this; }
 
-	saveWorkingSet(name: string): IEditorWorkingSet { throw new Error('Method not implemented.'); }
+	saveWorkingSet(_name: string): IEditorWorkingSet { throw new Error('Method not implemented.'); }
 	getWorkingSets(): IEditorWorkingSet[] { throw new Error('Method not implemented.'); }
-	applyWorkingSet(workingSet: IEditorWorkingSet | 'empty', options?: IEditorWorkingSetOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
-	deleteWorkingSet(workingSet: IEditorWorkingSet): Promise<boolean> { throw new Error('Method not implemented.'); }
+	applyWorkingSet(_workingSet: IEditorWorkingSet | 'empty', _options?: IEditorWorkingSetOptions): Promise<boolean> { throw new Error('Method not implemented.'); }
+	deleteWorkingSet(_workingSet: IEditorWorkingSet): Promise<boolean> { throw new Error('Method not implemented.'); }
 
-	registerContextKeyProvider<T extends ContextKeyValue>(provider: IEditorGroupContextKeyProvider<T>): IDisposable { throw new Error('Method not implemented.'); }
+	registerContextKeyProvider<T extends ContextKeyValue>(_provider: IEditorGroupContextKeyProvider<T>): IDisposable { throw new Error('Method not implemented.'); }
 }
 
 export class TestEditorParts extends EditorParts {
@@ -1977,15 +1977,15 @@ export class TestWorkspacesService implements IWorkspacesService {
 
 	onDidChangeRecentlyOpened = Event.None;
 
-	async createUntitledWorkspace(folders?: IWorkspaceFolderCreationData[], remoteAuthority?: string): Promise<IWorkspaceIdentifier> { throw new Error('Method not implemented.'); }
-	async deleteUntitledWorkspace(workspace: IWorkspaceIdentifier): Promise<void> { }
-	async addRecentlyOpened(recents: IRecent[]): Promise<void> { }
-	async removeRecentlyOpened(workspaces: URI[]): Promise<void> { }
+	async createUntitledWorkspace(_folders?: IWorkspaceFolderCreationData[], _remoteAuthority?: string): Promise<IWorkspaceIdentifier> { throw new Error('Method not implemented.'); }
+	async deleteUntitledWorkspace(_workspace: IWorkspaceIdentifier): Promise<void> { }
+	async addRecentlyOpened(_recents: IRecent[]): Promise<void> { }
+	async removeRecentlyOpened(_workspaces: URI[]): Promise<void> { }
 	async clearRecentlyOpened(): Promise<void> { }
 	async getRecentlyOpened(): Promise<IRecentlyOpened> { return { files: [], workspaces: [] }; }
 	async getDirtyWorkspaces(): Promise<(IFolderBackupInfo | IWorkspaceBackupInfo)[]> { return []; }
-	async enterWorkspace(path: URI): Promise<IEnterWorkspaceResult | undefined> { throw new Error('Method not implemented.'); }
-	async getWorkspaceIdentifier(workspacePath: URI): Promise<IWorkspaceIdentifier> { throw new Error('Method not implemented.'); }
+	async enterWorkspace(_path: URI): Promise<IEnterWorkspaceResult | undefined> { throw new Error('Method not implemented.'); }
+	async getWorkspaceIdentifier(_workspacePath: URI): Promise<IWorkspaceIdentifier> { throw new Error('Method not implemented.'); }
 }
 
 export class TestTerminalInstanceService implements ITerminalInstanceService {
@@ -1993,11 +1993,11 @@ export class TestTerminalInstanceService implements ITerminalInstanceService {
 	onDidRegisterBackend = Event.None;
 	declare readonly _serviceBrand: undefined;
 
-	convertProfileToShellLaunchConfig(shellLaunchConfigOrProfile?: IShellLaunchConfig | ITerminalProfile, cwd?: string | URI): IShellLaunchConfig { throw new Error('Method not implemented.'); }
-	preparePathForTerminalAsync(path: string, executable: string | undefined, title: string, shellType: TerminalShellType, remoteAuthority: string | undefined): Promise<string> { throw new Error('Method not implemented.'); }
-	createInstance(options: ICreateTerminalOptions, target: TerminalLocation): ITerminalInstance { throw new Error('Method not implemented.'); }
-	async getBackend(remoteAuthority?: string): Promise<ITerminalBackend | undefined> { throw new Error('Method not implemented.'); }
-	didRegisterBackend(backend: ITerminalBackend): void { throw new Error('Method not implemented.'); }
+	convertProfileToShellLaunchConfig(_shellLaunchConfigOrProfile?: IShellLaunchConfig | ITerminalProfile, _cwd?: string | URI): IShellLaunchConfig { throw new Error('Method not implemented.'); }
+	preparePathForTerminalAsync(_path: string, _executable: string | undefined, _title: string, _shellType: TerminalShellType, _remoteAuthority: string | undefined): Promise<string> { throw new Error('Method not implemented.'); }
+	createInstance(_options: ICreateTerminalOptions, _target: TerminalLocation): ITerminalInstance { throw new Error('Method not implemented.'); }
+	async getBackend(_remoteAuthority?: string): Promise<ITerminalBackend | undefined> { throw new Error('Method not implemented.'); }
+	didRegisterBackend(_backend: ITerminalBackend): void { throw new Error('Method not implemented.'); }
 	getRegisteredBackends(): IterableIterator<ITerminalBackend> { throw new Error('Method not implemented.'); }
 }
 
@@ -2010,17 +2010,17 @@ export class TestTerminalEditorService implements ITerminalEditorService {
 	onDidChangeInstanceCapability = Event.None;
 	onDidChangeActiveInstance = Event.None;
 	onDidChangeInstances = Event.None;
-	openEditor(instance: ITerminalInstance, editorOptions?: TerminalEditorLocation): Promise<void> { throw new Error('Method not implemented.'); }
-	detachInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
-	splitInstance(instanceToSplit: ITerminalInstance, shellLaunchConfig?: IShellLaunchConfig): ITerminalInstance { throw new Error('Method not implemented.'); }
-	revealActiveEditor(preserveFocus?: boolean): Promise<void> { throw new Error('Method not implemented.'); }
-	resolveResource(instance: ITerminalInstance): URI { throw new Error('Method not implemented.'); }
-	reviveInput(deserializedInput: IDeserializedTerminalEditorInput): TerminalEditorInput { throw new Error('Method not implemented.'); }
-	getInputFromResource(resource: URI): TerminalEditorInput { throw new Error('Method not implemented.'); }
-	setActiveInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	openEditor(_instance: ITerminalInstance, _editorOptions?: TerminalEditorLocation): Promise<void> { throw new Error('Method not implemented.'); }
+	detachInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	splitInstance(_instanceToSplit: ITerminalInstance, _shellLaunchConfig?: IShellLaunchConfig): ITerminalInstance { throw new Error('Method not implemented.'); }
+	revealActiveEditor(_preserveFocus?: boolean): Promise<void> { throw new Error('Method not implemented.'); }
+	resolveResource(_instance: ITerminalInstance): URI { throw new Error('Method not implemented.'); }
+	reviveInput(_deserializedInput: IDeserializedTerminalEditorInput): TerminalEditorInput { throw new Error('Method not implemented.'); }
+	getInputFromResource(_resource: URI): TerminalEditorInput { throw new Error('Method not implemented.'); }
+	setActiveInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
 	focusActiveInstance(): Promise<void> { throw new Error('Method not implemented.'); }
-	focusInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
-	getInstanceFromResource(resource: URI | undefined): ITerminalInstance | undefined { throw new Error('Method not implemented.'); }
+	focusInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	getInstanceFromResource(_resource: URI | undefined): ITerminalInstance | undefined { throw new Error('Method not implemented.'); }
 	focusFindWidget(): void { throw new Error('Method not implemented.'); }
 	hideFindWidget(): void { throw new Error('Method not implemented.'); }
 	findNext(): void { throw new Error('Method not implemented.'); }
@@ -2045,28 +2045,28 @@ export class TestTerminalGroupService implements ITerminalGroupService {
 	onDidChangeInstanceCapability = Event.None;
 	onDidChangeActiveInstance = Event.None;
 	onDidChangeInstances = Event.None;
-	createGroup(instance?: any): ITerminalGroup { throw new Error('Method not implemented.'); }
-	getGroupForInstance(instance: ITerminalInstance): ITerminalGroup | undefined { throw new Error('Method not implemented.'); }
-	moveGroup(source: ITerminalInstance | ITerminalInstance[], target: ITerminalInstance): void { throw new Error('Method not implemented.'); }
-	moveGroupToEnd(source: ITerminalInstance | ITerminalInstance[]): void { throw new Error('Method not implemented.'); }
-	moveInstance(source: ITerminalInstance, target: ITerminalInstance, side: 'before' | 'after'): void { throw new Error('Method not implemented.'); }
-	unsplitInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
-	joinInstances(instances: ITerminalInstance[]): void { throw new Error('Method not implemented.'); }
-	instanceIsSplit(instance: ITerminalInstance): boolean { throw new Error('Method not implemented.'); }
+	createGroup(_instance?: any): ITerminalGroup { throw new Error('Method not implemented.'); }
+	getGroupForInstance(_instance: ITerminalInstance): ITerminalGroup | undefined { throw new Error('Method not implemented.'); }
+	moveGroup(_source: ITerminalInstance | ITerminalInstance[], _target: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	moveGroupToEnd(_source: ITerminalInstance | ITerminalInstance[]): void { throw new Error('Method not implemented.'); }
+	moveInstance(_source: ITerminalInstance, _target: ITerminalInstance, _side: 'before' | 'after'): void { throw new Error('Method not implemented.'); }
+	unsplitInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	joinInstances(_instances: ITerminalInstance[]): void { throw new Error('Method not implemented.'); }
+	instanceIsSplit(_instance: ITerminalInstance): boolean { throw new Error('Method not implemented.'); }
 	getGroupLabels(): string[] { throw new Error('Method not implemented.'); }
-	setActiveGroupByIndex(index: number): void { throw new Error('Method not implemented.'); }
+	setActiveGroupByIndex(_index: number): void { throw new Error('Method not implemented.'); }
 	setActiveGroupToNext(): void { throw new Error('Method not implemented.'); }
 	setActiveGroupToPrevious(): void { throw new Error('Method not implemented.'); }
-	setActiveInstanceByIndex(terminalIndex: number): void { throw new Error('Method not implemented.'); }
-	setContainer(container: HTMLElement): void { throw new Error('Method not implemented.'); }
-	showPanel(focus?: boolean): Promise<void> { throw new Error('Method not implemented.'); }
+	setActiveInstanceByIndex(_terminalIndex: number): void { throw new Error('Method not implemented.'); }
+	setContainer(_container: HTMLElement): void { throw new Error('Method not implemented.'); }
+	showPanel(_focus?: boolean): Promise<void> { throw new Error('Method not implemented.'); }
 	hidePanel(): void { throw new Error('Method not implemented.'); }
 	focusTabs(): void { throw new Error('Method not implemented.'); }
 	focusHover(): void { throw new Error('Method not implemented.'); }
-	setActiveInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	setActiveInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
 	focusActiveInstance(): Promise<void> { throw new Error('Method not implemented.'); }
-	focusInstance(instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
-	getInstanceFromResource(resource: URI | undefined): ITerminalInstance | undefined { throw new Error('Method not implemented.'); }
+	focusInstance(_instance: ITerminalInstance): void { throw new Error('Method not implemented.'); }
+	getInstanceFromResource(_resource: URI | undefined): ITerminalInstance | undefined { throw new Error('Method not implemented.'); }
 	focusFindWidget(): void { throw new Error('Method not implemented.'); }
 	hideFindWidget(): void { throw new Error('Method not implemented.'); }
 	findNext(): void { throw new Error('Method not implemented.'); }
@@ -2084,25 +2084,25 @@ export class TestTerminalProfileService implements ITerminalProfileService {
 	refreshAvailableProfiles(): void { throw new Error('Method not implemented.'); }
 	getDefaultProfileName(): string | undefined { throw new Error('Method not implemented.'); }
 	getDefaultProfile(): ITerminalProfile | undefined { throw new Error('Method not implemented.'); }
-	getContributedDefaultProfile(shellLaunchConfig: IShellLaunchConfig): Promise<IExtensionTerminalProfile | undefined> { throw new Error('Method not implemented.'); }
-	registerContributedProfile(args: IRegisterContributedProfileArgs): Promise<void> { throw new Error('Method not implemented.'); }
-	getContributedProfileProvider(extensionIdentifier: string, id: string): ITerminalProfileProvider | undefined { throw new Error('Method not implemented.'); }
-	registerTerminalProfileProvider(extensionIdentifier: string, id: string, profileProvider: ITerminalProfileProvider): IDisposable { throw new Error('Method not implemented.'); }
+	getContributedDefaultProfile(_shellLaunchConfig: IShellLaunchConfig): Promise<IExtensionTerminalProfile | undefined> { throw new Error('Method not implemented.'); }
+	registerContributedProfile(_args: IRegisterContributedProfileArgs): Promise<void> { throw new Error('Method not implemented.'); }
+	getContributedProfileProvider(_extensionIdentifier: string, _id: string): ITerminalProfileProvider | undefined { throw new Error('Method not implemented.'); }
+	registerTerminalProfileProvider(_extensionIdentifier: string, _id: string, _profileProvider: ITerminalProfileProvider): IDisposable { throw new Error('Method not implemented.'); }
 }
 
 export class TestTerminalProfileResolverService implements ITerminalProfileResolverService {
 	_serviceBrand: undefined;
 	defaultProfileName = '';
-	resolveIcon(shellLaunchConfig: IShellLaunchConfig): void { }
-	async resolveShellLaunchConfig(shellLaunchConfig: IShellLaunchConfig, options: IShellLaunchConfigResolveOptions): Promise<void> { }
-	async getDefaultProfile(options: IShellLaunchConfigResolveOptions): Promise<ITerminalProfile> { return { path: '/default', profileName: 'Default', isDefault: true }; }
-	async getDefaultShell(options: IShellLaunchConfigResolveOptions): Promise<string> { return '/default'; }
-	async getDefaultShellArgs(options: IShellLaunchConfigResolveOptions): Promise<string | string[]> { return []; }
+	resolveIcon(_shellLaunchConfig: IShellLaunchConfig): void { }
+	async resolveShellLaunchConfig(_shellLaunchConfig: IShellLaunchConfig, _options: IShellLaunchConfigResolveOptions): Promise<void> { }
+	async getDefaultProfile(_options: IShellLaunchConfigResolveOptions): Promise<ITerminalProfile> { return { path: '/default', profileName: 'Default', isDefault: true }; }
+	async getDefaultShell(_options: IShellLaunchConfigResolveOptions): Promise<string> { return '/default'; }
+	async getDefaultShellArgs(_options: IShellLaunchConfigResolveOptions): Promise<string | string[]> { return []; }
 	getDefaultIcon(): TerminalIcon & ThemeIcon { return Codicon.terminal; }
 	async getEnvironment(): Promise<IProcessEnvironment> { return env; }
-	getSafeConfigValue(key: string, os: OperatingSystem): unknown | undefined { return undefined; }
-	getSafeConfigValueFullKey(key: string): unknown | undefined { return undefined; }
-	createProfileFromShellAndShellArgs(shell?: unknown, shellArgs?: unknown): Promise<string | ITerminalProfile> { throw new Error('Method not implemented.'); }
+	getSafeConfigValue(_key: string, _os: OperatingSystem): unknown | undefined { return undefined; }
+	getSafeConfigValueFullKey(_key: string): unknown | undefined { return undefined; }
+	createProfileFromShellAndShellArgs(_shell?: unknown, _shellArgs?: unknown): Promise<string | ITerminalProfile> { throw new Error('Method not implemented.'); }
 }
 
 export class TestTerminalConfigurationService extends TerminalConfigurationService {
@@ -2122,7 +2122,7 @@ export class TestQuickInputService implements IQuickInputService {
 
 	pick<T extends IQuickPickItem>(picks: Promise<QuickPickInput<T>[]> | QuickPickInput<T>[], options?: IPickOptions<T> & { canPickMany: true }, token?: CancellationToken): Promise<T[]>;
 	pick<T extends IQuickPickItem>(picks: Promise<QuickPickInput<T>[]> | QuickPickInput<T>[], options?: IPickOptions<T> & { canPickMany: false }, token?: CancellationToken): Promise<T>;
-	async pick<T extends IQuickPickItem>(picks: Promise<QuickPickInput<T>[]> | QuickPickInput<T>[], options?: Omit<IPickOptions<T>, 'canPickMany'>, token?: CancellationToken): Promise<T | undefined> {
+	async pick<T extends IQuickPickItem>(picks: Promise<QuickPickInput<T>[]> | QuickPickInput<T>[], _options?: Omit<IPickOptions<T>, 'canPickMany'>, _token?: CancellationToken): Promise<T | undefined> {
 		if (Array.isArray(picks)) {
 			return <any>{ label: 'selectedPick', description: 'pick description', value: 'selectedPick' };
 		} else {
@@ -2130,18 +2130,18 @@ export class TestQuickInputService implements IQuickInputService {
 		}
 	}
 
-	async input(options?: IInputOptions, token?: CancellationToken): Promise<string> { return options ? 'resolved' + options.prompt : 'resolved'; }
+	async input(options?: IInputOptions, _token?: CancellationToken): Promise<string> { return options ? 'resolved' + options.prompt : 'resolved'; }
 
 	createQuickPick<T extends IQuickPickItem>(): IQuickPick<T, { useSeparators: boolean }> { throw new Error('not implemented.'); }
 	createInputBox(): IInputBox { throw new Error('not implemented.'); }
 	createQuickWidget(): IQuickWidget { throw new Error('Method not implemented.'); }
 	focus(): void { throw new Error('not implemented.'); }
 	toggle(): void { throw new Error('not implemented.'); }
-	navigate(next: boolean, quickNavigate?: IQuickNavigateConfiguration): void { throw new Error('not implemented.'); }
+	navigate(_next: boolean, _quickNavigate?: IQuickNavigateConfiguration): void { throw new Error('not implemented.'); }
 	accept(): Promise<void> { throw new Error('not implemented.'); }
 	back(): Promise<void> { throw new Error('not implemented.'); }
 	cancel(): Promise<void> { throw new Error('not implemented.'); }
-	setAlignment(alignment: 'top' | 'center' | { top: number; left: number }): void { throw new Error('not implemented.'); }
+	setAlignment(_alignment: 'top' | 'center' | { top: number; left: number }): void { throw new Error('not implemented.'); }
 	toggleHover(): void { throw new Error('not implemented.'); }
 }
 
@@ -2149,8 +2149,8 @@ class TestLanguageDetectionService implements ILanguageDetectionService {
 
 	declare readonly _serviceBrand: undefined;
 
-	isEnabledForLanguage(languageId: string): boolean { return false; }
-	async detectLanguage(resource: URI, supportedLangs?: string[] | undefined): Promise<string | undefined> { return undefined; }
+	isEnabledForLanguage(_languageId: string): boolean { return false; }
+	async detectLanguage(_resource: URI, _supportedLangs?: string[] | undefined): Promise<string | undefined> { return undefined; }
 }
 
 export class TestRemoteAgentService implements IRemoteAgentService {
@@ -2160,10 +2160,10 @@ export class TestRemoteAgentService implements IRemoteAgentService {
 	getConnection(): IRemoteAgentConnection | null { return null; }
 	async getEnvironment(): Promise<IRemoteAgentEnvironment | null> { return null; }
 	async getRawEnvironment(): Promise<IRemoteAgentEnvironment | null> { return null; }
-	async getExtensionHostExitInfo(reconnectionToken: string): Promise<IExtensionHostExitInfo | null> { return null; }
-	async getDiagnosticInfo(options: IDiagnosticInfoOptions): Promise<IDiagnosticInfo | undefined> { return undefined; }
-	async updateTelemetryLevel(telemetryLevel: TelemetryLevel): Promise<void> { }
-	async logTelemetry(eventName: string, data?: ITelemetryData): Promise<void> { }
+	async getExtensionHostExitInfo(_reconnectionToken: string): Promise<IExtensionHostExitInfo | null> { return null; }
+	async getDiagnosticInfo(_options: IDiagnosticInfoOptions): Promise<IDiagnosticInfo | undefined> { return undefined; }
+	async updateTelemetryLevel(_telemetryLevel: TelemetryLevel): Promise<void> { }
+	async logTelemetry(_eventName: string, _data?: ITelemetryData): Promise<void> { }
 	async flushTelemetry(): Promise<void> { }
 	async getRoundTripTime(): Promise<number | undefined> { return undefined; }
 	async endConnection(): Promise<void> { }
@@ -2178,15 +2178,15 @@ export class TestRemoteExtensionsScannerService implements IRemoteExtensionsScan
 export class TestWorkbenchExtensionEnablementService implements IWorkbenchExtensionEnablementService {
 	_serviceBrand: undefined;
 	onEnablementChanged = Event.None;
-	getEnablementState(extension: IExtension): EnablementState { return EnablementState.EnabledGlobally; }
-	getEnablementStates(extensions: IExtension[], workspaceTypeOverrides?: { trusted?: boolean | undefined } | undefined): EnablementState[] { return []; }
-	getDependenciesEnablementStates(extension: IExtension): [IExtension, EnablementState][] { return []; }
-	canChangeEnablement(extension: IExtension): boolean { return true; }
-	canChangeWorkspaceEnablement(extension: IExtension): boolean { return true; }
-	isEnabled(extension: IExtension): boolean { return true; }
-	isEnabledEnablementState(enablementState: EnablementState): boolean { return true; }
-	isDisabledGlobally(extension: IExtension): boolean { return false; }
-	async setEnablement(extensions: IExtension[], state: EnablementState): Promise<boolean[]> { return []; }
+	getEnablementState(_extension: IExtension): EnablementState { return EnablementState.EnabledGlobally; }
+	getEnablementStates(_extensions: IExtension[], _workspaceTypeOverrides?: { trusted?: boolean | undefined } | undefined): EnablementState[] { return []; }
+	getDependenciesEnablementStates(_extension: IExtension): [IExtension, EnablementState][] { return []; }
+	canChangeEnablement(_extension: IExtension): boolean { return true; }
+	canChangeWorkspaceEnablement(_extension: IExtension): boolean { return true; }
+	isEnabled(_extension: IExtension): boolean { return true; }
+	isEnabledEnablementState(_enablementState: EnablementState): boolean { return true; }
+	isDisabledGlobally(_extension: IExtension): boolean { return false; }
+	async setEnablement(_extensions: IExtension[], _state: EnablementState): Promise<boolean[]> { return []; }
 	async updateExtensionsEnablementsWhenWorkspaceTrustChanges(): Promise<void> { }
 }
 
@@ -2205,42 +2205,42 @@ export class TestWorkbenchExtensionManagementService implements IWorkbenchExtens
 	onProfileAwareDidUpdateExtensionMetadata = Event.None;
 	onDidChangeProfile = Event.None;
 	onDidEnableExtensions = Event.None;
-	installVSIX(location: URI, manifest: Readonly<IRelaxedExtensionManifest>, installOptions?: InstallOptions | undefined): Promise<ILocalExtension> {
+	installVSIX(_location: URI, _manifest: Readonly<IRelaxedExtensionManifest>, _installOptions?: InstallOptions | undefined): Promise<ILocalExtension> {
 		throw new Error('Method not implemented.');
 	}
-	installFromLocation(location: URI): Promise<ILocalExtension> {
+	installFromLocation(_location: URI): Promise<ILocalExtension> {
 		throw new Error('Method not implemented.');
 	}
-	installGalleryExtensions(extensions: InstallExtensionInfo[]): Promise<InstallExtensionResult[]> {
+	installGalleryExtensions(_extensions: InstallExtensionInfo[]): Promise<InstallExtensionResult[]> {
 		throw new Error('Method not implemented.');
 	}
-	async updateFromGallery(gallery: IGalleryExtension, extension: ILocalExtension, installOptions?: InstallOptions | undefined): Promise<ILocalExtension> { return extension; }
-	zip(extension: ILocalExtension): Promise<URI> {
+	async updateFromGallery(_gallery: IGalleryExtension, extension: ILocalExtension, _installOptions?: InstallOptions | undefined): Promise<ILocalExtension> { return extension; }
+	zip(_extension: ILocalExtension): Promise<URI> {
 		throw new Error('Method not implemented.');
 	}
-	getManifest(vsix: URI): Promise<Readonly<IRelaxedExtensionManifest>> {
+	getManifest(_vsix: URI): Promise<Readonly<IRelaxedExtensionManifest>> {
 		throw new Error('Method not implemented.');
 	}
-	install(vsix: URI, options?: InstallOptions | undefined): Promise<ILocalExtension> {
+	install(_vsix: URI, _options?: InstallOptions | undefined): Promise<ILocalExtension> {
 		throw new Error('Method not implemented.');
 	}
 	isAllowed(): true | IMarkdownString { return true; }
-	async canInstall(extension: IGalleryExtension): Promise<true> { return true; }
-	installFromGallery(extension: IGalleryExtension, options?: InstallOptions | undefined): Promise<ILocalExtension> {
+	async canInstall(_extension: IGalleryExtension): Promise<true> { return true; }
+	installFromGallery(_extension: IGalleryExtension, _options?: InstallOptions | undefined): Promise<ILocalExtension> {
 		throw new Error('Method not implemented.');
 	}
-	uninstall(extension: ILocalExtension, options?: UninstallOptions | undefined): Promise<void> {
+	uninstall(_extension: ILocalExtension, _options?: UninstallOptions | undefined): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
-	uninstallExtensions(extensions: UninstallExtensionInfo[]): Promise<void> {
+	uninstallExtensions(_extensions: UninstallExtensionInfo[]): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
-	async getInstalled(type?: ExtensionType | undefined): Promise<ILocalExtension[]> { return []; }
+	async getInstalled(_type?: ExtensionType | undefined): Promise<ILocalExtension[]> { return []; }
 	getExtensionsControlManifest(): Promise<IExtensionsControlManifest> {
 		throw new Error('Method not implemented.');
 	}
-	async updateMetadata(local: ILocalExtension, metadata: Partial<Metadata>): Promise<ILocalExtension> { return local; }
-	registerParticipant(pariticipant: IExtensionManagementParticipant): void { }
+	async updateMetadata(local: ILocalExtension, _metadata: Partial<Metadata>): Promise<ILocalExtension> { return local; }
+	registerParticipant(_pariticipant: IExtensionManagementParticipant): void { }
 	async getTargetPlatform(): Promise<TargetPlatform> { return TargetPlatform.UNDEFINED; }
 	async cleanUp(): Promise<void> { }
 	download(): Promise<URI> {
@@ -2249,18 +2249,18 @@ export class TestWorkbenchExtensionManagementService implements IWorkbenchExtens
 	copyExtensions(): Promise<void> { throw new Error('Not Supported'); }
 	toggleAppliationScope(): Promise<ILocalExtension> { throw new Error('Not Supported'); }
 	installExtensionsFromProfile(): Promise<ILocalExtension[]> { throw new Error('Not Supported'); }
-	whenProfileChanged(from: IUserDataProfile, to: IUserDataProfile): Promise<void> { throw new Error('Not Supported'); }
+	whenProfileChanged(_from: IUserDataProfile, _to: IUserDataProfile): Promise<void> { throw new Error('Not Supported'); }
 	getInstalledWorkspaceExtensionLocations(): URI[] { throw new Error('Method not implemented.'); }
 	getInstalledWorkspaceExtensions(): Promise<ILocalExtension[]> { throw new Error('Method not implemented.'); }
 	installResourceExtension(): Promise<ILocalExtension> { throw new Error('Method not implemented.'); }
 	getExtensions(): Promise<IResourceExtension[]> { throw new Error('Method not implemented.'); }
-	resetPinnedStateForAllUserExtensions(pinned: boolean): Promise<void> { throw new Error('Method not implemented.'); }
-	getInstallableServers(extension: IGalleryExtension): Promise<IExtensionManagementServer[]> { throw new Error('Method not implemented.'); }
-	isPublisherTrusted(extension: IGalleryExtension): boolean { return false; }
+	resetPinnedStateForAllUserExtensions(_pinned: boolean): Promise<void> { throw new Error('Method not implemented.'); }
+	getInstallableServers(_extension: IGalleryExtension): Promise<IExtensionManagementServer[]> { throw new Error('Method not implemented.'); }
+	isPublisherTrusted(_extension: IGalleryExtension): boolean { return false; }
 	getTrustedPublishers() { return []; }
 	trustPublishers(): void { }
 	untrustPublishers(): void { }
-	async requestPublisherTrust(extensions: InstallExtensionInfo[]): Promise<void> { }
+	async requestPublisherTrust(_extensions: InstallExtensionInfo[]): Promise<void> { }
 }
 
 export class TestUserDataProfileService implements IUserDataProfileService {
@@ -2280,22 +2280,22 @@ export class TestWebExtensionsScannerService implements IWebExtensionsScannerSer
 	async copyExtensions(): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
-	scanExistingExtension(extensionLocation: URI, extensionType: ExtensionType): Promise<IScannedExtension | null> {
+	scanExistingExtension(_extensionLocation: URI, _extensionType: ExtensionType): Promise<IScannedExtension | null> {
 		throw new Error('Method not implemented.');
 	}
-	addExtension(location: URI, metadata?: Partial<IGalleryMetadata & { isApplicationScoped: boolean; isMachineScoped: boolean; isBuiltin: boolean; isSystem: boolean; updated: boolean; preRelease: boolean; installedTimestamp: number }> | undefined): Promise<IExtension> {
+	addExtension(_location: URI, _metadata?: Partial<IGalleryMetadata & { isApplicationScoped: boolean; isMachineScoped: boolean; isBuiltin: boolean; isSystem: boolean; updated: boolean; preRelease: boolean; installedTimestamp: number }> | undefined): Promise<IExtension> {
 		throw new Error('Method not implemented.');
 	}
-	addExtensionFromGallery(galleryExtension: IGalleryExtension, metadata?: Partial<IGalleryMetadata & { isApplicationScoped: boolean; isMachineScoped: boolean; isBuiltin: boolean; isSystem: boolean; updated: boolean; preRelease: boolean; installedTimestamp: number }> | undefined): Promise<IExtension> {
+	addExtensionFromGallery(_galleryExtension: IGalleryExtension, _metadata?: Partial<IGalleryMetadata & { isApplicationScoped: boolean; isMachineScoped: boolean; isBuiltin: boolean; isSystem: boolean; updated: boolean; preRelease: boolean; installedTimestamp: number }> | undefined): Promise<IExtension> {
 		throw new Error('Method not implemented.');
 	}
 	removeExtension(): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
-	updateMetadata(extension: IScannedExtension, metaData: Partial<Metadata>, profileLocation: URI): Promise<IScannedExtension> {
+	updateMetadata(_extension: IScannedExtension, _metaData: Partial<Metadata>, _profileLocation: URI): Promise<IScannedExtension> {
 		throw new Error('Method not implemented.');
 	}
-	scanExtensionManifest(extensionLocation: URI): Promise<Readonly<IRelaxedExtensionManifest> | null> {
+	scanExtensionManifest(_extensionLocation: URI): Promise<Readonly<IRelaxedExtensionManifest> | null> {
 		throw new Error('Method not implemented.');
 	}
 }

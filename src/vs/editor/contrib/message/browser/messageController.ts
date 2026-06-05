@@ -12,10 +12,10 @@ import { DisposableStore, IDisposable, MutableDisposable } from '../../../../bas
 import './messageController.css';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition } from '../../../browser/editorBrowser.js';
 import { EditorCommand, EditorContributionInstantiation, registerEditorCommand, registerEditorContribution } from '../../../browser/editorExtensions.js';
-import { IPosition } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { IPosition } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution, ScrollType } from '../../../common/editorCommon.js';
-import { PositionAffinity } from '../../../common/model.js';
+import { PositionAffinity } from '../../../../editor/common/language/model.js';
 import { openLinkFromMarkdown } from '../../../browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import * as nls from '../../../../nls.js';
 import { IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';

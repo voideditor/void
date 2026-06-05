@@ -13,11 +13,19 @@ const pall = require('p-all');
 
 const { all, copyrightFilter, unicodeFilter, indentationFilter, tsFormattingFilter, eslintFilter, stylelintFilter } = require('./filters');
 
-const copyrightHeaderLines = [
-	'/*---------------------------------------------------------------------------------------------',
-	' *  Copyright (c) Microsoft Corporation. All rights reserved.',
-	' *  Licensed under the MIT License. See License.txt in the project root for license information.',
-	' *--------------------------------------------------------------------------------------------*/',
+const copyrightHeaderVariants = [
+	[
+		'/*---------------------------------------------------------------------------------------------',
+		' *  Copyright (c) Microsoft Corporation. All rights reserved.',
+		' *  Licensed under the MIT License. See License.txt in the project root for license information.',
+		' *--------------------------------------------------------------------------------------------*/',
+	],
+	[
+		'/*--------------------------------------------------------------------------------------',
+		' *  Copyright 2025 Glass Devtools, Inc. All rights reserved.',
+		' *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.',
+		' *--------------------------------------------------------------------------------------*/',
+	],
 ];
 
 function hygiene(some, linting = true) {
@@ -100,12 +108,13 @@ function hygiene(some, linting = true) {
 	const copyrights = es.through(function (file) {
 		const lines = file.__lines;
 
-		for (let i = 0; i < copyrightHeaderLines.length; i++) {
-			if (lines[i] !== copyrightHeaderLines[i]) {
-				console.error(file.relative + ': Missing or bad copyright statement');
-				errorCount++;
-				break;
-			}
+		const hasValidHeader = copyrightHeaderVariants.some(header =>
+			header.every((expectedLine, i) => lines[i] === expectedLine)
+		);
+
+		if (!hasValidHeader) {
+			console.error(file.relative + ': Missing or bad copyright statement');
+			errorCount++;
 		}
 
 		this.emit('data', file);
@@ -261,54 +270,55 @@ function createGitIndexVinyls(paths) {
 	return pall(fns, { concurrency: 4 }).then((r) => r.filter((p) => !!p));
 }
 
-// Void - NO PRE COMMIT HOOKS!!!! for now... - Void team
-// // this allows us to run hygiene as a git pre-commit hook
-// if (require.main === module) {
-// 	const cp = require('child_process');
+// this allows us to run hygiene as a git pre-commit hook
+if (require.main === module) {
+	const cp = require('child_process');
 
-// 	process.on('unhandledRejection', (reason, p) => {
-// 		console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
-// 		process.exit(1);
-// 	});
+	process.on('unhandledRejection', (reason, p) => {
+		console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
+		process.exit(1);
+	});
 
-// 	if (process.argv.length > 2) {
-// 		hygiene(process.argv.slice(2)).on('error', (err) => {
-// 			console.error();
-// 			console.error(err);
-// 			process.exit(1);
-// 		});
-// 	} else {
-// 		cp.exec(
-// 			'git diff --cached --name-only',
-// 			{ maxBuffer: 2000 * 1024 },
-// 			(err, out) => {
-// 				if (err) {
-// 					console.error();
-// 					console.error(err);
-// 					process.exit(1);
-// 				}
+	if (process.argv.length > 2) {
+		hygiene(process.argv.slice(2)).on('error', (err) => {
+			console.error();
+			console.error(err);
+			process.exit(1);
+		});
+	} else {
+		cp.exec(
+			'git diff --cached --name-only',
+			{ maxBuffer: 2000 * 1024 },
+			(err, out) => {
+				if (err) {
+					console.error();
+					console.error(err);
+					process.exit(1);
+				}
 
-// 				const some = out.split(/\r?\n/).filter((l) => !!l);
+				const some = out.split(/\r?\n/).filter((l) => !!l);
 
-// 				if (some.length > 0) {
-// 					console.log('Reading git index versions...');
+				if (some.length > 0) {
+					console.log('Reading git index versions...');
 
-// 					createGitIndexVinyls(some)
-// 						.then(
-// 							(vinyls) =>
-// 								new Promise((c, e) =>
-// 									hygiene(es.readArray(vinyls).pipe(filter(all)))
-// 										.on('end', () => c())
-// 										.on('error', e)
-// 								)
-// 						)
-// 						.catch((err) => {
-// 							console.error();
-// 							console.error(err);
-// 							process.exit(1);
-// 						});
-// 				}
-// 			}
-// 		);
-// 	}
-// }
+					createGitIndexVinyls(some)
+						.then(
+							(vinyls) =>
+								new Promise((c, e) =>
+									hygiene(es.readArray(vinyls).pipe(filter(all)))
+										.on('end', () => c())
+										.on('error', e)
+								)
+						)
+						.catch((err) => {
+							console.error();
+							console.error(err);
+							process.exit(1);
+						});
+				} else {
+					console.log('No staged files, skipping hygiene.');
+				}
+			}
+		);
+	}
+}

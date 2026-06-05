@@ -8,7 +8,7 @@ import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { Mimes } from '../../../../../base/common/mime.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { CellKind, CellUri, diff, MimeTypeDisplayOrder, NotebookWorkingCopyTypeIdentifier } from '../../common/notebookCommon.js';
 import { cellIndexesToRanges, cellRangesToIndexes, reduceCellRanges } from '../../common/notebookRange.js';

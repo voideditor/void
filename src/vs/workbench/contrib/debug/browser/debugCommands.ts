@@ -22,7 +22,7 @@ import { InputFocusedContext } from '../../../../platform/contextkey/common/cont
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { ActiveEditorContext, PanelFocusContext, ResourceContextKey } from '../../../common/contextkeys.js';
 import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
-import { ITextResourcePropertiesService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IQuickInputService, IQuickPickItem } from '../../../../platform/quickinput/common/quickInput.js';

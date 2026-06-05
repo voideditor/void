@@ -91,6 +91,13 @@ export const mcpStdioServerSchema: IJSONSchema = {
 				]
 			}
 		},
+		excludeTools: {
+			type: 'array',
+			description: localize('app.mcp.excludeTools.command', "Tool names to exclude for this server."),
+			items: {
+				type: 'string'
+			}
+		},
 	}
 };
 
@@ -128,6 +135,11 @@ export const mcpServerSchema: IJSONSchema = {
 						env: {
 							description: localize('app.mcp.json.headers', "Additional headers sent to the server."),
 							additionalProperties: { type: 'string' },
+						},
+						excludeTools: {
+							type: 'array',
+							description: localize('app.mcp.excludeTools.command', "Tool names to exclude for this server."),
+							items: { type: 'string' },
 						},
 					}
 				}]

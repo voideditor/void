@@ -26,7 +26,7 @@ import { ThemeIcon } from '../../../../base/common/themables.js';
 import { Constants } from '../../../../base/common/uint.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { getActionBarActions, getContextMenuActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { Action2, IMenu, IMenuService, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';

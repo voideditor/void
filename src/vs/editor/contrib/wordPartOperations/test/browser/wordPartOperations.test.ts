@@ -7,7 +7,7 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { EditorCommand } from '../../../../browser/editorExtensions.js';
-import { Position } from '../../../../common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { deserializePipePositions, serializePipePositions, testRepeatedActionAndExtractPositions } from '../../../wordOperations/test/browser/wordTestUtils.js';
 import { CursorWordPartLeft, CursorWordPartLeftSelect, CursorWordPartRight, CursorWordPartRightSelect, DeleteWordPartLeft, DeleteWordPartRight } from '../../browser/wordPartOperations.js';

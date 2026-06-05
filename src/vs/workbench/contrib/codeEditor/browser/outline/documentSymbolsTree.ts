@@ -15,9 +15,9 @@ import { mainWindow } from '../../../../../base/browser/window.js';
 import { createMatches, FuzzyScore } from '../../../../../base/common/filters.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { DocumentSymbol, getAriaLabelForSymbol, SymbolKind, symbolKindNames, SymbolKinds, SymbolTag } from '../../../../../editor/common/languages.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { DocumentSymbol, getAriaLabelForSymbol, SymbolKind, symbolKindNames, SymbolKinds, SymbolTag } from '../../../../../editor/common/language/languages.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { OutlineElement, OutlineGroup, OutlineModel } from '../../../../../editor/contrib/documentSymbols/browser/outlineModel.js';
 import '../../../../../editor/contrib/symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
 import { localize } from '../../../../../nls.js';

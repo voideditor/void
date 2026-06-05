@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ICodeEditor } from './editorBrowser.js';
-import { Position } from '../common/core/position.js';
+import { Position } from '../../editor/common/language/core/position.js';
 import { ScrollType } from '../common/editorCommon.js';
 
 export class StableEditorScrollState {

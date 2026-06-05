@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { JSONScanner, createScanner as createJSONScanner, SyntaxKind as JSONSyntaxKind } from '../../../../base/common/json.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 
 export interface InsertSnippetResult {
 	position: Position;

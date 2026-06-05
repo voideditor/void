@@ -5,7 +5,7 @@
 
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { MATCHES_LIMIT } from './findModel.js';
 
 export interface FindReplaceStateChangedEvent {

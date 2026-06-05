@@ -21,14 +21,14 @@ import { ICodeEditor, isCodeEditor } from '../../../../editor/browser/editorBrow
 import { observableCodeEditor } from '../../../../editor/browser/observableCodeEditor.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { IPosition, Position } from '../../../../editor/common/core/position.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
-import { ISelection, Selection, SelectionDirection } from '../../../../editor/common/core/selection.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { ISelection, Selection, SelectionDirection } from '../../../../editor/common/language/core/selection.js';
 import { IEditorContribution } from '../../../../editor/common/editorCommon.js';
-import { TextEdit } from '../../../../editor/common/languages.js';
-import { IValidEditOperation } from '../../../../editor/common/model.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
-import { DefaultModelSHA1Computer } from '../../../../editor/common/services/modelService.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
+import { IValidEditOperation } from '../../../../editor/common/language/model.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
+import { DefaultModelSHA1Computer } from '../../../../editor/common/language/services/modelService.js';
 import { InlineCompletionsController } from '../../../../editor/contrib/inlineCompletions/browser/controller/inlineCompletionsController.js';
 import { MessageController } from '../../../../editor/contrib/message/browser/messageController.js';
 import { localize } from '../../../../nls.js';
@@ -744,7 +744,6 @@ export class InlineChatController1 implements IEditorContribution {
 
 					this._log(`${this._session?.textModelN.uri.toString()} received ${newEdits.length} edits`);
 
-					// NEW changes
 					lastLength = edits.length;
 					progressiveEditsAvgDuration.update(progressiveEditsClock.elapsed());
 					progressiveEditsClock.reset();

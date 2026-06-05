@@ -11,7 +11,7 @@ import { IConfig, IDebuggerContribution, IDebugAdapter, IDebugger, IDebugSession
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IConfigurationResolverService } from '../../../services/configurationResolver/common/configurationResolver.js';
 import * as ConfigurationResolverUtils from '../../../services/configurationResolver/common/configurationResolverUtils.js';
-import { ITextResourcePropertiesService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { URI } from '../../../../base/common/uri.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { isDebuggerMainContribution } from './debugUtils.js';

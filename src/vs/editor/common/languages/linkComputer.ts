@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../../../base/common/charCode.js';
-import { CharacterClassifier } from '../core/characterClassifier.js';
-import { ILink } from '../languages.js';
+import { CharacterClassifier } from '../language/core/characterClassifier.js';
+import { ILink } from '../language/languages.js';
 
 export interface ILinkComputerTarget {
 	getLineCount(): number;

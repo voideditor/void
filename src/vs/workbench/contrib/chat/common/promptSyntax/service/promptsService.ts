@@ -7,7 +7,7 @@ import { IPromptPath, IPromptsService } from './types.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { assert } from '../../../../../../base/common/assert.js';
 import { PromptFilesLocator } from '../utils/promptFilesLocator.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { ObjectCache } from '../../../../../../base/common/objectCache.js';
 import { TextModelPromptParser } from '../parsers/textModelPromptParser.js';

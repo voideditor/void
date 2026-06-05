@@ -8,12 +8,12 @@ import { illegalArgument, onUnexpectedExternalError } from '../../../../base/com
 import { DisposableStore, isDisposable } from '../../../../base/common/lifecycle.js';
 import { assertType } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextModel } from '../../../common/model.js';
-import { CodeLens, CodeLensList, CodeLensProvider } from '../../../common/languages.js';
-import { IModelService } from '../../../common/services/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { CodeLens, CodeLensList, CodeLensProvider } from '../../../../editor/common/language/languages.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 export interface CodeLensItem {
 	symbol: CodeLens;

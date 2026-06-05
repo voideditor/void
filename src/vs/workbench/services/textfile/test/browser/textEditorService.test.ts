@@ -21,7 +21,7 @@ import { isLinux } from '../../../../../base/common/platform.js';
 import { SideBySideEditorInput } from '../../../../common/editor/sideBySideEditorInput.js';
 import { ITextFileEditorModel } from '../../common/textfiles.js';
 import { TextEditorService } from '../../common/textEditorService.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { EditorInput } from '../../../../common/editor/editorInput.js';
 
 suite('TextEditorService', () => {

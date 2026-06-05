@@ -7,7 +7,7 @@ import { MainThreadStatusBarShape, MainContext, ExtHostContext, StatusBarItemDto
 import { ThemeColor } from '../../../base/common/themables.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
 import { DisposableStore, toDisposable } from '../../../base/common/lifecycle.js';
-import { Command } from '../../../editor/common/languages.js';
+import { Command } from '../../../editor/common/language/languages.js';
 import { IAccessibilityInformation } from '../../../platform/accessibility/common/accessibility.js';
 import { IMarkdownString } from '../../../base/common/htmlContent.js';
 import { IExtensionStatusBarItemService, StatusBarUpdateKind } from './statusBarExtensionPoint.js';

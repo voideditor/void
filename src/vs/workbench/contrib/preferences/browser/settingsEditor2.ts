@@ -51,11 +51,11 @@ import { IUserDataSyncWorkbenchService } from '../../../services/userDataSync/co
 import { preferencesClearInputIcon, preferencesFilterIcon } from './preferencesIcons.js';
 import { IWorkspaceTrustManagementService } from '../../../../platform/workspace/common/workspaceTrust.js';
 import { APPLICATION_SCOPES, IWorkbenchConfigurationService } from '../../../services/configuration/common/configuration.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { Orientation, Sizing, SplitView } from '../../../../base/browser/ui/splitview/splitview.js';
 import { Color } from '../../../../base/common/color.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { SettingsSearchFilterDropdownMenuActionViewItem } from './settingsSearchMenu.js';
 import { IExtensionGalleryService, IExtensionManagementService, IGalleryExtension } from '../../../../platform/extensionManagement/common/extensionManagement.js';
 import { ISettingOverrideClickEvent } from './settingsEditorSettingIndicators.js';

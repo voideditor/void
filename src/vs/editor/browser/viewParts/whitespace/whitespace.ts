@@ -5,7 +5,7 @@
 
 import './whitespace.css';
 import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { RenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
@@ -15,8 +15,8 @@ import { IEditorConfiguration } from '../../../common/config/editorConfiguration
 import * as strings from '../../../../base/common/strings.js';
 import { CharCode } from '../../../../base/common/charCode.js';
 import { LineRange } from '../../../common/viewLayout/viewLineRenderer.js';
-import { Position } from '../../../common/core/position.js';
-import { editorWhitespaces } from '../../../common/core/editorColorRegistry.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { editorWhitespaces } from '../../../../editor/common/language/core/editorColorRegistry.js';
 
 /**
  * The whitespace overlay will visual certain whitespace depending on the

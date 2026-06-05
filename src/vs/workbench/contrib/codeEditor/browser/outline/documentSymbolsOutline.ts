@@ -17,22 +17,22 @@ import { CancellationToken, CancellationTokenSource } from '../../../../../base/
 import { raceCancellation, TimeoutTimer, timeout, Barrier } from '../../../../../base/common/async.js';
 import { onUnexpectedError } from '../../../../../base/common/errors.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IPosition } from '../../../../../editor/common/core/position.js';
+import { IPosition } from '../../../../../editor/common/language/core/position.js';
 import { ScrollType } from '../../../../../editor/common/editorCommon.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { IEditorOptions, TextEditorSelectionRevealType } from '../../../../../platform/editor/common/editor.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
-import { IModelContentChangedEvent } from '../../../../../editor/common/textModelEvents.js';
+import { IModelContentChangedEvent } from '../../../../../editor/common/language/textModelEvents.js';
 import { IDataSource } from '../../../../../base/browser/ui/tree/tree.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { localize } from '../../../../../nls.js';
-import { IMarkerDecorationsService } from '../../../../../editor/common/services/markerDecorations.js';
+import { IMarkerDecorationsService } from '../../../../../editor/common/language/services/markerDecorations.js';
 import { MarkerSeverity } from '../../../../../platform/markers/common/markers.js';
 import { isEqual } from '../../../../../base/common/resources.js';
-import { ILanguageFeaturesService } from '../../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeatures.js';
 
 type DocumentSymbolItem = OutlineGroup | OutlineElement;
 

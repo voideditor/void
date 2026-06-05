@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { TrackedRangeStickiness } from '../../../common/model.js';
-import { IntervalNode, IntervalTree, NodeColor, SENTINEL, getNodeColor, intervalCompare, nodeAcceptEdit, setNodeStickiness } from '../../../common/model/intervalTree.js';
+import { TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { IntervalNode, IntervalTree, NodeColor, SENTINEL, getNodeColor, intervalCompare, nodeAcceptEdit, setNodeStickiness } from '../../../../editor/common/language/model/intervalTree.js';
 
 const GENERATE_TESTS = false;
 const TEST_COUNT = GENERATE_TESTS ? 10000 : 0;

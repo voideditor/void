@@ -6,11 +6,11 @@
 import assert from 'assert';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Range } from '../../../common/core/range.js';
-import { EndOfLinePreference, EndOfLineSequence } from '../../../common/model.js';
-import { MirrorTextModel } from '../../../common/model/mirrorTextModel.js';
-import { IModelContentChangedEvent } from '../../../common/textModelEvents.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { EndOfLinePreference, EndOfLineSequence } from '../../../../editor/common/language/model.js';
+import { MirrorTextModel } from '../../../../editor/common/language/model/mirrorTextModel.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
 import { assertSyncedModels, testApplyEditsWithSyncedModels } from './editableTextModelTestUtils.js';
 import { createTextModel } from '../testTextModel.js';
 

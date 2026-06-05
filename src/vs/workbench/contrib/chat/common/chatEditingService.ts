@@ -8,7 +8,7 @@ import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IObservable, IReader, ITransaction } from '../../../../base/common/observable.js';
 import { URI } from '../../../../base/common/uri.js';
-import { TextEdit } from '../../../../editor/common/languages.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';

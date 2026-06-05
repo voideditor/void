@@ -231,7 +231,7 @@ suite('Common Editor Config', () => {
 		assert.deepStrictEqual(actual, {
 			other: 'on',
 			comments: 'off',
-			strings: 'off'
+			strings: 'on'
 		});
 		config.dispose();
 	});

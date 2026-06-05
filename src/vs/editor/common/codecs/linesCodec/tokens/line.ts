@@ -5,7 +5,7 @@
 
 import { BaseToken } from '../../baseToken.js';
 import { assert } from '../../../../../base/common/assert.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 
 /**
  * Token representing a line of text with a `range` which

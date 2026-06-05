@@ -35,7 +35,7 @@ import { escapeRegExpCharacters } from '../../../../base/common/strings.js';
 import { isDefined, isUndefinedOrNull } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { MarkdownRenderer } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { localize } from '../../../../nls.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';

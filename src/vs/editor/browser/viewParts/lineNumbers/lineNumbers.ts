@@ -7,13 +7,13 @@ import './lineNumbers.css';
 import * as platform from '../../../../base/common/platform.js';
 import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
 import { RenderLineNumbersType, EditorOption } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { RenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
-import { editorDimmedLineNumber, editorLineNumbers } from '../../../common/core/editorColorRegistry.js';
+import { editorDimmedLineNumber, editorLineNumbers } from '../../../../editor/common/language/core/editorColorRegistry.js';
 
 /**
  * Renders line numbers to the left of the main view lines content.

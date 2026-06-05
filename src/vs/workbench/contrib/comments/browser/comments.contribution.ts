@@ -15,7 +15,7 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { Extensions, IWorkbenchContribution, IWorkbenchContributionsRegistry } from '../../../common/contributions.js';
 import { IActivityService, NumberBadge } from '../../../services/activity/common/activity.js';
 import { COMMENTS_VIEW_ID } from './commentsTreeViewer.js';
-import { CommentThreadState } from '../../../../editor/common/languages.js';
+import { CommentThreadState } from '../../../../editor/common/language/languages.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { CONTEXT_KEY_HAS_COMMENTS, CONTEXT_KEY_SOME_COMMENTS_EXPANDED, CommentsPanel } from './commentsView.js';

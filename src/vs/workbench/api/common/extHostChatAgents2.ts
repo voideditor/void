@@ -16,7 +16,7 @@ import { StopWatch } from '../../../base/common/stopwatch.js';
 import { assertType } from '../../../base/common/types.js';
 import { URI } from '../../../base/common/uri.js';
 import { generateUuid } from '../../../base/common/uuid.js';
-import { Location } from '../../../editor/common/languages.js';
+import { Location } from '../../../editor/common/language/languages.js';
 import { ExtensionIdentifier, IExtensionDescription, IRelaxedExtensionDescription } from '../../../platform/extensions/common/extensions.js';
 import { ILogService } from '../../../platform/log/common/log.js';
 import { isChatViewTitleActionContext } from '../../contrib/chat/common/chatActions.js';

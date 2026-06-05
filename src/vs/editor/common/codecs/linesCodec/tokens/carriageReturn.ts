@@ -5,8 +5,8 @@
 
 import { Line } from './line.js';
 import { BaseToken } from '../../baseToken.js';
-import { Range } from '../../../core/range.js';
-import { Position } from '../../../core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
 
 /**

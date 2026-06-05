@@ -9,7 +9,7 @@ import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IMarkdownRendererOptions, IMarkdownRenderResult, MarkdownRenderer } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';

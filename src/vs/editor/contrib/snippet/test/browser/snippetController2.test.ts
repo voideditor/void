@@ -6,10 +6,10 @@ import assert from 'assert';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { CoreEditingCommands } from '../../../../browser/coreCommands.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
-import { Selection } from '../../../../common/core/selection.js';
-import { Range } from '../../../../common/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { Handler } from '../../../../common/editorCommon.js';
-import { TextModel } from '../../../../common/model/textModel.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { SnippetController2 } from '../../browser/snippetController2.js';
 import { createTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
@@ -21,7 +21,7 @@ import { MockContextKeyService } from '../../../../../platform/keybinding/test/c
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { ILogService, NullLogService } from '../../../../../platform/log/common/log.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { EndOfLineSequence } from '../../../../common/model.js';
+import { EndOfLineSequence } from '../../../../../editor/common/language/model.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 suite('SnippetController2', function () {

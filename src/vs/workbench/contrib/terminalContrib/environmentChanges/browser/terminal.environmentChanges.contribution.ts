@@ -5,9 +5,9 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { Event } from '../../../../../base/common/event.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { EnvironmentVariableMutatorType, EnvironmentVariableScope, IEnvironmentVariableMutator, IMergedEnvironmentVariableCollection } from '../../../../../platform/terminal/common/environmentVariable.js';

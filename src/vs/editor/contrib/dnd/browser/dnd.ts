@@ -14,11 +14,11 @@ import { EditorContributionInstantiation, registerEditorContribution } from '../
 import { CodeEditorWidget } from '../../../browser/widget/codeEditor/codeEditorWidget.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { CursorChangeReason } from '../../../common/cursorEvents.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { IEditorContribution, IEditorDecorationsCollection, ScrollType } from '../../../common/editorCommon.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { DragAndDropCommand } from './dragAndDropCommand.js';
 
 function hasTriggerModifier(e: IKeyboardEvent | IMouseEvent): boolean {

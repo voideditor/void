@@ -16,11 +16,11 @@ import { IQuickInputButton, IQuickInputService, IQuickPickSeparator, IKeyMods, I
 import { IWorkspaceContextService, IWorkspaceIdentifier } from '../../../platform/workspace/common/workspace.js';
 import { ILabelService, Verbosity } from '../../../platform/label/common/label.js';
 import { IKeybindingService } from '../../../platform/keybinding/common/keybinding.js';
-import { IModelService } from '../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../editor/common/languages/language.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
 import { IRecent, isRecentFolder, isRecentWorkspace, IWorkspacesService } from '../../../platform/workspaces/common/workspaces.js';
 import { URI } from '../../../base/common/uri.js';
-import { getIconClasses } from '../../../editor/common/services/getIconClasses.js';
+import { getIconClasses } from '../../../editor/common/language/services/getIconClasses.js';
 import { FileKind } from '../../../platform/files/common/files.js';
 import { splitRecentLabel } from '../../../base/common/labels.js';
 import { isMacintosh, isWeb, isWindows } from '../../../base/common/platform.js';

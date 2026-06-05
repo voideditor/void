@@ -1,4 +1,9 @@
-import { IconWarning } from '../sidebar-tsx/SidebarChat.js';
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
+import { IconWarning } from '../sidebar-tsx/SidebarChatUI.js';
 
 
 export const WarningBox = ({ text, onClick, className }: { text: string; onClick?: () => void; className?: string }) => {
@@ -19,8 +24,4 @@ export const WarningBox = ({ text, onClick, className }: { text: string; onClick
 		/>
 		<span>{text}</span>
 	</div>
-	// return <VoidSelectBox
-	// 	options={[{ text: 'Please add a model!', value: null }]}
-	// 	onChangeSelection={() => { }}
-	// />
 }

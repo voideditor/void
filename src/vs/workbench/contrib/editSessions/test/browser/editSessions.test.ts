@@ -33,7 +33,7 @@ import { IContextKeyService } from '../../../../../platform/contextkey/common/co
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { Event } from '../../../../../base/common/event.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { ILifecycleService } from '../../../../services/lifecycle/common/lifecycle.js';
 import { IDialogService, IPrompt } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IEditorService, ISaveAllEditorsOptions } from '../../../../services/editor/common/editorService.js';

@@ -42,6 +42,16 @@ export class TerminalLinkDetectorAdapter extends Disposable implements ILinkProv
 		super();
 	}
 
+	override dispose(): void {
+		if (this._activeLinks) {
+			for (const link of this._activeLinks) {
+				link.dispose();
+			}
+			this._activeLinks = undefined;
+		}
+		super.dispose();
+	}
+
 	private _activeProvideLinkRequests: Map<number, Promise<TerminalLink[]>> = new Map();
 	async provideLinks(bufferLineNumber: number, callback: (links: ILink[] | undefined) => void) {
 		let activeRequest = this._activeProvideLinkRequests.get(bufferLineNumber);

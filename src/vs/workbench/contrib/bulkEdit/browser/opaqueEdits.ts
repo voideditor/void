@@ -7,7 +7,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { isObject } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ResourceEdit } from '../../../../editor/browser/services/bulkEditService.js';
-import { ICustomEdit, WorkspaceEditMetadata } from '../../../../editor/common/languages.js';
+import { ICustomEdit, WorkspaceEditMetadata } from '../../../../editor/common/language/languages.js';
 import { IProgress } from '../../../../platform/progress/common/progress.js';
 import { IUndoRedoService, UndoRedoElementType, UndoRedoGroup, UndoRedoSource } from '../../../../platform/undoRedo/common/undoRedo.js';
 

@@ -44,7 +44,7 @@ import { EditorResourceAccessor, SideBySideEditor } from '../../../common/editor
 import { CodeEditorWidget, ICodeEditorWidgetOptions } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
 import { IEditorConstructionOptions } from '../../../../editor/browser/config/editorConfiguration.js';
 import { getSimpleEditorOptions, setupSimpleEditorSelectionStyling } from '../../codeEditor/browser/simpleEditorOptions.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { EditorExtensionsRegistry } from '../../../../editor/browser/editorExtensions.js';
 import { MenuPreventer } from '../../codeEditor/browser/menuPreventer.js';
 import { SelectionClipboardContributionID } from '../../codeEditor/browser/selectionClipboard.js';
@@ -69,7 +69,7 @@ import { AnchorAlignment } from '../../../../base/browser/ui/contextview/context
 import { RepositoryActionRunner, RepositoryRenderer } from './scmRepositoryRenderer.js';
 import { ColorScheme } from '../../../../platform/theme/common/theme.js';
 import { LabelFuzzyScore } from '../../../../base/browser/ui/tree/abstractTree.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { API_OPEN_DIFF_EDITOR_COMMAND_ID, API_OPEN_EDITOR_COMMAND_ID } from '../../../browser/parts/editor/editorCommands.js';
 import { createActionViewItem, getFlatActionBarActions, getFlatContextMenuActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { MarkdownRenderer, openLinkFromMarkdown } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
@@ -92,7 +92,7 @@ import { FormatOnType } from '../../../../editor/contrib/format/browser/formatAc
 import { EditorOption, EditorOptions, IEditorOptions } from '../../../../editor/common/config/editorOptions.js';
 import { IAsyncDataTreeViewState, ITreeCompressionDelegate } from '../../../../base/browser/ui/tree/asyncDataTree.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
-import { EditOperation } from '../../../../editor/common/core/editOperation.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
 import { IMenuWorkbenchToolBarOptions, WorkbenchToolBar } from '../../../../platform/actions/browser/toolbar.js';
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { DropdownWithPrimaryActionViewItem } from '../../../../platform/actions/browser/dropdownWithPrimaryActionViewItem.js';
@@ -101,7 +101,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { OpenScmGroupAction } from '../../multiDiffEditor/browser/scmMultiDiffSourceResolver.js';
 import { ContentHoverController } from '../../../../editor/contrib/hover/browser/contentHoverController.js';
 import { GlyphHoverController } from '../../../../editor/contrib/hover/browser/glyphHoverController.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { autorun, runOnChange } from '../../../../base/common/observable.js';
 import { PlaceholderTextContribution } from '../../../../editor/contrib/placeholderText/browser/placeholderTextContribution.js';
 import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';

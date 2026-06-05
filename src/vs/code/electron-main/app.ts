@@ -55,7 +55,7 @@ import { ProcessMainService } from '../../platform/process/electron-main/process
 import { IKeyboardLayoutMainService, KeyboardLayoutMainService } from '../../platform/keyboardLayout/electron-main/keyboardLayoutMainService.js';
 import { ILaunchMainService, LaunchMainService } from '../../platform/launch/electron-main/launchMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase, ShutdownReason } from '../../platform/lifecycle/electron-main/lifecycleMainService.js';
-import { ILoggerService, ILogService } from '../../platform/log/common/log.js';
+import { ILoggerService, ILogService, LogLevel } from '../../platform/log/common/log.js';
 import { IMenubarMainService, MenubarMainService } from '../../platform/menubar/electron-main/menubarMainService.js';
 import { INativeHostMainService, NativeHostMainService } from '../../platform/native/electron-main/nativeHostMainService.js';
 import { IProductService } from '../../platform/product/common/productService.js';
@@ -122,17 +122,21 @@ import { NativeMcpDiscoveryHelperService } from '../../platform/mcp/node/nativeM
 import { IWebContentExtractorService } from '../../platform/webContentExtractor/common/webContentExtractor.js';
 import { NativeWebContentExtractorService } from '../../platform/webContentExtractor/electron-main/webContentExtractorService.js';
 import ErrorTelemetry from '../../platform/telemetry/electron-main/errorTelemetry.js';
+import { startBuiltinAcpAgent } from '../../platform/acp/electron-main/acpBuiltinAgent.js';
+import { AcpChannel, AcpChannelName } from '../../platform/acp/common/acpIpc.js';
+import { AcpMainService } from '../../platform/acp/electron-main/acpMainService.js';
+import { installDebugFetchLogging } from '../../platform/void/electron-main/llmMessage/sendLLMMessage.impl.js';
+import { IMetricsService } from '../../platform/void/common/metricsService.js';
+import { IVoidUpdateService } from '../../platform/void/common/voidUpdateService.js';
+import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
+import { VoidMainUpdateService } from '../../platform/void/electron-main/voidUpdateMainService.js';
+import { LLMMessageChannel } from '../../platform/void/electron-main/sendLLMMessageChannel.js';
+import { IRemoteModelsService } from '../../platform/void/common/remoteModelsService.js';
+import { RemoteModelsService } from '../../platform/void/electron-main/remoteModelsService.js';
+import { VoidSCMService } from '../../platform/void/electron-main/voidSCMMainService.js';
+import { IVoidSCMService } from '../../platform/void/common/voidSCMTypes.js';
+import { MCPChannel } from '../../platform/void/electron-main/mcpChannel.js';
 
-// in theory this is not allowed
-// ignore the eslint errors below
-import { IMetricsService } from '../../workbench/contrib/void/common/metricsService.js';
-import { IVoidUpdateService } from '../../workbench/contrib/void/common/voidUpdateService.js';
-import { MetricsMainService } from '../../workbench/contrib/void/electron-main/metricsMainService.js';
-import { VoidMainUpdateService } from '../../workbench/contrib/void/electron-main/voidUpdateMainService.js';
-import { LLMMessageChannel } from '../../workbench/contrib/void/electron-main/sendLLMMessageChannel.js';
-import { VoidSCMService } from '../../workbench/contrib/void/electron-main/voidSCMMainService.js';
-import { IVoidSCMService } from '../../workbench/contrib/void/common/voidSCMTypes.js';
-import { MCPChannel } from '../../workbench/contrib/void/electron-main/mcpChannel.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -608,7 +612,11 @@ export class CodeApplication extends Disposable {
 
 		// Open Windows
 		await appInstantiationService.invokeFunction(accessor => this.openFirstWindow(accessor, initialProtocolUrls));
-
+		try {
+			startBuiltinAcpAgent(this.logService, undefined, appInstantiationService);
+		} catch (e) {
+			this.logService.warn('Failed to start built-in ACP Agent', e);
+		}
 		// Signal phase: after window open
 		this.lifecycleMainService.phase = LifecycleMainPhase.AfterWindowOpen;
 
@@ -1104,6 +1112,7 @@ export class CodeApplication extends Disposable {
 		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
 		services.set(IVoidUpdateService, new SyncDescriptor(VoidMainUpdateService, undefined, false));
+		services.set(IRemoteModelsService, new SyncDescriptor(RemoteModelsService, undefined, false));
 		services.set(IVoidSCMService, new SyncDescriptor(VoidSCMService, undefined, false));
 
 		// Default Extensions Profile Init
@@ -1227,6 +1236,14 @@ export class CodeApplication extends Disposable {
 		const externalTerminalChannel = ProxyChannel.fromService(accessor.get(IExternalTerminalMainService), disposables);
 		mainProcessElectronServer.registerChannel('externalTerminal', externalTerminalChannel);
 
+		//ACP
+		const instantiationService = accessor.get(IInstantiationService);
+		const acpMainService = instantiationService.createInstance(AcpMainService);
+		mainProcessElectronServer.registerChannel(AcpChannelName, new AcpChannel(acpMainService));
+		Event.once(this.lifecycleMainService.onWillShutdown)(() => {
+			void acpMainService.disconnect().catch(() => undefined);
+		});
+
 		// MCP
 		const mcpDiscoveryChannel = ProxyChannel.fromService(accessor.get(INativeMcpDiscoveryHelperService), disposables);
 		mainProcessElectronServer.registerChannel(NativeMcpDiscoveryHelperChannelName, mcpDiscoveryChannel);
@@ -1243,15 +1260,26 @@ export class CodeApplication extends Disposable {
 		const voidUpdatesChannel = ProxyChannel.fromService(accessor.get(IVoidUpdateService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-update', voidUpdatesChannel);
 
-		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		const logService = accessor.get(ILogService);
+		const lvl = logService.getLevel?.();
+		if (lvl === LogLevel.Debug || lvl === LogLevel.Trace) {
+			installDebugFetchLogging(logService);
+		}
+		const sendLLMMessageChannel = new LLMMessageChannel(
+			accessor.get(IMetricsService),
+			logService,
+		);
 		mainProcessElectronServer.registerChannel('void-channel-llmMessage', sendLLMMessageChannel);
+
+		const remoteModelsChannel = ProxyChannel.fromService(accessor.get(IRemoteModelsService), disposables);
+		mainProcessElectronServer.registerChannel('void-channel-remoteModels', remoteModelsChannel);
 
 		// Void added this
 		const voidSCMChannel = ProxyChannel.fromService(accessor.get(IVoidSCMService), disposables);
 		mainProcessElectronServer.registerChannel('void-channel-scm', voidSCMChannel);
 
 		// Void added this
-		const mcpChannel = new MCPChannel();
+		const mcpChannel = new MCPChannel(logService);
 		mainProcessElectronServer.registerChannel('void-channel-mcp', mcpChannel);
 
 		// Extension Host Debug Broadcasting

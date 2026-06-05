@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { FindMatch, IReadonlyTextBuffer } from '../../../../editor/common/model.js';
+import { FindMatch, IReadonlyTextBuffer } from '../../../../editor/common/language/model.js';
 import { TextSearchMatch, IFileMatch, ITextSearchMatch } from '../../../services/search/common/search.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { URI, UriComponents } from '../../../../base/common/uri.js';
 
 export type IRawClosedNotebookFileMatch = INotebookFileMatchNoModel<UriComponents>;

@@ -63,10 +63,36 @@ const excludeGlobs = [
 	'**/vs/workbench/contrib/testing/test/**' // flaky (https://github.com/microsoft/vscode/issues/137853)
 ];
 
+const additionalDefaultNodeTests = [
+	'src/vs/platform/void/electron-main/llmMessage/test/extractGrammar.test.ts',
+	'src/vs/platform/void/electron-main/llmMessage/test/sendLLMMessage.impl.test.ts',
+	'src/vs/platform/void/common/test/dynamicModelService.test.ts',
+	'src/vs/platform/void/common/test/modelInference.test.ts',
+	'src/vs/platform/void/common/test/providerReg.test.ts',
+	'src/vs/platform/void/electron-main/llmMessage/test/reasoningConfigPropagation.test.ts',
+	'src/vs/platform/acp/electron-main/test/acpBuiltinAgent.test.ts',
+	'src/vs/platform/void/common/test/requestConfigForModel.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/ChatToolOutputManager.test.ts',
+	'src/vs/platform/void/common/test/loopGuard.test.ts',
+	'src/vs/platform/acp/electron-main/test/acpMainService.test.ts',
+	'src/vs/platform/acp/test/common/acpLogSanitizer.test.ts',
+	'src/vs/platform/acp/electron-main/test/acpBuiltinAgent.loopError.test.ts',
+	'src/vs/platform/acp/test/node/acpBuiltinAgent.refreshConfig.test.ts',
+];
+
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const out = args.build ? 'out-build' : 'out';
 const src = path.join(REPO_ROOT, out);
 const baseUrl = pathToFileURL(src);
+
+/**
+ * @param {string} test
+ */
+function toModulePath(test) {
+	test = test.replace(/^src/, 'out');
+	test = test.replace(/\.ts$/, '.js');
+	return path.relative(src, path.resolve(test)).replace(/(\.js)|(\.js\.map)$/, '').replace(/\\/g, '/');
+}
 
 //@ts-ignore
 const requiredNodeVersion = semver.parse(/^target="(.*)"$/m.exec(fs.readFileSync(path.join(REPO_ROOT, 'remote', '.npmrc'), 'utf8'))[1]);
@@ -167,9 +193,7 @@ function main() {
 	} else if (args.run) {
 		const tests = (typeof args.run === 'string') ? [args.run] : args.run;
 		const modulesToLoad = tests.map(function (test) {
-			test = test.replace(/^src/, 'out');
-			test = test.replace(/\.ts$/, '.js');
-			return path.relative(src, path.resolve(test)).replace(/(\.js)|(\.js\.map)$/, '').replace(/\\/g, '/');
+			return toModulePath(test);
 		});
 		loadFunc = (cb) => {
 			loadModules(modulesToLoad).then(() => cb(null), cb);
@@ -184,6 +208,13 @@ function main() {
 						modules.push(file.replace(/\.js$/, ''));
 					}
 				}
+
+				for (const module of additionalDefaultNodeTests.map(toModulePath)) {
+					if (!modules.includes(module)) {
+						modules.push(module);
+					}
+				}
+
 				loadModules(modules).then(() => cb(null), cb);
 			});
 		};

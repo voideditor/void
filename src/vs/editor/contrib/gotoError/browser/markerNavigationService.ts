@@ -9,9 +9,9 @@ import { DisposableStore, IDisposable, toDisposable } from '../../../../base/com
 import { LinkedList } from '../../../../base/common/linkedList.js';
 import { compare } from '../../../../base/common/strings.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { ITextModel } from '../../../common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IMarker, IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js';

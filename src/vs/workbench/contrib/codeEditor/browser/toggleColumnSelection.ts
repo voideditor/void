@@ -11,8 +11,8 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { CoreNavigationCommands } from '../../../../editor/browser/coreCommands.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 
 export class ToggleColumnSelectionAction extends Action2 {

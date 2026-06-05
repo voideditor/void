@@ -5,17 +5,17 @@
 import assert from 'assert';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { StandardTokenType } from '../../../../common/encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { IndentationContextProcessor, ProcessedIndentRulesSupport } from '../../../../common/languages/supports/indentationLineProcessor.js';
 import { Language, registerLanguage, registerLanguageConfiguration, registerTokenizationSupport, StandardTokenTypeData } from './indentation.test.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
-import { Range } from '../../../../common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ServiceCollection } from '../../../../../platform/instantiation/common/serviceCollection.js';
-import { LanguageService } from '../../../../common/services/languageService.js';
+import { LanguageService } from '../../../../../editor/common/language/services/languageService.js';
 import { TestLanguageConfigurationService } from '../../../../test/common/modes/testLanguageConfigurationService.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 
 suite('Indentation Context Processor - TypeScript/JavaScript', () => {
 

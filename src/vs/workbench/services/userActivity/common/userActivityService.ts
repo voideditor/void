@@ -66,7 +66,7 @@ export class UserActivityService extends Disposable implements IUserActivityServ
 
 	constructor(@IInstantiationService instantiationService: IInstantiationService) {
 		super();
-		this._register(runWhenGlobalIdle(() => userActivityRegistry.take(this, instantiationService)));
+		this._register(runWhenGlobalIdle(() => userActivityRegistry.take(this, instantiationService, d => this._register(d))));
 	}
 
 	/** @inheritdoc */

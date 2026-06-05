@@ -5,10 +5,10 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { ChatInputPart } from './chatInputPart.js';
 
 

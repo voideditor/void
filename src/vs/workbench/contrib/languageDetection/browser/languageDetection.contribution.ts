@@ -13,7 +13,7 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService, StatusbarAlignment } from '../../../services/statusbar/browser/statusbar.js';
 import { ILanguageDetectionService, LanguageDetectionHintConfig, LanguageDetectionLanguageEventSource } from '../../../services/languageDetection/common/languageDetectionWorkerService.js';
 import { ThrottledDelayer } from '../../../../base/common/async.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { registerAction2, Action2 } from '../../../../platform/actions/common/actions.js';

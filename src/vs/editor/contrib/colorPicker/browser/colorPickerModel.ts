@@ -5,7 +5,7 @@
 
 import { Color } from '../../../../base/common/color.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IColorPresentation } from '../../../common/languages.js';
+import { IColorPresentation } from '../../../../editor/common/language/languages.js';
 
 export class ColorPickerModel {
 

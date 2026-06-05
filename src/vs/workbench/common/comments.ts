@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { MarshalledId } from '../../base/common/marshallingIds.js';
-import { CommentThread } from '../../editor/common/languages.js';
+import { CommentThread } from '../../editor/common/language/languages.js';
 
 export interface MarshalledCommentThread {
 	$mid: MarshalledId.CommentThread;

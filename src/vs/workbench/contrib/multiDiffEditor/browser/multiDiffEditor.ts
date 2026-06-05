@@ -7,7 +7,7 @@ import * as DOM from '../../../../base/browser/dom.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { MultiDiffEditorWidget } from '../../../../editor/browser/widget/multiDiffEditor/multiDiffEditorWidget.js';
 import { IResourceLabel, IWorkbenchUIElementFactory } from '../../../../editor/browser/widget/multiDiffEditor/workbenchUIElementFactory.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationService } from '../../../../platform/instantiation/common/instantiationService.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
@@ -26,7 +26,7 @@ import { MultiDiffEditorViewModel } from '../../../../editor/browser/widget/mult
 import { IMultiDiffEditorOptions, IMultiDiffEditorViewState } from '../../../../editor/browser/widget/multiDiffEditor/multiDiffEditorWidgetImpl.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { IDiffEditor } from '../../../../editor/common/editorCommon.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { MultiDiffEditorItem } from './multiDiffSourceResolverService.js';
 import { IEditorProgressService } from '../../../../platform/progress/common/progress.js';
 

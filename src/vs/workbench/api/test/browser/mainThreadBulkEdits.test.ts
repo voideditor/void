@@ -11,7 +11,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { FileSystemProviderCapabilities, IFileService } from '../../../../platform/files/common/files.js';
 import { reviveWorkspaceEditDto } from '../../browser/mainThreadBulkEdits.js';
 import { UriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentityService.js';
-import { IWorkspaceTextEdit } from '../../../../editor/common/languages.js';
+import { IWorkspaceTextEdit } from '../../../../editor/common/language/languages.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 suite('MainThreadBulkEdits', function () {

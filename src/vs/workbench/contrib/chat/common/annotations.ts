@@ -5,7 +5,7 @@
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { basename } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { IChatProgressRenderableResponseContent, IChatProgressResponseContent, appendMarkdownString, canMergeMarkdownStrings } from './chatModel.js';
 import { IChatAgentVulnerabilityDetails, IChatMarkdownContent } from './chatService.js';
 

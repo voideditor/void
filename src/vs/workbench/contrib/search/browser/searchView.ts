@@ -23,7 +23,7 @@ import { getCodeEditor, isCodeEditor, isDiffEditor } from '../../../../editor/br
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { EmbeddedCodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { IEditorOptions } from '../../../../editor/common/config/editorOptions.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { IEditor } from '../../../../editor/common/editorCommon.js';
 import { CommonFindController } from '../../../../editor/contrib/find/browser/findController.js';
 import { MultiCursorSelectionController } from '../../../../editor/contrib/multicursor/browser/multicursor.js';

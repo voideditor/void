@@ -9,7 +9,7 @@ import { IMatch } from '../../../../base/common/filters.js';
 import { IJSONSchema, IJSONSchemaMap } from '../../../../base/common/jsonSchema.js';
 import { ResolvedKeybinding } from '../../../../base/common/keybindings.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution } from '../../../../editor/common/editorCommon.js';
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { ConfigurationDefaultValueSource, ConfigurationScope, EditPresentationTypes, IExtensionInfo } from '../../../../platform/configuration/common/configurationRegistry.js';

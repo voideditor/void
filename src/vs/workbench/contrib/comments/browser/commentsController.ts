@@ -12,11 +12,11 @@ import { DisposableStore, dispose, IDisposable } from '../../../../base/common/l
 import './media/review.css';
 import { ICodeEditor, IEditorMouseEvent, isCodeEditor, isDiffEditor } from '../../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { EditorType, IDiffEditor, IEditor, IEditorContribution, IModelChangedEvent } from '../../../../editor/common/editorCommon.js';
-import { IModelDecorationOptions, IModelDeltaDecoration } from '../../../../editor/common/model.js';
-import { ModelDecorationOptions, TextModel } from '../../../../editor/common/model/textModel.js';
-import * as languages from '../../../../editor/common/languages.js';
+import { IModelDecorationOptions, IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions, TextModel } from '../../../../editor/common/language/model/textModel.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import * as nls from '../../../../nls.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
@@ -34,7 +34,7 @@ import { COMMENTS_SECTION, ICommentsConfiguration } from '../common/commentsConf
 import { COMMENTEDITOR_DECORATION_KEY } from './commentReply.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { Position } from '../../../../editor/common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { CommentThreadRangeDecorator } from './commentThreadRangeDecorator.js';
 import { ICursorSelectionChangedEvent } from '../../../../editor/common/cursorEvents.js';
 import { CommentsPanel } from './commentsView.js';

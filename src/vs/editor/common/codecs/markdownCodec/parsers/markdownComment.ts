@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Range } from '../../../core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { Dash } from '../../simpleCodec/tokens/dash.js';
 import { pick } from '../../../../../base/common/arrays.js';
 import { assert } from '../../../../../base/common/assert.js';

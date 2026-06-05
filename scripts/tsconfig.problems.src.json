@@ -1,0 +1,17 @@
+{
+	"extends": "./tsconfig.problems.json",
+	"include": [
+		"../src/**/*.ts",
+		"../src/**/*.tsx"
+	],
+	"exclude": [
+		"../src/vs/workbench/contrib/void/browser/react/src2/**",
+		"../node_modules",
+		"../out",
+		"../out-vscode",
+		"../out-build",
+		"../dist",
+		"**/*.d.ts",
+		"**/node_modules/**"
+	]
+}

@@ -8,8 +8,8 @@ import { IMarkerService, MarkerSeverity } from '../../../../../platform/markers/
 import { ICellViewModel } from '../notebookBrowser.js';
 import { executingStateIcon } from '../notebookIcons.js';
 import { CellKind } from '../../common/notebookCommon.js';
-import { IRange } from '../../../../../editor/common/core/range.js';
-import { SymbolKind, SymbolKinds } from '../../../../../editor/common/languages.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
+import { SymbolKind, SymbolKinds } from '../../../../../editor/common/language/languages.js';
 
 export interface IOutlineMarkerInfo {
 	readonly count: number;

@@ -58,6 +58,7 @@ const vscodeResourceIncludes = [
 
 	// Workbench
 	'out-build/vs/code/electron-sandbox/workbench/workbench.html',
+	'out-build/vs/code/electron-sandbox/workbench/assets/fonts/*.{woff2,ttf}',
 
 	// Electron Preload
 	'out-build/vs/base/parts/sandbox/electron-sandbox/preload.js',

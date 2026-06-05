@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { JSX, useMemo, useState } from 'react'
+import React, { JSX, useState } from 'react'
 import { marked, MarkedToken, Token } from 'marked'
 
 import { convertToVscodeLang, detectLanguage } from '../../../../common/helpers/languageHelpers.js'
@@ -11,10 +11,10 @@ import { BlockCodeApplyWrapper } from './ApplyBlockHoverButtons.js'
 import { useAccessor } from '../util/services.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { isAbsolute } from '../../../../../../../base/common/path.js'
-import { separateOutFirstLine } from '../../../../common/helpers/util.js'
+import { separateOutFirstLine } from '../../../../../../../platform/void/common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
-import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
-import { getBasename, getRelative, voidOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
+import { CodespanLocationLink } from '../../../../../../../platform/void/common/chatThreadServiceTypes.js'
+import { getBasename, getRelative, voidOpenFileFn } from '../sidebar-tsx/SidebarChatShared.js'
 
 
 export type ChatMessageLocation = {
@@ -29,64 +29,16 @@ export const getApplyBoxId = ({ threadId, messageIdx, tokenIdx }: ApplyBoxLocati
 }
 
 function isValidUri(s: string): boolean {
-	return s.length > 5 && isAbsolute(s) && !s.includes('//') && !s.includes('/*') // common case that is a false positive is comments like //
+	const trimmed = s.trim()
+	if (!trimmed) return false
+	if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) return false
+	if (trimmed.includes('/*')) return false
+	return isAbsolute(trimmed)
 }
 
 // renders contiguous string of latex eg $e^{i\pi}$
 const LatexRender = ({ latex }: { latex: string }) => {
 	return <span className="katex-error text-red-500">{latex}</span>
-	// try {
-	// 	let formula = latex;
-	// 	let displayMode = false;
-
-	// 	// Extract the formula from delimiters
-	// 	if (latex.startsWith('$') && latex.endsWith('$')) {
-	// 		// Check if it's display math $$...$$
-	// 		if (latex.startsWith('$$') && latex.endsWith('$$')) {
-	// 			formula = latex.slice(2, -2);
-	// 			displayMode = true;
-	// 		} else {
-	// 			formula = latex.slice(1, -1);
-	// 		}
-	// 	} else if (latex.startsWith('\\(') && latex.endsWith('\\)')) {
-	// 		formula = latex.slice(2, -2);
-	// 	} else if (latex.startsWith('\\[') && latex.endsWith('\\]')) {
-	// 		formula = latex.slice(2, -2);
-	// 		displayMode = true;
-	// 	}
-
-	// 	// Render LaTeX
-	// 	const html = katex.renderToString(formula, {
-	// 		displayMode: displayMode,
-	// 		throwOnError: false,
-	// 		output: 'html'
-	// 	});
-
-	// 	// Sanitize the HTML output with DOMPurify
-	// 	const sanitizedHtml = dompurify.sanitize(html, {
-	// 		RETURN_TRUSTED_TYPE: true,
-	// 		USE_PROFILES: { html: true, svg: true, mathMl: true }
-	// 	});
-
-	// 	// Add proper styling based on mode
-	// 	const className = displayMode
-	// 		? 'katex-block my-2 text-center'
-	// 		: 'katex-inline';
-
-	// 	// Use the ref approach to avoid dangerouslySetInnerHTML
-	// 	const mathRef = React.useRef<HTMLSpanElement>(null);
-
-	// 	React.useEffect(() => {
-	// 		if (mathRef.current) {
-	// 			mathRef.current.innerHTML = sanitizedHtml as unknown as string;
-	// 		}
-	// 	}, [sanitizedHtml]);
-
-	// 	return <span ref={mathRef} className={className}></span>;
-	// } catch (error) {
-	// 	console.error('KaTeX rendering error:', error);
-	// 	return <span className="katex-error text-red-500">{latex}</span>;
-	// }
 }
 
 const Codespan = ({ text, className, onClick, tooltip }: { text: string, className?: string, onClick?: () => void, tooltip?: string }) => {
@@ -129,12 +81,18 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		link = chatThreadService.getCodespanLink({ codespanStr: text, messageIdx, threadId })
 
 		if (link === undefined) {
-			// if no link, generate link and add to cache
 			chatThreadService.generateCodespanLink({ codespanStr: text, threadId })
-				.then(link => {
-					chatThreadService.addCodespanLink({ newLinkText: text, newLinkLocation: link, messageIdx, threadId })
-					setDidComputeCodespanLink(true) // rerender
-				})
+			  .then(newLink => {
+				if (newLink) {
+				  chatThreadService.addCodespanLink({
+					newLinkText: text,
+					newLinkLocation: newLink,
+					messageIdx,
+					threadId
+				  })
+				  setDidComputeCodespanLink(true)
+				}
+			  })
 		}
 
 		if (link?.displayText) {
@@ -142,7 +100,7 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 		}
 
 		if (isValidUri(displayText)) {
-			tooltip = getRelative(URI.file(displayText), accessor)  // Full path as tooltip
+			tooltip = getRelative(URI.file(displayText), accessor)
 			displayText = getBasename(displayText)
 		}
 	}
@@ -252,15 +210,10 @@ const paragraphToLatexSegments = (paragraphText: string) => {
 						</span>
 					);
 				}
-
 				segments.push(...inlineSegments);
 			}
-
-
 		}
 	}
-
-
 	return segments
 }
 
@@ -283,57 +236,89 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 
 	if (t.type === 'code') {
 		const [firstLine, remainingContents] = separateOutFirstLine(t.text)
-		const firstLineIsURI = isValidUri(firstLine) && !codeURI
-		const contents = firstLineIsURI ? (remainingContents?.trimStart() || '') : t.text // exclude first-line URI from contents
 
+
+		const looksLikeFilePath = (s: string) => {
+			const fl = (s || '').trim()
+			if (!fl) return false
+
+			if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(fl)) return false
+			// Windows absolute
+			if (/^[a-zA-Z]:[\\\/]/.test(fl)) return true
+			// workspace-relative
+			if (fl.startsWith('./') || fl.startsWith('../')) return true
+			// POSIX absolute
+			if (isAbsolute(fl)) return true
+			return false
+		}
+
+
+		const tryResolveUriFromFirstLine = (): URI | null => {
+			if (codeURI) return codeURI
+			let fl = (firstLine || '').trim()
+			fl = fl.replace(/\s*\([\s\S]*?\)\s*:?\s*$/, '')
+			const isWindowsAbs = /^[a-zA-Z]:[\\\/]/.test(fl)
+			if (isWindowsAbs || isAbsolute(fl)) {
+				try { return URI.file(fl) } catch { }
+			}
+			// workspace-relative heuristic
+			try {
+				const workspaceService = accessor.get('IWorkspaceContextService') as any
+				const folders = workspaceService?.getWorkspace?.()?.folders ?? []
+				if (folders.length > 0) {
+					const looksLikePath = (fl.startsWith('./') || fl.startsWith('../'))
+					if (looksLikePath) {
+						const normalized = fl.replace(/^\.\/[\\\/]?/, '')
+						return URI.joinPath(folders[0].uri, normalized)
+					}
+				}
+			} catch { }
+			return null
+		}
+
+
+		const shouldStripFirst = looksLikeFilePath(firstLine)
+		const uriFromFirstLine = shouldStripFirst ? tryResolveUriFromFirstLine() : null
+
+
+		const uri: URI | null = codeURI ?? uriFromFirstLine ?? null
+
+
+		const contents = shouldStripFirst ? (remainingContents?.trimStart() || '') : t.text
 		if (!contents) return null
 
-		// figure out langauge and URI
-		let uri: URI | null
-		let language: string
-		if (codeURI) {
-			uri = codeURI
-		}
-		else if (firstLineIsURI) { // get lang from the uri in the first line of the markdown
-			uri = URI.file(firstLine)
-		}
-		else {
-			uri = null
-		}
 
-		if (t.lang) { // a language was provided. empty string is common so check truthy, not just undefined
-			language = convertToVscodeLang(languageService, t.lang) // convert markdown language to language that vscode recognizes (eg markdown doesn't know bash but it does know shell)
-		}
-		else { // no language provided - fallback - get lang from the uri and contents
+		let language: string
+		if (t.lang) {
+			language = convertToVscodeLang(languageService, t.lang)
+		} else {
 			language = detectLanguage(languageService, { uri, fileContents: contents })
 		}
 
 		if (options.isApplyEnabled && chatMessageLocation) {
-			const isCodeblockClosed = t.raw.trimEnd().endsWith('```') // user should only be able to Apply when the code has been closed (t.raw ends with '```')
-
+			const isCodeblockClosed = t.raw.trimEnd().endsWith('```')
 			const applyBoxId = getApplyBoxId({
 				threadId: chatMessageLocation.threadId,
 				messageIdx: chatMessageLocation.messageIdx,
 				tokenIdx: tokenIdx,
 			})
+			const hasTargetUri = !!uri
+
 			return <BlockCodeApplyWrapper
-				canApply={isCodeblockClosed}
+				canApply={isCodeblockClosed && hasTargetUri}
 				applyBoxId={applyBoxId}
 				codeStr={contents}
 				language={language}
 				uri={uri || 'current'}
 			>
 				<BlockCode
-					initValue={contents.trimEnd()} // \n\n adds a permanent newline which creates a flash
+					initValue={contents.trimEnd()}
 					language={language}
 				/>
 			</BlockCodeApplyWrapper>
 		}
 
-		return <BlockCode
-			initValue={contents}
-			language={language}
-		/>
+		return <BlockCode initValue={contents} language={language} />
 	}
 
 	if (t.type === 'heading') {
@@ -373,40 +358,6 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 				</table>
 			</div>
 		)
-		// return (
-		// 	<div>
-		// 		<table className={'min-w-full border border-void-bg-2'}>
-		// 			<thead>
-		// 				<tr className='bg-void-bg-1'>
-		// 					{t.header.map((cell: any, index: number) => (
-		// 						<th
-		// 							key={index}
-		// 							className='px-4 py-2 border border-void-bg-2 font-semibold'
-		// 							style={{ textAlign: t.align[index] || 'left' }}
-		// 						>
-		// 							{cell.raw}
-		// 						</th>
-		// 					))}
-		// 				</tr>
-		// 			</thead>
-		// 			<tbody>
-		// 				{t.rows.map((row: any[], rowIndex: number) => (
-		// 					<tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-void-bg-1'}>
-		// 						{row.map((cell: any, cellIndex: number) => (
-		// 							<td
-		// 								key={cellIndex}
-		// 								className={'px-4 py-2 border border-void-bg-2'}
-		// 								style={{ textAlign: t.align[cellIndex] || 'left' }}
-		// 							>
-		// 								{cell.raw}
-		// 							</td>
-		// 						))}
-		// 					</tr>
-		// 				))}
-		// 			</tbody>
-		// 		</table>
-		// 	</div>
-		// )
 	}
 
 	if (t.type === 'hr') {
@@ -546,11 +497,98 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 export const ChatMarkdownRender = ({ string, inPTag = false, chatMessageLocation, ...options }: { string: string, inPTag?: boolean, codeURI?: URI, chatMessageLocation: ChatMessageLocation | undefined } & RenderTokenOptions) => {
 	string = string.replaceAll('\n•', '\n\n•')
 	const tokens = marked.lexer(string); // https://marked.js.org/using_pro#renderer
+
+	// Infer codeURI for the next code block from preceding text tokens
+	const accessor = useAccessor()
+	const modelService: any = accessor.get('IModelService')
+	const commandBarService: any = accessor.get('IVoidCommandBarService')
+	const workspaceService: any = accessor.get('IWorkspaceContextService')
+
+	const getBase = (p: string) => p.split(/[\\\/]/).pop() || p
+	const sanitizeHint = (s: string) => {
+		let out = (s || '').trim()
+		// strip surrounding backticks/quotes
+		out = out.replace(/^\s*[`'\"]/, '').replace(/[`'\"]\s*$/, '')
+		// strip list bullets like "- ", "• ", "1. "
+		out = out.replace(/^\s*(?:[-•]|\d+\.)\s+/, '')
+		out = out.replace(/\(.*?\)\s*:?$/, '').replace(/[:;,]+$/, '')
+		return out.trim()
+	}
+	const resolveUriFromHint = (raw: string): URI | null => {
+		const hint = sanitizeHint(raw)
+		if (!hint) return null
+		// absolute (unix/win)
+		const isWinAbs = /^[a-zA-Z]:[\\\/]/.test(hint)
+		if (isWinAbs || isAbsolute(hint)) {
+			try { return URI.file(hint) } catch { /* noop */ }
+		}
+		// contains path separators → workspace-relative join
+		if (/[\\\/]/.test(hint)) {
+			try {
+				const folders = workspaceService?.getWorkspace?.()?.folders ?? []
+				if (folders.length > 0) {
+					const normalized = hint.replace(/^\.\/[\\\/]?/, '')
+					return URI.joinPath(folders[0].uri, normalized)
+				}
+			} catch { /* noop */ }
+		}
+		// bare filename → try open models then recent URIs
+		if (/^[\w.-]+\.[\w0-9.-]+$/.test(hint)) {
+			try {
+				const models: any[] = modelService?.getModels?.() ?? []
+				const modelMatches = models.map(m => m?.uri).filter((u: any) => u?.fsPath && getBase(u.fsPath) === hint)
+				if (modelMatches.length === 1) return modelMatches[0]
+				const recent: any[] = commandBarService?.sortedURIs ?? []
+				const recentMatches = recent.filter((u: any) => u?.fsPath && getBase(u.fsPath) === hint)
+				if (recentMatches.length === 1) return recentMatches[0]
+			} catch { /* noop */ }
+		}
+		return null
+	}
+
+	const elements: React.ReactNode[] = []
+	let pendingUri: URI | null = options.codeURI ?? null
+
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index] as any
+		let codeURIForThisToken: URI | undefined = undefined
+
+		// If this token is a code block, pass the pendingUri once, then clear it
+		if (token.type === 'code') {
+			codeURIForThisToken = pendingUri ?? undefined
+			pendingUri = null
+		}
+		else {
+			// Try to infer URI from text-like tokens to apply to the next code block
+			let rawText: string | null = null
+			if (token.type === 'paragraph' || token.type === 'heading') rawText = token.text || token.raw || ''
+			else if (token.type === 'text') rawText = token.raw || token.text || ''
+			else if (token.type === 'list_item') rawText = token.text || ''
+			if (rawText) {
+				// find first plausible path/filename in the text
+				const match = rawText.match(/[`'\"]?([A-Za-z]:[\\\/][^\s:()]+|\/[^^\s:()]+|\.{0,2}\/[^^\s:()]+|(?:[\w.-]+[\\\/])+[\w.-]+\.[A-Za-z0-9.-]+|[\w.-]+\.[A-Za-z0-9.-]+)[`'\"]?/)
+				if (match && match[1]) {
+					const uri = resolveUriFromHint(match[1])
+					if (uri) pendingUri = uri
+				}
+			}
+		}
+
+		elements.push(
+			<RenderToken key={index}
+				token={token}
+				inPTag={inPTag}
+				chatMessageLocation={chatMessageLocation}
+				tokenIdx={index + ''}
+				codeURI={codeURIForThisToken}
+				{...options}
+			/>
+		)
+	}
+
 	return (
 		<>
-			{tokens.map((token, index) => (
-				<RenderToken key={index} token={token} inPTag={inPTag} chatMessageLocation={chatMessageLocation} tokenIdx={index + ''} {...options} />
-			))}
+			{elements}
 		</>
 	)
 }

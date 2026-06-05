@@ -14,7 +14,7 @@ import { autorun, autorunOpts, derived, derivedOpts, IObservable, ISettableObser
 import { noBreakWhitespace } from '../../../../../../base/common/strings.js';
 import { ThemeIcon } from '../../../../../../base/common/themables.js';
 import { isDefined } from '../../../../../../base/common/types.js';
-import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/model.js';
+import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../../nls.js';
 import { MenuId } from '../../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';

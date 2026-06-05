@@ -9,7 +9,7 @@ import { ChatPromptCodec } from '../codecs/chatPromptCodec.js';
 import { Emitter } from '../../../../../../base/common/event.js';
 import { FileReference } from '../codecs/tokens/fileReference.js';
 import { ChatPromptDecoder } from '../codecs/chatPromptDecoder.js';
-import { IRange } from '../../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../../editor/common/language/core/range.js';
 import { assertDefined } from '../../../../../../base/common/types.js';
 import { IPromptContentsProvider } from '../contentProviders/types.js';
 import { IPromptReference, IResolveError, ITopError } from './types.js';

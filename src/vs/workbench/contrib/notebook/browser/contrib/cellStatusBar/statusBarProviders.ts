@@ -7,7 +7,7 @@ import { CancellationToken } from '../../../../../../base/common/cancellation.js
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../../../base/common/map.js';
 import { URI } from '../../../../../../base/common/uri.js';
-import { ILanguageService } from '../../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../../editor/common/language/language.js';
 import { localize } from '../../../../../../nls.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';

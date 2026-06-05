@@ -6,10 +6,10 @@
 import { groupAdjacentBy } from '../../../base/common/arrays.js';
 import { assertFn, checkAdjacentItems } from '../../../base/common/assert.js';
 import { BugIndicatingError } from '../../../base/common/errors.js';
-import { LineRange } from '../core/lineRange.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { AbstractText, SingleTextEdit, TextEdit } from '../core/textEdit.js';
+import { LineRange } from '../../../editor/common/language/core/lineRange.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { AbstractText, SingleTextEdit, TextEdit } from '../../../editor/common/language/core/textEdit.js';
 import { IChange } from './legacyLinesDiffComputer.js';
 
 /**

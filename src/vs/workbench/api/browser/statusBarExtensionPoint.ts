@@ -11,7 +11,7 @@ import { isProposedApiEnabled } from '../../services/extensions/common/extension
 import { ExtensionsRegistry } from '../../services/extensions/common/extensionsRegistry.js';
 import { IStatusbarService, StatusbarAlignment as MainThreadStatusBarAlignment, IStatusbarEntryAccessor, IStatusbarEntry, StatusbarAlignment, IStatusbarEntryPriority, StatusbarEntryKind } from '../../services/statusbar/browser/statusbar.js';
 import { ThemeColor } from '../../../base/common/themables.js';
-import { Command } from '../../../editor/common/languages.js';
+import { Command } from '../../../editor/common/language/languages.js';
 import { IAccessibilityInformation, isAccessibilityInformation } from '../../../platform/accessibility/common/accessibility.js';
 import { IMarkdownString, isMarkdownString } from '../../../base/common/htmlContent.js';
 import { getCodiconAriaLabel } from '../../../base/common/iconLabels.js';

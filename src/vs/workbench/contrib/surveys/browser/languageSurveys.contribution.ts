@@ -5,7 +5,7 @@
 
 import { localize } from '../../../../nls.js';
 import { language } from '../../../../base/common/platform.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IWorkbenchContributionsRegistry, IWorkbenchContribution, Extensions as WorkbenchExtensions } from '../../../common/contributions.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';

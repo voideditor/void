@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
-import { ITextModel } from '../../../common/model.js';
-import { computeIndentLevel } from '../../../common/model/utils.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { computeIndentLevel } from '../../../../editor/common/language/model/utils.js';
 import { FoldingMarkers } from '../../../common/languages/languageConfiguration.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { FoldingRegions, MAX_LINE_NUMBER } from './foldingRanges.js';
@@ -26,7 +26,7 @@ export class IndentRangeProvider implements RangeProvider {
 
 	dispose() { }
 
-	compute(cancelationToken: CancellationToken,): Promise<FoldingRegions> {
+	compute(_cancelationToken: CancellationToken,): Promise<FoldingRegions> {
 		const foldingRules = this.languageConfigurationService.getLanguageConfiguration(this.editorModel.getLanguageId()).foldingRules;
 		const offSide = foldingRules && !!foldingRules.offSide;
 		const markers = foldingRules && foldingRules.markers;

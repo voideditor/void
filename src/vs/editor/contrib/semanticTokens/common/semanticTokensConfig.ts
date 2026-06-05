@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 

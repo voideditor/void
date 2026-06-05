@@ -10,7 +10,7 @@ import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { URI } from '../../../../base/common/uri.js';
-import { TokenizationRegistry } from '../../../../editor/common/languages.js';
+import { TokenizationRegistry } from '../../../../editor/common/language/languages.js';
 import { ITextFileService } from '../../textfile/common/textfiles.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 

@@ -5,7 +5,7 @@
 
 import { PromptToken } from './promptToken.js';
 import { assert } from '../../../../../../../base/common/assert.js';
-import { IRange, Range } from '../../../../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../../../../editor/common/language/core/range.js';
 import { BaseToken } from '../../../../../../../editor/common/codecs/baseToken.js';
 import { INVALID_NAME_CHARACTERS, STOP_CHARACTERS } from '../parsers/promptVariableParser.js';
 

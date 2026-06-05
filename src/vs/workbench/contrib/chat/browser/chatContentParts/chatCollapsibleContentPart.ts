@@ -15,7 +15,7 @@ import { IChatContentPart, IChatContentPartRenderContext } from './chatContentPa
 import { $ } from './chatReferencesContentPart.js';
 import { EditorPool } from './chatMarkdownContentPart.js';
 import { CodeBlockPart, ICodeBlockData, ICodeBlockRenderOptions } from '../codeBlockPart.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { IDisposableReference } from './chatCollections.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { autorun, IObservable, observableValue } from '../../../../../base/common/observable.js';

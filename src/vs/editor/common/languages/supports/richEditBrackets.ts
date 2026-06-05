@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as strings from '../../../../base/common/strings.js';
-import * as stringBuilder from '../../core/stringBuilder.js';
-import { Range } from '../../core/range.js';
+import * as stringBuilder from '../../language/core/stringBuilder.js';
+import { Range } from '../../language/core/range.js';
 import { CharacterPair } from '../languageConfiguration.js';
 
 interface InternalBracket {

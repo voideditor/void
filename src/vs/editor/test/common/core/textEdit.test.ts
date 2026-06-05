@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { OffsetRange } from '../../../common/core/offsetRange.js';
-import { StringText } from '../../../common/core/textEdit.js';
+import { OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
+import { StringText } from '../../../../editor/common/language/core/textEdit.js';
 import { Random } from './random.js';
 
 suite('TextEdit', () => {

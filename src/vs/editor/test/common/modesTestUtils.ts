@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LineTokens } from '../../common/tokens/lineTokens.js';
-import { StandardTokenType, MetadataConsts } from '../../common/encodedTokenAttributes.js';
+import { LineTokens } from '../../../editor/common/language/tokens/lineTokens.js';
+import { StandardTokenType, MetadataConsts } from '../../../editor/common/language/encodedTokenAttributes.js';
 import { ScopedLineTokens, createScopedLineTokens } from '../../common/languages/supports.js';
-import { LanguageIdCodec } from '../../common/services/languagesRegistry.js';
+import { LanguageIdCodec } from '../../../editor/common/language/services/languagesRegistry.js';
 
 export interface TokenText {
 	text: string;

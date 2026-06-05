@@ -884,7 +884,12 @@ export abstract class AbstractExtensionService extends Disposable implements IEx
 
 			if (this._remoteCrashTracker.shouldAutomaticallyRestart()) {
 				this._logService.info(`Automatically restarting the remote extension host.`);
-				this._notificationService.status(nls.localize('extensionService.autoRestart', "The remote extension host terminated unexpectedly. Restarting..."), { hideAfter: 5000 });
+				// Track the status message as a disposable so it is correctly disposed
+				// on shutdown and does not appear as a leaked disposable.
+				this._register(this._notificationService.status(
+					nls.localize('extensionService.autoRestart', "The remote extension host terminated unexpectedly. Restarting..."),
+					{ hideAfter: 5000 }
+				));
 				this._startExtensionHostsIfNecessary(false, Array.from(this._allRequestedActivateEvents.keys()));
 			} else {
 				this._notificationService.prompt(Severity.Error, nls.localize('extensionService.crash', "Remote Extension host terminated unexpectedly 3 times within the last 5 minutes."),

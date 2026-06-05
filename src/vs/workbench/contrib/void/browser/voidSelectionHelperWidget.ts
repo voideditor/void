@@ -8,12 +8,13 @@ import { ICodeEditor, IOverlayWidget, IOverlayWidgetPosition } from '../../../..
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../../editor/browser/editorExtensions.js';
 import { ICursorSelectionChangedEvent } from '../../../../editor/common/cursorEvents.js';
 import { IEditorContribution } from '../../../../editor/common/editorCommon.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { RunOnceScheduler } from '../../../../base/common/async.js';
 import * as dom from '../../../../base/browser/dom.js';
+import { Schemas } from '../../../../base/common/network.js';
 import { mountVoidSelectionHelper } from './react/out/void-editor-widgets-tsx/index.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { getLengthOfTextPx } from './editCodeService.js';
 
@@ -127,7 +128,8 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 			return;
 		}
 
-		if (this._editor.getModel().uri.scheme !== 'file') {
+		const modelScheme = this._editor.getModel().uri.scheme;
+		if (modelScheme !== Schemas.file && modelScheme !== Schemas.vscodeRemote) {
 			return;
 		}
 
@@ -145,18 +147,16 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 			return;
 		}
 
-		// Store selection
 		this._lastSelection = new Selection(
-			selection.startLineNumber,
-			selection.startColumn,
-			selection.endLineNumber,
-			selection.endColumn
+			selection.selectionStartLineNumber,
+			selection.selectionStartColumn,
+			selection.positionLineNumber,
+			selection.positionColumn
 		);
 
 		this._showScheduler.schedule();
 	}
 
-	// Update the _showHelperForSelection method to work with the React component
 	private _showHelperForSelection(selection: Selection): void {
 		if (!this._editor.hasModel()) {
 			return;
@@ -168,22 +168,19 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 		const { tabSize: numSpacesInTab } = model.getFormattingOptions();
 		const spaceWidth = this._editor.getOption(EditorOption.fontInfo).spaceWidth;
 		const tabWidth = numSpacesInTab * spaceWidth;
-		const numLinesModel = model.getLineCount()
+		const numLinesModel = model.getLineCount();
 
 		// Calculate right edge of visible editor area
 		const editorWidthPx = this._editor.getLayoutInfo().width;
-		const maxLeftPx = editorWidthPx - minDistanceFromRightPx
+		const maxLeftPx = editorWidthPx - minDistanceFromRightPx;
 
 		// returns the position where the box should go on the targetLine
 		const getBoxPosition = (targetLine: number): { top: number, left: number } => {
-
 			const targetPosition = this._editor.getScrolledVisiblePosition({ lineNumber: targetLine, column: 1 }) ?? { left: 0, top: 0 };
-
-			const { top: targetTop, left: targetLeft } = targetPosition
+			const { top: targetTop, left: targetLeft } = targetPosition;
 
 			let targetWidth = 0;
 			for (let i = targetLine; i <= targetLine + 1; i++) {
-
 				// if not in range, continue
 				if (!(i >= 1) || !(i <= numLinesModel)) continue;
 
@@ -192,7 +189,7 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 					tabWidth,
 					spaceWidth,
 					content
-				})
+				});
 
 				targetWidth = Math.max(targetWidth, currWidth);
 			}
@@ -201,15 +198,25 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 				top: targetTop,
 				left: targetLeft + targetWidth,
 			};
+		};
 
+		const anchorLine = selection.selectionStartLineNumber;
+		const activeLine = selection.positionLineNumber;
+
+		let targetLine: number;
+
+		if (activeLine !== anchorLine) {
+			targetLine = activeLine + (activeLine > anchorLine ? -1 : +1);
+		} else {
+			if (activeLine > 1) {
+				targetLine = activeLine - 1;
+			} else {
+				targetLine = Math.min(activeLine + 1, numLinesModel);
+			}
 		}
 
 
-		// Calculate the middle line of the selection
-		const startLine = selection.startLineNumber;
-		const endLine = selection.endLineNumber;
-		// const middleLine = Math.floor(startLine + (endLine - startLine) / 2);
-		const targetLine = endLine - startLine + 1 <= 2 ? startLine : startLine + 2;
+		targetLine = Math.max(1, Math.min(numLinesModel, targetLine));
 
 		let boxPos = getBoxPosition(targetLine);
 
@@ -218,19 +225,25 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 
 		if (boxPos.left > maxLeftPx) {
 			for (const lineDelta of lineDeltasToTry) {
+				const candidateLine = targetLine + lineDelta;
+				if (candidateLine < 1 || candidateLine > numLinesModel) {
+					continue;
+				}
 
-				boxPos = getBoxPosition(targetLine + lineDelta);
+				boxPos = getBoxPosition(candidateLine);
 				if (boxPos.left <= maxLeftPx) {
+					targetLine = candidateLine;
 					break;
 				}
 			}
 		}
+
 		if (boxPos.left > maxLeftPx) { // if still not found, make it 2 lines before
-			boxPos = getBoxPosition(targetLine - 2)
+			const fallbackLine = Math.max(1, targetLine - 2);
+			boxPos = getBoxPosition(fallbackLine);
 		}
 
-
-		// Position the helper element at the end of the middle line but ensure it's visible
+		// Position the helper element at the end of the target line but ensure it's visible
 		const xPosition = Math.max(Math.min(boxPos.left, maxLeftPx), minLeftPx);
 		const yPosition = boxPos.top;
 
@@ -243,14 +256,12 @@ export class SelectionHelperContribution extends Disposable implements IEditorCo
 
 		// rerender
 		const enabled = this._voidSettingsService.state.globalSettings.showInlineSuggestions
-			&& this._editor.hasTextFocus() // needed since VS Code counts unfocused selections as selections, which causes this to rerender when it shouldnt (bad ux)
+			&& this._editor.hasTextFocus();
 
 		if (enabled) {
-			this._rerender({ rerenderKey: this._rerenderKey } satisfies VoidSelectionHelperProps)
+			this._rerender({ rerenderKey: this._rerenderKey } satisfies VoidSelectionHelperProps);
 			this._rerenderKey = (this._rerenderKey + 1) % 2;
-			// this._reactComponentRerender();
 		}
-
 	}
 
 	private _hideHelper(): void {

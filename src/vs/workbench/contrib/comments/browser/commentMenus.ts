@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { Comment } from '../../../../editor/common/languages.js';
+import { Comment } from '../../../../editor/common/language/languages.js';
 import { IMenu, IMenuActionOptions, IMenuCreateOptions, IMenuService, MenuId, MenuItemAction, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 

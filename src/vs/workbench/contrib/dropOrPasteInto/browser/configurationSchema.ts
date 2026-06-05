@@ -8,7 +8,7 @@ import { HierarchicalKind } from '../../../../base/common/hierarchicalKind.js';
 import { IJSONSchema } from '../../../../base/common/jsonSchema.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { editorConfigurationBaseNode } from '../../../../editor/common/config/editorConfigurationSchema.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { pasteAsCommandId } from '../../../../editor/contrib/dropOrPasteInto/browser/copyPasteContribution.js';
 import { pasteAsPreferenceConfig } from '../../../../editor/contrib/dropOrPasteInto/browser/copyPasteController.js';
 import { dropAsPreferenceConfig } from '../../../../editor/contrib/dropOrPasteInto/browser/dropIntoEditorController.js';

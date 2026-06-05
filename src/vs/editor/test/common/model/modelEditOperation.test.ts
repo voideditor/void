@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Range } from '../../../common/core/range.js';
-import { TextModel } from '../../../common/model/textModel.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
 import { createTextModel } from '../testTextModel.js';
 
 suite('Editor Model - Model Edit Operation', () => {

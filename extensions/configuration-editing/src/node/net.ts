@@ -5,7 +5,7 @@
 
 import { Agent, globalAgent } from 'https';
 import { URL } from 'url';
-import { httpsOverHttp } from 'tunnel';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { window } from 'vscode';
 
 export const agent = getAgent();
@@ -19,9 +19,8 @@ function getAgent(url: string | undefined = process.env.HTTPS_PROXY): Agent {
 		return globalAgent;
 	}
 	try {
-		const { hostname, port, username, password } = new URL(url);
-		const auth = username && password && `${username}:${password}`;
-		return httpsOverHttp({ proxy: { host: hostname, port, proxyAuth: auth } });
+		const proxyUrl = new URL(url);
+		return new HttpsProxyAgent(proxyUrl);
 	} catch (e) {
 		window.showErrorMessage(`HTTPS_PROXY environment variable ignored: ${e.message}`);
 		return globalAgent;

@@ -5,7 +5,7 @@
 
 import * as platform from '../../../../base/common/platform.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextResourcePropertiesService } from '../../../common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 
 export class TestTextResourcePropertiesService implements ITextResourcePropertiesService {

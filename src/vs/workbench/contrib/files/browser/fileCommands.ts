@@ -21,7 +21,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { KeybindingsRegistry, KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { KeyMod, KeyCode, KeyChord } from '../../../../base/common/keyCodes.js';
 import { isWeb, isWindows } from '../../../../base/common/platform.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { getResourceForCommand, getMultiSelectedResources, getOpenEditorsViewMultiSelection, IExplorerService } from './files.js';
 import { IWorkspaceEditingService } from '../../../services/workspaces/common/workspaceEditing.js';
 import { resolveCommandsContext } from '../../../browser/parts/editor/editorCommandsContext.js';

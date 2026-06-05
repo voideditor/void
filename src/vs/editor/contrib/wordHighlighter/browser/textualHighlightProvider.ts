@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { USUAL_WORD_SEPARATORS } from '../../../common/core/wordHelper.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { DocumentHighlight, DocumentHighlightKind, DocumentHighlightProvider, MultiDocumentHighlightProvider, ProviderResult } from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
-import { Position } from '../../../common/core/position.js';
+import { USUAL_WORD_SEPARATORS } from '../../../../editor/common/language/core/wordHelper.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { DocumentHighlight, DocumentHighlightKind, DocumentHighlightProvider, MultiDocumentHighlightProvider, ProviderResult } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../base/common/map.js';
-import { LanguageFilter } from '../../../common/languageSelector.js';
+import { LanguageFilter } from '../../../../editor/common/language/languageSelector.js';
 
 
 class TextualDocumentHighlightProvider implements DocumentHighlightProvider, MultiDocumentHighlightProvider {

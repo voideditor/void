@@ -13,7 +13,7 @@ import { CodeEditorWidget, ICodeEditorWidgetOptions } from '../../codeEditor/cod
 import { IDiffCodeEditorWidgetOptions } from '../diffEditorWidget.js';
 import { OverviewRulerFeature } from '../features/overviewRulerFeature.js';
 import { EditorOptions, IEditorOptions } from '../../../../common/config/editorOptions.js';
-import { Position } from '../../../../common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { IContentSizeChangedEvent } from '../../../../common/editorCommon.js';
 import { localize } from '../../../../../nls.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';

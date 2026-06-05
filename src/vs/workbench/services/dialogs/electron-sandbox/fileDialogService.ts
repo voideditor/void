@@ -18,7 +18,7 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { INativeHostOptions, INativeHostService } from '../../../../platform/native/common/native.js';
 import { AbstractFileDialogService } from '../browser/abstractFileDialogService.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IWorkspacesService } from '../../../../platform/workspaces/common/workspaces.js';
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { IPathService } from '../../path/common/pathService.js';

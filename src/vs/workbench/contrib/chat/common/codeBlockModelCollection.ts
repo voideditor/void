@@ -7,10 +7,10 @@ import { Iterable } from '../../../../base/common/iterator.js';
 import { Disposable, IReference } from '../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { EndOfLinePreference, ITextModel } from '../../../../editor/common/language/model.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { extractCodeblockUrisFromText, extractVulnerabilitiesFromText, IMarkdownVulnerability } from './annotations.js';
 import { IChatRequestViewModel, IChatResponseViewModel, isResponseVM } from './chatViewModel.js';
 

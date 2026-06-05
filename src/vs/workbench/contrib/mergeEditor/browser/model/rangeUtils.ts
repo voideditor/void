@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { TextLength } from '../../../../../editor/common/core/textLength.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextLength } from '../../../../../editor/common/language/core/textLength.js';
 
 export function rangeContainsPosition(range: Range, position: Position): boolean {
 	if (position.lineNumber < range.startLineNumber || position.lineNumber > range.endLineNumber) {

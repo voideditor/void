@@ -5,7 +5,7 @@
 
 import { Disposable, DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
 import { IActiveCodeEditor } from '../../../browser/editorBrowser.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { OutlineElement, OutlineGroup, OutlineModel } from '../../documentSymbols/browser/outlineModel.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { CancelablePromise, createCancelablePromise, Delayer } from '../../../../base/common/async.js';

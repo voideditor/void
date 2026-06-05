@@ -11,7 +11,7 @@ import { ResourceMap } from '../../../../base/common/map.js';
 import { basename, extUri } from '../../../../base/common/resources.js';
 import { splitLines } from '../../../../base/common/strings.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { IMarker, IMarkerData, IRelatedInformation, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
 import { unsupportedSchemas } from '../../../../platform/markers/common/markerService.js';
 

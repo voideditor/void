@@ -11,9 +11,9 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { MarkdownRenderer } from '../../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
-import { Location } from '../../../../../editor/common/languages.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { Location } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { localize } from '../../../../../nls.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';

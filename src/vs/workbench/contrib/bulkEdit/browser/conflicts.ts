@@ -5,11 +5,11 @@
 
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { ResourceMap } from '../../../../base/common/map.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { ResourceEdit, ResourceFileEdit, ResourceTextEdit } from '../../../../editor/browser/services/bulkEditService.js';
 import { ResourceNotebookCellEdit } from './bulkCellEdits.js';
 import { ILogService } from '../../../../platform/log/common/log.js';

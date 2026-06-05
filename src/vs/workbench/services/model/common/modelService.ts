@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ModelService } from '../../../../editor/common/services/modelService.js';
-import { ITextResourcePropertiesService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ModelService } from '../../../../editor/common/language/services/modelService.js';
+import { ITextResourcePropertiesService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';

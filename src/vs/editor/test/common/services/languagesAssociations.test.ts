@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { getMimeTypes, registerPlatformLanguageAssociation, registerConfiguredLanguageAssociation } from '../../../common/services/languagesAssociations.js';
+import { getMimeTypes, registerPlatformLanguageAssociation, registerConfiguredLanguageAssociation } from '../../../../editor/common/language/services/languagesAssociations.js';
 
 suite('LanguagesAssociations', () => {
 

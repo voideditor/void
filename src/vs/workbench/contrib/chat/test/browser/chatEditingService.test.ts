@@ -23,14 +23,14 @@ import { IWorkbenchAssignmentService } from '../../../../services/assignment/com
 import { NullWorkbenchAssignmentService } from '../../../../services/assignment/test/common/nullAssignmentService.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { nullExtensionDescription } from '../../../../services/extensions/common/extensions.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { assertType } from '../../../../../base/common/types.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 import { waitForState } from '../../../../../base/common/observable.js';
 import { INotebookService } from '../../../notebook/common/notebookService.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ChatAgentLocation } from '../../common/constants.js';
 import { NotebookTextModel } from '../../../notebook/common/model/notebookTextModel.js';
 

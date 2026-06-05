@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { EditorContextKeys } from '../../../../../editor/common/editorContextKeys.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { SnippetController2 } from '../../../../../editor/contrib/snippet/browser/snippetController2.js';
 import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
 import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';

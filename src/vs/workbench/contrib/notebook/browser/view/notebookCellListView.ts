@@ -6,7 +6,7 @@
 import { IRange } from '../../../../../base/common/range.js';
 import { ListView } from '../../../../../base/browser/ui/list/listView.js';
 import { IItem, IRangeMap } from '../../../../../base/browser/ui/list/rangeMap.js';
-import { ConstantTimePrefixSumComputer } from '../../../../../editor/common/model/prefixSumComputer.js';
+import { ConstantTimePrefixSumComputer } from '../../../../../editor/common/language/model/prefixSumComputer.js';
 
 export interface IWhitespace {
 	id: string;

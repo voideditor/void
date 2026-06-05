@@ -6,8 +6,8 @@
 import assert from 'assert';
 import * as strings from '../../../../../base/common/strings.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { DefaultEndOfLine } from '../../../../common/model.js';
-import { createTextBufferFactory } from '../../../../common/model/textModel.js';
+import { DefaultEndOfLine } from '../../../../../editor/common/language/model.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 
 function testTextBufferFactory(text: string, eol: string, mightContainNonBasicASCII: boolean, mightContainRTL: boolean): void {
 	const { disposable, textBuffer } = createTextBufferFactory(text).create(DefaultEndOfLine.LF);

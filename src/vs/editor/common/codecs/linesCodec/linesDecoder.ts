@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Line } from './tokens/line.js';
-import { Range } from '../../core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { NewLine } from './tokens/newLine.js';
 import { assert } from '../../../../base/common/assert.js';
 import { CarriageReturn } from './tokens/carriageReturn.js';

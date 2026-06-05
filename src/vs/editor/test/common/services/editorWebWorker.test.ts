@@ -5,11 +5,11 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Position } from '../../../common/core/position.js';
-import { IRange, Range } from '../../../common/core/range.js';
-import { TextEdit } from '../../../common/languages.js';
-import { EditorWorker } from '../../../common/services/editorWebWorker.js';
-import { ICommonModel } from '../../../common/services/textModelSync/textModelSync.impl.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
+import { EditorWorker } from '../../../../editor/common/language/services/editorWebWorker.js';
+import { ICommonModel } from '../../../../editor/common/language/services/textModelSync/textModelSync.impl.js';
 
 suite('EditorWebWorker', () => {
 

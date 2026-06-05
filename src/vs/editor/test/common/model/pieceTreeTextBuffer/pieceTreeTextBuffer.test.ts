@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { WordCharacterClassifier } from '../../../../common/core/wordCharacterClassifier.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { DefaultEndOfLine, ITextSnapshot, SearchData } from '../../../../common/model.js';
-import { PieceTreeBase } from '../../../../common/model/pieceTreeTextBuffer/pieceTreeBase.js';
-import { PieceTreeTextBuffer } from '../../../../common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
-import { PieceTreeTextBufferBuilder } from '../../../../common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.js';
-import { NodeColor, SENTINEL, TreeNode } from '../../../../common/model/pieceTreeTextBuffer/rbTreeBase.js';
+import { WordCharacterClassifier } from '../../../../../editor/common/language/core/wordCharacterClassifier.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { DefaultEndOfLine, ITextSnapshot, SearchData } from '../../../../../editor/common/language/model.js';
+import { PieceTreeBase } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeBase.js';
+import { PieceTreeTextBuffer } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
+import { PieceTreeTextBufferBuilder } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.js';
+import { NodeColor, SENTINEL, TreeNode } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/rbTreeBase.js';
 import { createTextModel } from '../../testTextModel.js';
 import { splitLines } from '../../../../../base/common/strings.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';

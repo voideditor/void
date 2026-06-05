@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { IPosition } from '../../../../common/core/position.js';
-import { ITextModel } from '../../../../common/model.js';
+import { IPosition } from '../../../../../editor/common/language/core/position.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { CompletionItem } from '../../browser/suggest.js';
 import { LRUMemory, Memory, NoMemory, PrefixMemory } from '../../browser/suggestMemory.js';
 import { createSuggestItem } from './completionModel.test.js';

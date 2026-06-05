@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { FindMatch } from '../../../../../editor/common/model.js';
+import { FindMatch } from '../../../../../editor/common/language/model.js';
 import { IFileMatch, ITextSearchMatch, TextSearchMatch } from '../../../../services/search/common/search.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { INotebookCellMatchNoModel, INotebookFileMatchNoModel, genericCellMatchesToTextSearchMatches, rawCellPrefix } from '../../common/searchNotebookHelpers.js';
 import { CellWebviewFindMatch, ICellViewModel } from '../../../notebook/browser/notebookBrowser.js';
 import { URI } from '../../../../../base/common/uri.js';

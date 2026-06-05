@@ -10,10 +10,10 @@ import { Disposable, DisposableStore, MutableDisposable, toDisposable, IDisposab
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-import type { ITextModel } from '../../../../editor/common/model.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import type { ITextModel } from '../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { MenuId, MenuRegistry, registerAction2, Action2 } from '../../../../platform/actions/common/actions.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';

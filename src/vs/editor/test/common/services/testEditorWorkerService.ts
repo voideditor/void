@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../common/core/range.js';
-import { DiffAlgorithmName, IEditorWorkerService, IUnicodeHighlightsResult } from '../../../common/services/editorWorker.js';
-import { TextEdit, IInplaceReplaceSupportResult, IColorInformation } from '../../../common/languages.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { DiffAlgorithmName, IEditorWorkerService, IUnicodeHighlightsResult } from '../../../../editor/common/language/services/editorWorker.js';
+import { TextEdit, IInplaceReplaceSupportResult, IColorInformation } from '../../../../editor/common/language/languages.js';
 import { IDocumentDiff, IDocumentDiffProviderOptions } from '../../../common/diff/documentDiffProvider.js';
 import { IChange } from '../../../common/diff/legacyLinesDiffComputer.js';
-import { SectionHeader } from '../../../common/services/findSectionHeaders.js';
+import { SectionHeader } from '../../../../editor/common/language/services/findSectionHeaders.js';
 
 export class TestEditorWorkerService implements IEditorWorkerService {
 

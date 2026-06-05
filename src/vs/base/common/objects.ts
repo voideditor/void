@@ -4,12 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { isTypedArray, isObject, isUndefinedOrNull } from './types.js';
+import { URI } from './uri.js';
 
 export function deepClone<T>(obj: T): T {
 	if (!obj || typeof obj !== 'object') {
 		return obj;
 	}
 	if (obj instanceof RegExp) {
+		return obj;
+	}
+	// Handle URI objects specially
+	if (obj instanceof URI) {
 		return obj;
 	}
 	const result: any = Array.isArray(obj) ? [] : {};

@@ -22,7 +22,7 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 import { commentViewThreadStateColorVar, getCommentThreadStateIconColor } from './commentColors.js';
-import { CommentThreadApplicability, CommentThreadState } from '../../../../editor/common/languages.js';
+import { CommentThreadApplicability, CommentThreadState } from '../../../../editor/common/language/languages.js';
 import { Color } from '../../../../base/common/color.js';
 import { IMatch } from '../../../../base/common/filters.js';
 import { FilterOptions } from './commentsFilterOptions.js';

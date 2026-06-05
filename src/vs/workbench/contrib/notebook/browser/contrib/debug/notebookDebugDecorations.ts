@@ -5,7 +5,7 @@
 
 import { Delayer } from '../../../../../../base/common/async.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
-import { IRange, Range } from '../../../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../../../editor/common/language/core/range.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { debugIconBreakpointForeground } from '../../../../debug/browser/breakpointEditorContribution.js';
 import { focusedStackFrameColor, topStackFrameColor } from '../../../../debug/browser/callStackEditorContribution.js';

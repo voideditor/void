@@ -5,10 +5,10 @@
 
 import { IDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { ITextModel, TrackedRangeStickiness } from '../../../../../editor/common/model.js';
-import { ModelDecorationOptions } from '../../../../../editor/common/model/textModel.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { ITextModel, TrackedRangeStickiness } from '../../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../../editor/common/language/model/textModel.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 
 /**
  * Can add a range highlight decoration to a model.

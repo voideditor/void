@@ -19,8 +19,8 @@ import { RefCounted } from '../../../../editor/browser/widget/diffEditor/utils.j
 import { IDocumentDiffItem, IMultiDiffEditorModel } from '../../../../editor/browser/widget/multiDiffEditor/model.js';
 import { MultiDiffEditorViewModel } from '../../../../editor/browser/widget/multiDiffEditor/multiDiffEditorViewModel.js';
 import { IDiffEditorOptions } from '../../../../editor/common/config/editorOptions.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { localize } from '../../../../nls.js';
 import { ConfirmResult } from '../../../../platform/dialogs/common/dialogs.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

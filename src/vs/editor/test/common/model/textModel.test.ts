@@ -7,11 +7,11 @@ import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { UTF8_BOM_CHARACTER } from '../../../../base/common/strings.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../common/languages/modesRegistry.js';
-import { EndOfLinePreference } from '../../../common/model.js';
-import { TextModel, createTextBuffer } from '../../../common/model/textModel.js';
+import { EndOfLinePreference } from '../../../../editor/common/language/model.js';
+import { TextModel, createTextBuffer } from '../../../../editor/common/language/model/textModel.js';
 import { createModelServices, createTextModel } from '../testTextModel.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 

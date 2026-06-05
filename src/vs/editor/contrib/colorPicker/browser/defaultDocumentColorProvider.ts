@@ -5,11 +5,11 @@
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Color, RGBA } from '../../../../base/common/color.js';
-import { ITextModel } from '../../../common/model.js';
-import { DocumentColorProvider, IColor, IColorInformation, IColorPresentation } from '../../../common/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { DocumentColorProvider, IColor, IColorInformation, IColorPresentation } from '../../../../editor/common/language/languages.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { IEditorWorkerService } from '../../../common/services/editorWorker.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 
 export class DefaultDocumentColorProvider implements DocumentColorProvider {
 

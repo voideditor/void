@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as strings from '../../../base/common/strings.js';
-import { EditOperation, ISingleEditOperation } from '../core/editOperation.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
+import { EditOperation, ISingleEditOperation } from '../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
 import { ICommand, ICursorStateComputerData, IEditOperationBuilder } from '../editorCommon.js';
-import { StandardTokenType } from '../encodedTokenAttributes.js';
-import { ITextModel } from '../model.js';
+import { StandardTokenType } from '../../../editor/common/language/encodedTokenAttributes.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 
 export class TrimTrailingWhitespaceCommand implements ICommand {
 

@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/services/resolverService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ITextModel, DefaultEndOfLine, EndOfLinePreference, ITextBufferFactory } from '../../../../editor/common/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/language/services/resolverService.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITextModel, DefaultEndOfLine, EndOfLinePreference, ITextBufferFactory } from '../../../../editor/common/language/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import * as marked from '../../../../base/common/marked/marked.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { createTextBufferFactory } from '../../../../editor/common/model/textModel.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { createTextBufferFactory } from '../../../../editor/common/language/model/textModel.js';
 import { assertIsDefined } from '../../../../base/common/types.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 

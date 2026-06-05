@@ -8,9 +8,9 @@ import { ITextFileService, TextFileEditorModelState } from '../common/textfiles.
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IDialogService, IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

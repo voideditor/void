@@ -6,7 +6,7 @@
 
 import { PromptVariableWithData } from './promptVariable.js';
 import { assert } from '../../../../../../../base/common/assert.js';
-import { IRange, Range } from '../../../../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../../../../editor/common/language/core/range.js';
 import { BaseToken } from '../../../../../../../editor/common/codecs/baseToken.js';
 
 /**

@@ -6,11 +6,11 @@
 import { ShiftCommand } from '../commands/shiftCommand.js';
 import { CompositionSurroundSelectionCommand } from '../commands/surroundSelectionCommand.js';
 import { CursorConfiguration, EditOperationResult, EditOperationType, ICursorSimpleModel, isQuote } from '../cursorCommon.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
-import { Position } from '../core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
+import { Position } from '../../../editor/common/language/core/position.js';
 import { ICommand } from '../editorCommon.js';
-import { ITextModel } from '../model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 import { AutoClosingOpenCharTypeOperation, AutoClosingOvertypeOperation, AutoClosingOvertypeWithInterceptorsOperation, AutoIndentOperation, CompositionOperation, CompositionEndOvertypeOperation, EnterOperation, InterceptorElectricCharOperation, PasteOperation, shiftIndent, shouldSurroundChar, SimpleCharacterTypeOperation, SurroundSelectionOperation, TabOperation, TypeWithoutInterceptorsOperation, unshiftIndent } from './cursorTypeEditOperations.js';
 
 export class TypeOperations {

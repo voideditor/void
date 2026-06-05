@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { EditOperation, ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { EditOperation, ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { withTestCodeEditor } from '../testCodeEditor.js';
 
 function testCommand(lines: string[], selections: Selection[], edits: ISingleEditOperation[], expectedLines: string[], expectedSelections: Selection[]): void {

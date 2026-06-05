@@ -23,11 +23,11 @@ import { ICodeEditorService } from '../../../../editor/browser/services/codeEdit
 import { EmbeddedCodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EmbeddedDiffEditorWidget } from '../../../../editor/browser/widget/diffEditor/embeddedDiffEditorWidget.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditor, IEditorContribution, ScrollType } from '../../../../editor/common/editorCommon.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { IPeekViewService, PeekViewWidget, peekViewTitleForeground, peekViewTitleInfoForeground } from '../../../../editor/contrib/peekView/browser/peekView.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';

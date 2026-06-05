@@ -5,13 +5,13 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Range } from '../../../common/core/range.js';
-import { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IBackgroundTokenizationStore, IBackgroundTokenizer, IState, ITokenizationSupport, TokenizationRegistry, TokenizationResult } from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
-import { computeIndentLevel } from '../../../common/model/utils.js';
-import { ContiguousMultilineTokensBuilder } from '../../../common/tokens/contiguousMultilineTokensBuilder.js';
-import { LineTokens } from '../../../common/tokens/lineTokens.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IBackgroundTokenizationStore, IBackgroundTokenizer, IState, ITokenizationSupport, TokenizationRegistry, TokenizationResult } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { computeIndentLevel } from '../../../../editor/common/language/model/utils.js';
+import { ContiguousMultilineTokensBuilder } from '../../../../editor/common/language/tokens/contiguousMultilineTokensBuilder.js';
+import { LineTokens } from '../../../../editor/common/language/tokens/lineTokens.js';
 import { TestLineToken, TestLineTokenFactory } from '../core/testLineToken.js';
 import { createTextModel } from '../testTextModel.js';
 

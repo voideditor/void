@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../../../../base/common/charCode.js';
-import { OffsetRange } from '../../core/offsetRange.js';
+import { OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
 import { ISequence } from './algorithms/diffAlgorithm.js';
 
 export class LineSequence implements ISequence {

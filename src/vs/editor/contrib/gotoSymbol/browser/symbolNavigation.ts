@@ -10,7 +10,7 @@ import { isEqual } from '../../../../base/common/resources.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorCommand, registerEditorCommand } from '../../../browser/editorExtensions.js';
 import { ICodeEditorService } from '../../../browser/services/codeEditorService.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { OneReference, ReferencesModel } from './referencesModel.js';
 import { localize } from '../../../../nls.js';
 import { IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { IViewportRange, IBufferRange, IBufferLine, IBuffer, IBufferCellPosition } from '@xterm/xterm';
-import { IRange } from '../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
 import { OperatingSystem } from '../../../../../base/common/platform.js';
 import { IPath, posix, win32 } from '../../../../../base/common/path.js';
 import { ITerminalCapabilityStore, TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';

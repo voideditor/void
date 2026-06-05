@@ -6,7 +6,7 @@
 import * as nls from '../../../../../../nls.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../../base/common/network.js';
-import { ILanguageFeaturesService } from '../../../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../../../editor/common/language/services/languageFeatures.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';

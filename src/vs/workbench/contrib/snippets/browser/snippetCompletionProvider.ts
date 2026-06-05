@@ -5,11 +5,11 @@
 
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { compare, compareSubstring } from '../../../../base/common/strings.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, CompletionItemInsertTextRule, CompletionContext, CompletionTriggerKind, CompletionItemLabel, Command } from '../../../../editor/common/languages.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList, CompletionItemInsertTextRule, CompletionContext, CompletionTriggerKind, CompletionItemLabel, Command } from '../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { SnippetParser } from '../../../../editor/contrib/snippet/browser/snippetParser.js';
 import { localize } from '../../../../nls.js';
 import { ISnippetsService } from './snippets.js';
@@ -19,7 +19,7 @@ import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { ILanguageConfigurationService } from '../../../../editor/common/languages/languageConfigurationRegistry.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
-import { IWordAtPosition } from '../../../../editor/common/core/wordHelper.js';
+import { IWordAtPosition } from '../../../../editor/common/language/core/wordHelper.js';
 
 
 const markSnippetAsUsed = '_snippet.markAsUsed';

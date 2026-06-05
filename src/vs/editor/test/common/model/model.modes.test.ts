@@ -6,12 +6,12 @@
 import assert from 'assert';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { EditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import * as languages from '../../../common/languages.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { NullState } from '../../../common/languages/nullTokenize.js';
-import { TextModel } from '../../../common/model/textModel.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
 import { createTextModel } from '../testTextModel.js';
 
 // --------- utils

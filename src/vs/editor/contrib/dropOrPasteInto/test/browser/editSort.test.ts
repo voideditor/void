@@ -5,7 +5,7 @@
 import assert from 'assert';
 import { HierarchicalKind } from '../../../../../base/common/hierarchicalKind.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { DocumentDropEdit } from '../../../../common/languages.js';
+import { DocumentDropEdit } from '../../../../../editor/common/language/languages.js';
 import { sortEditsByYieldTo } from '../../browser/edit.js';
 
 

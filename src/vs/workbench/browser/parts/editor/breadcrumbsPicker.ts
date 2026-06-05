@@ -30,7 +30,7 @@ import { localize } from '../../../../nls.js';
 import { IOutline, IOutlineComparator } from '../../../services/outline/browser/outline.js';
 import { IEditorOptions } from '../../../../platform/editor/common/editor.js';
 import { IEditorService, SIDE_GROUP } from '../../../services/editor/common/editorService.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 
 interface ILayoutInfo {
 	maxHeight: number;

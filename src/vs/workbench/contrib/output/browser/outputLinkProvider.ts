@@ -5,16 +5,16 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { RunOnceScheduler } from '../../../../base/common/async.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILink } from '../../../../editor/common/languages.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILink } from '../../../../editor/common/language/languages.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { OUTPUT_MODE_ID, LOG_MODE_ID } from '../../../services/output/common/output.js';
 import { OutputLinkComputer } from '../common/outputLinkComputer.js';
 import { IDisposable, dispose, Disposable } from '../../../../base/common/lifecycle.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { createWebWorker } from '../../../../base/browser/webWorkerFactory.js';
 import { IWebWorkerClient } from '../../../../base/common/worker/webWorker.js';
-import { WorkerTextModelSyncClient } from '../../../../editor/common/services/textModelSync/textModelSync.impl.js';
+import { WorkerTextModelSyncClient } from '../../../../editor/common/language/services/textModelSync/textModelSync.impl.js';
 import { FileAccess } from '../../../../base/common/network.js';
 
 export class OutputLinkProvider extends Disposable {

@@ -18,7 +18,7 @@ import { IJSONSchema } from '../../../../base/common/jsonSchema.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { ConfigurationDefaultValueSource, ConfigurationScope, EditPresentationTypes, Extensions, IConfigurationRegistry } from '../../../../platform/configuration/common/configurationRegistry.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IUserDataProfileService } from '../../../services/userDataProfile/common/userDataProfile.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';

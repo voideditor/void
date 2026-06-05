@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { EditOperation } from '../../../../editor/common/core/editOperation.js';
-import { IRange } from '../../../../editor/common/core/range.js';
-import { IIdentifiedSingleEditOperation, ITextModel, IValidEditOperation, TrackedRangeStickiness } from '../../../../editor/common/model.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { IIdentifiedSingleEditOperation, ITextModel, IValidEditOperation, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
 import { IEditObserver } from './inlineChatStrategies.js';
 import { IProgress } from '../../../../platform/progress/common/progress.js';
 import { IntervalTimer, AsyncIterableSource } from '../../../../base/common/async.js';

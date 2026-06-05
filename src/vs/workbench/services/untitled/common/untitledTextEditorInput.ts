@@ -17,9 +17,9 @@ import { IWorkbenchEnvironmentService } from '../../environment/common/environme
 import { IPathService } from '../../path/common/pathService.js';
 import { ITextEditorOptions } from '../../../../platform/editor/common/editor.js';
 import { IFilesConfigurationService } from '../../filesConfiguration/common/filesConfigurationService.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { DisposableStore, dispose, IReference } from '../../../../base/common/lifecycle.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../editor/common/customEditorLabelService.js';
 
 /**

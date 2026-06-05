@@ -14,7 +14,7 @@ import { randomChance } from '../../../../base/common/numbers.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { isNumber } from '../../../../base/common/types.js';
 import { URI, URI as uri } from '../../../../base/common/uri.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';

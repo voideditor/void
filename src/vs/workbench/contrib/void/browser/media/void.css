@@ -202,3 +202,20 @@
 .void-scrollable-element *::-webkit-scrollbar-corner {
 	background-color: var(--void-bg-3) !important;
 }
+
+.void-pasted-image-preview {
+	width: 80px;
+	height: 80px;
+	object-fit: cover;
+	border: 1px solid var(--void-border-2, #555);
+	border-radius: 4px;
+	display: block;
+	background-color: var(--vscode-editor-background, #1e1e1e);
+}
+
+.void-image-preview-container {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}

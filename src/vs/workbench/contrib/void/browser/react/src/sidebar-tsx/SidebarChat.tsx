@@ -1044,6 +1044,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 	const [isDisabled, setIsDisabled] = useState(false)
 	const [textAreaRefState, setTextAreaRef] = useState<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
+	const [editedImages, setEditedImages] = useState<Array<{ data: string; mimeType: string }>>([]);
 	// initialize on first render, and when edit was just enabled
 	const _mustInitialize = useRef(true)
 	const _justEnabledEdit = useRef(false)
@@ -1057,6 +1058,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 					else return s
 				})
 			)
+			setEditedImages(chatMessage.images || []);
 
 			if (textAreaFnsRef.current)
 				textAreaFnsRef.current.setValue(chatMessage.displayContent || '')
@@ -1067,7 +1069,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			_mustInitialize.current = false
 		}
 
-	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current])
+	}, [chatMessage, mode, _justEnabledEdit, textAreaRefState, textAreaFnsRef.current, _justEnabledEdit.current, _mustInitialize.current, setEditedImages])
 
 	const onOpenEdit = () => {
 		setIsBeingEdited(true)
@@ -1090,9 +1092,26 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 		chatbubbleContents = <>
 			<SelectedFiles type='past' messageIdx={messageIdx} selections={chatMessage.selections || []} />
 			<span className='px-0.5'>{chatMessage.displayContent}</span>
+			{chatMessage.images && chatMessage.images.length > 0 && (
+				<div className="mt-2 mb-2 flex flex-wrap gap-2">
+					{chatMessage.images.map((image, index) => (
+						<img
+							key={index}
+							src={image.data}
+							alt={`User image ${index + 1}`}
+							style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
+							className="border border-void-border-2"
+						/>
+					))}
+				</div>
+			)}
 		</>
 	}
 	else if (mode === 'edit') {
+
+		const handleRemoveEditedImage = (indexToRemove: number) => {
+			setEditedImages(prevImages => prevImages.filter((_, index) => index !== indexToRemove));
+		};
 
 		const onSubmit = async () => {
 
@@ -1112,10 +1131,11 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			// stream the edit
 			const userMessage = textAreaRefState.value;
 			try {
-				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId })
+				await chatThreadsService.editUserMessageAndStreamResponse({ userMessage, messageIdx, threadId, images: editedImages })
 			} catch (e) {
 				console.error('Error while editing message:', e)
 			}
+			setEditedImages([]);
 			await chatThreadsService.focusCurrentChat()
 			requestAnimationFrame(() => _scrollToBottom?.())
 		}
@@ -1134,13 +1154,35 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			}
 		}
 
-		if (!chatMessage.content) { // don't show if empty and not loading (if loading, want to show).
+		if (!chatMessage.content && (!chatMessage.images || chatMessage.images.length === 0)) { // don't show if empty and not loading (if loading, want to show).
 			return null
 		}
 
-		chatbubbleContents = <VoidChatArea
-			featureName='Chat'
-			onSubmit={onSubmit}
+		chatbubbleContents = <>
+			{editedImages.length > 0 && (
+				<div className="flex flex-wrap gap-2 mt-0 mb-2">
+					{editedImages.map((image, index) => (
+						<div key={index} className="relative">
+							<img
+								src={image.data}
+								alt={`Edited image ${index + 1}`}
+								className="w-20 h-20 object-cover border border-void-border-2 rounded"
+							/>
+							<button
+								onClick={() => handleRemoveEditedImage(index)}
+								className="absolute top-0 right-0 bg-void-bg-1 rounded-full p-0.5 leading-none text-void-fg-1 hover:opacity-80"
+								aria-label={`Remove image ${index + 1}`}
+								style={{ width: '18px', height: '18px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+							>
+								×
+							</button>
+						</div>
+					))}
+				</div>
+			)}
+			<VoidChatArea
+				featureName='Chat'
+				onSubmit={onSubmit}
 			onAbort={onAbort}
 			isStreaming={false}
 			isDisabled={isDisabled}
@@ -1154,7 +1196,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 				ref={setTextAreaRef}
 				className='min-h-[81px] max-h-[500px] px-0.5'
 				placeholder="Edit your message..."
-				onChangeText={(text) => setIsDisabled(!text)}
+				onChangeText={(text) => setIsDisabled(!text && editedImages.length === 0)}
 				onFocus={() => {
 					setIsFocused(true)
 					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
@@ -1165,8 +1207,13 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 				onKeyDown={onKeyDown}
 				fnsRef={textAreaFnsRef}
 				multiline={true}
+				onImagePasted={(base64Data, mimeType) => {
+					setEditedImages(prevImages => [...prevImages, { data: base64Data, mimeType: mimeType }]);
+					setIsDisabled(false);
+				}}
 			/>
 		</VoidChatArea>
+		</>
 	}
 
 	const isMsgAfterCheckpoint = currCheckpointIdx !== undefined && currCheckpointIdx === messageIdx - 1
@@ -1347,7 +1394,7 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 				<ReasoningWrapper isDoneReasoning={isDoneReasoning} isStreaming={!isCommitted}>
 					<SmallProseWrapper>
 						<ChatMarkdownRender
-							string={reasoningStr}
+							string={reasoningStr || ''}
 							chatMessageLocation={chatMessageLocation}
 							isApplyEnabled={false}
 							isLinkDetectionEnabled={true}
@@ -1362,11 +1409,26 @@ const AssistantMessageComponent = ({ chatMessage, isCheckpointGhost, isCommitted
 			<div className={`${isCheckpointGhost ? 'opacity-50' : ''}`}>
 				<ProseWrapper>
 					<ChatMarkdownRender
-						string={chatMessage.displayContent || ''}
+						string={chatMessage.displayContent}
+						// Images are handled separately below for now
+						// image={chatMessage.imageData ? { imgData: chatMessage.imageData } : undefined}
 						chatMessageLocation={chatMessageLocation}
 						isApplyEnabled={true}
 						isLinkDetectionEnabled={true}
 					/>
+					{chatMessage.images && chatMessage.images.length > 0 && (
+						<div className="mt-2 mb-2 flex flex-wrap gap-2">
+							{chatMessage.images.map((image, index) => (
+								<img
+									key={index}
+									src={image.data}
+									alt={`Assistant image ${index + 1}`}
+									style={{ maxWidth: '150px', maxHeight: '150px', display: 'block', borderRadius: '4px' }}
+									className="border border-void-border-2"
+								/>
+							))}
+						</div>
+					)}
 				</ProseWrapper>
 			</div>
 		}
@@ -2912,8 +2974,9 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+	const [stagedImages, setStagedImages] = useState<Array<{ data: string; mimeType: string }>>([]); // New state for staged images
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
+	const isDisabled = (instructionsAreEmpty && stagedImages.length === 0) || !!isFeatureNameDisabled('Chat', settingsState) // Disable if no text and no image
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2928,16 +2991,21 @@ export const SidebarChat = () => {
 		const userMessage = _forceSubmit || textAreaRef.current?.value || ''
 
 		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })
+			await chatThreadsService.addUserMessageAndStreamResponse({
+				userMessage,
+				threadId,
+				images: stagedImages
+			})
 		} catch (e) {
 			console.error('Error while sending message in chat:', e)
 		}
 
 		setSelections([]) // clear staging
+		setStagedImages([]); // Clear staged images after submit
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus() // focus input after submit
 
-	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
+	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState, stagedImages])
 
 	const onAbort = async () => {
 		const threadId = currentThread.id
@@ -3085,8 +3153,31 @@ export const SidebarChat = () => {
 			ref={textAreaRef}
 			fnsRef={textAreaFnsRef}
 			multiline={true}
+			onImagePasted={(base64Data, mimeType) => {
+				setStagedImages(prevImages => [...prevImages, { data: base64Data, mimeType: mimeType }]);
+			}}
 		/>
-
+		{stagedImages.length > 0 && (
+			<div className="flex flex-wrap gap-2 mt-2 mb-2">
+				{stagedImages.map((image, index) => (
+					<div key={index} className="relative">
+						<img
+							src={image.data}
+							alt={`Staged image ${index + 1}`}
+							className="w-20 h-20 object-cover border border-void-border-2 rounded"
+						/>
+						<button
+							onClick={() => setStagedImages(prevImages => prevImages.filter((_, i) => i !== index))}
+							className="absolute top-0 right-0 bg-void-bg-1 rounded-full p-0.5 leading-none text-void-fg-1 hover:opacity-80"
+							aria-label={`Remove image ${index + 1}`}
+							style={{ width: '18px', height: '18px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+						>
+							×
+						</button>
+					</div>
+				))}
+			</div>
+		)}
 	</VoidChatArea>
 
 

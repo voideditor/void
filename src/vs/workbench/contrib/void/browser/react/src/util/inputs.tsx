@@ -353,8 +353,9 @@ type InputBox2Props = {
 	onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
+	onImagePasted?: (base64Data: string, mimeType: string) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText, onImagePasted }, ref) {
 
 
 	// mirrors whatever is in ref
@@ -752,6 +753,28 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			onBlur={onBlur}
 
 			disabled={!isEnabled}
+
+			onPaste={useCallback((event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+				if (!onImagePasted) return;
+
+				const items = event.clipboardData?.files;
+				if (items) {
+					for (let i = 0; i < items.length; i++) {
+						const file = items[i];
+						if (file.type.startsWith('image/')) {
+							event.preventDefault();
+							const reader = new FileReader();
+							reader.onload = (loadEvent) => {
+								if (loadEvent.target?.result) {
+									onImagePasted(loadEvent.target.result as string, file.type);
+								}
+							};
+							reader.readAsDataURL(file);
+							return; // Handle only the first image
+						}
+					}
+				}
+			}, [onImagePasted])}
 
 			className={`w-full resize-none max-h-[500px] overflow-y-auto text-void-fg-1 placeholder:text-void-fg-3 ${className}`}
 			style={{

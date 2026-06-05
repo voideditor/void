@@ -58,6 +58,9 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		}
 	}
 
+	// remembers {provider, model} per request so we can include it when logging usage
+	private readonly modelInfoOfRequestId: { [requestId: string]: { providerName: string, modelName: string } } = {}
+
 	constructor(
 		@IMainProcessService private readonly mainProcessService: IMainProcessService, // used as a renderer (only usable on client side)
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
@@ -76,6 +79,18 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			this.llmMessageHooks.onText[e.requestId]?.(e)
 		}))
 		this._register((this.channel.listen('onFinalMessage_sendLLMMessage') satisfies Event<EventLLMMessageOnFinalMessageParams>)(e => {
+			if (e.usage) {
+				const info = this.modelInfoOfRequestId[e.requestId]
+				console.log('[Void][LLM] usage', {
+					provider: info?.providerName,
+					model: info?.modelName,
+					requestId: e.requestId,
+					inputTokens: e.usage.inputTokens,
+					outputTokens: e.usage.outputTokens,
+					reasoningTokens: e.usage.reasoningTokens,
+					totalTokens: e.usage.totalTokens,
+				})
+			}
 			this.llmMessageHooks.onFinalMessage[e.requestId]?.(e);
 			this._clearChannelHooks(e.requestId)
 		}))
@@ -126,6 +141,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onFinalMessage[requestId] = onFinalMessage
 		this.llmMessageHooks.onError[requestId] = onError
 		this.llmMessageHooks.onAbort[requestId] = onAbort // used internally only
+		this.modelInfoOfRequestId[requestId] = { providerName: modelSelection.providerName, modelName: modelSelection.modelName }
 
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
@@ -186,6 +202,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		delete this.llmMessageHooks.onText[requestId]
 		delete this.llmMessageHooks.onFinalMessage[requestId]
 		delete this.llmMessageHooks.onError[requestId]
+		delete this.modelInfoOfRequestId[requestId]
 
 		delete this.listHooks.ollama.success[requestId]
 		delete this.listHooks.ollama.error[requestId]

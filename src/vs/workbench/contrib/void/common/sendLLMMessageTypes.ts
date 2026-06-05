@@ -91,8 +91,18 @@ export type RawToolCallObj = {
 
 export type AnthropicReasoning = ({ type: 'thinking'; thinking: any; signature: string; } | { type: 'redacted_thinking', data: any })
 
-export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj }) => void
-export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj; anthropicReasoning: AnthropicReasoning[] | null }) => void // id is tool_use_id
+// Token usage reported by the provider. All fields optional because providers expose
+// different subsets (e.g. Anthropic streams input/output separately; OpenAI only at end with
+// stream_options.include_usage; Gemini gives it via usageMetadata; Ollama on the final chunk).
+export type LLMUsage = {
+	inputTokens?: number;
+	outputTokens?: number;
+	totalTokens?: number;
+	reasoningTokens?: number;
+}
+
+export type OnText = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj; usage?: LLMUsage }) => void
+export type OnFinalMessage = (p: { fullText: string; fullReasoning: string; toolCall?: RawToolCallObj; anthropicReasoning: AnthropicReasoning[] | null; usage?: LLMUsage }) => void // id is tool_use_id
 export type OnError = (p: { message: string; fullError: Error | null }) => void
 export type OnAbort = () => void
 export type AbortRef = { current: (() => void) | null }

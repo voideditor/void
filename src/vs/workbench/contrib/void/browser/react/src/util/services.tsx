@@ -39,6 +39,7 @@ import { IPathService } from '../../../../../../../workbench/services/path/commo
 import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
+import { type LLMUsage } from '../../../../common/sendLLMMessageTypes.js'
 import { ITerminalToolService } from '../../../terminalToolService.js'
 import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
 import { IVoidModelService } from '../../../../common/voidModelService.js'
@@ -66,6 +67,8 @@ const chatThreadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
 
 let chatThreadsStreamState: ThreadStreamState
 const chatThreadsStreamStateListeners: Set<(threadId: string) => void> = new Set()
+
+let chatThreadsLatestUsageOfThreadId: { [threadId: string]: LLMUsage | undefined } = {}
 
 let settingsState: VoidSettingsState
 const settingsStateListeners: Set<(s: VoidSettingsState) => void> = new Set()
@@ -118,9 +121,11 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	// same service, different state
 	chatThreadsStreamState = chatThreadsStateService.streamState
+	chatThreadsLatestUsageOfThreadId = chatThreadsStateService.latestUsageOfThreadId
 	disposables.push(
 		chatThreadsStateService.onDidChangeStreamState(({ threadId }) => {
 			chatThreadsStreamState = chatThreadsStateService.streamState
+			chatThreadsLatestUsageOfThreadId = chatThreadsStateService.latestUsageOfThreadId
 			chatThreadsStreamStateListeners.forEach(l => l(threadId))
 		})
 	)
@@ -302,6 +307,20 @@ export const useChatThreadsStreamState = (threadId: string) => {
 		return () => { chatThreadsStreamStateListeners.delete(listener) }
 	}, [ss, threadId])
 	return s
+}
+
+export const useChatThreadLatestUsage = (threadId: string) => {
+	const [u, su] = useState<LLMUsage | undefined>(chatThreadsLatestUsageOfThreadId[threadId])
+	useEffect(() => {
+		su(chatThreadsLatestUsageOfThreadId[threadId])
+		const listener = (threadId_: string) => {
+			if (threadId_ !== threadId) return
+			su(chatThreadsLatestUsageOfThreadId[threadId])
+		}
+		chatThreadsStreamStateListeners.add(listener)
+		return () => { chatThreadsStreamStateListeners.delete(listener) }
+	}, [su, threadId])
+	return u
 }
 
 export const useFullChatThreadsStreamState = () => {

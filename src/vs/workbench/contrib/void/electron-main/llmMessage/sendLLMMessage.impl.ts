@@ -14,7 +14,7 @@ import { Tool as GeminiTool, FunctionDeclaration, GoogleGenAI, ThinkingConfig, S
 import { GoogleAuth } from 'google-auth-library'
 /* eslint-enable */
 
-import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, type LLMUsage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
@@ -777,6 +777,9 @@ const sendGeminiChat = async ({
 	let toolParamsStr = ''
 	let toolId = ''
 
+	// Gemini reports token usage via chunk.usageMetadata. It typically appears in the last
+	// chunk(s), but we keep the latest seen so we always forward the freshest values.
+	let latestUsage: LLMUsage | undefined = undefined
 
 	genAI.models.generateContentStream({
 		model: modelName,
@@ -807,11 +810,24 @@ const sendGeminiChat = async ({
 
 				// (do not handle reasoning yet)
 
+				// usage (Gemini exposes promptTokenCount / candidatesTokenCount / totalTokenCount /
+				// thoughtsTokenCount via usageMetadata). Only update when the chunk reports it.
+				const usageMetadata = chunk.usageMetadata
+				if (usageMetadata) {
+					latestUsage = {
+						inputTokens: usageMetadata.promptTokenCount,
+						outputTokens: usageMetadata.candidatesTokenCount,
+						totalTokens: usageMetadata.totalTokenCount,
+						reasoningTokens: usageMetadata.thoughtsTokenCount,
+					}
+				}
+
 				// call onText
 				onText({
 					fullText: fullTextSoFar,
 					fullReasoning: fullReasoningSoFar,
 					toolCall: !toolName ? undefined : { name: toolName, rawParams: {}, isDone: false, doneParams: [], id: toolId },
+					usage: latestUsage,
 				})
 			}
 
@@ -822,7 +838,7 @@ const sendGeminiChat = async ({
 				if (!toolId) toolId = generateUuid() // ids are empty, but other providers might expect an id
 				const toolCall = rawToolCallObjOfParamsStr(toolName, toolParamsStr, toolId)
 				const toolCallObj = toolCall ? { toolCall } : {}
-				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, ...toolCallObj });
+				onFinalMessage({ fullText: fullTextSoFar, fullReasoning: fullReasoningSoFar, anthropicReasoning: null, usage: latestUsage, ...toolCallObj });
 			}
 		})
 		.catch(error => {

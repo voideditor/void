@@ -52,6 +52,7 @@ export const VoidTooltip = () => {
 					z-index: 999999;
 					max-width: 300px;
 					word-wrap: break-word;
+					white-space: pre-line;
 				}
 
 				#void-tooltip {

@@ -6,7 +6,7 @@
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 
-import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState } from '../util/services.js';
+import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useSettingsState, useActiveURI, useCommandBarState, useFullChatThreadsStreamState, useChatThreadLatestUsage } from '../util/services.js';
 import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
@@ -29,7 +29,7 @@ import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButt
 import { IsRunningType } from '../../../chatThreadService.js';
 import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { builtinToolNames, isABuiltinToolName, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME } from '../../../../common/prompt/prompts.js';
-import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
+import { type LLMUsage, RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
@@ -289,6 +289,127 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 
 
 
+// ----- Token usage ring -----
+// Wraps the send/stop button with an SVG donut showing totalTokens / contextWindow.
+// On hover: shows percentage + per-bucket breakdown (input / output / reasoning / total).
+
+const formatTokenCount = (n: number | undefined): string => {
+	if (n === undefined || n === null) return '-'
+	if (n < 1_000) return `${n}`
+	if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 2 : 1)}k`
+	return `${(n / 1_000_000).toFixed(2)}M`
+}
+
+const colorForUsagePct = (pct: number) => {
+	if (pct < 50) return '#6d28d9'   // violet-700 (normal)
+	if (pct < 80) return '#a16207'   // yellow-700 (warning)
+	return '#b91c1c'                  // red-700 (critical)
+}
+
+interface TokenUsageRingProps {
+	// when usage is undefined the wrapper still renders at the same size, but no
+	// ring is drawn — this prevents the send button from shifting once usage arrives
+	usage: LLMUsage | undefined;
+	contextWindow: number; // model's max input context, in tokens
+	children: React.ReactNode;
+	size?: number;
+}
+const TokenUsageRing: React.FC<TokenUsageRingProps> = ({ usage, contextWindow, children, size = 34 }) => {
+	const strokeWidth = 3
+	const radius = (size - strokeWidth) / 2
+	const hasData = !!usage && contextWindow > 0
+
+	let svgEl: React.ReactNode = null
+	let tooltipContent: string | undefined = undefined
+
+	if (hasData && usage) {
+		const total = usage.totalTokens ?? ((usage.inputTokens ?? 0) + (usage.outputTokens ?? 0) + (usage.reasoningTokens ?? 0))
+		const rawPct = (total / contextWindow) * 100
+		const clampedPct = Math.max(0, Math.min(100, rawPct))
+		const circumference = 2 * Math.PI * radius
+		const dashOffset = circumference * (1 - clampedPct / 100)
+		const color = colorForUsagePct(clampedPct)
+
+		const displayPct = rawPct < 0.01 ? '<0.01%' : rawPct < 1 ? `${rawPct.toFixed(2)}%` : `${rawPct.toFixed(1)}%`
+		// Use plain text (no HTML) because the renderer enforces Trusted Types and
+		// react-tooltip's html mode would set innerHTML directly, which is blocked.
+		tooltipContent = [
+			`Context window usage`,
+			`${formatTokenCount(total)} / ${formatTokenCount(contextWindow)} (${displayPct})`,
+			``,
+			`Input: ${formatTokenCount(usage.inputTokens)}`,
+			`Output: ${formatTokenCount(usage.outputTokens)}`,
+			usage.reasoningTokens !== undefined ? `Reasoning: ${formatTokenCount(usage.reasoningTokens)}` : null,
+			`Total: ${formatTokenCount(total)}`,
+		].filter(s => s !== null).join('\n')
+
+		svgEl = (
+			<svg
+				className='absolute inset-0'
+				width={size}
+				height={size}
+				style={{ transform: 'rotate(-90deg)' }}
+			>
+				<circle
+					cx={size / 2}
+					cy={size / 2}
+					r={radius}
+					stroke='rgba(180,180,180,0.45)'
+					strokeWidth={strokeWidth}
+					fill='none'
+				/>
+				<circle
+					cx={size / 2}
+					cy={size / 2}
+					r={radius}
+					stroke={color}
+					strokeWidth={strokeWidth}
+					fill='none'
+					strokeDasharray={circumference}
+					strokeDashoffset={dashOffset}
+					strokeLinecap='butt'
+					style={{ transition: 'stroke-dashoffset 250ms ease, stroke 250ms ease' }}
+				/>
+			</svg>
+		)
+	}
+
+	return (
+		<div
+			className='relative flex items-center justify-center flex-shrink-0'
+			style={{ width: size, height: size }}
+			data-tooltip-id={hasData ? 'void-tooltip' : undefined}
+			data-tooltip-content={tooltipContent}
+			data-tooltip-place={hasData ? 'left' : undefined}
+		>
+			{svgEl}
+			<div className='relative z-1 flex items-center justify-center'>{children}</div>
+		</div>
+	)
+}
+
+// Chooses whether to wrap the send/stop button in a ring based on the current chat
+// thread's latest usage and the active model's context window.
+const SubmitButtonWithUsageRing: React.FC<{ threadId: string; featureName: FeatureName; children: React.ReactNode }> = ({ threadId, featureName, children }) => {
+	const settingsState = useSettingsState()
+	const usage = useChatThreadLatestUsage(threadId)
+
+	const modelSelection = settingsState.modelSelectionOfFeature[featureName]
+	// Always render the wrapper so the send button doesn't jump sideways when
+	// usage first becomes available. TokenUsageRing hides the SVG when there's
+	// no data, but keeps the size reserved.
+	const contextWindow = modelSelection
+		? getModelCapabilities(modelSelection.providerName, modelSelection.modelName, settingsState.overridesOfModel).contextWindow
+		: 0
+
+	return (
+		<TokenUsageRing usage={usage} contextWindow={contextWindow}>
+			{children}
+		</TokenUsageRing>
+	)
+}
+
+
 interface VoidChatAreaProps {
 	// Required
 	children: React.ReactNode; // This will be the input component
@@ -299,6 +420,10 @@ interface VoidChatAreaProps {
 	isStreaming: boolean;
 	isDisabled?: boolean;
 	divRef?: React.RefObject<HTMLDivElement | null>;
+
+	// when provided, the send/stop button is wrapped with a ring showing
+	// totalTokens / model.contextWindow for the latest LLM usage on this thread
+	threadIdForUsageRing?: string;
 
 	// UI customization
 	className?: string;
@@ -336,6 +461,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	setSelections,
 	featureName,
 	loadingIcon,
+	threadIdForUsageRing,
 }) => {
 	return (
 		<div
@@ -397,14 +523,17 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 
 					{isStreaming && loadingIcon}
 
-					{isStreaming ? (
-						<ButtonStop onClick={onAbort} />
-					) : (
-						<ButtonSubmit
-							onClick={onSubmit}
-							disabled={isDisabled}
-						/>
-					)}
+					{(() => {
+						const button = isStreaming
+							? <ButtonStop onClick={onAbort} />
+							: <ButtonSubmit onClick={onSubmit} disabled={isDisabled} />
+						if (!threadIdForUsageRing) return button
+						return (
+							<SubmitButtonWithUsageRing threadId={threadIdForUsageRing} featureName={featureName}>
+								{button}
+							</SubmitButtonWithUsageRing>
+						)
+					})()}
 				</div>
 
 			</div>
@@ -1148,6 +1277,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			showProspectiveSelections={false}
 			selections={stagingSelections}
 			setSelections={setStagingSelections}
+			threadIdForUsageRing={chatThreadsService.state.currentThreadId}
 		>
 			<VoidInputBox2
 				enableAtToMention
@@ -3074,6 +3204,7 @@ export const SidebarChat = () => {
 		selections={selections}
 		setSelections={setSelections}
 		onClickAnywhere={() => { textAreaRef.current?.focus() }}
+		threadIdForUsageRing={chatThreadsState.currentThreadId}
 	>
 		<VoidInputBox2
 			enableAtToMention

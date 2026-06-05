@@ -72,7 +72,9 @@ export const defaultProviderSettings = {
 
 
 export const defaultModelsOfProvider = {
-	openAI: [ // https://platform.openai.com/docs/models/gp
+	openAI: [ // https://platform.openai.com/docs/models
+		'gpt-5.2',
+		'gpt-5.1',
 		'gpt-4.1',
 		'gpt-4.1-mini',
 		'gpt-4.1-nano',
@@ -450,9 +452,11 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 
 	if (lower.includes('quasar') || lower.includes('quaser')) return toFallback(openSourceModelOptions_assumingOAICompat, 'quasar')
 
-	if (lower.includes('gpt') && lower.includes('mini') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-mini')
-	if (lower.includes('gpt') && lower.includes('nano') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1-nano')
+	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1')) && lower.includes('mini')) return toFallback(openAIModelOptions, 'gpt-4.1-mini')
+	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1')) && lower.includes('nano')) return toFallback(openAIModelOptions, 'gpt-4.1-nano')
 	if (lower.includes('gpt') && (lower.includes('4.1') || lower.includes('4-1'))) return toFallback(openAIModelOptions, 'gpt-4.1')
+	if (lower.includes('gpt') && (lower.includes('5.1') || lower.includes('5-1'))) return toFallback(openAIModelOptions, 'gpt-5.1')
+	if (lower.includes('gpt') && (lower.includes('5.2') || lower.includes('5-2'))) return toFallback(openAIModelOptions, 'gpt-5.2')
 
 	if (lower.includes('4o') && lower.includes('mini')) return toFallback(openAIModelOptions, 'gpt-4o-mini')
 	if (lower.includes('4o')) return toFallback(openAIModelOptions, 'gpt-4o')
@@ -603,30 +607,84 @@ const anthropicSettings: VoidStaticProviderInfo = {
 
 // ---------------- OPENAI ----------------
 const openAIModelOptions = { // https://platform.openai.com/docs/pricing
+	'gpt-5.2': {
+		contextWindow: 400_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 1.75, cache_read: 0.175, output: 14.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['none', 'low', 'medium', 'high', 'xhigh'],
+				default: 'low'
+			}
+		},
+	},
+	'gpt-5.1': {
+		contextWindow: 400_000,
+		reservedOutputTokenSpace: 128_000,
+		cost: { input: 1.25, cache_read: 0.125, output: 10.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'developer-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['none', 'low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
+	},
 	'o3': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
-		cost: { input: 10.00, output: 40.00, cache_read: 2.50 },
+		cost: { input: 2.00, cache_read: 0.50, output: 8.00 },
 		downloadable: false,
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
 	},
 	'o4-mini': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
-		cost: { input: 1.10, output: 4.40, cache_read: 0.275 },
+		cost: { input: 1.10, cache_read: 0.275, output: 4.40 },
 		downloadable: false,
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
 	},
 	'gpt-4.1': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
-		cost: { input: 2.00, output: 8.00, cache_read: 0.50 },
+		cost: { input: 2.00, cache_read: 0.50, output: 8.00 },
 		downloadable: false,
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
@@ -636,7 +694,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	'gpt-4.1-mini': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
-		cost: { input: 0.40, output: 1.60, cache_read: 0.10 },
+		cost: { input: 0.40, cache_read: 0.10, output: 1.60 },
 		downloadable: false,
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
@@ -646,7 +704,7 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 	'gpt-4.1-nano': {
 		contextWindow: 1_047_576,
 		reservedOutputTokenSpace: 32_768,
-		cost: { input: 0.10, output: 0.40, cache_read: 0.03 },
+		cost: { input: 0.10, cache_read: 0.025, output: 0.40 },
 		downloadable: false,
 		supportsFIM: false,
 		specialToolFormat: 'openai-style',
@@ -660,7 +718,16 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
 	},
 	'o3-mini': {
 		contextWindow: 200_000,
@@ -669,7 +736,16 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'developer-role',
-		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
 	},
 	'gpt-4o': {
 		contextWindow: 128_000,
@@ -688,7 +764,16 @@ const openAIModelOptions = { // https://platform.openai.com/docs/pricing
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: false, // does not support any system
-		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: false, canIOReasoning: false, reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' } },
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: {
+				type: 'effort_slider',
+				values: ['low', 'medium', 'high'],
+				default: 'low'
+			}
+		},
 	},
 	'gpt-4o-mini': {
 		contextWindow: 128_000,

@@ -1,13 +1,13 @@
 {
 	"nameShort": "Void",
 	"nameLong": "Void",
-	"voidVersion": "1.4.9",
-	"voidRelease": "0044",
+	"voidVersion": "1.0.0",
+	"voidRelease": "0001",
 	"applicationName": "void",
 	"dataFolderName": ".void-editor",
 	"win32MutexName": "voideditor",
 	"licenseName": "MIT",
-	"licenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
+	"licenseUrl": "https://github.com/jobrayan/void/blob/main/LICENSE.txt",
 	"serverLicenseUrl": "https://github.com/voideditor/void/blob/main/LICENSE.txt",
 	"serverGreeting": [],
 	"serverLicense": [],
@@ -29,7 +29,7 @@
 	"darwinBundleIdentifier": "com.voideditor.code",
 	"linuxIconName": "void-editor",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/voideditor/void/issues/new",
+	"reportIssueUrl": "https://github.com/jobrayan/void/issues/new",
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "void",
 	"extensionsGallery": {
@@ -38,9 +38,10 @@
 	},
 	"builtInExtensions": [],
 	"linkProtectionTrustedDomains": [
+		"https://nathanjobrayan/void",
 		"https://voideditor.com",
 		"https://voideditor.dev",
-		"https://github.com/voideditor/void",
+		"https://github.com/jobrayan/void",
 		"https://ollama.com"
 	]
 }

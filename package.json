@@ -69,7 +69,8 @@
     "extensions-ci": "node ./node_modules/gulp/bin/gulp.js extensions-ci",
     "extensions-ci-pr": "node ./node_modules/gulp/bin/gulp.js extensions-ci-pr",
     "perf": "node scripts/code-perf.js",
-    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json"
+    "update-build-ts-version": "npm install typescript@next && tsc -p ./build/tsconfig.build.json",
+    "release": "semantic-release"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
@@ -80,7 +81,7 @@
     "@microsoft/1ds-post-js": "^3.2.13",
     "@mistralai/mistralai": "^1.6.0",
     "@modelcontextprotocol/sdk": "^1.11.2",
-    "@parcel/watcher": "2.5.1",
+    "@parcel/watcher": "^2.5.1",
     "@types/semver": "^7.5.8",
     "@vscode/deviceid": "^0.1.1",
     "@vscode/iconv-lite-umd": "0.7.0",
@@ -253,7 +254,13 @@
     "webpack-cli": "^5.1.4",
     "webpack-stream": "^7.0.0",
     "xml2js": "^0.5.0",
-    "yaserver": "^0.4.0"
+    "yaserver": "^0.4.0",
+    "semantic-release": "^24.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.0",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.1"
   },
   "overrides": {
     "node-gyp-build": "4.8.1",
@@ -270,5 +277,6 @@
   },
   "optionalDependencies": {
     "windows-foreground-love": "0.5.0"
-  }
+  },
+  "packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67"
 }

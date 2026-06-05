@@ -342,19 +342,20 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
 type InputBox2Props = {
-	initValue?: string | null;
-	placeholder: string;
-	multiline: boolean;
-	enableAtToMention?: boolean;
-	fnsRef?: { current: null | TextAreaFns };
-	className?: string;
-	onChangeText?: (value: string) => void;
-	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-	onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-	onChangeHeight?: (newHeight: number) => void;
+        initValue?: string | null;
+        placeholder: string;
+        multiline: boolean;
+        enableAtToMention?: boolean;
+        fnsRef?: { current: null | TextAreaFns };
+        className?: string;
+        onChangeText?: (value: string) => void;
+        onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+        onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+        onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+        onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+        onChangeHeight?: (newHeight: number) => void;
 }
-export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
+export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText, onPaste }, ref) {
 
 
 	// mirrors whatever is in ref
@@ -749,11 +750,11 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			}, [fnsRef, fns, setEnabled, adjustHeight, ref, refs])}
 
 			onFocus={onFocus}
-			onBlur={onBlur}
+                        onBlur={onBlur}
 
-			disabled={!isEnabled}
+                        disabled={!isEnabled}
 
-			className={`w-full resize-none max-h-[500px] overflow-y-auto text-void-fg-1 placeholder:text-void-fg-3 ${className}`}
+                        className={`w-full resize-none max-h-[500px] overflow-y-auto text-void-fg-1 placeholder:text-void-fg-3 ${className}`}
 			style={{
 				// defaultInputBoxStyles
 				background: asCssVariable(inputBackground),
@@ -777,7 +778,7 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				adjustHeight()
 			}, [onChangeText, adjustHeight])}
 
-			onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                        onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 
 				if (isMenuOpen) {
 					onMenuKeyDown(e)
@@ -802,9 +803,10 @@ export const VoidInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				onKeyDown?.(e)
 			}, [onKeyDown, onMenuKeyDown, multiline])}
 
-			rows={1}
-			placeholder={placeholder}
-		/>
+                        rows={1}
+                        placeholder={placeholder}
+                        onPaste={onPaste}
+                />
 		{/* <div>{`idx ${optionIdx}`}</div> */}
 		{isMenuOpen && (
 			<div

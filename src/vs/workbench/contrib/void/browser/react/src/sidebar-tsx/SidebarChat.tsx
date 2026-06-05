@@ -35,6 +35,7 @@ import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
 import { removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
+import { Attachment } from '../../../../common/attachmentTypes.js';
 
 
 
@@ -2911,9 +2912,11 @@ export const SidebarChat = () => {
 
 	// state of current message
 	const initVal = ''
-	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+       const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+       const [attachments, setAttachments] = useState<Attachment[]>([])
+       const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
+       const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2925,19 +2928,22 @@ export const SidebarChat = () => {
 		const threadId = chatThreadsService.state.currentThreadId
 
 		// send message to LLM
-		const userMessage = _forceSubmit || textAreaRef.current?.value || ''
+               const userMessage = _forceSubmit || textAreaRef.current?.value || ''
+               const attachmentText = attachments.map(a => `[image:${a.name}]`).join('\n')
+               const fullMessage = attachmentText ? `${userMessage}\n${attachmentText}` : userMessage
 
-		try {
-			await chatThreadsService.addUserMessageAndStreamResponse({ userMessage, threadId })
-		} catch (e) {
-			console.error('Error while sending message in chat:', e)
-		}
+               try {
+                       await chatThreadsService.addUserMessageAndStreamResponse({ userMessage: fullMessage, threadId })
+               } catch (e) {
+                       console.error('Error while sending message in chat:', e)
+               }
 
-		setSelections([]) // clear staging
-		textAreaFnsRef.current?.setValue('')
-		textAreaRef.current?.focus() // focus input after submit
+               setSelections([]) // clear staging
+               textAreaFnsRef.current?.setValue('')
+               textAreaRef.current?.focus() // focus input after submit
+               setAttachments([])
 
-	}, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
+       }, [chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState])
 
 	const onAbort = async () => {
 		const threadId = currentThread.id
@@ -3055,40 +3061,101 @@ export const SidebarChat = () => {
 	const onChangeText = useCallback((newStr: string) => {
 		setInstructionsAreEmpty(!newStr)
 	}, [setInstructionsAreEmpty])
-	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-			onSubmit()
-		} else if (e.key === 'Escape' && isRunning) {
-			onAbort()
-		}
-	}, [onSubmit, onAbort, isRunning])
+       const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                       onSubmit()
+               } else if (e.key === 'Escape' && isRunning) {
+                       onAbort()
+               }
+       }, [onSubmit, onAbort, isRunning])
 
-	const inputChatArea = <VoidChatArea
-		featureName='Chat'
-		onSubmit={() => onSubmit()}
-		onAbort={onAbort}
-		isStreaming={!!isRunning}
-		isDisabled={isDisabled}
-		showSelections={true}
-		// showProspectiveSelections={previousMessagesHTML.length === 0}
-		selections={selections}
-		setSelections={setSelections}
-		onClickAnywhere={() => { textAreaRef.current?.focus() }}
-	>
-		<VoidInputBox2
-			enableAtToMention
-			className={`min-h-[81px] px-0.5 py-0.5`}
-			placeholder={`@ to mention, ${keybindingString ? `${keybindingString} to add a selection. ` : ''}Enter instructions...`}
-			onChangeText={onChangeText}
-			onKeyDown={onKeyDown}
-			onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
-			ref={textAreaRef}
-			fnsRef={textAreaFnsRef}
-			multiline={true}
-		/>
+       const fileToAttachment = useCallback((file: File): Promise<Attachment> => {
+               return new Promise((resolve, reject) => {
+                       const reader = new FileReader()
+                       reader.onerror = () => reject(reader.error)
+                       reader.onload = () => resolve({
+                               id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+                               name: file.name || `image-${Date.now()}`,
+                               mime: file.type || 'image/png',
+                               size: file.size,
+                               dataUrl: String(reader.result)
+                       })
+                       reader.readAsDataURL(file)
+               })
+       }, [])
 
-	</VoidChatArea>
+       const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+               const items = Array.from(e.clipboardData?.items ?? []).filter(i => i.type.startsWith('image/'))
+               if (items.length === 0) return
+               e.preventDefault()
+               const files: File[] = []
+               for (const it of items) {
+                       const f = it.getAsFile()
+                       if (f) files.push(f)
+               }
+               const atts = await Promise.all(files.map(fileToAttachment))
+               setAttachments(prev => [...prev, ...atts])
+       }, [fileToAttachment])
 
+       const onSelectFiles = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+               if (!e.target.files) return
+               const files = Array.from(e.target.files)
+               const atts = await Promise.all(files.map(fileToAttachment))
+               setAttachments(prev => [...prev, ...atts])
+               e.target.value = ''
+       }, [fileToAttachment])
+
+
+const inputChatArea = <VoidChatArea
+        featureName='Chat'
+        onSubmit={() => onSubmit()}
+        onAbort={onAbort}
+        isStreaming={!!isRunning}
+        isDisabled={isDisabled}
+        showSelections={true}
+        // showProspectiveSelections={previousMessagesHTML.length === 0}
+        selections={selections}
+        setSelections={setSelections}
+        onClickAnywhere={() => { textAreaRef.current?.focus() }}
+>
+        <div className='flex flex-col gap-2 w-full'>
+                <div className='flex items-start gap-2 w-full'>
+                        <input
+                                ref={fileInputRef}
+                                type='file'
+                                accept='image/*'
+                                multiple
+                                style={{ display: 'none' }}
+                                onChange={onSelectFiles}
+                        />
+                        <button type='button' className='px-1' onClick={() => fileInputRef.current?.click()} title='Attach images'>📎</button>
+                        <VoidInputBox2
+                                enableAtToMention
+                                className={`min-h-[81px] px-0.5 py-0.5 flex-1`}
+                                placeholder={`@ to mention, ${keybindingString ? `${keybindingString} to add a selection. ` : ''}Enter instructions...`}
+                                onChangeText={onChangeText}
+                                onKeyDown={onKeyDown}
+                                onFocus={() => { chatThreadsService.setCurrentlyFocusedMessageIdx(undefined) }}
+                                ref={textAreaRef}
+                                fnsRef={textAreaFnsRef}
+                                multiline={true}
+                                onPaste={handlePaste}
+                        />
+                </div>
+                {attachments.length > 0 && (
+                        <div className='flex gap-2 flex-wrap'>
+                                {attachments.map(att => (
+                                        <div key={att.id} className='flex items-center gap-1 border border-void-border-2 rounded px-1 py-0.5'>
+                                                <img src={att.dataUrl} alt={att.name} className='w-8 h-8 object-cover rounded' />
+                                                <span className='text-xs max-w-[100px] truncate'>{att.name}</span>
+                                                <button type='button' onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}>✕</button>
+                                        </div>
+                                ))}
+                        </div>
+                )}
+        </div>
+
+</VoidChatArea>
 
 	const isLandingPage = previousMessages.length === 0
 

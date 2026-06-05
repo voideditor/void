@@ -39,6 +39,15 @@ export const defaultProviderSettings = {
 	groq: {
 		apiKey: '',
 	},
+	together: {
+		apiKey: '',
+	},
+	nebius: {
+		apiKey: '',
+	},
+	venice: {
+		apiKey: '',
+	},
 	xAI: {
 		apiKey: '',
 	},
@@ -136,9 +145,40 @@ export const defaultModelsOfProvider = {
 	],
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
+		'gemma2-9b-it',
+		'llama3-70b-8192',
+		'whisper-large-v3',
+		'whisper-large-v3-turbo',
+		'deepseek-r1-distill-llama-70b',
+		'qwen-qwq-32b',
+		'mistral-saba-24b',
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
 		// 'qwen-2.5-coder-32b', // preview mode (experimental)
+	],
+	nebius: [
+
+		'Qwen/Qwen3-235B-A22B',
+		'Qwen/Qwen3-30B-A3B',
+		'Qwen/Qwen3-32B',
+		'Qwen/Qwen3-14B',
+		'deepseek-ai/DeepSeek-V3',
+		'deepseek-ai/DeepSeek-R1',
+		'meta-llama/Meta-Llama-3.1-70B-Instruct',
+		'mistralai/Mistral-Nemo-Instruct-2407',
+		'mistralai/Mixtral-8x7B-Instruct-v0.1',
+		'mistralai/Mixtral-8x22B-Instruct-v0.1',
+		'Qwen/Qwen2.5-Coder-7B-Instruct',
+		'Qwen/Qwen2.5-32B-Instruct',
+		'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+		'deepseek-ai/DeepSeek-V3-0324-fast',
+		'nvidia/Llama-3_3-Nemotron-Super-49B-v1',
+		'google/gemma-2-27b-it',
+		'google/gemma-2-27b-it'
+	],
+	venice: [
+		'qwen2.5-coder-32b', // Recommended for coding tasks
+		'dolphin-2.9.2-qwen2-72b', // Example from Venice documentation
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
@@ -147,6 +187,15 @@ export const defaultModelsOfProvider = {
 		'mistral-medium-latest',
 		'ministral-3b-latest',
 		'ministral-8b-latest',
+	],
+	together: [
+		'deepseek-ai/DeepSeek-R1',
+		'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+		'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+		'meta-llama/Llama-Vision-Free',
+		'qwen/Qwen-QwQ-32B-Instruct',
+		'qwen/Qwen-2.5-Coder-32B-Instruct',
+		'mistralai/Mistral-7B-Instruct-v0.2'
 	],
 	openAICompatible: [], // fallback
 	googleVertex: [],
@@ -1098,6 +1147,369 @@ const groqSettings: VoidStaticProviderInfo = {
 	},
 }
 
+//--------------------together-ai--------------------
+const togetherModelOptions = {
+	// Match the actual model names from Together AI
+	'deepseek-ai/DeepSeek-R1': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.14, output: 0.28 }, // Check current pricing
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canIOReasoning: true,
+			canTurnOffReasoning: false, // Cannot be turned off via API, only controlled by budget
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // Together AI uses budget, max is technically 24576 but 8192 is often enough
+		},
+	},
+	'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canIOReasoning: true,
+			canTurnOffReasoning: false, // Cannot be turned off via API, only controlled by budget
+			reasoningSlider: { type: 'budget_slider', min: 1024, max: 8192, default: 1024 }, // Together AI uses budget, max is technically 24576 but 8192 is often enough
+		},
+	},
+	'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'meta-llama/Llama-Vision-Free': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.0, output: 0.0 }, // Free tier
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'mistralai/Mistral-7B-Instruct-v0.2': {
+		contextWindow: 32_768,
+		reservedOutputTokenSpace: 4_096,
+		cost: { input: 0.2, output: 0.2 }, // Check current pricing
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+const togetherSettings: VoidStaticProviderInfo = {
+	modelOptions: togetherModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof togetherModelOptions | null = null
+		if (lower.includes('deepseek-r1')) fallbackName = 'deepseek-ai/DeepSeek-R1'
+		if (lower.includes('deepseek-r1-distill')) fallbackName = 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free'
+		if (lower.includes('llama-3.3-70b')) fallbackName = 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free'
+		if (lower.includes('llama-vision')) fallbackName = 'meta-llama/Llama-Vision-Free'
+		if (lower.includes('mistral-7b-instruct')) fallbackName = 'mistralai/Mistral-7B-Instruct-v0.2'
+
+		// Use extensive fallback if no specific Together AI fallback matched
+		if (!fallbackName) {
+			const extensiveRes = extensiveModelOptionsFallback(modelName)
+			if (extensiveRes) return extensiveRes // Return extensive fallback if found
+		}
+
+
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...togetherModelOptions[fallbackName] }
+		return null
+	},
+	providerReasoningIOSettings: {
+		input: {
+			includeInPayload: (reasoningInfo) => {
+				if (!reasoningInfo?.isReasoningEnabled) return null
+				// Together AI reasoning uses a budget slider like Gemini/Anthropic
+				if (reasoningInfo.type === 'budget_slider_value') {
+					// Together AI requires max_tokens for reasoning budget
+					return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } }
+				}
+				if (reasoningInfo.type === 'effort_slider_value')
+					return {
+						reasoning: {
+							effort: reasoningInfo.reasoningEffort
+						}
+					}
+				return null
+			}
+		},
+		// Together AI reasoning output field is 'reasoning' https://docs.together.ai/docs/reasoning
+		output: { nameOfFieldInDelta: 'reasoning' },
+	},
+}
+//--------------------nebius-ai--------------------
+const nebiusModelOptions = {
+	// https://docs.nebius.ai/docs/models
+	// Pricing and context window information for Nebius AI specific models is not readily available.
+	// Using placeholder values derived from similar models where possible.
+	'Qwen/Qwen3-235B-A22B': {
+		contextWindow: 128_000, // Placeholder, actual context window may vary
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder, actual costs apply
+		downloadable: false,
+		supportsFIM: false, // Assume API doesn't support FIM unless documented
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'Qwen/Qwen3-30B-A3B': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'Qwen/Qwen3-32B': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'Qwen/Qwen3-14B': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'deepseek-ai/DeepSeek-V3': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'deepseek-ai/DeepSeek-R1': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'meta-llama/Meta-Llama-3.1-70B-Instruct': {
+		contextWindow: 128_000, // Standard Llama 3.1 context window
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistralai/Mistral-Nemo-Instruct-2407': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistralai/Mixtral-8x7B-Instruct-v0.1': {
+		contextWindow: 32_768, // Known context window
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'mistralai/Mixtral-8x22B-Instruct-v0.1': {
+		contextWindow: 65_536, // Known context window
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'Qwen/Qwen2.5-Coder-7B-Instruct': {
+		contextWindow: 32_768, // Placeholder based on Qwen2.5-Coder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false, // Assume API doesn't support FIM unless documented
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'Qwen/Qwen2.5-32B-Instruct': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'deepseek-ai/DeepSeek-R1-Distill-Llama-70B': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'deepseek-ai/DeepSeek-V3-0324-fast': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'nvidia/Llama-3_3-Nemotron-Super-49B-v1': {
+		contextWindow: 128_000, // Placeholder
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'openai-style',
+		reasoningCapabilities: false,
+	},
+	'google/gemma-2-27b-it': {
+		contextWindow: 128_000, // Known context window
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 }, // Placeholder
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		specialToolFormat: 'gemini-style', // Gemma is Gemini-style
+		reasoningCapabilities: false,
+	},
+
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+const nebiusSettings: VoidStaticProviderInfo = {
+	modelOptions: nebiusModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof nebiusModelOptions | null = null
+		if (lower.includes('qwen3-235b')) fallbackName = 'Qwen/Qwen3-235B-A22B'
+		if (lower.includes('qwen3-30b')) fallbackName = 'Qwen/Qwen3-30B-A3B'
+		if (lower.includes('qwen3-32b')) fallbackName = 'Qwen/Qwen3-32B'
+		if (lower.includes('qwen3-14b')) fallbackName = 'Qwen/Qwen3-14B'
+		if (lower.includes('deepseek-v3')) fallbackName = 'deepseek-ai/DeepSeek-V3'
+		if (lower.includes('deepseek-r1')) fallbackName = 'deepseek-ai/DeepSeek-R1'
+		if (lower.includes('meta-llama-3.1-70b-instruct')) fallbackName = 'meta-llama/Meta-Llama-3.1-70B-Instruct'
+		if (lower.includes('mistral-nemo-instruct')) fallbackName = 'mistralai/Mistral-Nemo-Instruct-2407'
+		if (lower.includes('mixtral-8x7b-instruct')) fallbackName = 'mistralai/Mixtral-8x7B-Instruct-v0.1'
+		if (lower.includes('mixtral-8x22b-instruct')) fallbackName = 'mistralai/Mixtral-8x22B-Instruct-v0.1'
+		if (lower.includes('qwen2.5-coder-7b-instruct')) fallbackName = 'Qwen/Qwen2.5-Coder-7B-Instruct'
+		if (lower.includes('qwen2.5-32b-instruct')) fallbackName = 'Qwen/Qwen2.5-32B-Instruct'
+		if (lower.includes('deepseek-r1-distill')) fallbackName = 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B'
+		if (lower.includes('deepseek-v3-fast')) fallbackName = 'deepseek-ai/DeepSeek-V3-0324-fast'
+		if (lower.includes('nvidia/llama-3_3-nemotron-super-49b-v1')) fallbackName = 'nvidia/Llama-3_3-Nemotron-Super-49B-v1'
+		if (lower.includes('google/gemma-2-27b-it')) fallbackName = 'google/gemma-2-27b-it'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...nebiusModelOptions[fallbackName] }
+		return null
+	},
+	providerReasoningIOSettings: {
+		input: {
+			includeInPayload: (reasoningInfo) => {
+				if (!reasoningInfo?.isReasoningEnabled) return null;
+				// Nebius reasoning uses a budget slider like Gemini/Anthropic or effort like xAI
+				if (reasoningInfo.type === 'budget_slider_value') {
+					// nebius requires max_tokens for reasoning budget
+					return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } };
+				}
+				if (reasoningInfo.type === 'effort_slider_value')
+					return {
+						reasoning: {
+							effort: reasoningInfo.reasoningEffort
+						}
+					};
+				return null;
+			}
+		},
+		output: { nameOfFieldInDelta: 'reasoning' }, // Nebius AI reasoning output field
+
+	},
+}
+
+// ----------------venice-ai--------------------
+const veniceModelOptions = {
+	// https://docs.verse.ai/docs/models
+	'qwen2.5-coder-32b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 32_768,
+		cost: { input: 0.59, output: 0.79 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+	'dolphin-2.9.2-qwen2-72b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: 8_192,
+		cost: { input: 0.05, output: 0.08 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: false,
+	},
+} as const satisfies { [s: string]: VoidStaticModelInfo }
+
+const verseSettings: VoidStaticProviderInfo = {
+	modelOptions: veniceModelOptions,
+	modelOptionsFallback: (modelName) => {
+		const lower = modelName.toLowerCase()
+		let fallbackName: keyof typeof veniceModelOptions | null = null
+		if (lower.includes('qwen2.5-coder-32b')) fallbackName = 'qwen2.5-coder-32b'
+		if (lower.includes('dolphin-2.9.2-qwen2-72b')) fallbackName = 'dolphin-2.9.2-qwen2-72b'
+		if (fallbackName) return { modelName: fallbackName, recognizedModelName: fallbackName, ...veniceModelOptions[fallbackName] }
+		return null
+	},
+	providerReasoningIOSettings: {
+		input: { includeInPayload: (reasoningInfo) => {
+			if (!reasoningInfo?.isReasoningEnabled) return null
+			// Venice AI reasoning uses a budget slider like Gemini/Anthropic
+			if (reasoningInfo.type === 'budget_slider_value') {
+				// Venice AI requires max_tokens for reasoning budget
+				return { reasoning: { max_tokens: reasoningInfo.reasoningBudget } }
+			}
+			return null
+		} },
+		output: { nameOfFieldInDelta: 'reasoning' }, // Venice AI reasoning output field
+	},
+}
+
 
 // ---------------- GOOGLE VERTEX ----------------
 const googleVertexModelOptions = {
@@ -1460,6 +1872,10 @@ const modelSettingsOfProvider: { [providerName in ProviderName]: VoidStaticProvi
 	// open source models
 	deepseek: deepseekSettings,
 	groq: groqSettings,
+	together: togetherSettings,
+	nebius: nebiusSettings,
+	venice: verseSettings,
+
 
 	// open source models + providers (mixture of everything)
 	openRouter: openRouterSettings,

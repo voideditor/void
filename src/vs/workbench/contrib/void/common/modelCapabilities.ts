@@ -99,6 +99,12 @@ export const defaultModelsOfProvider = {
 		'grok-3-mini-fast'
 	],
 	gemini: [ // https://ai.google.dev/gemini-api/docs/models/gemini
+		'gemini-3.1-pro-preview',
+		'gemini-3-pro-preview',
+		'gemini-3-flash-preview',
+		'gemini-2.5-flash',
+		'gemini-2.5-flash-lite',
+		'gemini-2.5-pro',
 		'gemini-2.5-pro-exp-03-25',
 		'gemini-2.5-flash-preview-04-17',
 		'gemini-2.0-flash',
@@ -414,7 +420,17 @@ const extensiveModelOptionsFallback: VoidStaticProviderInfo['modelOptionsFallbac
 		};
 	}
 
-	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5'))) return toFallback(geminiModelOptions, 'gemini-2.5-pro-exp-03-25')
+	if (lower.includes('gemini') && (lower.includes('2.0') || lower.includes('2-0')) && lower.includes('flash') && lower.includes('lite')) return toFallback(geminiModelOptions, 'gemini-2.0-flash-lite')
+	if (lower.includes('gemini') && (lower.includes('2.0') || lower.includes('2-0')) && lower.includes('flash')) return toFallback(geminiModelOptions, 'gemini-2.0-flash')
+	if (lower.includes('gemini') && (lower.includes('2.0') || lower.includes('2-0'))) return toFallback(geminiModelOptions, 'gemini-2.0-flash')
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5')) && lower.includes('pro')) return toFallback(geminiModelOptions, 'gemini-2.5-pro')
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5')) && lower.includes('flash') && lower.includes('lite')) return toFallback(geminiModelOptions, 'gemini-2.5-flash-lite')
+	if (lower.includes('gemini') && (lower.includes('2.5') || lower.includes('2-5')) && lower.includes('flash')) return toFallback(geminiModelOptions, 'gemini-2.5-flash')
+	if (lower.includes('gemini') && (lower.includes('3.1') || lower.includes('3-1'))) return toFallback(geminiModelOptions, 'gemini-3.1-pro-preview')
+	if (lower.includes('gemini') && lower.includes('3') && lower.includes('pro')) return toFallback(geminiModelOptions, 'gemini-3-pro-preview')
+	if (lower.includes('gemini') && lower.includes('3') && lower.includes('flash')) return toFallback(geminiModelOptions, 'gemini-3-flash-preview')
+	if (lower.includes('gemini') && lower.includes('3')) return toFallback(geminiModelOptions, 'gemini-3-flash-preview')
+	if (lower.includes('gemini')) return toFallback(geminiModelOptions, 'gemini-2.5-flash')
 
 	if (lower.includes('claude-3-5') || lower.includes('claude-3.5')) return toFallback(anthropicModelOptions, 'claude-3-5-sonnet-20241022')
 	if (lower.includes('claude')) return toFallback(anthropicModelOptions, 'claude-3-7-sonnet-20250219')
@@ -807,9 +823,105 @@ const xAISettings: VoidStaticProviderInfo = {
 // ---------------- GEMINI ----------------
 const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	// https://ai.google.dev/gemini-api/docs/thinking#set-budget
+	'gemini-3.1-pro-preview': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 2.00, cache_write: 0.20, output: 12.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'effort_slider', values: ['low', 'medium', 'high'], default: 'low' },
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
+	'gemini-3-pro-preview': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 2.00, cache_write: 0.20, output: 12.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'effort_slider', values: ['low', 'high'], default: 'low' },
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
+	'gemini-3-flash-preview': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 0.50, cache_write: 0.05, output: 3.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'effort_slider', values: ['minimal', 'low', 'medium', 'high'], default: 'low' },
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
+	'gemini-2.5-flash': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 0.30, cache_write: 0.03, output: 2.50 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 0, max: 8192, default: 1024 },  // actual max: 24576
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
+	'gemini-2.5-flash-lite': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 0.10, cache_write: 0.01, output: 0.40 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: true,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 512, max: 8192, default: 1024 },  // actual max: 24576
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
+	'gemini-2.5-pro': {
+		contextWindow: 1_048_576,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
+		cost: { input: 1.25, cache_write: 0.125, output: 10.00 },
+		downloadable: false,
+		supportsFIM: false,
+		supportsSystemMessage: 'separated',
+		specialToolFormat: 'gemini-style',
+		reasoningCapabilities: {
+			supportsReasoning: true,
+			canTurnOffReasoning: false,
+			canIOReasoning: false,
+			reasoningSlider: { type: 'budget_slider', min: 128, max: 8192, default: 1024 },  // actual max: 32768
+			reasoningReservedOutputTokenSpace: 8192, // actual max: 65536
+		},
+	},
 	'gemini-2.5-pro-preview-05-06': {
 		contextWindow: 1_048_576,
-		reservedOutputTokenSpace: 8_192,
+		reservedOutputTokenSpace: 8_192, // actual max: 65536
 		cost: { input: 0, output: 0 },
 		downloadable: false,
 		supportsFIM: false,
@@ -826,7 +938,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	'gemini-2.0-flash-lite': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192,
-		cost: { input: 0, output: 0 },
+		cost: { input: 0.075, output: 0.30 },
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',
@@ -868,7 +980,7 @@ const geminiModelOptions = { // https://ai.google.dev/gemini-api/docs/pricing
 	'gemini-2.0-flash': {
 		contextWindow: 1_048_576,
 		reservedOutputTokenSpace: 8_192, // 8_192,
-		cost: { input: 0.10, output: 0.40 },
+		cost: { input: 0.10, cache_write: 0.025, output: 0.40 },
 		downloadable: false,
 		supportsFIM: false,
 		supportsSystemMessage: 'separated',

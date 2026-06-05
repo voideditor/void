@@ -19,7 +19,7 @@ import { ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsSer
 import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
-import { MCPServer } from '../../../../common/mcpServiceTypes.js';
+import { MCPServer, removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
 import { useMCPServiceState } from '../util/services.js';
 import { OPT_OUT_KEY } from '../../../../common/storageKeys.js';
 import { StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
@@ -929,8 +929,6 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 	const voidSettings = useSettingsState()
 	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
 
-	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
-
 	return (
 		<div className="border border-void-border-2 bg-void-bg-1 py-3 px-4 rounded-sm my-2">
 			<div className="flex items-center justify-between">
@@ -972,7 +970,7 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 									data-tooltip-content={tool.description || ''}
 									data-tooltip-class-name='void-max-w-[300px]'
 								>
-									{removeUniquePrefix(tool.name)}
+									{removeMCPToolNamePrefix(tool.name)}
 								</span>
 							))
 						) : (

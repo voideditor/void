@@ -329,6 +329,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IMCPService private readonly _mcpService: IMCPService,
 	) {
 		super()
+		console.log('[DEBUG] ChatThreadService constructor called')
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
 
 		const readThreads = this._readAllThreads() || {}
@@ -751,6 +752,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const { chatMode } = this._settingsService.state.globalSettings // should not change as we loop even if user changes it, so it goes here
 		const { overridesOfModel } = this._settingsService.state
 
+		console.log(`[CHAT AGENT] Starting chat agent in mode: ${chatMode}`)
+
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
 		let isRunningWhenEnd: IsRunningType = undefined
@@ -877,6 +880,13 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				// llm res success
 				const { toolCall, info } = llmRes
 
+				console.log(`[CHAT AGENT] LLM response received. Has tool call: ${!!toolCall}`)
+				if (toolCall) {
+					console.log(`[CHAT AGENT] Tool call requested: ${toolCall.name}`, toolCall.rawParams)
+				} else {
+					console.log(`[CHAT AGENT] No tool call, just text response`)
+				}
+
 				this._addMessageToThread(threadId, { role: 'assistant', displayContent: info.fullText, reasoning: info.fullReasoning, anthropicReasoning: info.anthropicReasoning })
 
 				this._setStreamState(threadId, { isRunning: 'idle', interrupt: 'not_needed' }) // just decorative for clarity
@@ -885,6 +895,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (toolCall) {
 					const mcpTools = this._mcpService.getMCPTools()
 					const mcpTool = mcpTools?.find(t => t.name === toolCall.name)
+					console.log(`[CHAT AGENT] Looking for tool in MCP tools. Found: ${!!mcpTool}, Total MCP tools: ${mcpTools?.length ?? 0}`)
 
 					const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, toolCall.name, toolCall.id, mcpTool?.mcpServerName, { preapproved: false, unvalidatedToolParams: toolCall.rawParams })
 					if (interrupted) {

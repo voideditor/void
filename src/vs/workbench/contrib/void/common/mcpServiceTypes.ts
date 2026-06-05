@@ -238,5 +238,14 @@ export interface MCPToolCallParams {
 
 
 export const removeMCPToolNamePrefix = (name: string) => {
-	return name.split('_').slice(1).join('_')
+	// Remove server name prefix with __ separator
+	// Format: "server_name__tool_name" -> "tool_name"
+	// Handles underscores in both server and tool names correctly
+	const parts = name.split('__')
+	if (parts.length > 1) {
+		// Has prefix - remove first part (server name), keep rest
+		return parts.slice(1).join('__')
+	}
+	// No prefix found - return as is
+	return name
 }

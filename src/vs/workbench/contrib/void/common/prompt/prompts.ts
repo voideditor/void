@@ -378,7 +378,7 @@ export const availableTools = (chatMode: ChatMode | null, mcpTools: InternalTool
 }
 
 const toolCallDefinitionsXMLString = (tools: InternalToolInfo[]) => {
-	return `${tools.map((t, i) => {
+	const xmlString = `${tools.map((t, i) => {
 		const params = Object.keys(t.params).map(paramName => `<${paramName}>${t.params[paramName].description}</${paramName}>`).join('\n')
 		return `\
     ${i + 1}. ${t.name}
@@ -387,6 +387,8 @@ const toolCallDefinitionsXMLString = (tools: InternalToolInfo[]) => {
     <${t.name}>${!params ? '' : `\n${params}`}
     </${t.name}>`
 	}).join('\n\n')}`
+	console.log('[TOOLS XML] Full tool definitions being sent to LLM:', xmlString)
+	return xmlString
 }
 
 export const reParsedToolXMLString = (toolName: ToolName, toolParams: RawToolParamsObj) => {
@@ -401,12 +403,23 @@ export const reParsedToolXMLString = (toolName: ToolName, toolParams: RawToolPar
 // - You are allowed to call multiple tools by specifying them consecutively. However, there should be NO text or writing between tool calls or after them.
 const systemToolsXMLPrompt = (chatMode: ChatMode, mcpTools: InternalToolInfo[] | undefined) => {
 	const tools = availableTools(chatMode, mcpTools)
+	console.log(`[TOOLS] Chat mode: ${chatMode}, MCP tools count: ${mcpTools?.length ?? 0}, Total tools available: ${tools?.length ?? 0}`)
+	if (mcpTools) {
+		console.log(`[TOOLS] MCP tool names:`, mcpTools.map(t => t.name))
+	}
 	if (!tools || tools.length === 0) return null
+
+	const toolXMLString = toolCallDefinitionsXMLString(tools)
+	console.log(`[TOOLS] First 500 chars of tool XML:`, toolXMLString.substring(0, 500))
+	if (mcpTools && mcpTools.length > 0) {
+		const mcpToolsOnly = tools?.filter(t => mcpTools.some(mcp => mcp.name === t.name))
+		console.log(`[TOOLS] MCP tools in final list:`, mcpToolsOnly?.map(t => `${t.name} - ${t.description.substring(0, 50)}`))
+	}
 
 	const toolXMLDefinitions = (`\
     Available tools:
 
-    ${toolCallDefinitionsXMLString(tools)}`)
+    ${toolXMLString}`)
 
 	const toolCallXMLGuidelines = (`\
     Tool calling details:

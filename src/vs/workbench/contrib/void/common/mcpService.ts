@@ -91,6 +91,7 @@ class MCPService extends Disposable implements IMCPService {
 			// console.log('GOT EVENT', e)
 			this._setMCPServerState(e.response.name, e.response.newServer)
 		}
+
 		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventResponse>)(onEvent));
@@ -101,19 +102,23 @@ class MCPService extends Disposable implements IMCPService {
 
 	private async _initialize() {
 		try {
+			console.log('[MCP SERVICE] Starting initialization...');
 			await this.voidSettingsService.waitForInitState;
 
 			// Create .mcpConfig if it doesn't exist
 			const mcpConfigUri = await this._getMCPConfigFilePath();
+			console.log('[MCP SERVICE] Config file path:', mcpConfigUri.toString());
 			const fileExists = await this._configFileExists(mcpConfigUri);
+			console.log('[MCP SERVICE] Config file exists:', fileExists);
 			if (!fileExists) {
 				await this._createMCPConfigFile(mcpConfigUri);
-				console.log('MCP Config file created:', mcpConfigUri.toString());
+				console.log('[MCP SERVICE] Config file created:', mcpConfigUri.toString());
 			}
 			await this._addMCPConfigFileWatcher();
 			await this._refreshMCPServers();
+			console.log('[MCP SERVICE] Initialization complete. Servers:', Object.keys(this.state.mcpServerOfName));
 		} catch (error) {
-			console.error('Error initializing MCPService:', error);
+			console.error('[MCP SERVICE] Error initializing MCPService:', error);
 		}
 	}
 
@@ -184,18 +189,22 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	public getMCPTools(): InternalToolInfo[] | undefined {
+		console.log('[MCP SERVICE] getMCPTools called. Server count:', Object.keys(this.state.mcpServerOfName).length);
 		const allTools: InternalToolInfo[] = []
 		for (const serverName in this.state.mcpServerOfName) {
 			const server = this.state.mcpServerOfName[serverName];
+			console.log(`[MCP SERVICE] Server "${serverName}" status: ${server.status}, tools count: ${server.tools?.length ?? 0}`);
 			server.tools?.forEach(tool => {
 				allTools.push({
 					description: tool.description || '',
 					params: this._transformInputSchemaToParams(tool.inputSchema),
-					name: tool.name,
+					// Always prefix with server name using __ separator
+					name: `${serverName}__${tool.name}`,
 					mcpServerName: serverName,
 				})
 			})
 		}
+		console.log('[MCP SERVICE] Total MCP tools collected:', allTools.length);
 		if (allTools.length === 0) return undefined
 		return allTools
 	}

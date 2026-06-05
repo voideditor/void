@@ -106,6 +106,19 @@ export class MCPChannel implements IServerChannel {
 		}
 		catch (e) {
 			console.error('mcp channel: Call Error:', e)
+			// For callTool command, return proper error response instead of undefined
+			if (command === 'callTool') {
+				const p: MCPToolCallParams = params
+				const errorResponse: MCPToolErrorResponse = {
+					event: 'error',
+					text: `MCP Channel Error: ${e instanceof Error ? e.message : String(e)}`,
+					toolName: p.toolName || 'unknown',
+					serverName: p.serverName || 'unknown',
+				}
+				return errorResponse
+			}
+			// For other commands, re-throw
+			throw e
 		}
 	}
 
@@ -175,10 +188,9 @@ export class MCPChannel implements IServerChannel {
 				await client.connect(transport);
 				console.log(`Connected via HTTP to ${serverName}`);
 				const { tools } = await client.listTools()
-				const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
 				info = {
 					status: isOn ? 'success' : 'offline',
-					tools: toolsWithUniqueName,
+					tools: tools,
 					command: server.url.toString(),
 				}
 			} catch (httpErr) {
@@ -186,16 +198,16 @@ export class MCPChannel implements IServerChannel {
 				transport = new SSEClientTransport(server.url);
 				await client.connect(transport);
 				const { tools } = await client.listTools()
-				const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
 				console.log(`Connected via SSE to ${serverName}`);
 				info = {
 					status: isOn ? 'success' : 'offline',
-					tools: toolsWithUniqueName,
+					tools: tools,
 					command: server.url.toString(),
 				}
 			}
 		} else if (server.command) {
 			// console.log('ENV DATA: ', server.env)
+			console.log(`[MCP CHANNEL] Creating StdioClientTransport for ${serverName}`)
 			transport = new StdioClientTransport({
 				command: server.command,
 				args: server.args,
@@ -205,11 +217,13 @@ export class MCPChannel implements IServerChannel {
 				} as Record<string, string>,
 			});
 
+			console.log(`[MCP CHANNEL] Connecting to ${serverName}...`)
 			await client.connect(transport)
+			console.log(`[MCP CHANNEL] Connected to ${serverName}, now calling listTools()`)
 
 			// Get the tools from the server
 			const { tools } = await client.listTools()
-			const toolsWithUniqueName = tools.map(({ name, ...rest }) => ({ name: this._addUniquePrefix(name), ...rest }))
+			console.log(`[MCP CHANNEL] Received ${tools.length} tools from ${serverName}`)
 
 			// Create a full command string for display
 			const fullCommand = `${server.command} ${server.args?.join(' ') || ''}`
@@ -217,7 +231,7 @@ export class MCPChannel implements IServerChannel {
 			// Format server object
 			info = {
 				status: isOn ? 'success' : 'offline',
-				tools: toolsWithUniqueName,
+				tools: tools,
 				command: fullCommand,
 			}
 
@@ -227,10 +241,6 @@ export class MCPChannel implements IServerChannel {
 
 
 		return { _client: client, mcpServerEntryJSON: server, mcpServer: info }
-	}
-
-	private _addUniquePrefix(base: string) {
-		return `${Math.random().toString(36).slice(2, 8)}_${base}`;
 	}
 
 	private async _createClient(serverConfig: MCPConfigFileEntryJSON, serverName: string, isOn = true): Promise<ClientInfo> {
@@ -270,6 +280,8 @@ export class MCPChannel implements IServerChannel {
 		if (isOn) {
 			// this.mcpEmitters.serverEvent.onChangeLoading.fire(getLoadingServerObject(serverName, isOn))
 			const clientInfo = await this._createClientUnsafe(this.infoOfClientId[serverName].mcpServerEntryJSON, serverName, isOn)
+			// Update the stored client info
+			this.infoOfClientId[serverName] = clientInfo
 			this.mcpEmitters.serverEvent.onUpdate.fire({
 				response: {
 					name: serverName,
@@ -308,22 +320,29 @@ export class MCPChannel implements IServerChannel {
 		const { _client: client } = server
 		if (!client) throw new Error(`Client for server ${serverName} not found`)
 
+		const actualToolName = removeMCPToolNamePrefix(toolName)
+		console.log(`[MCP] Calling tool "${actualToolName}" on server "${serverName}" with params:`, JSON.stringify(params, null, 2))
+
 		// Call the tool with the provided parameters
 		const response = await client.callTool({
-			name: removeMCPToolNamePrefix(toolName),
+			name: actualToolName,
 			arguments: params
 		})
 		const { content } = response as CallToolResult
 		const returnValue = content[0]
 
+		console.log(`[MCP] Tool "${actualToolName}" response type: ${returnValue.type}, isError: ${response.isError}`)
+
 		if (returnValue.type === 'text') {
 			// handle text response
 
 			if (response.isError) {
+				console.error(`[MCP] Tool call error: ${returnValue.text}`)
 				throw new Error(`Tool call error: ${returnValue.text}`)
 			}
 
 			// handle success
+			console.log(`[MCP] Tool call successful, result: ${returnValue.text}`)
 			return {
 				event: 'text',
 				text: returnValue.text,

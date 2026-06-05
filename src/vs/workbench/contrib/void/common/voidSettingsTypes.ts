@@ -106,8 +106,12 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'awsBedrock') {
 		return { title: 'AWS Bedrock', }
 	}
-
-	throw new Error(`descOfProviderName: Unknown provider name: "${providerName}"`)
+	else if (providerName === 'githubModels') {
+		return { title: 'GitHub Models', }
+	}
+	else {
+		throw new Error(`Unknown provider name: ${providerName}`)
+	}
 }
 
 export const subTextMdOfProviderName = (providerName: ProviderName): string => {
@@ -128,6 +132,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'vLLM') return 'Read more about custom [Endpoints here](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).'
 	if (providerName === 'lmStudio') return 'Read more about custom [Endpoints here](https://lmstudio.ai/docs/app/api/endpoints/openai).'
 	if (providerName === 'liteLLM') return 'Read more about endpoints [here](https://docs.litellm.ai/docs/providers/openai_compatible).'
+	if (providerName === 'githubModels') return 'Use a fine-grained Personal Access Token with the `models:read` scope. Create one at [GitHub Settings > Developer Settings > Personal Access Tokens > Fine-grained tokens](https://github.com/settings/tokens?type=beta).'
 
 	throw new Error(`subTextMdOfProviderName: Unknown provider name: "${providerName}"`)
 }
@@ -350,6 +355,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.awsBedrock,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.awsBedrock),
+		_didFillInProviderSettings: undefined,
+	},
+	githubModels: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.githubModels,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.githubModels),
 		_didFillInProviderSettings: undefined,
 	},
 }

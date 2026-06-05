@@ -1,0 +1,2636 @@
+{
+  "$ref": "#/definitions/ConfigYaml",
+  "definitions": {
+    "ConfigYaml": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "metadata": {
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "tags": {
+                  "type": "string"
+                },
+                "sourceCodeUrl": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "author": {
+                  "type": "string"
+                },
+                "license": {
+                  "type": "string"
+                },
+                "iconUrl": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "requestOptions": {
+          "type": "object",
+          "properties": {
+            "timeout": {
+              "type": "number"
+            },
+            "verifySsl": {
+              "type": "boolean"
+            },
+            "caBundlePath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "proxy": {
+              "type": "string"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "extraBodyProperties": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "noProxy": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "clientCertificate": {
+              "type": "object",
+              "properties": {
+                "cert": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "passphrase": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cert",
+                "key"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      },
+                      "apiBase": {
+                        "type": "string"
+                      },
+                      "maxStopWords": {
+                        "type": "number"
+                      },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "chat",
+                            "autocomplete",
+                            "embed",
+                            "rerank",
+                            "edit",
+                            "apply",
+                            "summarize",
+                            "subagent"
+                          ]
+                        }
+                      },
+                      "capabilities": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": "tool_use"
+                            },
+                            {
+                              "type": "string",
+                              "const": "image_input"
+                            },
+                            {
+                              "type": "string",
+                              "const": "next_edit"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "defaultCompletionOptions": {
+                        "type": "object",
+                        "properties": {
+                          "contextLength": {
+                            "type": "number"
+                          },
+                          "maxTokens": {
+                            "type": "number"
+                          },
+                          "temperature": {
+                            "type": "number"
+                          },
+                          "topP": {
+                            "type": "number"
+                          },
+                          "topK": {
+                            "type": "number"
+                          },
+                          "minP": {
+                            "type": "number"
+                          },
+                          "presencePenalty": {
+                            "type": "number"
+                          },
+                          "frequencyPenalty": {
+                            "type": "number"
+                          },
+                          "stop": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "n": {
+                            "type": "number"
+                          },
+                          "reasoning": {
+                            "type": "boolean"
+                          },
+                          "reasoningBudgetTokens": {
+                            "type": "number"
+                          },
+                          "promptCaching": {
+                            "type": "boolean"
+                          },
+                          "stream": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "cacheBehavior": {
+                        "type": "object",
+                        "properties": {
+                          "cacheSystemMessage": {
+                            "type": "boolean"
+                          },
+                          "cacheConversation": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "requestOptions": {
+                        "type": "object",
+                        "properties": {
+                          "timeout": {
+                            "type": "number"
+                          },
+                          "verifySsl": {
+                            "type": "boolean"
+                          },
+                          "caBundlePath": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "proxy": {
+                            "type": "string"
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "extraBodyProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "noProxy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "clientCertificate": {
+                            "type": "object",
+                            "properties": {
+                              "cert": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "passphrase": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "cert",
+                              "key"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "embedOptions": {
+                        "type": "object",
+                        "properties": {
+                          "maxChunkSize": {
+                            "type": "number"
+                          },
+                          "maxBatchSize": {
+                            "type": "number"
+                          },
+                          "embeddingPrefixes": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "chatOptions": {
+                        "type": "object",
+                        "properties": {
+                          "baseSystemMessage": {
+                            "type": "string"
+                          },
+                          "baseAgentSystemMessage": {
+                            "type": "string"
+                          },
+                          "basePlanSystemMessage": {
+                            "type": "string"
+                          },
+                          "toolOverrides": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "description": {
+                                  "type": "string"
+                                },
+                                "displayTitle": {
+                                  "type": "string"
+                                },
+                                "wouldLikeTo": {
+                                  "type": "string"
+                                },
+                                "isCurrently": {
+                                  "type": "string"
+                                },
+                                "hasAlready": {
+                                  "type": "string"
+                                },
+                                "systemMessageDescription": {
+                                  "type": "object",
+                                  "properties": {
+                                    "prefix": {
+                                      "type": "string"
+                                    },
+                                    "exampleArgs": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "array",
+                                        "minItems": 2,
+                                        "maxItems": 2,
+                                        "items": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": [
+                                              "string",
+                                              "number"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "disabled": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "promptTemplates": {
+                        "type": "object",
+                        "properties": {
+                          "apply": {
+                            "type": "string"
+                          },
+                          "chat": {
+                            "type": "string",
+                            "enum": [
+                              "llama2",
+                              "alpaca",
+                              "zephyr",
+                              "phi2",
+                              "phind",
+                              "anthropic",
+                              "chatml",
+                              "none",
+                              "openchat",
+                              "deepseek",
+                              "xwin-coder",
+                              "neural-chat",
+                              "codellama-70b",
+                              "llava",
+                              "gemma",
+                              "granite",
+                              "llama3",
+                              "codestral"
+                            ]
+                          },
+                          "edit": {
+                            "type": "string"
+                          },
+                          "autocomplete": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "useLegacyCompletionsEndpoint": {
+                        "type": "boolean"
+                      },
+                      "env": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "boolean",
+                            "number"
+                          ]
+                        }
+                      },
+                      "autocompleteOptions": {
+                        "type": "object",
+                        "properties": {
+                          "disable": {
+                            "type": "boolean"
+                          },
+                          "maxPromptTokens": {
+                            "type": "number"
+                          },
+                          "debounceDelay": {
+                            "type": "number"
+                          },
+                          "modelTimeout": {
+                            "type": "number"
+                          },
+                          "maxSuffixPercentage": {
+                            "type": "number"
+                          },
+                          "prefixPercentage": {
+                            "type": "number"
+                          },
+                          "transform": {
+                            "type": "boolean"
+                          },
+                          "template": {
+                            "type": "string"
+                          },
+                          "onlyMyCode": {
+                            "type": "boolean"
+                          },
+                          "useCache": {
+                            "type": "boolean"
+                          },
+                          "useImports": {
+                            "type": "boolean"
+                          },
+                          "useRecentlyEdited": {
+                            "type": "boolean"
+                          },
+                          "useRecentlyOpened": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeClipboard": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeRecentlyVisitedRanges": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeRecentlyEditedRanges": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeDiff": {
+                            "type": "boolean"
+                          },
+                          "experimental_enableStaticContextualization": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "provider": {
+                        "type": "string",
+                        "const": "continue-proxy"
+                      },
+                      "apiKeyLocation": {
+                        "type": "string"
+                      },
+                      "envSecretLocations": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "orgScopeId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "onPremProxyUrl": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "model",
+                      "provider",
+                      "orgScopeId",
+                      "onPremProxyUrl"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      },
+                      "apiBase": {
+                        "type": "string"
+                      },
+                      "maxStopWords": {
+                        "type": "number"
+                      },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "chat",
+                            "autocomplete",
+                            "embed",
+                            "rerank",
+                            "edit",
+                            "apply",
+                            "summarize",
+                            "subagent"
+                          ]
+                        }
+                      },
+                      "capabilities": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": "tool_use"
+                            },
+                            {
+                              "type": "string",
+                              "const": "image_input"
+                            },
+                            {
+                              "type": "string",
+                              "const": "next_edit"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "defaultCompletionOptions": {
+                        "type": "object",
+                        "properties": {
+                          "contextLength": {
+                            "type": "number"
+                          },
+                          "maxTokens": {
+                            "type": "number"
+                          },
+                          "temperature": {
+                            "type": "number"
+                          },
+                          "topP": {
+                            "type": "number"
+                          },
+                          "topK": {
+                            "type": "number"
+                          },
+                          "minP": {
+                            "type": "number"
+                          },
+                          "presencePenalty": {
+                            "type": "number"
+                          },
+                          "frequencyPenalty": {
+                            "type": "number"
+                          },
+                          "stop": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "n": {
+                            "type": "number"
+                          },
+                          "reasoning": {
+                            "type": "boolean"
+                          },
+                          "reasoningBudgetTokens": {
+                            "type": "number"
+                          },
+                          "promptCaching": {
+                            "type": "boolean"
+                          },
+                          "stream": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "cacheBehavior": {
+                        "type": "object",
+                        "properties": {
+                          "cacheSystemMessage": {
+                            "type": "boolean"
+                          },
+                          "cacheConversation": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "requestOptions": {
+                        "type": "object",
+                        "properties": {
+                          "timeout": {
+                            "type": "number"
+                          },
+                          "verifySsl": {
+                            "type": "boolean"
+                          },
+                          "caBundlePath": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "proxy": {
+                            "type": "string"
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "extraBodyProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "noProxy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "clientCertificate": {
+                            "type": "object",
+                            "properties": {
+                              "cert": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "passphrase": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "cert",
+                              "key"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "embedOptions": {
+                        "type": "object",
+                        "properties": {
+                          "maxChunkSize": {
+                            "type": "number"
+                          },
+                          "maxBatchSize": {
+                            "type": "number"
+                          },
+                          "embeddingPrefixes": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "chatOptions": {
+                        "type": "object",
+                        "properties": {
+                          "baseSystemMessage": {
+                            "type": "string"
+                          },
+                          "baseAgentSystemMessage": {
+                            "type": "string"
+                          },
+                          "basePlanSystemMessage": {
+                            "type": "string"
+                          },
+                          "toolOverrides": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "description": {
+                                  "type": "string"
+                                },
+                                "displayTitle": {
+                                  "type": "string"
+                                },
+                                "wouldLikeTo": {
+                                  "type": "string"
+                                },
+                                "isCurrently": {
+                                  "type": "string"
+                                },
+                                "hasAlready": {
+                                  "type": "string"
+                                },
+                                "systemMessageDescription": {
+                                  "type": "object",
+                                  "properties": {
+                                    "prefix": {
+                                      "type": "string"
+                                    },
+                                    "exampleArgs": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "array",
+                                        "minItems": 2,
+                                        "maxItems": 2,
+                                        "items": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": [
+                                              "string",
+                                              "number"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "disabled": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "promptTemplates": {
+                        "type": "object",
+                        "properties": {
+                          "apply": {
+                            "type": "string"
+                          },
+                          "chat": {
+                            "type": "string",
+                            "enum": [
+                              "llama2",
+                              "alpaca",
+                              "zephyr",
+                              "phi2",
+                              "phind",
+                              "anthropic",
+                              "chatml",
+                              "none",
+                              "openchat",
+                              "deepseek",
+                              "xwin-coder",
+                              "neural-chat",
+                              "codellama-70b",
+                              "llava",
+                              "gemma",
+                              "granite",
+                              "llama3",
+                              "codestral"
+                            ]
+                          },
+                          "edit": {
+                            "type": "string"
+                          },
+                          "autocomplete": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "useLegacyCompletionsEndpoint": {
+                        "type": "boolean"
+                      },
+                      "env": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "boolean",
+                            "number"
+                          ]
+                        }
+                      },
+                      "autocompleteOptions": {
+                        "type": "object",
+                        "properties": {
+                          "disable": {
+                            "type": "boolean"
+                          },
+                          "maxPromptTokens": {
+                            "type": "number"
+                          },
+                          "debounceDelay": {
+                            "type": "number"
+                          },
+                          "modelTimeout": {
+                            "type": "number"
+                          },
+                          "maxSuffixPercentage": {
+                            "type": "number"
+                          },
+                          "prefixPercentage": {
+                            "type": "number"
+                          },
+                          "transform": {
+                            "type": "boolean"
+                          },
+                          "template": {
+                            "type": "string"
+                          },
+                          "onlyMyCode": {
+                            "type": "boolean"
+                          },
+                          "useCache": {
+                            "type": "boolean"
+                          },
+                          "useImports": {
+                            "type": "boolean"
+                          },
+                          "useRecentlyEdited": {
+                            "type": "boolean"
+                          },
+                          "useRecentlyOpened": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeClipboard": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeRecentlyVisitedRanges": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeRecentlyEditedRanges": {
+                            "type": "boolean"
+                          },
+                          "experimental_includeDiff": {
+                            "type": "boolean"
+                          },
+                          "experimental_enableStaticContextualization": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "model",
+                      "provider"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "anthropic/claude-sonnet-4",
+                          "togetherai/llama-4-maverick-instruct-17bx128e",
+                          "google/gemini-2.5-pro",
+                          "mistral/codestral",
+                          "voyageai/voyage-code-3",
+                          "anthropic/claude-sonnet-4-5",
+                          "relace/instant-apply",
+                          "xai/grok-2",
+                          "openai/gpt-4o",
+                          "togetherai/llama-4-scout-instruct-17bx16e",
+                          "anthropic/claude-haiku-4-5",
+                          "google/gemini-2.0-flash",
+                          "voyageai/rerank-2",
+                          "anthropic/claude-opus-4-1",
+                          "ollama/deepseek-r1",
+                          "morphllm/morph-v0",
+                          "lmstudio/deepseek-r1",
+                          "openai/o3-mini",
+                          "voyageai/voyage-code-2",
+                          "ollama/qwen2.5-coder-1.5b",
+                          "openai/gpt-4o-mini",
+                          "openai/o1",
+                          "mistral/mistral-embed",
+                          "ollama/nomic-embed-text-latest",
+                          "lmstudio/deepseek-r1-8b",
+                          "mistral/mistral-large",
+                          "lmstudio/qwen2.5-coder-1.5b",
+                          "ollama/deepseek-r1-8b",
+                          "openai/text-embedding-3-large"
+                        ]
+                      }
+                    ]
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "apiKey": {
+                            "type": "string"
+                          },
+                          "apiBase": {
+                            "type": "string"
+                          },
+                          "maxStopWords": {
+                            "type": "number"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "chat",
+                                "autocomplete",
+                                "embed",
+                                "rerank",
+                                "edit",
+                                "apply",
+                                "summarize",
+                                "subagent"
+                              ]
+                            }
+                          },
+                          "capabilities": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": "tool_use"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "image_input"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "next_edit"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            }
+                          },
+                          "defaultCompletionOptions": {
+                            "type": "object",
+                            "properties": {
+                              "contextLength": {
+                                "type": "number"
+                              },
+                              "maxTokens": {
+                                "type": "number"
+                              },
+                              "temperature": {
+                                "type": "number"
+                              },
+                              "topP": {
+                                "type": "number"
+                              },
+                              "topK": {
+                                "type": "number"
+                              },
+                              "minP": {
+                                "type": "number"
+                              },
+                              "presencePenalty": {
+                                "type": "number"
+                              },
+                              "frequencyPenalty": {
+                                "type": "number"
+                              },
+                              "stop": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "n": {
+                                "type": "number"
+                              },
+                              "reasoning": {
+                                "type": "boolean"
+                              },
+                              "reasoningBudgetTokens": {
+                                "type": "number"
+                              },
+                              "promptCaching": {
+                                "type": "boolean"
+                              },
+                              "stream": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "cacheBehavior": {
+                            "type": "object",
+                            "properties": {
+                              "cacheSystemMessage": {
+                                "type": "boolean"
+                              },
+                              "cacheConversation": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "requestOptions": {
+                            "type": "object",
+                            "properties": {
+                              "timeout": {
+                                "type": "number"
+                              },
+                              "verifySsl": {
+                                "type": "boolean"
+                              },
+                              "caBundlePath": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                ]
+                              },
+                              "proxy": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "extraBodyProperties": {
+                                "type": "object",
+                                "additionalProperties": {}
+                              },
+                              "noProxy": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "clientCertificate": {
+                                "type": "object",
+                                "properties": {
+                                  "cert": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "passphrase": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "cert",
+                                  "key"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "embedOptions": {
+                            "type": "object",
+                            "properties": {
+                              "maxChunkSize": {
+                                "type": "number"
+                              },
+                              "maxBatchSize": {
+                                "type": "number"
+                              },
+                              "embeddingPrefixes": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "chatOptions": {
+                            "type": "object",
+                            "properties": {
+                              "baseSystemMessage": {
+                                "type": "string"
+                              },
+                              "baseAgentSystemMessage": {
+                                "type": "string"
+                              },
+                              "basePlanSystemMessage": {
+                                "type": "string"
+                              },
+                              "toolOverrides": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "object",
+                                  "properties": {
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "displayTitle": {
+                                      "type": "string"
+                                    },
+                                    "wouldLikeTo": {
+                                      "type": "string"
+                                    },
+                                    "isCurrently": {
+                                      "type": "string"
+                                    },
+                                    "hasAlready": {
+                                      "type": "string"
+                                    },
+                                    "systemMessageDescription": {
+                                      "type": "object",
+                                      "properties": {
+                                        "prefix": {
+                                          "type": "string"
+                                        },
+                                        "exampleArgs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "array",
+                                            "minItems": 2,
+                                            "maxItems": 2,
+                                            "items": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": [
+                                                  "string",
+                                                  "number"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "additionalProperties": false
+                                    },
+                                    "disabled": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "promptTemplates": {
+                            "type": "object",
+                            "properties": {
+                              "apply": {
+                                "type": "string"
+                              },
+                              "chat": {
+                                "type": "string",
+                                "enum": [
+                                  "llama2",
+                                  "alpaca",
+                                  "zephyr",
+                                  "phi2",
+                                  "phind",
+                                  "anthropic",
+                                  "chatml",
+                                  "none",
+                                  "openchat",
+                                  "deepseek",
+                                  "xwin-coder",
+                                  "neural-chat",
+                                  "codellama-70b",
+                                  "llava",
+                                  "gemma",
+                                  "granite",
+                                  "llama3",
+                                  "codestral"
+                                ]
+                              },
+                              "edit": {
+                                "type": "string"
+                              },
+                              "autocomplete": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "useLegacyCompletionsEndpoint": {
+                            "type": "boolean"
+                          },
+                          "env": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "boolean",
+                                "number"
+                              ]
+                            }
+                          },
+                          "autocompleteOptions": {
+                            "type": "object",
+                            "properties": {
+                              "disable": {
+                                "type": "boolean"
+                              },
+                              "maxPromptTokens": {
+                                "type": "number"
+                              },
+                              "debounceDelay": {
+                                "type": "number"
+                              },
+                              "modelTimeout": {
+                                "type": "number"
+                              },
+                              "maxSuffixPercentage": {
+                                "type": "number"
+                              },
+                              "prefixPercentage": {
+                                "type": "number"
+                              },
+                              "transform": {
+                                "type": "boolean"
+                              },
+                              "template": {
+                                "type": "string"
+                              },
+                              "onlyMyCode": {
+                                "type": "boolean"
+                              },
+                              "useCache": {
+                                "type": "boolean"
+                              },
+                              "useImports": {
+                                "type": "boolean"
+                              },
+                              "useRecentlyEdited": {
+                                "type": "boolean"
+                              },
+                              "useRecentlyOpened": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeClipboard": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeRecentlyVisitedRanges": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeRecentlyEditedRanges": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeDiff": {
+                                "type": "boolean"
+                              },
+                              "experimental_enableStaticContextualization": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "provider": {
+                            "type": "string",
+                            "const": "continue-proxy"
+                          },
+                          "apiKeyLocation": {
+                            "type": "string"
+                          },
+                          "envSecretLocations": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "apiKey": {
+                            "type": "string"
+                          },
+                          "apiBase": {
+                            "type": "string"
+                          },
+                          "maxStopWords": {
+                            "type": "number"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "chat",
+                                "autocomplete",
+                                "embed",
+                                "rerank",
+                                "edit",
+                                "apply",
+                                "summarize",
+                                "subagent"
+                              ]
+                            }
+                          },
+                          "capabilities": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": "tool_use"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "image_input"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "next_edit"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            }
+                          },
+                          "defaultCompletionOptions": {
+                            "type": "object",
+                            "properties": {
+                              "contextLength": {
+                                "type": "number"
+                              },
+                              "maxTokens": {
+                                "type": "number"
+                              },
+                              "temperature": {
+                                "type": "number"
+                              },
+                              "topP": {
+                                "type": "number"
+                              },
+                              "topK": {
+                                "type": "number"
+                              },
+                              "minP": {
+                                "type": "number"
+                              },
+                              "presencePenalty": {
+                                "type": "number"
+                              },
+                              "frequencyPenalty": {
+                                "type": "number"
+                              },
+                              "stop": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "n": {
+                                "type": "number"
+                              },
+                              "reasoning": {
+                                "type": "boolean"
+                              },
+                              "reasoningBudgetTokens": {
+                                "type": "number"
+                              },
+                              "promptCaching": {
+                                "type": "boolean"
+                              },
+                              "stream": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "cacheBehavior": {
+                            "type": "object",
+                            "properties": {
+                              "cacheSystemMessage": {
+                                "type": "boolean"
+                              },
+                              "cacheConversation": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "requestOptions": {
+                            "type": "object",
+                            "properties": {
+                              "timeout": {
+                                "type": "number"
+                              },
+                              "verifySsl": {
+                                "type": "boolean"
+                              },
+                              "caBundlePath": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                ]
+                              },
+                              "proxy": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "extraBodyProperties": {
+                                "type": "object",
+                                "additionalProperties": {}
+                              },
+                              "noProxy": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "clientCertificate": {
+                                "type": "object",
+                                "properties": {
+                                  "cert": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "passphrase": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "cert",
+                                  "key"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "embedOptions": {
+                            "type": "object",
+                            "properties": {
+                              "maxChunkSize": {
+                                "type": "number"
+                              },
+                              "maxBatchSize": {
+                                "type": "number"
+                              },
+                              "embeddingPrefixes": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "chatOptions": {
+                            "type": "object",
+                            "properties": {
+                              "baseSystemMessage": {
+                                "type": "string"
+                              },
+                              "baseAgentSystemMessage": {
+                                "type": "string"
+                              },
+                              "basePlanSystemMessage": {
+                                "type": "string"
+                              },
+                              "toolOverrides": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "object",
+                                  "properties": {
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "displayTitle": {
+                                      "type": "string"
+                                    },
+                                    "wouldLikeTo": {
+                                      "type": "string"
+                                    },
+                                    "isCurrently": {
+                                      "type": "string"
+                                    },
+                                    "hasAlready": {
+                                      "type": "string"
+                                    },
+                                    "systemMessageDescription": {
+                                      "type": "object",
+                                      "properties": {
+                                        "prefix": {
+                                          "type": "string"
+                                        },
+                                        "exampleArgs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "array",
+                                            "minItems": 2,
+                                            "maxItems": 2,
+                                            "items": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": [
+                                                  "string",
+                                                  "number"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "additionalProperties": false
+                                    },
+                                    "disabled": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "promptTemplates": {
+                            "type": "object",
+                            "properties": {
+                              "apply": {
+                                "type": "string"
+                              },
+                              "chat": {
+                                "type": "string",
+                                "enum": [
+                                  "llama2",
+                                  "alpaca",
+                                  "zephyr",
+                                  "phi2",
+                                  "phind",
+                                  "anthropic",
+                                  "chatml",
+                                  "none",
+                                  "openchat",
+                                  "deepseek",
+                                  "xwin-coder",
+                                  "neural-chat",
+                                  "codellama-70b",
+                                  "llava",
+                                  "gemma",
+                                  "granite",
+                                  "llama3",
+                                  "codestral"
+                                ]
+                              },
+                              "edit": {
+                                "type": "string"
+                              },
+                              "autocomplete": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "useLegacyCompletionsEndpoint": {
+                            "type": "boolean"
+                          },
+                          "env": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "boolean",
+                                "number"
+                              ]
+                            }
+                          },
+                          "autocompleteOptions": {
+                            "type": "object",
+                            "properties": {
+                              "disable": {
+                                "type": "boolean"
+                              },
+                              "maxPromptTokens": {
+                                "type": "number"
+                              },
+                              "debounceDelay": {
+                                "type": "number"
+                              },
+                              "modelTimeout": {
+                                "type": "number"
+                              },
+                              "maxSuffixPercentage": {
+                                "type": "number"
+                              },
+                              "prefixPercentage": {
+                                "type": "number"
+                              },
+                              "transform": {
+                                "type": "boolean"
+                              },
+                              "template": {
+                                "type": "string"
+                              },
+                              "onlyMyCode": {
+                                "type": "boolean"
+                              },
+                              "useCache": {
+                                "type": "boolean"
+                              },
+                              "useImports": {
+                                "type": "boolean"
+                              },
+                              "useRecentlyEdited": {
+                                "type": "boolean"
+                              },
+                              "useRecentlyOpened": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeClipboard": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeRecentlyVisitedRanges": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeRecentlyEditedRanges": {
+                                "type": "boolean"
+                              },
+                              "experimental_includeDiff": {
+                                "type": "boolean"
+                              },
+                              "experimental_enableStaticContextualization": {
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "provider": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "params": {}
+                },
+                "required": [
+                  "provider"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "params": {}
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "destination": {
+                    "type": "string"
+                  },
+                  "schema": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "noCode"
+                    ]
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "requestOptions": {
+                    "type": "object",
+                    "properties": {
+                      "timeout": {
+                        "type": "number"
+                      },
+                      "verifySsl": {
+                        "type": "boolean"
+                      },
+                      "caBundlePath": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      "proxy": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "extraBodyProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "noProxy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "clientCertificate": {
+                        "type": "object",
+                        "properties": {
+                          "cert": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "passphrase": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "cert",
+                          "key"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "apiKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "destination",
+                  "schema"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "destination": {
+                        "type": "string"
+                      },
+                      "schema": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+                      },
+                      "level": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "noCode"
+                        ]
+                      },
+                      "events": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "requestOptions": {
+                        "type": "object",
+                        "properties": {
+                          "timeout": {
+                            "type": "number"
+                          },
+                          "verifySsl": {
+                            "type": "boolean"
+                          },
+                          "caBundlePath": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "proxy": {
+                            "type": "string"
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "extraBodyProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "noProxy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "clientCertificate": {
+                            "type": "object",
+                            "properties": {
+                              "cert": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "passphrase": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "cert",
+                              "key"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "mcpServers": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "serverName": {
+                        "type": "string"
+                      },
+                      "faviconUrl": {
+                        "type": "string"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      },
+                      "sourceSlug": {
+                        "type": "string"
+                      },
+                      "connectionTimeout": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "stdio"
+                      },
+                      "args": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "env": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "cwd": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "command"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "serverName": {
+                        "type": "string"
+                      },
+                      "faviconUrl": {
+                        "type": "string"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      },
+                      "sourceSlug": {
+                        "type": "string"
+                      },
+                      "connectionTimeout": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "sse",
+                          "streamable-http"
+                        ]
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      },
+                      "requestOptions": {
+                        "type": "object",
+                        "properties": {
+                          "timeout": {
+                            "type": "number"
+                          },
+                          "verifySsl": {
+                            "type": "boolean"
+                          },
+                          "caBundlePath": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "proxy": {
+                            "type": "string"
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "extraBodyProperties": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "noProxy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "clientCertificate": {
+                            "type": "object",
+                            "properties": {
+                              "cert": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "passphrase": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "cert",
+                              "key"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "url"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "serverName": {
+                            "type": "string"
+                          },
+                          "faviconUrl": {
+                            "type": "string"
+                          },
+                          "sourceFile": {
+                            "type": "string"
+                          },
+                          "sourceSlug": {
+                            "type": "string"
+                          },
+                          "connectionTimeout": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "command": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "const": "stdio"
+                          },
+                          "args": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "env": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "cwd": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "serverName": {
+                            "type": "string"
+                          },
+                          "faviconUrl": {
+                            "type": "string"
+                          },
+                          "sourceFile": {
+                            "type": "string"
+                          },
+                          "sourceSlug": {
+                            "type": "string"
+                          },
+                          "connectionTimeout": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "sse",
+                              "streamable-http"
+                            ]
+                          },
+                          "apiKey": {
+                            "type": "string"
+                          },
+                          "requestOptions": {
+                            "type": "object",
+                            "properties": {
+                              "timeout": {
+                                "type": "number"
+                              },
+                              "verifySsl": {
+                                "type": "boolean"
+                              },
+                              "caBundlePath": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                ]
+                              },
+                              "proxy": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "extraBodyProperties": {
+                                "type": "object",
+                                "additionalProperties": {}
+                              },
+                              "noProxy": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "clientCertificate": {
+                                "type": "object",
+                                "properties": {
+                                  "cert": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "passphrase": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "cert",
+                                  "key"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "rule": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "globs": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      "regex": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      "alwaysApply": {
+                        "type": "boolean"
+                      },
+                      "invokable": {
+                        "type": "boolean"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "rule"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "prompts": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "sourceFile": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "prompt"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "docs": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "startUrl": {
+                    "type": "string"
+                  },
+                  "rootUrl": {
+                    "type": "string"
+                  },
+                  "faviconUrl": {
+                    "type": "string"
+                  },
+                  "useLocalCrawling": {
+                    "type": "boolean"
+                  },
+                  "sourceFile": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "startUrl"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "uses": {
+                    "type": "string"
+                  },
+                  "with": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "override": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "startUrl": {
+                        "type": "string"
+                      },
+                      "rootUrl": {
+                        "type": "string"
+                      },
+                      "faviconUrl": {
+                        "type": "string"
+                      },
+                      "useLocalCrawling": {
+                        "type": "boolean"
+                      },
+                      "sourceFile": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "uses"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -39,15 +39,15 @@ export enum ThemeSettings {
 }
 
 export enum ThemeSettingDefaults {
-	COLOR_THEME_DARK = 'Default Dark+', // Void changed this from 'Default Dark Modern'
-	COLOR_THEME_LIGHT = 'Default Light Modern',
+	COLOR_THEME_DARK = 'Hypno Dark', // Hypno changed this from 'Default Dark+'
+	COLOR_THEME_LIGHT = 'Hypno Light',
 	COLOR_THEME_HC_DARK = 'Default High Contrast',
 	COLOR_THEME_HC_LIGHT = 'Default High Contrast Light',
 
 	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Void changed this from 'Default Dark+'
 	COLOR_THEME_LIGHT_OLD = 'Default Light+',
 
-	FILE_ICON_THEME = 'vs-seti',
+	FILE_ICON_THEME = 'symbols',
 	PRODUCT_ICON_THEME = 'Default',
 }
 

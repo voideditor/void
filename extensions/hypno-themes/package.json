@@ -1,0 +1,29 @@
+{
+  "name": "hypno-themes",
+  "displayName": "Hypno Default Themes",
+  "description": "Default dark and light themes for Hypno Editor",
+  "version": "1.0.0",
+  "publisher": "hypno",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "contributes": {
+    "themes": [
+      {
+        "label": "Hypno Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hypno-dark.json"
+      },
+      {
+        "label": "Hypno Dark Midnight",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hypno-dark-midnight.json"
+      },
+      {
+        "label": "Hypno Light",
+        "uiTheme": "vs",
+        "path": "./themes/hypno-light.json"
+      }
+    ]
+  }
+}

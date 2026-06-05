@@ -3,7 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import electron, { BrowserWindowConstructorOptions } from 'electron';
+import electron, { BrowserWindowConstructorOptions, WebContentsView } from 'electron';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { DeferredPromise, RunOnceScheduler, timeout, Delayer } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { toErrorMessage } from '../../../base/common/errorMessage.js';
@@ -495,6 +497,58 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 
 	protected override _win: electron.BrowserWindow;
 
+	private _hypnoBrowserView?: WebContentsView;
+
+	private _getHypnoBrowserView(): WebContentsView {
+		if (!this._hypnoBrowserView) {
+			const __dirname = path.dirname(fileURLToPath(import.meta.url));
+			const preloadPath = path.join(__dirname, '../../../code/electron-main/hypno-browser-preload.js');
+
+			this._hypnoBrowserView = new WebContentsView({
+				webPreferences: {
+					preload: preloadPath,
+					contextIsolation: true,
+					nodeIntegration: false
+				}
+			});
+
+			this._win.contentView.addChildView(this._hypnoBrowserView);
+			this._hypnoBrowserView.setVisible(false);
+
+			// Handle browser-to-ide data flow (Phase 4 integration)
+			this._hypnoBrowserView.webContents.on('ipc-message', (event, channel, ...args) => {
+				if (channel === 'vscode:hypno-browser-click') {
+					this._win.webContents.send('vscode:hypno-forward-to-continue', args[0]);
+				} else if (channel === 'vscode:hypno-browser-inspect-disabled') {
+					this._win.webContents.send('vscode:hypno-browser-inspect-disabled');
+				}
+			});
+
+			// Navigation control
+			this._hypnoBrowserView.webContents.setWindowOpenHandler(({ url }) => {
+				this._hypnoBrowserView?.webContents.loadURL(url);
+				return { action: 'deny' };
+			});
+
+			this._hypnoBrowserView.webContents.removeAllListeners('will-navigate');
+
+			this._hypnoBrowserView.webContents.on('did-navigate', (event, url) => {
+				this._win.webContents.send('vscode:hypno-browser-navigated', url);
+			});
+			this._hypnoBrowserView.webContents.on('did-navigate-in-page', (event, url) => {
+				this._win.webContents.send('vscode:hypno-browser-navigated', url);
+			});
+
+			this._hypnoBrowserView.webContents.on('did-start-loading', () => {
+				this._win.webContents.send('vscode:hypno-browser-loading-state', true);
+			});
+			this._hypnoBrowserView.webContents.on('did-stop-loading', () => {
+				this._win.webContents.send('vscode:hypno-browser-loading-state', false);
+			});
+		}
+		return this._hypnoBrowserView;
+	}
+
 	get backupPath(): string | undefined { return this._config?.backupPath; }
 
 	get openedWorkspace(): IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier | undefined { return this._config?.workspace; }
@@ -736,6 +790,65 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			const headers = await this.getMarketplaceHeaders();
 
 			cb({ cancel: false, requestHeaders: Object.assign(details.requestHeaders, headers) });
+		});
+
+		// Hypno Native Browser IPC Handlers
+		electron.ipcMain.on('vscode:hypno-browser-command', (event, message) => {
+			if (event.sender !== this._win.webContents) return;
+
+			const view = this._getHypnoBrowserView();
+			switch (message.type) {
+				case 'show':
+					if (message.url) view.webContents.loadURL(message.url);
+					view.setVisible(true);
+					break;
+				case 'hide':
+					view.setVisible(false);
+					break;
+				case 'setBounds':
+					if (message.bounds) {
+						// === Hypno Native Browser Positioning Offsets ===
+						const offsetX = 0;
+						const offsetY = 0;
+
+						view.setBounds({
+							x: Math.round(message.bounds.x + offsetX),
+							y: Math.round(message.bounds.y + offsetY),
+							width: Math.round(message.bounds.width),
+							height: Math.round(message.bounds.height)
+						});
+					}
+					break;
+				case 'action':
+					if (message.action) {
+						switch (message.action.type) {
+							case 'go-back':
+								if (view.webContents.canGoBack()) view.webContents.goBack();
+								break;
+							case 'go-forward':
+								if (view.webContents.canGoForward()) view.webContents.goForward();
+								break;
+							case 'reload':
+								view.webContents.reload();
+								break;
+							case 'load-url': {
+								let targetUrl = message.action.url;
+								if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+									targetUrl = 'https://' + targetUrl;
+								}
+								view.webContents.loadURL(targetUrl);
+								break;
+							}
+							case 'inspect':
+								view.webContents.send('hypno-toggle-inspect');
+								break;
+							case 'open-external':
+								import('electron').then(electron => electron.shell.openExternal(message.action.url));
+								break;
+						}
+					}
+					break;
+			}
 		});
 	}
 

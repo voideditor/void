@@ -1,0 +1,25 @@
+{
+  "name": "hypno-native-browser",
+  "displayName": "Hypno Native Browser",
+  "description": "Native Browser Overlay for Hypno",
+  "version": "1.0.0",
+  "publisher": "hypno",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onCommand:hypno.openBrowser"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "hypno.openBrowser",
+        "title": "Hypno: Open Native Browser"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.70.0"
+  }
+}

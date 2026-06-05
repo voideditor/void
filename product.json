@@ -36,7 +36,37 @@
 		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
 		"itemUrl": "https://marketplace.visualstudio.com/items"
 	},
-	"builtInExtensions": [],
+	"builtInExtensions": [
+		{
+			"name": "hypno.hypno-themes",
+			"version": "1.0.0",
+			"sha256": "4512ee686ec903b430e209666f0577e153f4313455acad7d28de3f8468bc4053",
+			"vsix": "./extensions/hypno-themes/hypno-themes-1.0.0.vsix",
+			"metadata": {
+				"id": "hypno-themes-builtin",
+				"publisherId": { "publisherId": "hypno", "publisherName": "Hypno", "displayName": "Hypno", "flags": "verified" },
+				"publisherDisplayName": "Hypno"
+			}
+		},
+		{
+			"name": "miguelsolorio.symbols",
+			"version": "0.0.25",
+			"repo": "https://github.com/miguelsolorio/vscode-symbols",
+			"metadata": {
+				"id": "miguelsolorio-symbols-builtin",
+				"publisherId": {
+					"publisherId": "miguelsolorio",
+					"publisherName": "miguelsolorio",
+					"displayName": "Miguel Solorio",
+					"flags": "verified"
+				},
+				"publisherDisplayName": "Miguel Solorio"
+			}
+		}
+	],
+	"extensionAllowedProposedApi": [
+		"Continue.continue"
+	],
 	"linkProtectionTrustedDomains": [
 		"https://voideditor.com",
 		"https://voideditor.dev",

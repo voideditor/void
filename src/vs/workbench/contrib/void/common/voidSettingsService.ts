@@ -246,6 +246,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 	) {
 		super()
 
+		this._fetchOpenRouterFreeModels()
 		// at the start, we haven't read the partial config yet, but we need to set state to something
 		this.state = defaultState()
 		let resolver: () => void = () => { }
@@ -289,7 +290,7 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 			}
 			// add disableSystemMessage feature
 			if (readS.globalSettings.disableSystemMessage === undefined) readS.globalSettings.disableSystemMessage = false;
-			
+
 			// add autoAcceptLLMChanges feature
 			if (readS.globalSettings.autoAcceptLLMChanges === undefined) readS.globalSettings.autoAcceptLLMChanges = false;
 		}
@@ -363,6 +364,28 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 		const state = this.state
 		const encryptedState = await this._encryptionService.encrypt(JSON.stringify(state))
 		this._storageService.store(VOID_SETTINGS_STORAGE_KEY, encryptedState, StorageScope.APPLICATION, StorageTarget.USER);
+	}
+
+	private async _fetchOpenRouterFreeModels() {
+		const res = await fetch('https://openrouter.ai/api/v1/models');
+
+		if (res.status !== 200) {
+			throw new Error(`[${res.status}] Error fetching OpenRouter models: ${res.statusText}`);
+		}
+		interface OpenRouterModel {
+			id: string
+			name: string
+		}
+		const { data: models } = await res.json() as { data: [OpenRouterModel] };
+		const freeModels = models.filter(m => m.id.includes(':free'));
+		const providerName = 'openRouter';
+		for (const model of freeModels) {
+			this.addModel(providerName, model.id);
+		}
+		const modelsToDelete = this.state.settingsOfProvider[providerName].models.filter(m => freeModels.some(f => f.id === m.modelName) === false && m.modelName.includes(':free'));
+		for (const m of modelsToDelete) {
+			this.deleteModel(providerName, m.modelName);
+		}
 	}
 
 	setSettingOfProvider: SetSettingOfProviderFn = async (providerName, settingName, newVal) => {

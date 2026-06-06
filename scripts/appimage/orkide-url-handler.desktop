@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Orkide - URL Handler
+Comment=Open source AI code editor.
+GenericName=Text Editor
+Exec=orkide --open-url %U
+Icon=orkide
+Type=Application
+NoDisplay=true
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=x-scheme-handler/orkide;
+Keywords=orkide;

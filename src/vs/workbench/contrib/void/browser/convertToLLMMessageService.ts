@@ -7,7 +7,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ChatMessage } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
-import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
+import { reParsedToolXMLString, chat_systemMessage, agentSystemMessage } from '../common/prompt/prompts.js';
 import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
@@ -593,7 +593,9 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const mcpTools = this.mcpService.getMCPTools()
 
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
-		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
+		const systemMessage = chatMode === 'agent'
+			? agentSystemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, mcpTools, includeXMLToolDefinitions })
+			: chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
 		return systemMessage
 	}
 

@@ -91,6 +91,9 @@ export const displayInfoOfProviderName = (providerName: ProviderName): DisplayIn
 	else if (providerName === 'groq') {
 		return { title: 'Groq', }
 	}
+	else if (providerName === 'together') {
+		return { title: 'Together', }
+	}
 	else if (providerName === 'xAI') {
 		return { title: 'Grok (xAI)', }
 	}
@@ -118,6 +121,7 @@ export const subTextMdOfProviderName = (providerName: ProviderName): string => {
 	if (providerName === 'openRouter') return 'Get your [API Key here](https://openrouter.ai/settings/keys). Read about [rate limits here](https://openrouter.ai/docs/api-reference/limits).'
 	if (providerName === 'gemini') return 'Get your [API Key here](https://aistudio.google.com/apikey). Read about [rate limits here](https://ai.google.dev/gemini-api/docs/rate-limits#current-rate-limits).'
 	if (providerName === 'groq') return 'Get your [API Key here](https://console.groq.com/keys).'
+	if (providerName === 'together') return 'Get your [API Key here](https://together.xyz/console/api-keys).'
 	if (providerName === 'xAI') return 'Get your [API Key here](https://console.x.ai).'
 	if (providerName === 'mistral') return 'Get your [API Key here](https://console.mistral.ai/api-keys).'
 	if (providerName === 'openAICompatible') return `Use any provider that's OpenAI-compatible (use this for llama.cpp and more).`
@@ -150,13 +154,14 @@ export const displayInfoOfSettingName = (providerName: ProviderName, settingName
 						providerName === 'openRouter' ? 'sk-or-key...' : // sk-or-v1-key
 							providerName === 'gemini' ? 'AIzaSy...' :
 								providerName === 'groq' ? 'gsk_key...' :
-									providerName === 'openAICompatible' ? 'sk-key...' :
-										providerName === 'xAI' ? 'xai-key...' :
-											providerName === 'mistral' ? 'api-key...' :
-												providerName === 'googleVertex' ? 'AIzaSy...' :
-													providerName === 'microsoftAzure' ? 'key-...' :
-														providerName === 'awsBedrock' ? 'key-...' :
-															'',
+									providerName === 'together' ? 'sk-tog-key...' :
+										providerName === 'openAICompatible' ? 'sk-key...' :
+											providerName === 'xAI' ? 'xai-key...' :
+												providerName === 'mistral' ? 'api-key...' :
+													providerName === 'googleVertex' ? 'AIzaSy...' :
+														providerName === 'microsoftAzure' ? 'key-...' :
+															providerName === 'awsBedrock' ? 'key-...' :
+																'',
 
 			isPasswordField: true,
 		}
@@ -308,6 +313,12 @@ export const defaultSettingsOfProvider: SettingsOfProvider = {
 		...defaultCustomSettings,
 		...defaultProviderSettings.groq,
 		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.groq),
+		_didFillInProviderSettings: undefined,
+	},
+	together: { // aggregator (serves models from multiple providers)
+		...defaultCustomSettings,
+		...defaultProviderSettings.together,
+		...modelInfoOfDefaultModelNames(defaultModelsOfProvider.together),
 		_didFillInProviderSettings: undefined,
 	},
 	openRouter: { // aggregator (serves models from multiple providers)

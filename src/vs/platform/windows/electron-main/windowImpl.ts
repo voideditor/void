@@ -256,9 +256,8 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 				this.setFullScreen(true, true);
 			}
 
-			// to reduce flicker from the default window size
-			// to maximize or fullscreen, we only show after
-			this._win?.show();
+			// Don't show the window here anymore - it will be shown by ready-to-show event
+			// this prevents blank windows on macOS
 		}
 	}
 
@@ -594,7 +593,22 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			this._id = this._win.id;
 			this.setWin(this._win, options);
 
-			// Apply some state after window creation
+			// Handle ready-to-show event to prevent blank windows on macOS
+			this._register(Event.fromNodeEventEmitter(this._win, 'ready-to-show')(() => {
+				if (this._win && !this._win.isDestroyed()) {
+					// Show the window once content is ready
+					this._win.show();
+
+					// Apply maximized/fullscreen state after showing if needed
+					if (this.windowState.mode === WindowMode.Maximized) {
+						this._win.maximize();
+					} else if (this.windowState.mode === WindowMode.Fullscreen) {
+						this.setFullScreen(true, true);
+					}
+				}
+			}));
+
+			// Apply some state after window creation (but don't show yet)
 			this.applyState(this.windowState, hasMultipleDisplays);
 
 			this._lastFocusTime = Date.now(); // since we show directly, we need to set the last focus time too

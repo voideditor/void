@@ -802,6 +802,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				let resMessageIsDonePromise: (res: ResTypes) => void // resolves when user approves this tool use (or if tool doesn't require approval)
 				const messageIsDonePromise = new Promise<ResTypes>((res, rej) => { resMessageIsDonePromise = res })
 
+				// 日志：Browser端 - LLM请求开始
+				console.log('🔥 [Browser] LLM Chat Request Starting =====================================')
+				console.log('🔥 [Browser] Thread ID:', threadId)
+				console.log('🔥 [Browser] Chat Mode:', chatMode)
+				console.log('🔥 [Browser] Model Selection:', modelSelection)
+				console.log('🔥 [Browser] Messages Count:', messages.length)
+				console.log('🔥 [Browser] Separate System Message Length:', separateSystemMessage?.length || 0)
+				console.log('🔥 [Browser] Messages Preview:', messages.slice(-2)) // 显示最后2条消息
+				console.log('🔥 [Browser] =====================================')
+
 				const llmCancelToken = this._llmMessageService.sendLLMMessage({
 					messagesType: 'chatMessages',
 					chatMode,
@@ -812,16 +822,30 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 					logging: { loggingName: `Chat - ${chatMode}`, loggingExtras: { threadId, nMessagesSent, chatMode } },
 					separateSystemMessage: separateSystemMessage,
 					onText: ({ fullText, fullReasoning, toolCall }) => {
+						// 更新状态，不打印流式日志
 						this._setStreamState(threadId, { isRunning: 'LLM', llmInfo: { displayContentSoFar: fullText, reasoningSoFar: fullReasoning, toolCallSoFar: toolCall ?? null }, interrupt: Promise.resolve(() => { if (llmCancelToken) this._llmMessageService.abort(llmCancelToken) }) })
 					},
 					onFinalMessage: async ({ fullText, fullReasoning, toolCall, anthropicReasoning, }) => {
+						// 日志：Browser端 - 最终响应
+						console.log('🔥 [Browser] LLM Response Complete =====================================')
+						console.log('🔥 [Browser] Final Text Length:', fullText.length)
+						console.log('🔥 [Browser] Final Text:', fullText)
+						console.log('🔥 [Browser] Final Reasoning Length:', fullReasoning?.length || 0)
+						console.log('🔥 [Browser] Final Tool Call:', toolCall)
+						console.log('🔥 [Browser] Anthropic Reasoning:', anthropicReasoning)
+						console.log('🔥 [Browser] =====================================')
 						resMessageIsDonePromise({ type: 'llmDone', toolCall, info: { fullText, fullReasoning, anthropicReasoning } }) // resolve with tool calls
 					},
 					onError: async (error) => {
+						// 日志：Browser端 - 错误
+						console.log('🔥 [Browser] LLM Error =====================================')
+						console.error('🔥 [Browser] Error:', error)
+						console.log('🔥 [Browser] =====================================')
 						resMessageIsDonePromise({ type: 'llmError', error: error })
 					},
 					onAbort: () => {
 						// stop the loop to free up the promise, but don't modify state (already handled by whatever stopped it)
+						console.log('🔥 [Browser] LLM Request Aborted')
 						resMessageIsDonePromise({ type: 'llmAborted' })
 						this._metricsService.capture('Agent Loop Done (Aborted)', { nMessagesSent, chatMode })
 					},

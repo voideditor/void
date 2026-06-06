@@ -60,19 +60,23 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 
 	constructor(workerServer: IWebWorkerServer) {
 		this.host = LocalFileSearchWorkerHost.getChannel(workerServer);
+		console.log('[LocalFileSearchWorker] Worker constructed');
 	}
 
 	$cancelQuery(queryId: number): void {
+		console.log(`[LocalFileSearchWorker] Cancel query: ${queryId}`);
 		this.cancellationTokens.get(queryId)?.cancel();
 	}
 
 	private registerCancellationToken(queryId: number): CancellationTokenSource {
+		console.log(`[LocalFileSearchWorker] Register cancellation token for query: ${queryId}`);
 		const source = new CancellationTokenSource();
 		this.cancellationTokens.set(queryId, source);
 		return source;
 	}
 
 	async $listDirectory(handle: IWorkerFileSystemDirectoryHandle, query: IFileQueryProps<UriComponents>, folderQuery: IFolderQuery<UriComponents>, ignorePathCasing: boolean, queryId: number): Promise<IWorkerFileSearchComplete> {
+		console.log(`[LocalFileSearchWorker] $listDirectory called, queryId: ${queryId}, pattern: ${query.filePattern}`);
 		const revivedFolderQuery = reviveFolderQuery(folderQuery);
 		const extUri = new ExtUri(() => ignorePathCasing);
 
@@ -98,6 +102,7 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 				limitHit = true;
 				token.cancel();
 			}
+			console.log(`[LocalFileSearchWorker] $listDirectory found file: ${file.path}`);
 			return entries.push(file.path);
 		}, token.token));
 
@@ -108,6 +113,7 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 	}
 
 	async $searchDirectory(handle: IWorkerFileSystemDirectoryHandle, query: ITextQueryProps<UriComponents>, folderQuery: IFolderQuery<UriComponents>, ignorePathCasing: boolean, queryId: number): Promise<IWorkerTextSearchComplete> {
+		console.log(`[LocalFileSearchWorker] $searchDirectory called, queryId: ${queryId}, pattern: ${query.contentPattern?.pattern}`);
 		const revivedQuery = reviveFolderQuery(folderQuery);
 		const extUri = new ExtUri(() => ignorePathCasing);
 
@@ -130,6 +136,7 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 				}
 
 				fileCount++;
+				console.log(`[LocalFileSearchWorker] Processing file: ${file.path}`);
 
 				const contents = await file.resolve();
 				if (token.token.isCancellationRequested) {
@@ -148,6 +155,7 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 					if (query.maxResults && resultCount > query.maxResults) {
 						token.cancel();
 					}
+					console.log(`[LocalFileSearchWorker] File matched: ${file.path}, matches: ${fileResults.length}`);
 					const match = {
 						resource: URI.joinPath(revivedQuery.folder, file.path),
 						results: fileResults,
@@ -165,6 +173,7 @@ export class LocalFileSearchWorker implements ILocalFileSearchWorker, IWebWorker
 
 			if (PERF) { console.log('Searched in', fileCount, 'files'); }
 
+			console.log(`[LocalFileSearchWorker] $searchDirectory finished, total files: ${fileCount}, total matches: ${resultCount}`);
 			return {
 				results,
 				limitHit,

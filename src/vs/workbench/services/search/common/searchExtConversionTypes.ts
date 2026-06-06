@@ -517,6 +517,7 @@ export class OldTextSearchProviderConverter implements TextSearchProvider2 {
 	constructor(private provider: TextSearchProvider) { }
 
 	provideTextSearchResults(query: TextSearchQuery2, options: TextSearchProviderOptions, progress: IProgress<TextSearchResult2>, token: CancellationToken): ProviderResult<TextSearchComplete2> {
+		console.log('[OldTextSearchProviderConverter] provideTextSearchResults called', { query, options });
 
 		const progressShim = (oldResult: TextSearchResult) => {
 			if (!validateProviderResult(oldResult)) {

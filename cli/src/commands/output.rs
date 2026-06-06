@@ -65,21 +65,28 @@ impl TablePrinter for JsonTablePrinter {
 		let mut bw = BufWriter::new(out);
 		bw.write_all(b"[")?;
 
-		if !table.cols.is_empty() {
-			let data_len = table.cols[0].data.len();
-			for i in 0..data_len {
-				if i > 0 {
-					bw.write_all(b",{")?;
-				} else {
-					bw.write_all(b"{")?;
-				}
-				for col in &table.cols {
-					serde_json::to_writer(&mut bw, col.heading)?;
-					bw.write_all(b":")?;
-					serde_json::to_writer(&mut bw, &col.data[i])?;
-				}
-			}
-		}
+                if !table.cols.is_empty() {
+                        let data_len = table.cols[0].data.len();
+                        for i in 0..data_len {
+                                if i > 0 {
+                                        bw.write_all(b",")?;
+                                }
+
+                                bw.write_all(b"{")?;
+
+                                for (j, col) in table.cols.iter().enumerate() {
+                                        if j > 0 {
+                                                bw.write_all(b",")?;
+                                        }
+
+                                        serde_json::to_writer(&mut bw, col.heading)?;
+                                        bw.write_all(b":")?;
+                                        serde_json::to_writer(&mut bw, &col.data[i])?;
+                                }
+
+                                bw.write_all(b"}")?;
+                        }
+                }
 
 		bw.write_all(b"]")?;
 		bw.flush()

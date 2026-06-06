@@ -14,13 +14,14 @@ import { Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
 import { IMCPService } from './mcpService.js';
+import { IRateLimiterService } from './rateLimiterService.js';
 
 // calls channel to implement features
 export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
 
 export interface ILLMMessageService {
 	readonly _serviceBrand: undefined;
-	sendLLMMessage: (params: ServiceSendLLMMessageParams) => string | null;
+	sendLLMMessage: (params: ServiceSendLLMMessageParams) => Promise<string | null>;
 	abort: (requestId: string) => void;
 	ollamaList: (params: ServiceModelListParams<OllamaModelResponse>) => void;
 	openAICompatibleList: (params: ServiceModelListParams<OpenaiCompatibleModelResponse>) => void;
@@ -63,6 +64,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		// @INotificationService private readonly notificationService: INotificationService,
 		@IMCPService private readonly mcpService: IMCPService,
+		@IRateLimiterService private readonly rateLimiterService: IRateLimiterService,
 	) {
 		super()
 
@@ -100,7 +102,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 	}
 
-	sendLLMMessage(params: ServiceSendLLMMessageParams) {
+	async sendLLMMessage(params: ServiceSendLLMMessageParams) {
 		const { onText, onFinalMessage, onError, onAbort, modelSelection, ...proxyParams } = params;
 
 		// throw an error if no model/provider selected (this should usually never be reached, the UI should check this first, but might happen in cases like Apply where we haven't built much UI/checks yet, good practice to have check logic on backend)
@@ -114,6 +116,14 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			const message = `No messages detected.`
 			onError({ message, fullError: null })
 			return null
+		}
+
+		// Check rate limit before making LLM call
+		try {
+			await this.rateLimiterService.checkLLMRateLimit();
+		} catch (error) {
+			onError({ message: `Rate limit check failed: ${error}`, fullError: error });
+			return null;
 		}
 
 		const { settingsOfProvider, } = this.voidSettingsService.state

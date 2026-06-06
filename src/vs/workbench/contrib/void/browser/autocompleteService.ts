@@ -795,67 +795,71 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		// set parameters of `newAutocompletion` appropriately
-		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
+		newAutocompletion.llmPromise = new Promise(async (resolve, reject) => {
 
-			const requestId = this._llmMessageService.sendLLMMessage({
-				messagesType: 'FIMMessage',
-				messages: this._convertToLLMMessageService.prepareFIMMessage({
-					messages: {
-						prefix: llmPrefix,
-						suffix: llmSuffix,
-						stopTokens: stopTokens,
-					}
-				}),
-				modelSelection,
-				modelSelectionOptions,
-				overridesOfModel,
-				logging: { loggingName: 'Autocomplete' },
-				onText: () => { }, // unused in FIMMessage
-				// onText: async ({ fullText, newText }) => {
+			try {
+				const requestId = await this._llmMessageService.sendLLMMessage({
+					messagesType: 'FIMMessage',
+					messages: this._convertToLLMMessageService.prepareFIMMessage({
+						messages: {
+							prefix: llmPrefix,
+							suffix: llmSuffix,
+							stopTokens: stopTokens,
+						}
+					}),
+					modelSelection,
+					modelSelectionOptions,
+					overridesOfModel,
+					logging: { loggingName: 'Autocomplete' },
+					onText: () => { }, // unused in FIMMessage
+					// onText: async ({ fullText, newText }) => {
 
-				// 	newAutocompletion.insertText = fullText
+					// 	newAutocompletion.insertText = fullText
 
-				// 	// count newlines in newText
-				// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
-				// 	newAutocompletion._newlineCount += numNewlines
+					// 	// count newlines in newText
+					// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
+					// 	newAutocompletion._newlineCount += numNewlines
 
-				// 	// if too many newlines, resolve up to last newline
-				// 	if (newAutocompletion._newlineCount > 10) {
-				// 		const lastNewlinePos = fullText.lastIndexOf('\n')
-				// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
-				// 		resolve(newAutocompletion.insertText)
-				// 		return
-				// 	}
+					// 	// if too many newlines, resolve up to last newline
+					// 	if (newAutocompletion._newlineCount > 10) {
+					// 		const lastNewlinePos = fullText.lastIndexOf('\n')
+					// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
+					// 		resolve(newAutocompletion.insertText)
+					// 		return
+					// 	}
 
-				// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-				// 	// 	reject('LLM response did not match user\'s text.')
-				// 	// }
-				// },
-				onFinalMessage: ({ fullText }) => {
+					// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+					// 	// 	reject('LLM response did not match user\'s text.')
+					// 	// }
+					// },
+					onFinalMessage: ({ fullText }) => {
 
-					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
+						// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
 
-					newAutocompletion.endTime = Date.now()
-					newAutocompletion.status = 'finished'
-					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
-					newAutocompletion.insertText = processStartAndEndSpaces(text)
+						newAutocompletion.endTime = Date.now()
+						newAutocompletion.status = 'finished'
+						const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
+						newAutocompletion.insertText = processStartAndEndSpaces(text)
 
-					// handle special case for predicting starting on the next line, add a newline character
-					if (newAutocompletion.type === 'multi-line-start-on-next-line') {
-						newAutocompletion.insertText = _ln + newAutocompletion.insertText
-					}
+						// handle special case for predicting starting on the next line, add a newline character
+						if (newAutocompletion.type === 'multi-line-start-on-next-line') {
+							newAutocompletion.insertText = _ln + newAutocompletion.insertText
+						}
 
-					resolve(newAutocompletion.insertText)
+						resolve(newAutocompletion.insertText)
 
-				},
-				onError: ({ message }) => {
-					newAutocompletion.endTime = Date.now()
-					newAutocompletion.status = 'error'
-					reject(message)
-				},
-				onAbort: () => { reject('Aborted autocomplete') },
-			})
-			newAutocompletion.requestId = requestId
+					},
+					onError: ({ message }) => {
+						newAutocompletion.endTime = Date.now()
+						newAutocompletion.status = 'error'
+						reject(message)
+					},
+					onAbort: () => { reject('Aborted autocomplete') },
+				})
+				newAutocompletion.requestId = requestId
+			} catch (error) {
+				reject(error)
+			}
 
 			// if the request hasnt resolved in TIMEOUT_TIME seconds, reject it
 			setTimeout(() => {

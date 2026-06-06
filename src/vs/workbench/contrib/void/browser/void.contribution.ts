@@ -14,6 +14,8 @@ import './sidebarPane.js'
 // register quick edit (Ctrl+K)
 import './quickEditActions.js'
 
+// register rate limiter service
+import './rateLimiter.contribution.js'
 
 // register Autocomplete
 import './autocompleteService.js'

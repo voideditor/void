@@ -452,6 +452,7 @@ export type GlobalSettings = {
 	isOnboardingComplete: boolean;
 	disableSystemMessage: boolean;
 	autoAcceptLLMChanges: boolean;
+	maxRequestsPerMinute: number;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -468,6 +469,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	isOnboardingComplete: false,
 	disableSystemMessage: false,
 	autoAcceptLLMChanges: false,
+	maxRequestsPerMinute: 60, // Default to 60 requests per minute
 }
 
 export type GlobalSettingName = keyof GlobalSettings

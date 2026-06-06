@@ -230,7 +230,9 @@ export class MCPChannel implements IServerChannel {
 	}
 
 	private _addUniquePrefix(base: string) {
-		return `${Math.random().toString(36).slice(2, 8)}_${base}`;
+		// Prefix must start with a letter to satisfy Gemini's function name requirements:
+		// "Must start with a letter or an underscore" (alphanumeric, _, ., - only; max 64 chars)
+		return `m${Math.random().toString(36).slice(2, 8)}_${base}`;
 	}
 
 	private async _createClient(serverConfig: MCPConfigFileEntryJSON, serverName: string, isOn = true): Promise<ClientInfo> {

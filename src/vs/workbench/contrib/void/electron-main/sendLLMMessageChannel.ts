@@ -12,6 +12,10 @@ import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMess
 import { sendLLMMessage } from './llmMessage/sendLLMMessage.js'
 import { IMetricsService } from '../common/metricsService.js';
 import { sendLLMMessageToProviderImplementation } from './llmMessage/sendLLMMessage.impl.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+// import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { llmRequestProxy } from './llmMessage/llmRequestProxy.js';
+
 
 // NODE IMPLEMENTATION - calls actual sendLLMMessage() and returns listeners to it
 
@@ -48,7 +52,10 @@ export class LLMMessageChannel implements IServerChannel {
 	// stupidly, channels can't take in @IService
 	constructor(
 		private readonly metricsService: IMetricsService,
-	) { }
+		private readonly configurationService: IConfigurationService,
+	) {
+		llmRequestProxy.initialize(this.configurationService)
+	}
 
 	// browser uses this to listen for changes
 	listen(_: unknown, event: string): Event<any> {

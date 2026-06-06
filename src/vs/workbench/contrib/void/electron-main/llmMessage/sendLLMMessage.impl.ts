@@ -20,6 +20,8 @@ import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
+import { llmRequestProxy } from './llmRequestProxy.js';
+
 
 const getGoogleApiKey = async () => {
 	// module‑level singleton
@@ -76,7 +78,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	if (providerName === 'openAI') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'ollama') {
 		const thisConfig = settingsOfProvider[providerName]
@@ -88,7 +90,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'liteLLM') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
 	else if (providerName === 'lmStudio') {
 		const thisConfig = settingsOfProvider[providerName]
@@ -96,7 +98,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 	}
 	else if (providerName === 'openRouter') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({
+		return llmRequestProxy.newOpenAI({
 			baseURL: 'https://openrouter.ai/api/v1',
 			apiKey: thisConfig.apiKey,
 			defaultHeaders: {
@@ -111,7 +113,7 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		const baseURL = `https://${thisConfig.region}-aiplatform.googleapis.com/v1/projects/${thisConfig.project}/locations/${thisConfig.region}/endpoints/${'openapi'}`
 		const apiKey = await getGoogleApiKey()
-		return new OpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: baseURL, apiKey: apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'microsoftAzure') {
 		// https://learn.microsoft.com/en-us/rest/api/aifoundry/model-inference/get-chat-completions/get-chat-completions?view=rest-aifoundry-model-inference-2024-05-01-preview&tabs=HTTP
@@ -142,30 +144,30 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		if (!baseURL.endsWith('/v1'))
 			baseURL = baseURL.replace(/\/+$/, '') + '/v1'
 
-		return new OpenAI({ baseURL, apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL, apiKey, ...commonPayloadOpts })
 	}
 
 
 	else if (providerName === 'deepseek') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: 'https://api.deepseek.com/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'openAICompatible') {
 		const thisConfig = settingsOfProvider[providerName]
 		const headers = parseHeadersJSON(thisConfig.headersJSON)
-		return new OpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, defaultHeaders: headers, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: thisConfig.endpoint, apiKey: thisConfig.apiKey, defaultHeaders: headers, ...commonPayloadOpts })
 	}
 	else if (providerName === 'groq') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'xAI') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 	else if (providerName === 'mistral') {
 		const thisConfig = settingsOfProvider[providerName]
-		return new OpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+		return llmRequestProxy.newOpenAI({ baseURL: 'https://api.mistral.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
 
 	else throw new Error(`Void providerName was invalid: ${providerName}.`)

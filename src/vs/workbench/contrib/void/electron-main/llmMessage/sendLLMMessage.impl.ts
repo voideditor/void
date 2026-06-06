@@ -159,6 +159,10 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
 	}
+	else if (providerName === 'githubModels') {
+		const thisConfig = settingsOfProvider[providerName]
+		return new OpenAI({ baseURL: 'https://models.github.ai/inference', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
+	}
 	else if (providerName === 'xAI') {
 		const thisConfig = settingsOfProvider[providerName]
 		return new OpenAI({ baseURL: 'https://api.x.ai/v1', apiKey: thisConfig.apiKey, ...commonPayloadOpts })
@@ -383,6 +387,22 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		// when error/fail - this catches errors of both .create() and .then(for await)
 		.catch(error => {
 			if (error instanceof OpenAI.APIError && error.status === 401) { onError({ message: invalidApiKeyMessage(providerName), fullError: error }); }
+			else if (providerName === 'githubModels' && error instanceof OpenAI.APIError && error.status === 429) {
+				// Handle GitHub Models rate limit with specific messages
+				const errorMessage = error.message || 'GitHub Models rate limit exceeded.';
+				if (errorMessage.includes('per minute')) {
+					onError({ message: 'GitHub Models rate limit exceeded. Please try again later.', fullError: error });
+				} else if (errorMessage.includes('per hour')) {
+					onError({ message: 'GitHub Models hourly rate limit exceeded. Please try again later.', fullError: error });
+				} else if (errorMessage.includes('per day')) {
+					onError({ message: 'GitHub Models daily rate limit exceeded. Please try again later.', fullError: error });
+				} else if (errorMessage.includes('concurrent')) {
+					onError({ message: 'GitHub Models concurrent request limit exceeded. Please try again later.', fullError: error });
+				}
+				else {
+					onError({ message: `GitHub Models error: ${errorMessage}`, fullError: error });
+				}
+			}
 			else { onError({ message: error + '', fullError: error }); }
 		})
 }
@@ -869,6 +889,11 @@ export const sendLLMMessageToProviderImplementation = {
 		sendChat: (params) => _sendOpenAICompatibleChat(params),
 		sendFIM: null,
 		list: null,
+	},
+	githubModels: {
+		sendChat: (params) => _sendOpenAICompatibleChat(params),
+		sendFIM: null, // GitHub models don't support FIM
+		list: null, // Implement if GitHub Models API supports listing models
 	},
 	gemini: {
 		sendChat: (params) => sendGeminiChat(params),

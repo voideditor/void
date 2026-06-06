@@ -906,6 +906,15 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		editorOptions.contributions?.push(...EditorExtensionsRegistry.getSomeEditorContributions([ContentHoverController.ID, GlyphHoverController.ID, CopyPasteController.ID, LinkDetector.ID]));
 		this._inputEditor = this._register(scopedInstantiationService.createInstance(CodeEditorWidget, this._inputEditorElement, options, editorOptions));
 
+		this._register(this._inputEditor.onKeyDown(e => {
+			if (e.keyCode === KeyCode.Enter && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+				if (e.browserEvent.isComposing) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			}
+		}));
+
 		SuggestController.get(this._inputEditor)?.forceRenderingAbove();
 		options.overflowWidgetsDomNode?.classList.add('hideSuggestTextIcons');
 		this._inputEditorElement.classList.add('hideSuggestTextIcons');

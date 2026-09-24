@@ -17,7 +17,7 @@ import { MarshalledId } from '../../../base/common/marshallingIds.js';
 import { isDefined } from '../../../base/common/types.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
 import { generateUuid } from '../../../base/common/uuid.js';
-import { IPosition } from '../../../editor/common/core/position.js';
+import { IPosition } from '../../../editor/common/language/core/position.js';
 import { IExtensionDescription } from '../../../platform/extensions/common/extensions.js';
 import { createDecorator } from '../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../platform/log/common/log.js';

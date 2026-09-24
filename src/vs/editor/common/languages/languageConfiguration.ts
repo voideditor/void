@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../../../base/common/charCode.js';
-import { StandardTokenType } from '../encodedTokenAttributes.js';
+import { StandardTokenType } from '../language/encodedTokenAttributes.js';
 import { ScopedLineTokens } from './supports.js';
 
 /**

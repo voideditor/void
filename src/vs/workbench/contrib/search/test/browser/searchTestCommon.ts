@@ -6,8 +6,8 @@
 import { IDisposable } from '../../../../../base/common/lifecycle.js';
 import { isWindows } from '../../../../../base/common/platform.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ModelService } from '../../../../../editor/common/services/modelService.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ModelService } from '../../../../../editor/common/language/services/modelService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';

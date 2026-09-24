@@ -6,8 +6,8 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { onUnexpectedExternalError } from '../../../../base/common/errors.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { ITextModel } from '../../../common/model.js';
-import { FoldingContext, FoldingRange, FoldingRangeProvider } from '../../../common/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { FoldingContext, FoldingRange, FoldingRangeProvider } from '../../../../editor/common/language/languages.js';
 import { FoldingLimitReporter, RangeProvider } from './folding.js';
 import { FoldingRegions, MAX_LINE_NUMBER } from './foldingRanges.js';
 

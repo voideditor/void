@@ -7,9 +7,9 @@ import { findFirstIdxMonotonousOrArrLen } from '../../../../../../base/common/ar
 import { CancelablePromise, createCancelablePromise, Delayer } from '../../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { Disposable, DisposableStore } from '../../../../../../base/common/lifecycle.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
-import { FindMatch } from '../../../../../../editor/common/model.js';
-import { PrefixSumComputer } from '../../../../../../editor/common/model/prefixSumComputer.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
+import { FindMatch } from '../../../../../../editor/common/language/model.js';
+import { PrefixSumComputer } from '../../../../../../editor/common/language/model/prefixSumComputer.js';
 import { FindReplaceState, FindReplaceStateChangedEvent } from '../../../../../../editor/contrib/find/browser/findState.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { NotebookFindFilters } from './findFilters.js';

@@ -16,7 +16,7 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { EditorAction2 } from '../../../../../editor/browser/editorExtensions.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { SuggestController } from '../../../../../editor/contrib/suggest/browser/suggestController.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { IActionViewItemService } from '../../../../../platform/actions/browser/actionViewItemService.js';

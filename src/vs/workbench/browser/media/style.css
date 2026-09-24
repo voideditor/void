@@ -7,6 +7,55 @@
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* JetBrains Mono bundled with the app for editor.fontFamily */
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-Italic.woff2") format("woff2");
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-Medium.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-MediumItalic.woff2") format("woff2");
+	font-style: italic;
+	font-weight: 500;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-Bold.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../../../code/electron-sandbox/workbench/assets/fonts/JetBrainsMono-BoldItalic.woff2") format("woff2");
+	font-style: italic;
+	font-weight: 700;
+	font-display: swap;
+}
+
 /* Font Families (with CJK support) */
 
 .monaco-workbench.mac { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }

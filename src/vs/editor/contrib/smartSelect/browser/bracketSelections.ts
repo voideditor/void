@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { LinkedList } from '../../../../base/common/linkedList.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { ITextModel } from '../../../common/model.js';
-import { SelectionRange, SelectionRangeProvider } from '../../../common/languages.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { SelectionRange, SelectionRangeProvider } from '../../../../editor/common/language/languages.js';
 
 export class BracketSelectionRangeProvider implements SelectionRangeProvider {
 

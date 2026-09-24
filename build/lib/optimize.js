@@ -128,7 +128,9 @@ function bundleESMTask(opts) {
                 plugins: [contentsMapper, externalOverride],
                 target: ['es2022'],
                 loader: {
-                    '.ttf': 'file',
+					'.woff2': 'file',
+					'.woff': 'file',
+					'.ttf': 'file',
                     '.svg': 'file',
                     '.png': 'file',
                     '.sh': 'file',

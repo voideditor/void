@@ -25,21 +25,23 @@ const { promisify } = require('node:util');
 
 /**
  * @type {{
- * run: string;
- * grep: string;
- * runGlob: string;
- * browser: string;
- * reporter: string;
- * 'reporter-options': string;
- * tfs: string;
- * build: boolean;
- * debug: boolean;
- * sequential: boolean;
- * help: boolean;
+ * [key: string]: unknown;
+ * run?: string | string[];
+ * grep?: string;
+ * runGlob?: string;
+ * voidQuick?: boolean;
+ * browser?: string | string[];
+ * reporter?: string;
+ * 'reporter-options'?: string;
+ * tfs?: string;
+ * build?: boolean;
+ * debug?: boolean;
+ * sequential?: boolean;
+ * help?: boolean;
  * }}
 */
 const args = minimist(process.argv.slice(2), {
-	boolean: ['build', 'debug', 'sequential', 'help'],
+	boolean: ['build', 'debug', 'sequential', 'help', 'voidQuick'],
 	string: ['run', 'grep', 'runGlob', 'browser', 'reporter', 'reporter-options', 'tfs'],
 	default: {
 		build: false,
@@ -52,18 +54,6 @@ const args = minimist(process.argv.slice(2), {
 		runGlob: ['glob', 'runGrep'],
 		debug: ['debug-browser'],
 		help: 'h'
-	},
-	describe: {
-		build: 'run with build output (out-build)',
-		run: 'only run tests matching <relative_file_path>',
-		grep: 'only run tests matching <pattern>',
-		debug: 'do not run browsers headless',
-		sequential: 'only run suites for a single browser at a time',
-		browser: 'browsers in which tests should run',
-		reporter: 'the mocha reporter',
-		'reporter-options': 'the mocha reporter options',
-		tfs: 'tfs',
-		help: 'show the help'
 	}
 });
 
@@ -74,6 +64,7 @@ Options:
 --build              run with build output (out-build)
 --run <relative_file_path> only run tests matching <relative_file_path>
 --grep, -g, -f <pattern> only run tests matching <pattern>
+--voidQuick          run curated Void/ACP browser tests
 --debug, --debug-browser do not run browsers headless
 --sequential         only run suites for a single browser at a time
 --browser <browser>  browsers in which tests should run
@@ -89,12 +80,13 @@ const isDebug = !!args.debug;
 const withReporter = (function () {
 	if (args.tfs) {
 		{
+			const tfs = args.tfs;
 			return (browserType, runner) => {
 				new mocha.reporters.Spec(runner);
 				new MochaJUnitReporter(runner, {
 					reporterOptions: {
-						testsuitesTitle: `${args.tfs} ${process.platform}`,
-						mochaFile: process.env.BUILD_ARTIFACTSTAGINGDIRECTORY ? path.join(process.env.BUILD_ARTIFACTSTAGINGDIRECTORY, `test-results/${process.platform}-${process.arch}-${browserType}-${args.tfs.toLowerCase().replace(/[^\w]/g, '-')}-results.xml`) : undefined
+						testsuitesTitle: `${tfs} ${process.platform}`,
+						mochaFile: process.env.BUILD_ARTIFACTSTAGINGDIRECTORY ? path.join(process.env.BUILD_ARTIFACTSTAGINGDIRECTORY, `test-results/${process.platform}-${process.arch}-${browserType}-${tfs.toLowerCase().replace(/[^\w]/g, '-')}-results.xml`) : undefined
 					}
 				});
 			};
@@ -108,8 +100,59 @@ const outdir = args.build ? 'out-build' : 'out';
 const rootDir = path.resolve(__dirname, '..', '..', '..');
 const out = path.join(rootDir, `${outdir}`);
 
+const voidQuickBrowserTests = [
+	'src/vs/platform/acp/test/common/acpAgentAddress.test.ts',
+	'src/vs/platform/void/common/test/requestConfigForModel.test.ts',
+	'src/vs/platform/void/common/test/requestParamsUi.test.ts',
+	'src/vs/platform/void/common/test/modelInference.test.ts',
+	'src/vs/platform/void/common/test/dynamicModelService.test.ts',
+	'src/vs/platform/void/common/test/toolApprovalPolicy.test.ts',
+	'src/vs/platform/void/common/test/toolExecutionPolicy.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/ToolTurnCoordinator.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/ChatExecutionEngine.toolTurn.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/SidebarChatToolApproval.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/voidQuickRegistration.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/toolsServicePath.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatSystemMessage.specialToolFormat.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/acpProcessArgs.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/acpService.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/AcpHostCallbacksService.approvalQueue.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/AcpHostCallbacksService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/editCodeService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatAcpNormalizeReadFileArgs.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.nonAcpToAcpSwitch.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.modelConfigSwitch.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/terminalToolService.runCommand.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/toolsServiceSearchInFile.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/toolsServiceReadFile.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/dynamicProviderModelSearch.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/acpInternalExtMethodService.getLLMConfigSwitch.test.ts',
+	'src/vs/workbench/contrib/void/browser/test/readFileChunkLinesPropagation.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/sendLLMMessageService.deltaReconstruct.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/agentSkillsParser.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/agentSkillsService.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/convertToLLMMessageService.parallelTools.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatSystemMessage.agentSkills.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/toolsService.agentSkills.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.agentSkills.test.ts',
+	'src/vs/workbench/contrib/acp/test/browser/acpInternalExtMethodService.agentSkills.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatAcpHandler.agentSkills.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatAcpHandler.toolProgressCard.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/ChatHistoryCompressor.agentSkills.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatModelFallbackSettings.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatModelFallbackRendering.test.ts',
+	'src/vs/platform/void/common/test/chatModelFallbackMetrics.test.ts',
+];
+
 function ensureIsArray(a) {
 	return Array.isArray(a) ? a : [a];
+}
+
+function toOutRelativeTestPath(file) {
+	file = file.replace(/^src/, 'out');
+	file = file.replace(/\.ts$/, '.js');
+	return path.relative(out, file);
 }
 
 const testModules = (async function () {
@@ -118,14 +161,15 @@ const testModules = (async function () {
 	let isDefaultModules = true;
 	let promise;
 
-	if (args.run) {
+	if (args.voidQuick) {
+		// curated list of browser tests for quick pre-commit runs
+		isDefaultModules = false;
+		promise = Promise.resolve(voidQuickBrowserTests.map(toOutRelativeTestPath));
+
+	} else if (args.run) {
 		// use file list (--run)
 		isDefaultModules = false;
-		promise = Promise.resolve(ensureIsArray(args.run).map(file => {
-			file = file.replace(/^src/, 'out');
-			file = file.replace(/\.ts$/, '.js');
-			return path.relative(out, file);
-		}));
+		promise = Promise.resolve(ensureIsArray(args.run).map(toOutRelativeTestPath));
 
 	} else {
 		// glob patterns (--glob)
@@ -330,7 +374,7 @@ class EchoRunner extends events.EventEmitter {
 
 	constructor(event, title = '') {
 		super();
-		createStatsCollector(this);
+		createStatsCollector(/** @type {import('mocha').Runner} */ (/** @type {unknown} */ (this)));
 		event.on('start', () => this.emit('start'));
 		event.on('end', () => this.emit('end'));
 		event.on('suite', (suite) => this.emit('suite', EchoRunner.deserializeSuite(suite, title)));

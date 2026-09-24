@@ -26,12 +26,12 @@ import { editorFindMatchHighlight, editorFindMatchHighlightBorder } from '../../
 import { isHighContrast } from '../../../../platform/theme/common/theme.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
-import { IPosition, Position } from '../../../common/core/position.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
 import { IEditorContribution, ScrollType } from '../../../common/editorCommon.js';
-import { CodeActionTriggerType } from '../../../common/languages.js';
-import { IModelDeltaDecoration } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { CodeActionTriggerType } from '../../../../editor/common/language/languages.js';
+import { IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { MessageController } from '../../message/browser/messageController.js';
 import { CodeActionAutoApply, CodeActionFilter, CodeActionItem, CodeActionKind, CodeActionSet, CodeActionTrigger, CodeActionTriggerSource } from '../common/types.js';
 import { ApplyCodeActionReason, applyCodeAction } from './codeAction.js';

@@ -13,7 +13,7 @@ import { ITextFileService, ISaveErrorHandler, ITextFileEditorModel, ITextFileSav
 import { ServicesAccessor, IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IDisposable, dispose, Disposable } from '../../../../../base/common/lifecycle.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { ResourceMap } from '../../../../../base/common/map.js';
 import { DiffEditorInput } from '../../../../common/editor/diffEditorInput.js';
 import { IContextKey, IContextKeyService, RawContextKey } from '../../../../../platform/contextkey/common/contextkey.js';

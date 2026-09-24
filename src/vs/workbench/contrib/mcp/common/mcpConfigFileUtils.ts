@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { findNodeAtLocation, parseTree as jsonParseTree } from '../../../../base/common/json.js';
-import { Location } from '../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { Location } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 
 export const getMcpServerMapping = (opts: {
 	model: ITextModel;

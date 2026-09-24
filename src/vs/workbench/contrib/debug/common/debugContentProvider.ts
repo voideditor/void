@@ -5,17 +5,17 @@
 
 import { URI as uri } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
-import { getMimeTypes } from '../../../../editor/common/services/languagesAssociations.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/services/resolverService.js';
+import { getMimeTypes } from '../../../../editor/common/language/services/languagesAssociations.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/language/services/resolverService.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { DEBUG_SCHEME, IDebugService, IDebugSession } from './debug.js';
 import { Source } from './debugSource.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
-import { EditOperation } from '../../../../editor/common/core/editOperation.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../editor/common/languages/modesRegistry.js';
 import { ErrorNoTelemetry } from '../../../../base/common/errors.js';

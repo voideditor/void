@@ -12,10 +12,10 @@ import { ExtensionData, IThemeExtensionPoint, IWorkbenchFileIconTheme } from '..
 import { getParseErrorMessage } from '../../../../base/common/jsonErrorMessages.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IExtensionResourceLoaderService } from '../../../../platform/extensionResourceLoader/common/extensionResourceLoader.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { fontColorRegex, fontSizeRegex } from '../../../../platform/theme/common/iconRegistry.js';
 import * as css from '../../../../base/browser/cssValue.js';
-import { fileIconSelectorEscape } from '../../../../editor/common/services/getIconClasses.js';
+import { fileIconSelectorEscape } from '../../../../editor/common/language/services/getIconClasses.js';
 
 export class FileIconThemeData implements IWorkbenchFileIconTheme {
 

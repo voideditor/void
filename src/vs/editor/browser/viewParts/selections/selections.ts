@@ -5,7 +5,7 @@
 
 import './selections.css';
 import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { HorizontalRange, LineVisibleRanges, RenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';

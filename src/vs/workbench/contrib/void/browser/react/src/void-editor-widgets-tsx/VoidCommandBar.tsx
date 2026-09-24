@@ -7,9 +7,8 @@
 import { useAccessor, useCommandBarState, useIsDark } from '../util/services.js';
 
 import '../styles.css'
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
-import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
+import { useEffect, useState, useRef } from 'react';
+import { Schemas } from '../../../../../../../base/common/network.js';
 import { VoidCommandBarProps } from '../../../voidCommandBarService.js';
 import { Check, EllipsisVertical, Menu, MoveDown, MoveLeft, MoveRight, MoveUp, X } from 'lucide-react';
 import {
@@ -122,7 +121,7 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		}, 50)
 	}, [uri, commandBarService])
 
-	if (uri?.scheme !== 'file') return null // don't show in editors that we made, they must be files
+	if (uri && uri.scheme !== Schemas.file && uri.scheme !== Schemas.vscodeRemote) return null // only show for local/remote filesystem-backed files
 
 	// Using service methods directly
 
@@ -377,7 +376,6 @@ export const VoidCommandBar = ({ uri, editor }: VoidCommandBarProps) => {
 		</div>
 	)
 }
-
 
 
 

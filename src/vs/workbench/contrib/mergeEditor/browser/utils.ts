@@ -8,7 +8,7 @@ import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
 import { IObservable, autorunOpts } from '../../../../base/common/observable.js';
 import { CodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
-import { IModelDeltaDecoration } from '../../../../editor/common/model.js';
+import { IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 
 export function setStyle(

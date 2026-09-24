@@ -15,7 +15,7 @@ import { KeyCode } from '../../../../../base/common/keyCodes.js';
 import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { observableValue } from '../../../../../base/common/observable.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../../nls.js';
 import { FloatingClickMenu } from '../../../../../platform/actions/browser/floatingMenu.js';
 import { createActionViewItem } from '../../../../../platform/actions/browser/menuEntryActionViewItem.js';

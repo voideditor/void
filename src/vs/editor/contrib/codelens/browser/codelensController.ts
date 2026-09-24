@@ -13,8 +13,8 @@ import { EditorAction, EditorContributionInstantiation, registerEditorAction, re
 import { EditorOption, EDITOR_FONT_DEFAULTS } from '../../../common/config/editorOptions.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { IModelDecorationsChangeAccessor } from '../../../common/model.js';
-import { CodeLens, Command } from '../../../common/languages.js';
+import { IModelDecorationsChangeAccessor } from '../../../../editor/common/language/model.js';
+import { CodeLens, Command } from '../../../../editor/common/language/languages.js';
 import { CodeLensItem, CodeLensModel, getCodeLensModel } from './codelens.js';
 import { ICodeLensCache } from './codeLensCache.js';
 import { CodeLensHelper, CodeLensWidget } from './codelensWidget.js';
@@ -22,8 +22,8 @@ import { localize, localize2 } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
-import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../common/services/languageFeatureDebounce.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../../editor/common/language/services/languageFeatureDebounce.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 export class CodeLensContribution implements IEditorContribution {
 

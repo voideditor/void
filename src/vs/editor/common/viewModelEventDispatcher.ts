@@ -7,10 +7,10 @@ import { ViewEventHandler } from './viewEventHandler.js';
 import { ViewEvent } from './viewEvents.js';
 import { IContentSizeChangedEvent } from './editorCommon.js';
 import { Emitter } from '../../base/common/event.js';
-import { Selection } from './core/selection.js';
+import { Selection } from '../../editor/common/language/core/selection.js';
 import { Disposable } from '../../base/common/lifecycle.js';
 import { CursorChangeReason } from './cursorEvents.js';
-import { IModelContentChangedEvent, IModelDecorationsChangedEvent, IModelLanguageChangedEvent, IModelLanguageConfigurationChangedEvent, IModelOptionsChangedEvent, IModelTokensChangedEvent } from './textModelEvents.js';
+import { IModelContentChangedEvent, IModelDecorationsChangedEvent, IModelLanguageChangedEvent, IModelLanguageConfigurationChangedEvent, IModelOptionsChangedEvent, IModelTokensChangedEvent } from '../../editor/common/language/textModelEvents.js';
 
 export class ViewModelEventDispatcher extends Disposable {
 

@@ -1,0 +1,17 @@
+{
+	"name": "decode-uri-component",
+	"version": "0.5.0",
+	"description": "A better decodeURIComponent — vendored CommonJS build of the ESM-only upstream 0.5.0 (GHSA-vcc3-ghjq-m6fr fix) for require()-based consumers",
+	"license": "MIT",
+	"repository": "SamVerschueren/decode-uri-component",
+	"author": {
+		"name": "Sam Verschueren",
+		"email": "sam.verschueren@gmail.com",
+		"url": "github.com/SamVerschueren"
+	},
+	"main": "index.js",
+	"sideEffects": false,
+	"engines": {
+		"node": ">=14.16"
+	}
+}

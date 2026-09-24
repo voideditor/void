@@ -15,7 +15,7 @@ import { splitLines } from '../../../../base/common/strings.js';
 import './media/gotoErrorWidget.css';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { ScrollType } from '../../../common/editorCommon.js';
 import { peekViewTitleForeground, peekViewTitleInfoForeground, PeekViewWidget } from '../../peekView/browser/peekView.js';
 import * as nls from '../../../../nls.js';

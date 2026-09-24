@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { TextResourceEditorInput } from '../../../../common/editor/textResourceEditorInput.js';
 import { TextResourceEditorModel } from '../../../../common/editor/textResourceEditorModel.js';
@@ -17,7 +17,7 @@ import { TextFileEditorModelManager } from '../../../textfile/common/textFileEdi
 import { Event } from '../../../../../base/common/event.js';
 import { timeout } from '../../../../../base/common/async.js';
 import { UntitledTextEditorInput } from '../../../untitled/common/untitledTextEditorInput.js';
-import { createTextBufferFactory } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 
 suite('Workbench - TextModelResolverService', () => {

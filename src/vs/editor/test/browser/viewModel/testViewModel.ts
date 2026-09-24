@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IEditorOptions } from '../../../common/config/editorOptions.js';
-import { TextModel } from '../../../common/model/textModel.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
 import { ViewModel } from '../../../common/viewModel/viewModelImpl.js';
 import { TestConfiguration } from '../config/testConfiguration.js';
 import { MonospaceLineBreaksComputerFactory } from '../../../common/viewModel/monospaceLineBreaksComputer.js';

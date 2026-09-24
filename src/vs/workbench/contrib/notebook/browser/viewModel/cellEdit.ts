@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Range } from '../../../../../editor/common/core/range.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { CellKind, IOutputDto, NotebookCellMetadata, SelectionStateType } from '../../common/notebookCommon.js';
 import { IResourceUndoRedoElement, UndoRedoElementType } from '../../../../../platform/undoRedo/common/undoRedo.js';
 import { URI } from '../../../../../base/common/uri.js';

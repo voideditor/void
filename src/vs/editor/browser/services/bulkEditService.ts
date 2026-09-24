@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ICodeEditor } from '../editorBrowser.js';
-import { TextEdit, WorkspaceEdit, WorkspaceEditMetadata, IWorkspaceFileEdit, WorkspaceFileEditOptions, IWorkspaceTextEdit } from '../../common/languages.js';
+import { TextEdit, WorkspaceEdit, WorkspaceEditMetadata, IWorkspaceFileEdit, WorkspaceFileEditOptions, IWorkspaceTextEdit } from '../../../editor/common/language/languages.js';
 import { createDecorator } from '../../../platform/instantiation/common/instantiation.js';
 import { IProgress, IProgressStep } from '../../../platform/progress/common/progress.js';
 import { IDisposable } from '../../../base/common/lifecycle.js';

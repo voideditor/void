@@ -12,7 +12,7 @@ import { Emitter } from '../../../../base/common/event.js';
 import { IMarkdownString, MarkdownString } from '../../../../base/common/htmlContent.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { IDisposable, DisposableStore } from '../../../../base/common/lifecycle.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { localize } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';

@@ -9,7 +9,7 @@ import { INotebookService } from '../../../common/notebookService.js';
 import { bufferToStream, VSBuffer } from '../../../../../../base/common/buffer.js';
 import { NotebookTextModel } from '../../../common/model/notebookTextModel.js';
 import { createDecorator, IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
-import { ITextModelService } from '../../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../../editor/common/language/services/resolverService.js';
 
 
 export const INotebookOriginalModelReferenceFactory = createDecorator<INotebookOriginalModelReferenceFactory>('INotebookOriginalModelReferenceFactory');

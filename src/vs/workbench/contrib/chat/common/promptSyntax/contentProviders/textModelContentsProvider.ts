@@ -6,15 +6,15 @@
 import { IPromptContentsProvider } from './types.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { VSBuffer } from '../../../../../../base/common/buffer.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { CancellationError } from '../../../../../../base/common/errors.js';
 import { FilePromptContentProvider } from './filePromptContentsProvider.js';
 import { PromptContentsProviderBase } from './promptContentsProviderBase.js';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { newWriteableStream, ReadableStream } from '../../../../../../base/common/stream.js';
-import { IModelContentChangedEvent } from '../../../../../../editor/common/textModelEvents.js';
+import { IModelContentChangedEvent } from '../../../../../../editor/common/language/textModelEvents.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
-import { TextModel } from '../../../../../../editor/common/model/textModel.js';
+import { TextModel } from '../../../../../../editor/common/language/model/textModel.js';
 
 /**
  * Prompt contents provider for a {@link ITextModel} instance.

@@ -8,9 +8,9 @@ import { combinedDisposable, DisposableStore, DisposableMap } from '../../../bas
 import { ICodeEditor, isCodeEditor, isDiffEditor, IActiveCodeEditor } from '../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../editor/browser/services/codeEditorService.js';
 import { IEditor } from '../../../editor/common/editorCommon.js';
-import { ITextModel, shouldSynchronizeModel } from '../../../editor/common/model.js';
-import { IModelService } from '../../../editor/common/services/model.js';
-import { ITextModelService } from '../../../editor/common/services/resolverService.js';
+import { ITextModel, shouldSynchronizeModel } from '../../../editor/common/language/model.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { ITextModelService } from '../../../editor/common/language/services/resolverService.js';
 import { IFileService } from '../../../platform/files/common/files.js';
 import { extHostCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
 import { MainThreadDocuments } from './mainThreadDocuments.js';

@@ -10,8 +10,8 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { DiffElementCellViewModelBase, getFormattedOutputJSON, OutputComparison, outputEqual, OUTPUT_EDITOR_HEIGHT_MAGIC, PropertyFoldingState, SideBySideDiffElementViewModel, SingleSideDiffElementViewModel, DiffElementPlaceholderViewModel, IDiffElementViewModelBase, NotebookDocumentMetadataViewModel } from './diffElementViewModel.js';
 import { CellDiffSideBySideRenderTemplate, CellDiffSingleSideRenderTemplate, DiffSide, DIFF_CELL_MARGIN, INotebookTextDiffEditor, NOTEBOOK_DIFF_CELL_INPUT, NOTEBOOK_DIFF_CELL_PROPERTY, NOTEBOOK_DIFF_CELL_PROPERTY_EXPANDED, CellDiffPlaceholderRenderTemplate, IDiffCellMarginOverlay, NOTEBOOK_DIFF_CELL_IGNORE_WHITESPACE, NotebookDocumentDiffElementRenderTemplate, NOTEBOOK_DIFF_METADATA } from './notebookDiffEditorBrowser.js';
 import { CodeEditorWidget, ICodeEditorWidgetOptions } from '../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { CellEditType, CellUri, NotebookCellMetadata } from '../../common/notebookCommon.js';
 import { ToolBar } from '../../../../../base/browser/ui/toolbar/toolbar.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
@@ -32,7 +32,7 @@ import { SelectionClipboardContributionID } from '../../../codeEditor/browser/se
 import { TabCompletionController } from '../../../snippets/browser/tabCompletion.js';
 import { renderIcon, renderLabelWithIcons } from '../../../../../base/browser/ui/iconLabel/iconLabels.js';
 import * as editorCommon from '../../../../../editor/common/editorCommon.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { WorkbenchToolBar } from '../../../../../platform/actions/browser/toolbar.js';
@@ -45,7 +45,7 @@ import { ICommandService } from '../../../../../platform/commands/common/command
 import { DiffNestedCellViewModel } from './diffNestedCellViewModel.js';
 import { localize } from '../../../../../nls.js';
 import { Emitter } from '../../../../../base/common/event.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { getFormattedMetadataJSON } from '../../common/model/notebookCellTextModel.js';
 import { IDiffEditorOptions } from '../../../../../editor/common/config/editorOptions.js';
 import { getUnchangedRegionSettings } from './unchangedEditorRegions.js';

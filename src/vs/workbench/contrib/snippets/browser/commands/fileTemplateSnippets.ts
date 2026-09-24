@@ -6,7 +6,7 @@
 import { groupBy, isFalsyOrEmpty } from '../../../../../base/common/arrays.js';
 import { compare } from '../../../../../base/common/strings.js';
 import { getCodeEditor } from '../../../../../editor/browser/editorBrowser.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { SnippetController2 } from '../../../../../editor/contrib/snippet/browser/snippetController2.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';

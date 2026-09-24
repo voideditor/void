@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { workbenchInstantiationService } from '../../../../test/browser/workbenchTestServices.js';
-import { IRange, Range } from '../../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../../editor/common/language/core/range.js';
 import { CommentsPanel } from '../../browser/commentsView.js';
 import { CommentService, ICommentController, ICommentInfo, ICommentService, INotebookCommentInfo } from '../../browser/commentService.js';
-import { Comment, CommentInput, CommentReaction, CommentThread, CommentThreadCollapsibleState, CommentThreadState } from '../../../../../editor/common/languages.js';
+import { Comment, CommentInput, CommentReaction, CommentThread, CommentThreadCollapsibleState, CommentThreadState } from '../../../../../editor/common/language/languages.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { IViewContainerModel, IViewDescriptor, IViewDescriptorService, ViewContainer, ViewContainerLocation } from '../../../../common/views.js';

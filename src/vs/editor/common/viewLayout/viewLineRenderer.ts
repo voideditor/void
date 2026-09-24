@@ -6,8 +6,8 @@
 import * as nls from '../../../nls.js';
 import { CharCode } from '../../../base/common/charCode.js';
 import * as strings from '../../../base/common/strings.js';
-import { IViewLineTokens } from '../tokens/lineTokens.js';
-import { StringBuilder } from '../core/stringBuilder.js';
+import { IViewLineTokens } from '../../../editor/common/language/tokens/lineTokens.js';
+import { StringBuilder } from '../../../editor/common/language/core/stringBuilder.js';
 import { LineDecoration, LineDecorationsNormalizer } from './lineDecorations.js';
 import { InlineDecorationType } from '../viewModel.js';
 import { LinePart, LinePartMetadata } from './linePart.js';

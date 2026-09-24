@@ -77,15 +77,15 @@ declare namespace monaco {
 #include(vs/base/common/cancellation): CancellationTokenSource, CancellationToken
 #include(vs/base/common/uri): URI, UriComponents
 #include(vs/base/common/keyCodes): KeyCode
-#include(vs/editor/common/services/editorBaseApi): KeyMod
+#include(vs/editor/common/language/services/editorBaseApi): KeyMod
 #include(vs/base/common/htmlContent): IMarkdownString, MarkdownStringTrustedOptions
 #include(vs/base/browser/keyboardEvent): IKeyboardEvent
 #include(vs/base/browser/mouseEvent): IMouseEvent
 #include(vs/editor/common/editorCommon): IScrollEvent
-#include(vs/editor/common/core/position): IPosition, Position
-#include(vs/editor/common/core/range): IRange, Range
-#include(vs/editor/common/core/selection): ISelection, Selection, SelectionDirection
-#include(vs/editor/common/languages): Token
+#include(vs/editor/common/language/core/position): IPosition, Position
+#include(vs/editor/common/language/core/range): IRange, Range
+#include(vs/editor/common/language/core/selection): ISelection, Selection, SelectionDirection
+#include(vs/editor/common/language/languages): Token
 }
 
 declare namespace monaco.editor {
@@ -110,13 +110,13 @@ export interface ICommandMetadata {
 #include(vs/editor/standalone/browser/colorizer): IColorizerOptions, IColorizerElementOptions
 #include(vs/base/common/scrollable): ScrollbarVisibility
 #include(vs/base/common/themables): ThemeColor, ThemeIcon
-#include(vs/editor/common/core/editOperation): ISingleEditOperation
-#include(vs/editor/common/core/wordHelper): IWordAtPosition
-#includeAll(vs/editor/common/model): IScrollEvent
+#include(vs/editor/common/language/core/editOperation): ISingleEditOperation
+#include(vs/editor/common/language/core/wordHelper): IWordAtPosition
+#includeAll(vs/editor/common/language/model): IScrollEvent
 #include(vs/editor/common/diff/legacyLinesDiffComputer): IChange, ICharChange, ILineChange
-#include(vs/editor/common/core/dimension): IDimension
+#include(vs/editor/common/language/core/dimension): IDimension
 #includeAll(vs/editor/common/editorCommon): IScrollEvent
-#includeAll(vs/editor/common/textModelEvents):
+#includeAll(vs/editor/common/language/textModelEvents):
 #includeAll(vs/editor/common/cursorEvents):
 #include(vs/platform/accessibility/common/accessibility): AccessibilitySupport
 #includeAll(vs/editor/common/config/editorOptions):
@@ -133,19 +133,19 @@ export type IModel = ITextModel;
 declare namespace monaco.languages {
 
 #include(vs/base/common/glob): IRelativePattern
-#include(vs/editor/common/languageSelector): LanguageSelector, LanguageFilter
+#include(vs/editor/common/language/languageSelector): LanguageSelector, LanguageFilter
 #includeAll(vs/editor/standalone/browser/standaloneLanguages;languages.=>;editorCommon.=>editor.;model.=>editor.;IMarkerData=>editor.IMarkerData):
 #includeAll(vs/editor/common/languages/languageConfiguration):
-#includeAll(vs/editor/common/languages;IMarkerData=>editor.IMarkerData;ISingleEditOperation=>editor.ISingleEditOperation;model.=>editor.;ThemeIcon=>editor.ThemeIcon): Token
-#include(vs/editor/common/languages/language): ILanguageExtensionPoint
+#includeAll(vs/editor/common/language/languages;IMarkerData=>editor.IMarkerData;ISingleEditOperation=>editor.ISingleEditOperation;model.=>editor.;ThemeIcon=>editor.ThemeIcon): Token
+#include(vs/editor/common/language/language): ILanguageExtensionPoint
 #includeAll(vs/editor/standalone/common/monarch/monarchTypes):
 
 }
 
 declare namespace monaco.worker {
 
-#include(vs/editor/common/model/mirrorTextModel): IMirrorTextModel
-#includeAll(vs/editor/common/services/editorWebWorker;):
+#include(vs/editor/common/language/model/mirrorTextModel): IMirrorTextModel
+#includeAll(vs/editor/common/language/services/editorWebWorker;):
 
 }
 

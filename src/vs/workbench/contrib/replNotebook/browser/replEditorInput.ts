@@ -5,8 +5,8 @@
 
 import { IReference } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IFileService } from '../../../../platform/files/common/files.js';

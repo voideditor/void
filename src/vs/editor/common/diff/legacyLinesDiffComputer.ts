@@ -8,9 +8,9 @@ import { IDiffChange, ISequence, LcsDiff, IDiffResult } from '../../../base/comm
 import { ILinesDiffComputer, ILinesDiffComputerOptions, LinesDiff } from './linesDiffComputer.js';
 import { RangeMapping, DetailedLineRangeMapping } from './rangeMapping.js';
 import * as strings from '../../../base/common/strings.js';
-import { Range } from '../core/range.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { assertFn, checkAdjacentItems } from '../../../base/common/assert.js';
-import { LineRange } from '../core/lineRange.js';
+import { LineRange } from '../../../editor/common/language/core/lineRange.js';
 
 const MINIMUM_MATCHING_CHARACTER_LENGTH = 3;
 

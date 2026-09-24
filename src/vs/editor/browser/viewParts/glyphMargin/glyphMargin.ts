@@ -11,9 +11,9 @@ import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
 import { RenderingContext, RestrictedRenderingContext } from '../../view/renderingContext.js';
 import { ViewPart } from '../../view/viewPart.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { GlyphMarginLane } from '../../../common/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { GlyphMarginLane } from '../../../../editor/common/language/model.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 

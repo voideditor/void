@@ -29,9 +29,9 @@ import { ITelemetryService } from '../../../../../platform/telemetry/common/tele
 import { registerIcon } from '../../../../../platform/theme/common/iconRegistry.js';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition } from '../../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { Position } from '../../../../common/core/position.js';
-import { Command, InlineCompletionTriggerKind, InlineCompletionWarning } from '../../../../common/languages.js';
-import { PositionAffinity } from '../../../../common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Command, InlineCompletionTriggerKind, InlineCompletionWarning } from '../../../../../editor/common/language/languages.js';
+import { PositionAffinity } from '../../../../../editor/common/language/model.js';
 import { showNextInlineSuggestionActionId, showPreviousInlineSuggestionActionId } from '../controller/commandIds.js';
 import { InlineCompletionsModel } from '../model/inlineCompletionsModel.js';
 import './inlineCompletionsHintsWidget.css';

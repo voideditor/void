@@ -1,50 +1,79 @@
+/*--------------------------------------------------------------------------------------
+ *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
+ *--------------------------------------------------------------------------------------*/
+
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { deepClone } from '../../../../base/common/objects.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { ChatMessage } from '../common/chatThreadServiceTypes.js';
-import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
-import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
-import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
-import { IVoidSettingsService } from '../common/voidSettingsService.js';
-import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
-import { IDirectoryStrService } from '../common/directoryStrService.js';
-import { ITerminalToolService } from './terminalToolService.js';
+import { AnyToolName, ChatAttachment, ChatMessage } from '../../../../platform/void/common/chatThreadServiceTypes.js';
+import {
+	getIsReasoningEnabledState,
+	setDynamicModelService,
+	getModelCapabilities,
+	VoidStaticModelInfo,
+	getReservedOutputTokenSpace,
+	getModelApiConfiguration
+} from '../../../../platform/void/common/modelInference.js';
+import { isAToolName, reParsedToolXMLString, chat_systemMessage, ToolName, SYSTEM_PROMPT_OVERRIDE } from '../common/prompt/prompts.js';
+import {
+	AnthropicLLMChatMessage,
+	AnthropicReasoning,
+	AnthropicUserBlock,
+	GeminiLLMChatMessage,
+	LLMChatMessage,
+	LLMFIMMessage,
+	OpenAILLMChatMessage,
+	OpenAITextPart,
+	OpenAIImageURLPart,
+	RawToolParamsObj
+} from '../../../../platform/void/common/sendLLMMessageTypes.js';
+import { CustomProviderSettings, IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js';
+import {
+	ChatMode,
+	specialToolFormat,
+	supportsSystemMessage,
+	FeatureName,
+	ModelSelection,
+	ProviderName
+} from '../../../../platform/void/common/voidSettingsTypes.js';
 import { IVoidModelService } from '../common/voidModelService.js';
 import { URI } from '../../../../base/common/uri.js';
-import { EndOfLinePreference } from '../../../../editor/common/model.js';
-import { ToolName } from '../common/toolsServiceTypes.js';
-import { IMCPService } from '../common/mcpService.js';
+import { EndOfLinePreference } from '../../../../editor/common/language/model.js';
+import { ILocalPtyService } from '../../../../platform/terminal/common/terminal.js'
+import { IDynamicProviderRegistryService } from '../../../../platform/void/common/providerReg.js';
+import { IDynamicModelService } from '../../../../platform/void/common/dynamicModelService.js';
+import { createParallelToolCallsConfig, parseParallelToolCallsMode, type ParallelToolCallsConfig } from '../../../../platform/void/common/parallelToolCalls.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
+import { encodeBase64 } from '../../../../base/common/buffer.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
+import { IAgentSkillsService } from '../common/skills/agentSkillsService.js';
+import { formatAgentSkillsCatalogForToolActivation } from '../common/skills/agentSkillsPrompt.js';
 
-export const EMPTY_MESSAGE = '(empty message)'
+export const EMPTY_MESSAGE = ''
 
-
+type ResolvedChatAttachment = ChatAttachment & { dataBase64?: string };
 
 type SimpleLLMMessage = {
 	role: 'tool';
 	content: string;
 	id: string;
-	name: ToolName;
+	name: AnyToolName;
 	rawParams: RawToolParamsObj;
 } | {
 	role: 'user';
 	content: string;
+	attachments?: ResolvedChatAttachment[];
 } | {
 	role: 'assistant';
 	content: string;
 	anthropicReasoning: AnthropicReasoning[] | null;
 }
 
-
-
 const CHARS_PER_TOKEN = 4 // assume abysmal chars per token
 const TRIM_TO_LEN = 120
-
-
-
 
 // convert messages as if about to send to openai
 /*
@@ -69,30 +98,63 @@ openai on developer system message - https://cdn.openai.com/spec/model-spec-2024
 */
 
 
-const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): AnthropicOrOpenAILLMMessage[] => {
+const buildOpenAIUserContent = (msg: Extract<SimpleLLMMessage, { role: 'user' }>): string | (OpenAITextPart | OpenAIImageURLPart)[] => {
+	const atts = msg.attachments ?? [];
+	if (!atts.length) return msg.content;
+
+	const parts: (OpenAITextPart | OpenAIImageURLPart)[] = [];
+	const trimmed = msg.content.trim();
+	if (trimmed) {
+		parts.push({ type: 'text', text: trimmed });
+	}
+	for (const att of atts) {
+		if (!att.dataBase64) continue;
+		const mime = att.mimeType || 'image/png';
+		const dataUrl = `data:${mime};base64,${att.dataBase64}`;
+		parts.push({ type: 'image_url', image_url: { url: dataUrl } });
+	}
+	return parts.length ? parts : msg.content;
+};
+
+const prepareOpenAIToolsMessages = (messages: SimpleLLMMessage[]): AnthropicOrOpenAILLMMessage[] => {
 
 	const newMessages: OpenAILLMChatMessage[] = [];
+	let lastAssistantWithToolCalls: Extract<OpenAILLMChatMessage, { role: 'assistant' }> | undefined;
+	let toolResultsAfterAssistant = true;
 
 	for (let i = 0; i < messages.length; i += 1) {
 		const currMsg = messages[i]
 
 		if (currMsg.role !== 'tool') {
-			newMessages.push(currMsg)
+			if (currMsg.role === 'user') {
+				newMessages.push({ role: 'user', content: buildOpenAIUserContent(currMsg) });
+				lastAssistantWithToolCalls = undefined;
+			} else if (currMsg.role === 'assistant') {
+				const assistantMsg: Extract<OpenAILLMChatMessage, { role: 'assistant' }> = { role: 'assistant', content: currMsg.content };
+				newMessages.push(assistantMsg);
+				lastAssistantWithToolCalls = assistantMsg;
+				toolResultsAfterAssistant = false;
+			} else {
+				// allow-any-unicode-next-line
+				// Fallback for unexpected roles – treat as simple user message
+				newMessages.push({ role: 'user', content: (currMsg as any).content });
+				lastAssistantWithToolCalls = undefined;
+			}
 			continue
 		}
 
+		if (!lastAssistantWithToolCalls) continue;
+
 		// edit previous assistant message to have called the tool
-		const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
-		if (prevMsg?.role === 'assistant') {
-			prevMsg.tool_calls = [{
-				type: 'function',
-				id: currMsg.id,
-				function: {
-					name: currMsg.name,
-					arguments: JSON.stringify(currMsg.rawParams)
-				}
-			}]
-		}
+		lastAssistantWithToolCalls.tool_calls ??= [];
+		lastAssistantWithToolCalls.tool_calls.push({
+			type: 'function',
+			id: currMsg.id,
+			function: {
+				name: currMsg.name,
+				arguments: JSON.stringify(currMsg.rawParams)
+			}
+		})
 
 		// add the tool
 		newMessages.push({
@@ -100,6 +162,10 @@ const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): AnthropicOr
 			tool_call_id: currMsg.id,
 			content: currMsg.content,
 		})
+		toolResultsAfterAssistant = true;
+	}
+	if (lastAssistantWithToolCalls?.tool_calls?.length && !toolResultsAfterAssistant) {
+		lastAssistantWithToolCalls.tool_calls = undefined;
 	}
 	return newMessages
 
@@ -138,65 +204,91 @@ user: ...content, result(id, content)
 
 type AnthropicOrOpenAILLMMessage = AnthropicLLMChatMessage | OpenAILLMChatMessage
 
-const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
-	const newMessages: (AnthropicLLMChatMessage | (SimpleLLMMessage & { role: 'tool' }))[] = messages;
+const buildAnthropicUserContent = (msg: Extract<SimpleLLMMessage, { role: 'user' }>): string | AnthropicUserBlock[] => {
+	const atts = msg.attachments ?? [];
+	if (!atts.length) return msg.content;
+
+	const parts: AnthropicUserBlock[] = [];
+	const trimmed = msg.content.trim();
+	if (trimmed) {
+		parts.push({ type: 'text', text: trimmed });
+	}
+	for (const att of atts) {
+		if (!att.dataBase64) continue;
+		// Restrict to Anthropic-allowed image media types
+		let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/png';
+		if (att.mimeType === 'image/jpeg' || att.mimeType === 'image/jpg') mediaType = 'image/jpeg';
+		else if (att.mimeType === 'image/gif') mediaType = 'image/gif';
+		else if (att.mimeType === 'image/webp') mediaType = 'image/webp';
+		parts.push({
+			type: 'image',
+			source: { type: 'base64', media_type: mediaType, data: att.dataBase64 },
+		});
+	}
+	return parts.length ? parts : msg.content;
+};
+
+const prepareAnthropicToolsMessages = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
+	const newMessages: AnthropicLLMChatMessage[] = [];
+	let lastAssistantWithToolUse: Extract<AnthropicLLMChatMessage, { role: 'assistant' }> | undefined;
 
 	for (let i = 0; i < messages.length; i += 1) {
-		const currMsg = messages[i]
+		const currMsg = messages[i];
 
-		// add anthropic reasoning
 		if (currMsg.role === 'assistant') {
+			let assistantMsg: Extract<AnthropicLLMChatMessage, { role: 'assistant' }>;
 			if (currMsg.anthropicReasoning && supportsAnthropicReasoning) {
-				const content = currMsg.content
-				newMessages[i] = {
+				const content = currMsg.content;
+				assistantMsg = {
 					role: 'assistant',
-					content: content ? [...currMsg.anthropicReasoning, { type: 'text' as const, text: content }] : currMsg.anthropicReasoning
-				}
+					content: content
+						? [...currMsg.anthropicReasoning, { type: 'text' as const, text: content }]
+						: currMsg.anthropicReasoning
+				};
+			} else {
+				assistantMsg = { role: 'assistant', content: currMsg.content };
 			}
-			else {
-				newMessages[i] = {
-					role: 'assistant',
-					content: currMsg.content,
-					// strip away anthropicReasoning
-				}
-			}
-			continue
+			newMessages.push(assistantMsg);
+			lastAssistantWithToolUse = assistantMsg;
+			continue;
 		}
 
 		if (currMsg.role === 'user') {
-			newMessages[i] = {
+			newMessages.push({
 				role: 'user',
-				content: currMsg.content,
-			}
-			continue
+				content: buildAnthropicUserContent(currMsg),
+			});
+			lastAssistantWithToolUse = undefined;
+			continue;
 		}
 
 		if (currMsg.role === 'tool') {
-			// add anthropic tools
-			const prevMsg = 0 <= i - 1 && i - 1 <= newMessages.length ? newMessages[i - 1] : undefined
-
-			// make it so the assistant called the tool
-			if (prevMsg?.role === 'assistant') {
-				if (typeof prevMsg.content === 'string') prevMsg.content = [{ type: 'text', text: prevMsg.content }]
-				prevMsg.content.push({ type: 'tool_use', id: currMsg.id, name: currMsg.name, input: currMsg.rawParams })
+			if (!lastAssistantWithToolUse) continue;
+			if (lastAssistantWithToolUse.role === 'assistant') {
+				if (typeof lastAssistantWithToolUse.content === 'string') {
+					lastAssistantWithToolUse.content = [{ type: 'text', text: lastAssistantWithToolUse.content }];
+				}
+				(lastAssistantWithToolUse.content as any[]).push({
+					type: 'tool_use',
+					id: currMsg.id,
+					name: currMsg.name as string,
+					input: currMsg.rawParams,
+				});
 			}
 
-			// turn each tool into a user message with tool results at the end
-			newMessages[i] = {
+			newMessages.push({
 				role: 'user',
-				content: [{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }]
-			}
-			continue
+				content: [{ type: 'tool_result', tool_use_id: currMsg.id, content: currMsg.content }],
+			});
+			continue;
 		}
-
 	}
 
-	// we just removed the tools
-	return newMessages as AnthropicLLMChatMessage[]
+	return newMessages;
 }
 
 
-const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
+const prepareXMLToolsMessages = (messages: SimpleLLMMessage[], supportsAnthropicReasoning: boolean): AnthropicOrOpenAILLMMessage[] => {
 
 	const llmChatMessages: AnthropicOrOpenAILLMMessage[] = [];
 	for (let i = 0; i < messages.length; i += 1) {
@@ -208,7 +300,7 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 			// if called a tool (message after it), re-add its XML to the message
 			// alternatively, could just hold onto the original output, but this way requires less piping raw strings everywhere
 			let content: AnthropicOrOpenAILLMMessage['content'] = c.content
-			if (next?.role === 'tool') {
+			if (next?.role === 'tool' && isAToolName(next.name)) {
 				content = `${content}\n\n${reParsedToolXMLString(next.name, next.rawParams)}`
 			}
 
@@ -226,6 +318,16 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 			if (c.role === 'tool')
 				c.content = `<${c.name}_result>\n${c.content}\n</${c.name}_result>`
 
+			// NOTE: For XML tool format we cannot send true image parts, so we append
+			// a lightweight textual placeholder for any attachments.
+			if (c.role === 'user' && (c as any).attachments && (c as any).attachments.length) {
+				const atts = (c as any).attachments as ResolvedChatAttachment[];
+				const placeholderLines = atts.map(att => `Attached image: ${att.name}`);
+				c.content = c.content
+					? `${c.content}\n\n${placeholderLines.join('\n')}`
+					: placeholderLines.join('\n');
+			}
+
 			if (llmChatMessages.length === 0 || llmChatMessages[llmChatMessages.length - 1].role !== 'user')
 				llmChatMessages.push({
 					role: 'user',
@@ -237,9 +339,6 @@ const prepareMessages_XML_tools = (messages: SimpleLLMMessage[], supportsAnthrop
 	}
 	return llmChatMessages
 }
-
-
-// --- CHAT ---
 
 const prepareOpenAIOrAnthropicMessages = ({
 	messages: messages_,
@@ -254,24 +353,23 @@ const prepareOpenAIOrAnthropicMessages = ({
 	messages: SimpleLLMMessage[],
 	systemMessage: string,
 	aiInstructions: string,
-	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
-	specialToolFormat: 'openai-style' | 'anthropic-style' | undefined,
+	supportsSystemMessage: supportsSystemMessage,
+	specialToolFormat: specialToolFormat,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
 	reservedOutputTokenSpace: number | null | undefined,
 }): { messages: AnthropicOrOpenAILLMMessage[], separateSystemMessage: string | undefined } => {
 
-	reservedOutputTokenSpace = Math.max(
-		contextWindow * 1 / 2, // reserve at least 1/4 of the token window length
-		reservedOutputTokenSpace ?? 4_096 // defaults to 4096
-	)
+	if (reservedOutputTokenSpace === null || reservedOutputTokenSpace === undefined) {
+		reservedOutputTokenSpace = Math.min(4_096, Math.floor(contextWindow * 0.1))
+	}
 	let messages: (SimpleLLMMessage | { role: 'system', content: string })[] = deepClone(messages_)
 
 	// ================ system message ================
 	// A COMPLETE HACK: last message is system message for context purposes
 
 	const sysMsgParts: string[] = []
-	if (aiInstructions) sysMsgParts.push(`GUIDELINES (from the user's .voidrules file):\n${aiInstructions}`)
+	if (aiInstructions) sysMsgParts.push(`GUIDELINES (from the workspace VOID.md file):\n${aiInstructions}`)
 	if (systemMessage) sysMsgParts.push(systemMessage)
 	const combinedSystemMessage = sysMsgParts.join('\n\n')
 
@@ -305,6 +403,12 @@ const prepareOpenAIOrAnthropicMessages = ({
 		if (alreadyTrimmedIdxes.has(idx)) {
 			multiplier = 0
 		}
+		if (message.role === 'tool' && (
+			message.content.includes('Terminal command run, but was stopped by Void because it exceeded the configured terminal command timeout')
+			|| message.content.includes('TRUNCATION_META:')
+		)) {
+			multiplier = 0
+		}
 		// 1st and last messages should be very low weight
 		if (idx <= 1 || idx >= messages.length - 1 - 3) {
 			multiplier *= .05
@@ -323,7 +427,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 				largestIndex = i
 			}
 		}
-		return largestIndex
+		return largestWeight > 0 ? largestIndex : -1
 	}
 
 	let totalLen = 0
@@ -347,6 +451,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 		if (i > 100) break
 
 		const trimIdx = _findLargestByWeight(messages)
+		if (trimIdx < 0) break
 		const m = messages[trimIdx]
 
 		// if can finish here, do
@@ -370,14 +475,14 @@ const prepareOpenAIOrAnthropicMessages = ({
 	// SYSTEM MESSAGE HACK: we shifted (removed) the system message role, so now SimpleLLMMessage[] is valid
 
 	let llmChatMessages: AnthropicOrOpenAILLMMessage[] = []
-	if (!specialToolFormat) { // XML tool behavior
-		llmChatMessages = prepareMessages_XML_tools(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
+	if (specialToolFormat === 'disabled') { // XML tool behavior
+		llmChatMessages = prepareXMLToolsMessages(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
 	}
 	else if (specialToolFormat === 'anthropic-style') {
-		llmChatMessages = prepareMessages_anthropic_tools(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
+		llmChatMessages = prepareAnthropicToolsMessages(messages as SimpleLLMMessage[], supportsAnthropicReasoning)
 	}
 	else if (specialToolFormat === 'openai-style') {
-		llmChatMessages = prepareMessages_openai_tools(messages as SimpleLLMMessage[])
+		llmChatMessages = prepareOpenAIToolsMessages(messages as SimpleLLMMessage[])
 	}
 	const llmMessages = llmChatMessages
 
@@ -420,7 +525,6 @@ const prepareOpenAIOrAnthropicMessages = ({
 		else {
 			// allowed to be empty if has a tool in it or following it
 			if (currMsg.content.find(c => c.type === 'tool_result' || c.type === 'tool_use')) {
-				currMsg.content = currMsg.content.filter(c => !(c.type === 'text' && !c.text)) as any
 				continue
 			}
 			if (nextMsg?.role === 'tool') continue
@@ -440,11 +544,10 @@ const prepareOpenAIOrAnthropicMessages = ({
 }
 
 
-
-
 type GeminiUserPart = (GeminiLLMChatMessage & { role: 'user' })['parts'][0]
 type GeminiModelPart = (GeminiLLMChatMessage & { role: 'model' })['parts'][0]
 const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
+	const toolNameById = new Map<string, ToolName>();
 	let latestToolName: ToolName | undefined = undefined
 	const messages2: GeminiLLMChatMessage[] = messages.map((m): GeminiLLMChatMessage | null => {
 		if (m.role === 'assistant') {
@@ -457,7 +560,11 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 						return { text: c.text }
 					}
 					else if (c.type === 'tool_use') {
+						if (!isAToolName(c.name)) {
+							return { text: JSON.stringify({ tool_use: c }) }
+						}
 						latestToolName = c.name
+						toolNameById.set(c.id, c.name)
 						return { functionCall: { id: c.id, name: c.name, args: c.input } }
 					}
 					else return null
@@ -475,8 +582,15 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 						return { text: c.text }
 					}
 					else if (c.type === 'tool_result') {
-						if (!latestToolName) return null
-						return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
+						const toolName = toolNameById.get(c.tool_use_id) ?? latestToolName;
+						if (!toolName) {
+							return { text: JSON.stringify({ tool_result: c }) }
+						}
+						return { functionResponse: { id: c.tool_use_id, name: toolName, response: { output: c.content } } }
+					}
+					else if ((c as any).type === 'image' && (c as any).source?.type === 'base64') {
+						const src = (c as any).source as { media_type: string; data: string };
+						return { inlineData: { mimeType: src.media_type, data: src.data } } as any;
 					}
 					else return null
 				}).filter(m => !!m)
@@ -495,29 +609,24 @@ const prepareMessages = (params: {
 	messages: SimpleLLMMessage[],
 	systemMessage: string,
 	aiInstructions: string,
-	supportsSystemMessage: false | 'system-role' | 'developer-role' | 'separated',
-	specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined,
+	supportsSystemMessage: supportsSystemMessage,
+	specialToolFormat: specialToolFormat,
 	supportsAnthropicReasoning: boolean,
 	contextWindow: number,
 	reservedOutputTokenSpace: number | null | undefined,
 	providerName: ProviderName
 }): { messages: LLMChatMessage[], separateSystemMessage: string | undefined } => {
-
-	const specialFormat = params.specialToolFormat // this is just for ts stupidness
-
-	// if need to convert to gemini style of messaes, do that (treat as anthropic style, then convert to gemini style)
-	if (params.providerName === 'gemini' || specialFormat === 'gemini-style') {
-		const res = prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat === 'gemini-style' ? 'anthropic-style' : undefined })
+	// if need to convert to gemini style of messages, do that (treat as anthropic style, then convert to gemini style)
+	if (params.providerName === 'gemini' || params.specialToolFormat === 'gemini-style') {
+		const res = prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: 'anthropic-style' })
 		const messages = res.messages as AnthropicLLMChatMessage[]
 		const messages2 = prepareGeminiMessages(messages)
 		return { messages: messages2, separateSystemMessage: res.separateSystemMessage }
 	}
 
-	return prepareOpenAIOrAnthropicMessages({ ...params, specialToolFormat: specialFormat })
+	const res = prepareOpenAIOrAnthropicMessages({ ...params })
+	return { messages: res.messages, separateSystemMessage: res.separateSystemMessage }
 }
-
-
-
 
 export interface IConvertToLLMMessageService {
 	readonly _serviceBrand: undefined;
@@ -529,81 +638,207 @@ export interface IConvertToLLMMessageService {
 export const IConvertToLLMMessageService = createDecorator<IConvertToLLMMessageService>('ConvertToLLMMessageService');
 
 
+
 class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMessageService {
 	_serviceBrand: undefined;
 
 	constructor(
-		@IModelService private readonly modelService: IModelService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-		@IEditorService private readonly editorService: IEditorService,
-		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
-		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
+		@ILocalPtyService private readonly ptyHostService: ILocalPtyService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@IVoidModelService private readonly voidModelService: IVoidModelService,
-		@IMCPService private readonly mcpService: IMCPService,
+		@IDynamicProviderRegistryService private readonly dynamicRegistry: IDynamicProviderRegistryService,
+		@IDynamicModelService private readonly dynamicModelService: IDynamicModelService,
+		@IFileService private readonly fileService: IFileService,
+		@ILogService private readonly logService: ILogService,
+		@IAgentSkillsService private readonly agentSkillsService: IAgentSkillsService,
 	) {
-		super()
+		super();
+		try {
+			setDynamicModelService(this.dynamicModelService);
+			void this.dynamicModelService.initialize?.();
+		} catch {
+			// ignore
+		}
 	}
 
-	// Read .voidrules files from workspace folders
-	private _getVoidRulesFileContents(): string {
+	// Resolve explicit user override for supportsSystemMessage, case-insensitive provider and flexible model key
+	private _getUserSupportsSystemMessageOverride(providerName: ProviderName, modelName: string): supportsSystemMessage | undefined {
+		try {
+			const overrides = this.voidSettingsService.state.overridesOfModel;
+			if (!overrides) return undefined;
+			const provKey = Object.keys(overrides).find(k => k.toLowerCase() === String(providerName).toLowerCase());
+			if (!provKey) return undefined;
+			const byModel = (overrides as any)[provKey] as Record<string, { supportsSystemMessage?: supportsSystemMessage } | undefined>;
+			const exact = byModel?.[modelName]?.supportsSystemMessage;
+			if (exact !== undefined) return exact;
+			if (modelName.includes('/')) {
+				const after = modelName.slice(modelName.indexOf('/') + 1);
+				const alt = byModel?.[after]?.supportsSystemMessage;
+				if (alt !== undefined) return alt;
+			}
+			return undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	// Read VOID.md files from workspace folders
+	private _getVoidMdFileContents(): string {
 		try {
 			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
-			let voidRules = '';
+			let voidMd = '';
 			for (const folder of workspaceFolders) {
-				const uri = URI.joinPath(folder.uri, '.voidrules')
-				const { model } = this.voidModelService.getModel(uri)
-				if (!model) continue
-				voidRules += model.getValue(EndOfLinePreference.LF) + '\n\n';
+				const uri = URI.joinPath(folder.uri, 'VOID.md');
+				const { model } = this.voidModelService.getModel(uri);
+				if (!model) continue;
+				voidMd += model.getValue(EndOfLinePreference.LF) + '\n\n';
 			}
-			return voidRules.trim();
-		}
-		catch (e) {
-			return ''
+			return voidMd.trim();
+		} catch {
+			return '';
 		}
 	}
 
-	// Get combined AI instructions from settings and .voidrules files
-	private _getCombinedAIInstructions(): string {
-		const globalAIInstructions = this.voidSettingsService.state.globalSettings.aiInstructions;
-		const voidRulesFileContent = this._getVoidRulesFileContents();
+	private _findCustomProviderSlugForModel(fullId: string): string | null {
+		try {
+			const cps = this.voidSettingsService.state.customProviders || {};
 
-		const ans: string[] = []
-		if (globalAIInstructions) ans.push(globalAIInstructions)
-		if (voidRulesFileContent) ans.push(voidRulesFileContent)
-		return ans.join('\n\n')
+			if (fullId.includes('/')) {
+				const prefix = fullId.split('/')[0];
+				if (cps[prefix]) return prefix;
+			}
+
+			for (const [slug, entry] of Object.entries<any>(cps)) {
+				const list: string[] = Array.isArray(entry?.models) ? entry.models : [];
+				if (list.includes(fullId)) return slug;
+			}
+		} catch {
+			// ignore
+		}
+		return null;
 	}
 
+	private _getCustomProviderConfig(providerName: ProviderName, providerSlug: string): CustomProviderSettings | undefined {
+		const customProviders = this.voidSettingsService.state.customProviders;
+		const exact = customProviders?.[providerName];
+		if (exact) return exact;
+		const bySlug = customProviders?.[providerSlug];
+		if (bySlug) return bySlug;
+
+		const lower = providerSlug.toLowerCase();
+		for (const [key, value] of Object.entries(customProviders ?? {})) {
+			if (key.toLowerCase() === lower) return value;
+		}
+		return undefined;
+	}
+
+	private _getParallelToolCallsMode(providerName: ProviderName, providerSlug: string, modelName: string): ReturnType<typeof parseParallelToolCallsMode> {
+		try {
+			const customProvider = this._getCustomProviderConfig(providerName, providerSlug);
+			return parseParallelToolCallsMode(customProvider?.perModel?.[modelName]?.parallelToolCallsMode);
+		} catch {
+			return undefined;
+		}
+	}
+
+	private async _getDynamicCapsForSelection(_providerName: ProviderName, modelName: string): Promise<Partial<VoidStaticModelInfo> | undefined> {
+		const slug = this._findCustomProviderSlugForModel(modelName);
+		if (!slug) return undefined;
+
+		await this.dynamicRegistry.initialize?.();
+
+
+		let argModelId = modelName;
+		if (slug.toLowerCase() !== 'openrouter') {
+			const i = modelName.indexOf('/');
+			argModelId = i >= 0 ? modelName.slice(i + 1) : modelName;
+		}
+
+		try {
+			return await this.dynamicRegistry.getEffectiveModelCapabilities(slug, argModelId);
+		} catch {
+			return undefined;
+		}
+	}
+
+	private _getStaticParallelToolCalls(providerName: ProviderName, modelName: string): ParallelToolCallsConfig {
+		const { overridesOfModel } = this.voidSettingsService.state
+		const caps = getModelCapabilities(providerName, modelName, overridesOfModel)
+		const providerSlug = String(providerName).trim().toLowerCase()
+		return createParallelToolCallsConfig(caps, this._getParallelToolCallsMode(providerName, providerSlug, modelName))
+	}
+
+	private async _getParallelToolCallsForSelection(providerName: ProviderName, modelName: string): Promise<ParallelToolCallsConfig> {
+		const providerSlug = this._findCustomProviderSlugForModel(modelName) ?? String(providerName).trim().toLowerCase()
+		const parallelToolCallsMode = this._getParallelToolCallsMode(providerName, providerSlug, modelName)
+
+		try {
+			await this.dynamicRegistry.initialize?.()
+			const caps = await this.dynamicRegistry.getEffectiveModelCapabilities(providerSlug, modelName)
+			return createParallelToolCallsConfig(caps, parallelToolCallsMode)
+		} catch {
+			return this._getStaticParallelToolCalls(providerName, modelName)
+		}
+	}
+
+	// System-level instructions come only from workspace VOID.md
+	private _getSystemInstructionsText(): string {
+		return this._getVoidMdFileContents();
+	}
 
 	// system message
-	private _generateChatMessagesSystemMessage = async (chatMode: ChatMode, specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | undefined) => {
-		const workspaceFolders = this.workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath)
+	private _generateChatMessagesSystemMessage = async (
+		chatMode: ChatMode,
+		specialToolFormat: 'openai-style' | 'anthropic-style' | 'gemini-style' | 'disabled' | undefined,
+		parallelToolCalls: ParallelToolCallsConfig | null,
+	) => {
+		const workspaceFolders = this.workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath);
+		const disabledStaticToolNames = this._disabledStaticToolNamesForRequest(chatMode);
+		const skillsSection = await this._skillsSectionForRequest(chatMode);
+		if (!skillsSection && chatMode !== 'normal' && !disabledStaticToolNames.includes('activate_skill')) {
+			disabledStaticToolNames.push('activate_skill');
+		}
+		const systemMessage = await chat_systemMessage({
+			workspaceFolders,
+			chatMode,
+			toolFormat: (specialToolFormat ?? 'openai-style') as specialToolFormat,
+			ptyHostService: this.ptyHostService,
+			disabledStaticToolNames,
+			parallelToolCalls,
+			skillsSection,
+		});
+		return systemMessage;
+	};
 
-		const openedURIs = this.modelService.getModels().filter(m => m.isAttachedToEditor()).map(m => m.uri.fsPath) || [];
-		const activeURI = this.editorService.activeEditor?.resource?.fsPath;
-
-		const directoryStr = await this.directoryStrService.getAllDirectoriesStr({
-			cutOffMessage: chatMode === 'agent' || chatMode === 'gather' ?
-				`...Directories string cut off, use tools to read more...`
-				: `...Directories string cut off, ask user for more if necessary...`
-		})
-
-		const includeXMLToolDefinitions = !specialToolFormat
-
-		const mcpTools = this.mcpService.getMCPTools()
-
-		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
-		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
-		return systemMessage
+	private _disabledStaticToolNamesForRequest(chatMode: ChatMode): string[] {
+		const disabled = new Set(
+			(Array.isArray(this.voidSettingsService.state.globalSettings.disabledToolNames)
+				? this.voidSettingsService.state.globalSettings.disabledToolNames
+				: []
+			).map(v => String(v ?? '').trim()).filter(Boolean)
+		);
+		if (chatMode === 'normal') disabled.add('activate_skill');
+		return Array.from(disabled);
 	}
 
-
-
+	private async _skillsSectionForRequest(chatMode: ChatMode): Promise<string | undefined> {
+		if (chatMode === 'normal') return undefined;
+		if (this.voidSettingsService.state.globalSettings.enableAgentSkills === false) return undefined;
+		try {
+			const catalog = await this.agentSkillsService.getCatalog();
+			const section = formatAgentSkillsCatalogForToolActivation(catalog);
+			return section || undefined;
+		} catch (error) {
+			this.logService.warn('[ConvertToLLMMessageService] Failed to build Agent Skills prompt section:', error);
+			return undefined;
+		}
+	}
 
 	// --- LLM Chat messages ---
 
 	private _chatMessagesToSimpleMessages(chatMessages: ChatMessage[]): SimpleLLMMessage[] {
-		const simpleLLMMessages: SimpleLLMMessage[] = []
+		const simpleLLMMessages: SimpleLLMMessage[] = [];
 
 		for (const m of chatMessages) {
 			if (m.role === 'checkpoint') continue
@@ -616,6 +851,15 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				})
 			}
 			else if (m.role === 'tool') {
+
+				this.logService.debug('[DEBUG] _chatMessagesToSimpleMessages tool:', JSON.stringify({
+					name: m.name,
+					type: m.type,
+					contentLength: m.content?.length,
+					hasTruncationMeta: m.content?.includes('TRUNCATION_META'),
+					contentTail: m.content?.slice(-200),
+				}));
+
 				simpleLLMMessages.push({
 					role: m.role,
 					content: m.content,
@@ -625,9 +869,13 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				})
 			}
 			else if (m.role === 'user') {
+				const attachments: ResolvedChatAttachment[] | undefined = m.attachments
+					? m.attachments.map(att => ({ ...att }))
+					: undefined
 				simpleLLMMessages.push({
 					role: m.role,
 					content: m.content,
+					...(attachments && attachments.length ? { attachments } : {}),
 				})
 			}
 		}
@@ -640,19 +888,37 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const { overridesOfModel } = this.voidSettingsService.state
 
 		const { providerName, modelName } = modelSelection
-		const {
-			specialToolFormat,
-			contextWindow,
-			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName, overridesOfModel)
+		const caps = getModelCapabilities(providerName, modelName, overridesOfModel)
+		let specialToolFormat: specialToolFormat = caps.specialToolFormat ?? 'disabled'
+		let { contextWindow, supportsSystemMessage } = caps
+
+		// Fallback to provider API config only when tool format is truly missing
+		// Do NOT override an explicit or inferred 'disabled' value - that means
+		// "no native tools", and must be respected.
+		if (!specialToolFormat) {
+			try {
+				const modelId = modelName.includes('/') ? modelName : `${providerName}/${modelName}`;
+				const apiCfg = getModelApiConfiguration(modelId);
+				specialToolFormat = apiCfg.specialToolFormat;
+			} catch { /* ignore */ }
+		}
+
+		// Enforce explicit user override if present (override wins over dynamic caps)
+		const userSSMOverride = this._getUserSupportsSystemMessageOverride(providerName as ProviderName, modelName);
+		if (userSSMOverride !== undefined) supportsSystemMessage = userSSMOverride;
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName]
 
-		// Get combined AI instructions
-		const aiInstructions = this._getCombinedAIInstructions();
+		// Get system instructions
+		const aiInstructions = this._getSystemInstructionsText();
 
 		const isReasoningEnabled = getIsReasoningEnabledState(featureName, providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
+
+		// Force global override if provided
+		if (typeof SYSTEM_PROMPT_OVERRIDE === 'string' && SYSTEM_PROMPT_OVERRIDE.trim() !== '') {
+			systemMessage = SYSTEM_PROMPT_OVERRIDE
+		}
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: simpleMessages,
@@ -667,29 +933,67 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		})
 		return { messages, separateSystemMessage };
 	}
+
+
 	prepareLLMChatMessages: IConvertToLLMMessageService['prepareLLMChatMessages'] = async ({ chatMessages, chatMode, modelSelection }) => {
 		if (modelSelection === null) return { messages: [], separateSystemMessage: undefined }
 
 		const { overridesOfModel } = this.voidSettingsService.state
 
 		const { providerName, modelName } = modelSelection
-		const {
-			specialToolFormat,
-			contextWindow,
-			supportsSystemMessage,
-		} = getModelCapabilities(providerName, modelName, overridesOfModel)
+		const caps = getModelCapabilities(providerName, modelName, overridesOfModel)
+		let specialToolFormat: specialToolFormat = caps.specialToolFormat ?? 'disabled'
+		let { contextWindow, supportsSystemMessage } = caps
 
-		const { disableSystemMessage } = this.voidSettingsService.state.globalSettings;
-		const fullSystemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
-		const systemMessage = disableSystemMessage ? '' : fullSystemMessage;
+		try {
+			const dynCaps = await this._getDynamicCapsForSelection(providerName, modelName);
+			if (dynCaps) {
+				// adopt dynamic value only when present; keeps strict typing and lints happy
+				specialToolFormat = dynCaps.specialToolFormat ?? specialToolFormat;
+				// Only adopt dynamic supportsSystemMessage when user didn't explicitly override it
+				const userSSMOverride = this._getUserSupportsSystemMessageOverride(providerName as ProviderName, modelName);
+				if (userSSMOverride === undefined) {
+					const ssm = dynCaps.supportsSystemMessage;
+					supportsSystemMessage = ssm ?? supportsSystemMessage;
+				}
+				if (typeof dynCaps.contextWindow === 'number') contextWindow = dynCaps.contextWindow;
+			}
+		} catch {
+			// ignore
+		}
+		// Enforce explicit user override again after all fallbacks
+		{
+			const userSSMOverride2 = this._getUserSupportsSystemMessageOverride(providerName as ProviderName, modelName);
+			if (userSSMOverride2 !== undefined) supportsSystemMessage = userSSMOverride2;
+		}
+
+		// allow-any-unicode-next-line
+		// Fallback to provider API config only when tool format is truly missing.
+		// Never override explicit or inferred 'disabled', since that means
+		// "no native tools" and must be honored.
+		if (!specialToolFormat) {
+			try {
+				const modelId = modelName.includes('/') ? modelName : `${providerName}/${modelName}`;
+				const apiCfg = getModelApiConfiguration(modelId);
+				specialToolFormat = apiCfg.specialToolFormat;
+			} catch { /* ignore */ }
+		}
+
+		const parallelToolCalls = await this._getParallelToolCallsForSelection(providerName, modelName)
+		let systemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat, parallelToolCalls)
+		if (typeof SYSTEM_PROMPT_OVERRIDE === 'string' && SYSTEM_PROMPT_OVERRIDE.trim() !== '') {
+			systemMessage = SYSTEM_PROMPT_OVERRIDE
+		}
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
 
-		// Get combined AI instructions
-		const aiInstructions = this._getCombinedAIInstructions();
+		// Get system instructions
+		const aiInstructions = this._getSystemInstructionsText();
+
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
 		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
+		await this._populateAttachmentData(llmMessages)
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: llmMessages,
@@ -704,13 +1008,11 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		})
 		return { messages, separateSystemMessage };
 	}
-
-
 	// --- FIM ---
 
 	prepareFIMMessage: IConvertToLLMMessageService['prepareFIMMessage'] = ({ messages }) => {
-		// Get combined AI instructions with the provided aiInstructions as the base
-		const combinedInstructions = this._getCombinedAIInstructions();
+		// System instructions come from workspace VOID.md
+		const combinedInstructions = this._getSystemInstructionsText();
 
 		let prefix = `\
 ${!combinedInstructions ? '' : `\
@@ -725,44 +1027,29 @@ ${messages.prefix}`
 		return { prefix, suffix, stopTokens }
 	}
 
-
+	private async _populateAttachmentData(messages: SimpleLLMMessage[]): Promise<void> {
+		for (const m of messages) {
+			if (m.role !== 'user') continue
+			const atts = m.attachments
+			if (!atts || !atts.length) continue
+			for (const att of atts) {
+				if (att.dataBase64) continue
+				try {
+					const content = await this.fileService.readFile(att.uri)
+					att.dataBase64 = encodeBase64(content.value)
+				} catch {
+					// ignore individual attachment failures
+				}
+			}
+		}
+	}
 }
 
+export const __test = {
+	prepareMessages,
+	prepareOpenAIToolsMessages,
+	prepareAnthropicToolsMessages,
+	prepareGeminiMessages,
+};
 
 registerSingleton(IConvertToLLMMessageService, ConvertToLLMMessageService, InstantiationType.Eager);
-
-
-
-
-
-
-
-
-/*
-Gemini has this, but they're openai-compat so we don't need to implement this
-gemini request:
-{   "role": "assistant",
-	"content": null,
-	"function_call": {
-		"name": "get_weather",
-		"arguments": {
-			"latitude": 48.8566,
-			"longitude": 2.3522
-		}
-	}
-}
-
-gemini response:
-{   "role": "assistant",
-	"function_response": {
-		"name": "get_weather",
-			"response": {
-			"temperature": "15°C",
-				"condition": "Cloudy"
-		}
-	}
-}
-*/
-
-
-

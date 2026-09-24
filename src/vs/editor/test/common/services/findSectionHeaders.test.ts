@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { FindSectionHeaderOptions, ISectionHeaderFinderTarget, findSectionHeaders } from '../../../common/services/findSectionHeaders.js';
+import { FindSectionHeaderOptions, ISectionHeaderFinderTarget, findSectionHeaders } from '../../../../editor/common/language/services/findSectionHeaders.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 class TestSectionHeaderFinderTarget implements ISectionHeaderFinderTarget {

@@ -22,7 +22,7 @@ import { indexOfPath } from '../../../../base/common/extpath.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IEditorOptions } from '../../../../platform/editor/common/editor.js';
-import { ITextResourceConfigurationChangeEvent, ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationChangeEvent, ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IBoundarySashes } from '../../../../base/browser/ui/sash/sash.js';
 import { getWindowById } from '../../../../base/browser/dom.js';
 

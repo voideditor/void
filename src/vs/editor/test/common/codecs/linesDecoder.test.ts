@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { Line } from '../../../common/codecs/linesCodec/tokens/line.js';

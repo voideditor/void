@@ -18,7 +18,7 @@ import { FolderQuerySearchTree } from './folderQuerySearchTree.js';
 interface IInternalFileMatch {
 	base: URI;
 	original?: URI;
-	relativePath?: string; // Not present for extraFiles or absolute path matches
+	relativePath?: string;
 	basename: string;
 	size?: number;
 }
@@ -101,11 +101,10 @@ class FileSearchEngine {
 
 			// For each root folder'
 
-			// NEW: can just call with an array of folder info
 			this.doSearch(folderQueries, onResult).then(stats => {
 				resolve({
 					limitHit: this.isLimitHit,
-					stats: stats || undefined // Only looking at single-folder workspace stats...
+					stats: stats || undefined
 				});
 			}, (err: Error) => {
 				reject(new Error(toErrorMessage(err)));

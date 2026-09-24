@@ -5,7 +5,7 @@
 
 import { Disposable, IDisposable, toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { IMarkerData, IMarkerService } from '../../../../../../platform/markers/common/markers.js';
-import { IRange } from '../../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../../editor/common/language/core/range.js';
 import { ICellExecutionStateChangedEvent, IExecutionStateChangedEvent, INotebookExecutionStateService, NotebookExecutionType } from '../../../common/notebookExecutionStateService.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { CellKind, NotebookSetting } from '../../../common/notebookCommon.js';

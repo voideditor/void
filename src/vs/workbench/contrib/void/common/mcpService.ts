@@ -7,7 +7,6 @@ import { URI } from '../../../../base/common/uri.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
@@ -17,13 +16,16 @@ import { IMainProcessService } from '../../../../platform/ipc/common/mainProcess
 import { MCPServerOfName, MCPConfigFileJSON, MCPServer, MCPToolCallParams, RawMCPToolCall, MCPServerEventResponse } from './mcpServiceTypes.js';
 import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
-import { IVoidSettingsService } from './voidSettingsService.js';
-import { MCPUserStateOfName } from './voidSettingsTypes.js';
-
+import { IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js';
+import { MCPUserStateOfName } from '../../../../platform/void/common/voidSettingsTypes.js';
+import { INativeEnvironmentService } from '../../../../platform/environment/common/environment.js';
+import { IFileService, FileOperation } from '../../../../platform/files/common/files.js';
+import { dirname } from '../../../../base/common/resources.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
 
 type MCPServiceState = {
 	mcpServerOfName: MCPServerOfName,
-	error: string | undefined, // global parsing error
+	error: string | undefined,
 }
 
 export interface IMCPService {
@@ -31,7 +33,7 @@ export interface IMCPService {
 	revealMCPConfigFile(): Promise<void>;
 	toggleServerIsOn(serverName: string, isOn: boolean): Promise<void>;
 
-	readonly state: MCPServiceState; // NOT persisted
+	readonly state: MCPServiceState;
 	onDidChangeState: Event<void>;
 
 	getMCPTools(): InternalToolInfo[] | undefined;
@@ -41,28 +43,17 @@ export interface IMCPService {
 
 export const IMCPService = createDecorator<IMCPService>('mcpConfigService');
 
-
-
 const MCP_CONFIG_FILE_NAME = 'mcp.json';
 const MCP_CONFIG_SAMPLE = { mcpServers: {} }
 const MCP_CONFIG_SAMPLE_STRING = JSON.stringify(MCP_CONFIG_SAMPLE, null, 2);
 
 
-// export interface MCPCallToolOfToolName {
-// 	[toolName: string]: (params: any) => Promise<{
-// 		result: any | Promise<any>,
-// 		interruptTool?: () => void
-// 	}>;
-// }
-
-
 class MCPService extends Disposable implements IMCPService {
 	_serviceBrand: undefined;
 
+	private readonly channel: IChannel
+	private readonly _ownedDynamicToolNames = new Set<string>();
 
-	private readonly channel: IChannel // MCPChannel
-
-	// list of MCP servers pulled from mcpChannel
 	state: MCPServiceState = {
 		mcpServerOfName: {},
 		error: undefined,
@@ -71,9 +62,8 @@ class MCPService extends Disposable implements IMCPService {
 	// Emitters for server events
 	private readonly _onDidChangeState = new Emitter<void>();
 	public readonly onDidChangeState = this._onDidChangeState.event;
-
-	// private readonly _onLoadingServersChange = new Emitter<MCPServerEventLoadingParam>();
-	// public readonly onLoadingServersChange = this._onLoadingServersChange.event;
+	private _refreshDebounce: ReturnType<typeof setTimeout> | undefined;
+	private _mcpConfigLastStatKey: string | undefined;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -82,22 +72,44 @@ class MCPService extends Disposable implements IMCPService {
 		@IEditorService private readonly editorService: IEditorService,
 		@IMainProcessService private readonly mainProcessService: IMainProcessService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@INativeEnvironmentService private readonly environmentService: INativeEnvironmentService,
+		@ILogService private readonly _logService: ILogService
 	) {
 		super();
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
 
 
 		const onEvent = (e: MCPServerEventResponse) => {
-			// console.log('GOT EVENT', e)
 			this._setMCPServerState(e.response.name, e.response.newServer)
 		}
 		this._register((this.channel.listen('onAdd_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 		this._register((this.channel.listen('onUpdate_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 		this._register((this.channel.listen('onDelete_server') satisfies Event<MCPServerEventResponse>)(onEvent));
 
+		this._register(this.voidSettingsService.onDidChangeState(() => {
+			void this._syncDynamicToolsRegistryFromState();
+		}));
+
 		this._initialize();
 	}
 
+	private _getDisabledToolNamesSet(): Set<string> {
+		const arr = this.voidSettingsService.state.globalSettings.disabledToolNames;
+		if (!Array.isArray(arr)) return new Set();
+		return new Set(arr.map(v => String(v ?? '').trim()).filter(Boolean));
+	}
+
+	private _scheduleRefreshMCPServers(reason: string): void {
+		if (this._refreshDebounce) {
+			clearTimeout(this._refreshDebounce);
+		}
+
+		this._refreshDebounce = setTimeout(() => {
+			void this._refreshMCPServers().catch(err => {
+				this._logService.error(`[MCP mcp.json] refresh failed (${reason})`, err);
+			});
+		}, 150);
+	}
 
 	private async _initialize() {
 		try {
@@ -108,23 +120,29 @@ class MCPService extends Disposable implements IMCPService {
 			const fileExists = await this._configFileExists(mcpConfigUri);
 			if (!fileExists) {
 				await this._createMCPConfigFile(mcpConfigUri);
-				console.log('MCP Config file created:', mcpConfigUri.toString());
+				this._logService.debug('MCP Config file created:', mcpConfigUri.toString());
 			}
 			await this._addMCPConfigFileWatcher();
 			await this._refreshMCPServers();
 		} catch (error) {
-			console.error('Error initializing MCPService:', error);
+			this._logService.error('Error initializing MCPService:', error);
 		}
 	}
 
-	private readonly _setMCPServerState = async (serverName: string, newServer: MCPServer | undefined) => {
+	private readonly _setMCPServerState = async (
+		serverName: string,
+		newServer: MCPServer | undefined,
+		opts?: { syncDynamicTools?: boolean }
+	) => {
+		const syncDynamicTools = opts?.syncDynamicTools !== false;
+
 		if (newServer === undefined) {
 			// Remove the server from the state
 			const { [serverName]: removed, ...remainingServers } = this.state.mcpServerOfName;
 			this.state = {
 				...this.state,
 				mcpServerOfName: remainingServers
-			}
+			};
 		} else {
 			// Add or update the server
 			this.state = {
@@ -133,9 +151,61 @@ class MCPService extends Disposable implements IMCPService {
 					...this.state.mcpServerOfName,
 					[serverName]: newServer
 				}
-			}
+			};
 		}
+
+		// Keep dynamic tools registry in sync (so tools appear in LLM payload)
+		if (syncDynamicTools) {
+			// fire-and-forget; we don't want to block UI updates
+			void this._syncDynamicToolsRegistryFromState();
+		}
+
 		this._onDidChangeState.fire();
+	};
+
+
+	private async _syncDynamicToolsRegistryFromState(): Promise<void> {
+		try {
+			// Use dynamic import to reduce risk of circular deps
+			const { dynamicVoidTools } = await import('./prompt/prompts.js');
+			const disabledByUser = this._getDisabledToolNamesSet();
+
+			// Build desired set of tools (only from servers that are "success")
+			const desired = new Map<string, InternalToolInfo>();
+
+			for (const serverName of Object.keys(this.state.mcpServerOfName)) {
+				const server = this.state.mcpServerOfName[serverName];
+
+				// Only expose tools when server is actually on/connected
+				if (!server || server.status !== 'success') continue;
+				if (!server.tools || server.tools.length === 0) continue;
+
+				for (const tool of server.tools) {
+					if (disabledByUser.has(tool.name)) continue;
+					desired.set(tool.name, {
+						name: tool.name,
+						description: tool.description || '',
+						params: this._transformInputSchemaToParams(tool.inputSchema),
+					});
+				}
+			}
+
+			// Remove tools previously registered by this service, if they are no longer desired
+			for (const oldName of Array.from(this._ownedDynamicToolNames)) {
+				if (!desired.has(oldName)) {
+					dynamicVoidTools.delete(oldName);
+					this._ownedDynamicToolNames.delete(oldName);
+				}
+			}
+
+			// Add/update desired tools
+			for (const [name, info] of desired) {
+				dynamicVoidTools.set(name, info);
+				this._ownedDynamicToolNames.add(name);
+			}
+		} catch (error) {
+			this._logService.error('[MCP mcp.json] Failed to sync dynamic tools registry:', error);
+		}
 	}
 
 	private readonly _setHasError = async (errMsg: string | undefined) => {
@@ -156,14 +226,67 @@ class MCPService extends Disposable implements IMCPService {
 
 	private async _addMCPConfigFileWatcher(): Promise<void> {
 		const mcpConfigUri = await this._getMCPConfigFilePath();
-		this._register(
-			this.fileService.watch(mcpConfigUri)
-		)
+		const watchDir = dirname(mcpConfigUri);
 
-		this._register(this.fileService.onDidFilesChange(async e => {
-			if (!e.contains(mcpConfigUri)) return
-			await this._refreshMCPServers();
+		
+		this._register(this.fileService.watch(watchDir, {
+			recursive: false,
+			excludes: [],
 		}));
+
+		this._register(this.fileService.onDidFilesChange(e => {
+			
+			if (!e.contains(mcpConfigUri)) return;
+			this._scheduleRefreshMCPServers('onDidFilesChange');
+		}));
+
+		this._register(this.fileService.onDidRunOperation(e => {
+			const mcpStr = mcpConfigUri.toString();
+			const hit =
+				(e.resource?.toString() === mcpStr) ||
+				(e.target && e.target.toString() === mcpStr);
+
+			if (!hit) return;
+
+			
+			if (
+				e.operation === FileOperation.WRITE ||
+				e.operation === FileOperation.CREATE ||
+				e.operation === FileOperation.MOVE ||
+				e.operation === FileOperation.COPY ||
+				e.operation === FileOperation.DELETE
+			) {
+				this._scheduleRefreshMCPServers(`onDidRunOperation:${e.operation}`);
+			}
+		}));
+
+		
+		
+		const poll = async () => {
+			try {
+				const stat = await this.fileService.stat(mcpConfigUri);
+				const key = `${stat.mtime ?? 0}:${stat.size ?? 0}`;
+
+				if (this._mcpConfigLastStatKey === undefined) {
+					
+					this._mcpConfigLastStatKey = key;
+					return;
+				}
+
+				if (key !== this._mcpConfigLastStatKey) {
+					this._mcpConfigLastStatKey = key;
+					this._scheduleRefreshMCPServers('poll');
+				}
+			} catch {
+				// ignore
+			}
+		};
+
+		
+		await poll();
+
+		const handle = setInterval(poll, 1000);
+		this._register({ dispose: () => clearInterval(handle) });
 	}
 
 	// Client-side functions
@@ -179,55 +302,75 @@ class MCPService extends Disposable implements IMCPService {
 				}
 			});
 		} catch (error) {
-			console.error('Error opening MCP config file:', error);
+			this._logService.error('Error opening MCP config file:', error);
 		}
 	}
 
 	public getMCPTools(): InternalToolInfo[] | undefined {
-		const allTools: InternalToolInfo[] = []
+		const allTools: InternalToolInfo[] = [];
+		const disabledByUser = this._getDisabledToolNamesSet();
+
 		for (const serverName in this.state.mcpServerOfName) {
 			const server = this.state.mcpServerOfName[serverName];
+
+			if (!server || server.status !== 'success') continue;
+
 			server.tools?.forEach(tool => {
+				if (disabledByUser.has(tool.name)) return;
 				allTools.push({
+					name: tool.name,
 					description: tool.description || '',
 					params: this._transformInputSchemaToParams(tool.inputSchema),
-					name: tool.name,
-					mcpServerName: serverName,
-				})
-			})
+				});
+			});
 		}
-		if (allTools.length === 0) return undefined
-		return allTools
+
+		return allTools.length === 0 ? undefined : allTools;
 	}
 
-	private _transformInputSchemaToParams(inputSchema?: Record<string, any>): { [paramName: string]: { description: string } } {
+	private _transformInputSchemaToParams(inputSchema?: Record<string, any>): Record<string, any> {
+		if (!inputSchema || typeof inputSchema !== 'object') return {};
 
-		// Check if inputSchema is valid
-		if (!inputSchema || !inputSchema.properties) return {};
+		const schema: any = inputSchema;
+		const props: any = schema.properties;
 
-		const params: { [paramName: string]: { description: string } } = {};
-		Object.keys(inputSchema.properties).forEach(paramName => {
-			const propertyValues = inputSchema.properties[paramName];
+		if (!props || typeof props !== 'object') return {};
 
-			// Check if propertyValues is not an object
-			if (typeof propertyValues !== 'object') {
-				console.warn(`Invalid property value for ${paramName}: expected object, got ${typeof propertyValues}`);
-				return; // in forEach the return is equivalent to continue
-			}
+		const params: Record<string, any> = {};
 
-			// Add the parameter to the params object
+		for (const [paramName, paramSchema] of Object.entries(props)) {
+			if (!paramSchema || typeof paramSchema !== 'object') continue;
+
 			params[paramName] = {
-				description: JSON.stringify(propertyValues.description || '', null, 2) || '',
-			}
-		});
+				description: (paramSchema as any).description || `Parameter: ${paramName}`,
+				type: (paramSchema as any).type,
+				enum: (paramSchema as any).enum,
+				items: (paramSchema as any).items,
+				properties: (paramSchema as any).properties,
+				required: (paramSchema as any).required,
+				default: (paramSchema as any).default,
+				minimum: (paramSchema as any).minimum,
+				maximum: (paramSchema as any).maximum,
+				minLength: (paramSchema as any).minLength,
+				maxLength: (paramSchema as any).maxLength
+			};
+		}
+
 		return params;
 	}
 
 	private async _getMCPConfigFilePath(): Promise<URI> {
-		const appName = this.productService.dataFolderName
-		const userHome = await this.pathService.userHome();
-		const uri = URI.joinPath(userHome, appName, MCP_CONFIG_FILE_NAME)
-		return uri
+		// Check if --user-data-dir is provided
+		const customUserDataDir = this.environmentService.userDataPath;
+		if (customUserDataDir) {
+			const uri = URI.joinPath(URI.file(customUserDataDir), 'User', MCP_CONFIG_FILE_NAME);
+			return uri;
+		} else {
+			const appName = this.productService.dataFolderName;
+			const userHome = await this.pathService.userHome();
+			const uri = URI.joinPath(userHome, appName, MCP_CONFIG_FILE_NAME);
+			return uri;
+		}
 	}
 
 	private async _configFileExists(mcpConfigUri: URI): Promise<boolean> {
@@ -257,44 +400,82 @@ class MCPService extends Disposable implements IMCPService {
 		}
 	}
 
-
-	// Handle server state changes
 	private async _refreshMCPServers(): Promise<void> {
-
-		this._setHasError(undefined)
+		this._logService.debug('[MCP] refresh called');
+		this._setHasError(undefined);
 
 		const newConfigFileJSON = await this._parseMCPConfigFile();
-		if (!newConfigFileJSON) { console.log(`Not setting state: MCP config file not found`); return }
-		if (!newConfigFileJSON?.mcpServers) { console.log(`Not setting state: MCP config file did not have an 'mcpServers' field`); return }
-
-
-		const oldConfigFileNames = Object.keys(this.state.mcpServerOfName)
-		const newConfigFileNames = Object.keys(newConfigFileJSON.mcpServers)
-
-		const addedServerNames = newConfigFileNames.filter(serverName => !oldConfigFileNames.includes(serverName)); // in new and not in old
-		const removedServerNames = oldConfigFileNames.filter(serverName => !newConfigFileNames.includes(serverName)); // in old and not in new
-
-		// set isOn to any new servers in the config
-		const addedUserStateOfName: MCPUserStateOfName = {}
-		for (const name of addedServerNames) { addedUserStateOfName[name] = { isOn: true } }
-		await this.voidSettingsService.addMCPUserStateOfNames(addedUserStateOfName);
-
-		// delete isOn for any servers that no longer show up in the config
-		await this.voidSettingsService.removeMCPUserStateOfNames(removedServerNames);
-
-		// set all servers to loading
-		for (const serverName in newConfigFileJSON.mcpServers) {
-			this._setMCPServerState(serverName, { status: 'loading', tools: [] })
+		if (!newConfigFileJSON) {
+			this._logService.debug(`[MCP] Not setting state: MCP config file not found or failed to parse`);
+			return;
 		}
-		const updatedServerNames = Object.keys(newConfigFileJSON.mcpServers).filter(serverName => !addedServerNames.includes(serverName) && !removedServerNames.includes(serverName))
 
-		this.channel.call('refreshMCPServers', {
-			mcpConfigFileJSON: newConfigFileJSON,
-			addedServerNames,
-			removedServerNames,
-			updatedServerNames,
-			userStateOfName: this.voidSettingsService.state.mcpUserStateOfName,
-		})
+		this._logService.debug('[MCP] servers:', Object.keys((newConfigFileJSON as any).mcpServers || {}));
+
+		const mcpServersObj = (newConfigFileJSON as any).mcpServers;
+		if (!mcpServersObj || typeof mcpServersObj !== 'object') {
+			this._logService.debug(`[MCP] Not setting state: MCP config file did not have a valid 'mcpServers' object`);
+			return;
+		}
+
+		const oldNames = Object.keys(this.state.mcpServerOfName);
+		const newNames = Object.keys(mcpServersObj);
+
+		const addedServerNames = newNames.filter(name => !oldNames.includes(name));
+		const removedServerNames = oldNames.filter(name => !newNames.includes(name));
+		const updatedServerNames = newNames.filter(name => oldNames.includes(name)); // intersection
+
+		// 1) Ensure every server in config has a userState entry. Default OFF.
+		const currentUserState = this.voidSettingsService.state.mcpUserStateOfName ?? {};
+		const missingUserStateNames = newNames.filter(name => !(name in currentUserState));
+
+		if (missingUserStateNames.length > 0) {
+			const defaults: MCPUserStateOfName = {};
+			for (const name of missingUserStateNames) {
+				defaults[name] = { isOn: false };
+			}
+			await this.voidSettingsService.addMCPUserStateOfNames(defaults);
+		}
+
+		// 2) Remove user state for deleted servers + remove from UI immediately
+		if (removedServerNames.length > 0) {
+			await this.voidSettingsService.removeMCPUserStateOfNames(removedServerNames);
+
+			for (const name of removedServerNames) {
+				this._setMCPServerState(name, undefined, { syncDynamicTools: false });
+			}
+		}
+
+		// 3) Set local UI state for all servers (ON => loading, OFF => offline)
+		const userStateOfName = this.voidSettingsService.state.mcpUserStateOfName ?? {};
+
+		for (const serverName of newNames) {
+			const isOn = userStateOfName[serverName]?.isOn ?? false;
+
+			this._setMCPServerState(
+				serverName,
+				isOn
+					? { status: 'loading', tools: [] }
+					: { status: 'offline', tools: [] },
+				{ syncDynamicTools: false }
+			);
+		}
+
+		// sync tool registry once after batch
+		void this._syncDynamicToolsRegistryFromState();
+
+		// 4) Notify main-process
+		try {
+			await this.channel.call('refreshMCPServers', {
+				mcpConfigFileJSON: newConfigFileJSON,
+				addedServerNames,
+				removedServerNames,
+				updatedServerNames,
+				userStateOfName,
+			});
+		} catch (err) {
+			this._logService.error('[MCP mcp.json] refreshMCPServers channel call failed', err);
+		}
 	}
 
 	stringifyResult(result: RawMCPToolCall): string {
@@ -315,10 +496,23 @@ class MCPService extends Disposable implements IMCPService {
 
 	// toggle MCP server and update isOn in void settings
 	public async toggleServerIsOn(serverName: string, isOn: boolean): Promise<void> {
-		this._setMCPServerState(serverName, { status: 'loading', tools: [] })
-
+		
 		await this.voidSettingsService.setMCPServerState(serverName, { isOn });
-		this.channel.call('toggleMCPServer', { serverName, isOn })
+
+		
+		this._setMCPServerState(
+			serverName,
+			isOn
+				? { status: 'loading', tools: [] }
+				: { status: 'offline', tools: [] }
+		);
+
+		
+		try {
+			await this.channel.call('toggleMCPServer', { serverName, isOn });
+		} catch (err) {
+			this._logService.error('[MCP] toggleMCPServer failed', err);
+		}
 	}
 
 
@@ -330,31 +524,6 @@ class MCPService extends Disposable implements IMCPService {
 		return { result };
 	}
 
-	// public getMCPToolFns(): MCPToolResultType {
-	// 	const tools = this.getMCPTools();
-	// 	const toolFns: MCPToolResultType = {};
-
-	// 	tools.forEach((tool) => {
-	// 		const name = tool.name;
-	// 		// Define the tool call function
-	// 		const toolFn = async (params: {
-	// 			serverName: string,
-	// 			toolName: string,
-	// 			args: any
-	// 		}) => {
-	// 			const { serverName, toolName, args } = params;
-	// 			const response = await this.callMCPTool({
-	// 				serverName,
-	// 				toolName,
-	// 				params: args,
-	// 			});
-	// 			return { result: response }
-	// 		};
-	// 		toolFns[name] = toolFn;
-	// 	});
-
-	// 	return toolFns
-	// }
 }
 
 registerSingleton(IMCPService, MCPService, InstantiationType.Eager);

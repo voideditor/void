@@ -12,13 +12,13 @@ import { StorageScope, IStorageService, StorageTarget } from '../../../../platfo
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IFileContentCondition, IFilePathCondition, IFileLanguageCondition, IFileOpenCondition } from '../../../../base/common/product.js';
 import { IStringDictionary } from '../../../../base/common/collections.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { basename, extname } from '../../../../base/common/resources.js';
 import { match } from '../../../../base/common/glob.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IExtensionRecommendationNotificationService, RecommendationsNotificationResult, RecommendationSource } from '../../../../platform/extensionRecommendations/common/extensionRecommendations.js';
 import { distinct } from '../../../../base/common/arrays.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';

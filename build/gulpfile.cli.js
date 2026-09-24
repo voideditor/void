@@ -110,7 +110,7 @@ const compileFromSources = (callback) => {
 };
 
 const acquireBuiltOpenSSL = (callback) => {
-	const untar = require('gulp-untar');
+	const { untar } = require('./lib/untar');
 	const gunzip = require('gulp-gunzip');
 	const dir = path.join(tmpdir(), 'vscode-openssl-download');
 	mkdirSync(dir, { recursive: true });

@@ -18,7 +18,7 @@ import { DiffEditorWidget } from '../../../../../editor/browser/widget/diffEdito
 import { EmbeddedDiffEditorWidget } from '../../../../../editor/browser/widget/diffEditor/embeddedDiffEditorWidget.js';
 import { MarkdownRenderer } from '../../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import { IDiffEditorOptions, IEditorOptions } from '../../../../../editor/common/config/editorOptions.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { peekViewResultsBackground } from '../../../../../editor/contrib/peekView/browser/peekView.js';
 import { localize } from '../../../../../nls.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';

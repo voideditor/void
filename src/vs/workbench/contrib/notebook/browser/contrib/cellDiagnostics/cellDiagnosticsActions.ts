@@ -5,7 +5,7 @@
 
 import { KeyCode, KeyMod } from '../../../../../../base/common/keyCodes.js';
 import { ServicesAccessor } from '../../../../../../editor/browser/editorExtensions.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
 import { CodeActionController } from '../../../../../../editor/contrib/codeAction/browser/codeActionController.js';
 import { CodeActionKind, CodeActionTriggerSource } from '../../../../../../editor/contrib/codeAction/common/types.js';
 import { localize, localize2 } from '../../../../../../nls.js';

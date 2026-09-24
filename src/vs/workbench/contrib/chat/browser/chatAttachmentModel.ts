@@ -6,7 +6,7 @@
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { basename } from '../../../../base/common/resources.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IChatRequestVariableEntry } from '../common/chatModel.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

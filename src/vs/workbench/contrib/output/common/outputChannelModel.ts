@@ -5,25 +5,25 @@
 
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import * as resources from '../../../../base/common/resources.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { Promises, ThrottledDelayer } from '../../../../base/common/async.js';
 import { FileOperationResult, IFileService, toFileOperationResult } from '../../../../platform/files/common/files.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageSelection } from '../../../../editor/common/languages/language.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageSelection } from '../../../../editor/common/language/language.js';
 import { Disposable, toDisposable, IDisposable, MutableDisposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { isNumber } from '../../../../base/common/types.js';
-import { EditOperation, ISingleEditOperation } from '../../../../editor/common/core/editOperation.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { EditOperation, ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { ILogger, ILoggerService, ILogService, LogLevel } from '../../../../platform/log/common/log.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { ILogEntry, IOutputContentSource, LOG_MIME, OutputChannelUpdateMode } from '../../../services/output/common/output.js';
 import { isCancellationError } from '../../../../base/common/errors.js';
-import { TextModel } from '../../../../editor/common/model/textModel.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
 import { binarySearch, sortedDiff } from '../../../../base/common/arrays.js';
 
 const LOG_ENTRY_REGEX = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s(\[(info|trace|debug|error|warning)\])\s(\[(.*?)\])?/;

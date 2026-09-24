@@ -27,7 +27,7 @@ import { CommentsFilters, CommentsFiltersChangeEvent, CommentsSortOrder } from '
 import { Memento, MementoObject } from '../../../common/memento.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { FilterOptions } from './commentsFilterOptions.js';
-import { CommentThreadApplicability, CommentThreadState } from '../../../../editor/common/languages.js';
+import { CommentThreadApplicability, CommentThreadState } from '../../../../editor/common/language/languages.js';
 import { revealCommentThread } from './commentsController.js';
 import { registerNavigableContainer } from '../../../browser/actions/widgetNavigationCommands.js';
 import { CommentsModel, threadHasMeaningfulComments, type ICommentsModel } from './commentsModel.js';
@@ -38,7 +38,7 @@ import type { ITreeElement } from '../../../../base/browser/ui/tree/tree.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 
 export const CONTEXT_KEY_HAS_COMMENTS = new RawContextKey<boolean>('commentsView.hasComments', false);
 export const CONTEXT_KEY_SOME_COMMENTS_EXPANDED = new RawContextKey<boolean>('commentsView.someCommentsExpanded', false);

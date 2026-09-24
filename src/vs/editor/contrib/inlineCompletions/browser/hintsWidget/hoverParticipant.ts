@@ -9,9 +9,9 @@ import { DisposableStore, IDisposable } from '../../../../../base/common/lifecyc
 import { autorun, autorunWithStore, constObservable } from '../../../../../base/common/observable.js';
 import { ICodeEditor, IEditorMouseEvent, MouseTargetType } from '../../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { Range } from '../../../../common/core/range.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
-import { IModelDecoration } from '../../../../common/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { IModelDecoration } from '../../../../../editor/common/language/model.js';
 import { HoverAnchor, HoverAnchorType, HoverForeignElementAnchor, IEditorHoverParticipant, IEditorHoverRenderContext, IHoverPart, IRenderedHoverPart, IRenderedHoverParts, RenderedHoverParts } from '../../../hover/browser/hoverTypes.js';
 import { InlineCompletionsController } from '../controller/inlineCompletionsController.js';
 import { InlineSuggestionHintsContentWidget } from './inlineCompletionsHintsWidget.js';

@@ -25,7 +25,7 @@ import { KeyCode } from '../../../../../../base/common/keyCodes.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { isSafari } from '../../../../../../base/common/platform.js';
 import { ThemeIcon } from '../../../../../../base/common/themables.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
 import { FindReplaceState, FindReplaceStateChangedEvent } from '../../../../../../editor/contrib/find/browser/findState.js';
 import { findNextMatchIcon, findPreviousMatchIcon, findReplaceAllIcon, findReplaceIcon, findSelectionIcon, SimpleButton } from '../../../../../../editor/contrib/find/browser/findWidget.js';
 import { parseReplaceString, ReplacePattern } from '../../../../../../editor/contrib/find/browser/replacePattern.js';

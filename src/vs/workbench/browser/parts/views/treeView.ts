@@ -68,15 +68,15 @@ import { CheckboxStateHandler, TreeItemCheckbox } from './checkbox.js';
 import { setTimeout0 } from '../../../../base/common/platform.js';
 import { AriaRole } from '../../../../base/browser/ui/aria/aria.js';
 import { TelemetryTrustedValue } from '../../../../platform/telemetry/common/telemetryUtils.js';
-import { ITreeViewsDnDService } from '../../../../editor/common/services/treeViewsDndService.js';
-import { DraggedTreeItemsIdentifier } from '../../../../editor/common/services/treeViewsDnd.js';
+import { ITreeViewsDnDService } from '../../../../editor/common/language/services/treeViewsDndService.js';
+import { DraggedTreeItemsIdentifier } from '../../../../editor/common/language/services/treeViewsDnd.js';
 import { IMarkdownRenderResult, MarkdownRenderer } from '../../../../editor/browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import type { IManagedHoverTooltipMarkdownString } from '../../../../base/browser/ui/hover/hover.js';
 import { parseLinkedText } from '../../../../base/common/linkedText.js';
 import { Button } from '../../../../base/browser/ui/button/button.js';
 import { defaultButtonStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { IAccessibleViewInformationService } from '../../../services/accessibility/common/accessibleViewInformationService.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 
 export class TreeViewPane extends ViewPane {
 

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
-import { ITextModel } from '../../../../common/model.js';
-import { FoldingContext, FoldingRange, FoldingRangeProvider, ProviderResult } from '../../../../common/languages.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { FoldingContext, FoldingRange, FoldingRangeProvider, ProviderResult } from '../../../../../editor/common/language/languages.js';
 import { SyntaxRangeProvider } from '../../browser/syntaxRangeProvider.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { FoldingLimitReporter } from '../../browser/folding.js';

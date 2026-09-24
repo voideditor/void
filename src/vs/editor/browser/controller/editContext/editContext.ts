@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { FastDomNode } from '../../../../base/browser/fastDomNode.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { IEditorAriaOptions } from '../../editorBrowser.js';
 import { ViewPart } from '../../view/viewPart.js';
 

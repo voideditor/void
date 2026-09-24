@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { CopyLinesCommand } from '../../browser/copyLinesCommand.js';
 import { DuplicateSelectionAction } from '../../browser/linesOperations.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';

@@ -10,12 +10,12 @@ import { Disposable, IDisposable } from '../../../../../../base/common/lifecycle
 import { ResourceMap } from '../../../../../../base/common/map.js';
 import { isEqual } from '../../../../../../base/common/resources.js';
 import { format } from '../../../../../../base/common/strings.js';
-import { Position } from '../../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
-import { StandardTokenType } from '../../../../../../editor/common/encodedTokenAttributes.js';
-import { InlineValueContext, InlineValueText, InlineValueVariableLookup } from '../../../../../../editor/common/languages.js';
-import { IModelDeltaDecoration, ITextModel } from '../../../../../../editor/common/model.js';
-import { ILanguageFeaturesService } from '../../../../../../editor/common/services/languageFeatures.js';
+import { Position } from '../../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
+import { StandardTokenType } from '../../../../../../editor/common/language/encodedTokenAttributes.js';
+import { InlineValueContext, InlineValueText, InlineValueVariableLookup } from '../../../../../../editor/common/language/languages.js';
+import { IModelDeltaDecoration, ITextModel } from '../../../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../../../editor/common/language/services/languageFeatures.js';
 import { localize } from '../../../../../../nls.js';
 import { registerAction2 } from '../../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';

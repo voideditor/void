@@ -29,12 +29,12 @@ import { toExternalVSDataTransfer, toVSDataTransfer } from '../../../browser/dnd
 import { ICodeEditor, PastePayload } from '../../../browser/editorBrowser.js';
 import { IBulkEditService } from '../../../browser/services/bulkEditService.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { IRange, Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { Handler, IEditorContribution } from '../../../common/editorCommon.js';
-import { DocumentPasteContext, DocumentPasteEdit, DocumentPasteEditProvider, DocumentPasteTriggerKind } from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { DocumentPasteContext, DocumentPasteEdit, DocumentPasteEditProvider, DocumentPasteTriggerKind } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { CodeEditorStateFlag, EditorStateCancellationTokenSource } from '../../editorState/browser/editorState.js';
 import { InlineProgressManager } from '../../inlineProgress/browser/inlineProgress.js';
 import { MessageController } from '../../message/browser/messageController.js';

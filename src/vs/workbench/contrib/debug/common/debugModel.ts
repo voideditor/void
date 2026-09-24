@@ -17,7 +17,7 @@ import * as resources from '../../../../base/common/resources.js';
 import { isString, isUndefinedOrNull } from '../../../../base/common/types.js';
 import { URI, URI as uri } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import * as nls from '../../../../nls.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';

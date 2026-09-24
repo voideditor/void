@@ -14,9 +14,9 @@ import { ISaveDialogOptions, IOpenDialogOptions, IFileDialogService } from '../.
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { getIconClasses } from '../../../../editor/common/language/services/getIconClasses.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
 import { IRemoteAgentService } from '../../remote/common/remoteAgentService.js';

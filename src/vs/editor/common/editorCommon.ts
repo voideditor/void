@@ -9,12 +9,12 @@ import { IDisposable } from '../../base/common/lifecycle.js';
 import { ThemeColor } from '../../base/common/themables.js';
 import { URI, UriComponents } from '../../base/common/uri.js';
 import { IEditorOptions } from './config/editorOptions.js';
-import { IDimension } from './core/dimension.js';
-import { IPosition, Position } from './core/position.js';
-import { IRange, Range } from './core/range.js';
-import { ISelection, Selection } from './core/selection.js';
-import { IModelDecoration, IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel, IValidEditOperation, OverviewRulerLane, TrackedRangeStickiness } from './model.js';
-import { IModelDecorationsChangedEvent } from './textModelEvents.js';
+import { IDimension } from '../../editor/common/language/core/dimension.js';
+import { IPosition, Position } from '../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../editor/common/language/core/range.js';
+import { ISelection, Selection } from '../../editor/common/language/core/selection.js';
+import { IModelDecoration, IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel, IValidEditOperation, OverviewRulerLane, TrackedRangeStickiness } from '../../editor/common/language/model.js';
+import { IModelDecorationsChangedEvent } from '../../editor/common/language/textModelEvents.js';
 import { ICommandMetadata } from '../../platform/commands/common/commands.js';
 
 /**

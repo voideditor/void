@@ -13,10 +13,10 @@ import { basename, extUri } from '../../../../base/common/resources.js';
 import * as strings from '../../../../base/common/strings.js';
 import { Constants } from '../../../../base/common/uint.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Position } from '../../../common/core/position.js';
-import { IRange, Range } from '../../../common/core/range.js';
-import { Location, LocationLink } from '../../../common/languages.js';
-import { ITextEditorModel, ITextModelService } from '../../../common/services/resolverService.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { Location, LocationLink } from '../../../../editor/common/language/languages.js';
+import { ITextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../nls.js';
 
 export class OneReference {

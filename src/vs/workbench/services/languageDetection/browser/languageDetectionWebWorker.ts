@@ -8,7 +8,7 @@ import { importAMDNodeModule } from '../../../../amdX.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { IWebWorkerServerRequestHandler, IWebWorkerServer } from '../../../../base/common/worker/webWorker.js';
 import { LanguageDetectionWorkerHost, ILanguageDetectionWorker } from './languageDetectionWorker.protocol.js';
-import { WorkerTextModelSyncServer } from '../../../../editor/common/services/textModelSync/textModelSync.impl.js';
+import { WorkerTextModelSyncServer } from '../../../../editor/common/language/services/textModelSync/textModelSync.impl.js';
 
 type RegexpModel = { detect: (inp: string, langBiases: Record<string, number>, supportedLangs?: string[]) => string | undefined };
 

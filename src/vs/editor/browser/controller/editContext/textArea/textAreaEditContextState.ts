@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commonPrefixLength, commonSuffixLength } from '../../../../../base/common/strings.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ScreenReaderContentState } from '../screenReaderUtils.js';
 
 export const _debugComposition = false;

@@ -6,7 +6,7 @@
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { localize } from '../../../../nls.js';
 import { dirname, basename } from '../../../../base/common/resources.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { INativeWorkbenchEnvironmentService } from '../../../services/environment/electron-sandbox/environmentService.js';
 import { ILifecycleService, LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';

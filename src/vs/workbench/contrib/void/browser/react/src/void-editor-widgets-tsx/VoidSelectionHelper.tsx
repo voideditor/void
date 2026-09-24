@@ -2,18 +2,13 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
-
-
-import { useAccessor, useActiveURI, useIsDark, useSettingsState } from '../util/services.js';
-
+import { useAccessor,  useIsDark, } from '../util/services.js';
 import '../styles.css'
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../actionIDs.js';
 import { Circle, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 import { VoidSelectionHelperProps } from '../../../../../../contrib/void/browser/voidSelectionHelperWidget.js';
 import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
-
 
 export const VoidSelectionHelperMain = (props: VoidSelectionHelperProps) => {
 
@@ -26,10 +21,7 @@ export const VoidSelectionHelperMain = (props: VoidSelectionHelperProps) => {
 	</div>
 }
 
-
-
 const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
-
 
 	const accessor = useAccessor()
 	const keybindingService = accessor.get('IKeybindingService')
@@ -61,11 +53,6 @@ const VoidSelectionHelper = ({ rerenderKey }: VoidSelectionHelperProps) => {
 		setReactRerenderKey(rerenderKey)
 		setClickState('init')
 	}
-	// useEffect(() => {
-	// }, [rerenderKey, reactRerenderCount, setReactRerenderKey, setClickState])
-
-	// if the user selected an option, close
-
 
 	if (clickState === 'clickedOption') {
 		return null

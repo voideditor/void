@@ -6,7 +6,7 @@
 import { VSBuffer, decodeBase64 } from '../../../base/common/buffer.js';
 import { revive } from '../../../base/common/marshalling.js';
 import { IBulkEditService, ResourceFileEdit, ResourceTextEdit } from '../../../editor/browser/services/bulkEditService.js';
-import { WorkspaceEdit } from '../../../editor/common/languages.js';
+import { WorkspaceEdit } from '../../../editor/common/language/languages.js';
 import { ILogService } from '../../../platform/log/common/log.js';
 import { IUriIdentityService } from '../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceCellEditDto, IWorkspaceEditDto, IWorkspaceFileEditDto, MainContext, MainThreadBulkEditsShape } from '../common/extHost.protocol.js';

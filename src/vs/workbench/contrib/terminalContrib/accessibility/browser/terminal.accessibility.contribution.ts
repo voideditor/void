@@ -8,7 +8,7 @@ import { Event } from '../../../../../base/common/event.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
 import { Disposable, DisposableStore, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { isWindows } from '../../../../../base/common/platform.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { localize2 } from '../../../../../nls.js';
 import { AccessibleViewProviderId, IAccessibleViewService, NavigationType } from '../../../../../platform/accessibility/browser/accessibleView.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../../platform/accessibility/common/accessibility.js';

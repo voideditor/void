@@ -5,10 +5,10 @@
 
 import { Disposable, dispose, IDisposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
-import { IRange } from '../../../../editor/common/core/range.js';
-import { CommentThread, CommentThreadCollapsibleState } from '../../../../editor/common/languages.js';
-import { IModelDecorationOptions, IModelDeltaDecoration } from '../../../../editor/common/model.js';
-import { ModelDecorationOptions } from '../../../../editor/common/model/textModel.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { CommentThread, CommentThreadCollapsibleState } from '../../../../editor/common/language/languages.js';
+import { IModelDecorationOptions, IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { ICommentInfo, ICommentService } from './commentService.js';
 
 class CommentThreadRangeDecoration implements IModelDeltaDecoration {

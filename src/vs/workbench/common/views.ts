@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Command } from '../../editor/common/languages.js';
+import { Command } from '../../editor/common/language/languages.js';
 import { UriComponents, URI } from '../../base/common/uri.js';
 import { Event, Emitter } from '../../base/common/event.js';
 import { ContextKeyExpression } from '../../platform/contextkey/common/contextkey.js';

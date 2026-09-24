@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as strings from '../../../../base/common/strings.js';
-import { Range } from '../../core/range.js';
-import { ITextModel } from '../../model.js';
+import { Range } from '../../language/core/range.js';
+import { ITextModel } from '../../language/model.js';
 import { ILanguageConfigurationService } from '../languageConfigurationRegistry.js';
 import { createScopedLineTokens, ScopedLineTokens } from '../supports.js';
 import { IVirtualModel } from '../autoIndent.js';
-import { IViewLineTokens, LineTokens } from '../../tokens/lineTokens.js';
+import { IViewLineTokens, LineTokens } from '../../language/tokens/lineTokens.js';
 import { IndentRulesSupport } from './indentRules.js';
-import { StandardTokenType } from '../../encodedTokenAttributes.js';
-import { Position } from '../../core/position.js';
+import { StandardTokenType } from '../../language/encodedTokenAttributes.js';
+import { Position } from '../../language/core/position.js';
 
 /**
  * This class is a wrapper class around {@link IndentRulesSupport}.

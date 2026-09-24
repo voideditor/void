@@ -14,7 +14,7 @@ import { CodeEditorWidget } from '../../../codeEditor/codeEditorWidget.js';
 import { DiffEditorWidget } from '../../diffEditorWidget.js';
 import { EditorOption } from '../../../../../common/config/editorOptions.js';
 import { DetailedLineRangeMapping } from '../../../../../common/diff/rangeMapping.js';
-import { EndOfLineSequence, ITextModel } from '../../../../../common/model.js';
+import { EndOfLineSequence, ITextModel } from '../../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../../nls.js';
 import { IClipboardService } from '../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextMenuService } from '../../../../../../platform/contextview/browser/contextView.js';

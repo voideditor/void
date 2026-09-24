@@ -16,7 +16,7 @@ import { findDiffEditorContainingCodeEditor } from '../../../../editor/browser/w
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { IDiffEditorContribution, IEditorContribution } from '../../../../editor/common/editorCommon.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import * as nls from '../../../../nls.js';
 import { MenuId, MenuRegistry } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';

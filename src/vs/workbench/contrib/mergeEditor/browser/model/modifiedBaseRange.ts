@@ -7,9 +7,9 @@ import { compareBy, equals, numberComparator, tieBreakComparators } from '../../
 import { BugIndicatingError } from '../../../../../base/common/errors.js';
 import { splitLines } from '../../../../../base/common/strings.js';
 import { Constants } from '../../../../../base/common/uint.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { LineRangeEdit, RangeEdit } from './editing.js';
 import { LineRange } from './lineRange.js';
 import { DetailedLineRangeMapping, MappingAlignment } from './mapping.js';

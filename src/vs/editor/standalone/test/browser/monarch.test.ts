@@ -6,9 +6,9 @@
 import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Token, TokenizationRegistry } from '../../../common/languages.js';
-import { ILanguageService } from '../../../common/languages/language.js';
-import { LanguageService } from '../../../common/services/languageService.js';
+import { Token, TokenizationRegistry } from '../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { LanguageService } from '../../../../editor/common/language/services/languageService.js';
 import { StandaloneConfigurationService } from '../../browser/standaloneServices.js';
 import { compile } from '../../common/monarch/monarchCompile.js';
 import { MonarchTokenizer } from '../../common/monarch/monarchLexer.js';

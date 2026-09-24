@@ -5,13 +5,13 @@
 
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
-import { TreeSitterTextModelService } from '../../../../editor/common/services/treeSitter/treeSitterParserService.js';
-import { ITreeSitterImporter, ITreeSitterParserService, TreeSitterImporter } from '../../../../editor/common/services/treeSitterParserService.js';
+import { TreeSitterTextModelService } from '../../../../editor/common/language/services/treeSitter/treeSitterParserService.js';
+import { ITreeSitterImporter, ITreeSitterParserService, TreeSitterImporter } from '../../../../editor/common/language/services/treeSitterParserService.js';
 import { ITreeSitterTokenizationFeature } from './treeSitterTokenizationFeature.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { URI } from '../../../../base/common/uri.js';
-import { TreeSitterTokenizationRegistry } from '../../../../editor/common/languages.js';
+import { TreeSitterTokenizationRegistry } from '../../../../editor/common/language/languages.js';
 import { ITextFileService } from '../../textfile/common/textfiles.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 

@@ -115,25 +115,31 @@ export class TerminalCommand implements ITerminalCommand {
 	}
 
 	getOutput(): string | undefined {
-		if (!this.executedMarker || !this.endMarker) {
-			return undefined;
-		}
+		if (!this.executedMarker || !this.endMarker) return undefined;
+
 		const startLine = this.executedMarker.line;
 		const endLine = this.endMarker.line;
+		if (startLine === endLine) return undefined;
 
-		if (startLine === endLine) {
-			return undefined;
-		}
 		let output = '';
-		let line: IBufferLine | undefined;
+		let logicalLine = '';
+
 		for (let i = startLine; i < endLine; i++) {
-			line = this._xterm.buffer.active.getLine(i);
-			if (!line) {
-				continue;
+			const line = this._xterm.buffer.active.getLine(i);
+			if (!line) continue;
+
+			logicalLine += line.translateToString(true);
+			const nextLine = this._xterm.buffer.active.getLine(i + 1);
+			const nextIsWrapped = nextLine?.isWrapped === true;
+
+			if (!nextIsWrapped) {
+				output += logicalLine + '\n';
+				logicalLine = '';
 			}
-			output += line.translateToString(!line.isWrapped) + (line.isWrapped ? '' : '\n');
 		}
-		return output === '' ? undefined : output;
+
+		if (output === '') return undefined;
+		return output;
 	}
 
 	getOutputMatch(outputMatcher: ITerminalOutputMatcher): ITerminalOutputMatch | undefined {

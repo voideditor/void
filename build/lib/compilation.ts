@@ -56,6 +56,10 @@ export function createCompile(src: string, { build, emitError, transpileOnly, pr
 
 	const projectPath = path.join(__dirname, '../../', src, 'tsconfig.json');
 	const overrideOptions = { ...getTypeScriptCompilerOptions(src), inlineSources: Boolean(build) };
+	if (process.env['VSCODE_TSC_IGNORE_UNUSED']) {
+		overrideOptions.noUnusedLocals = false;
+		overrideOptions.noUnusedParameters = false;
+	}
 	if (!build) {
 		overrideOptions.inlineSourceMap = true;
 	}
@@ -110,7 +114,9 @@ export function transpileTask(src: string, out: string, esbuild: boolean): task.
 	const task = () => {
 
 		const transpile = createCompile(src, { build: false, emitError: true, transpileOnly: { esbuild }, preserveEnglish: false });
-		const srcPipe = gulp.src(`${src}/**`, { base: `${src}` });
+		// `encoding: false` is required so binary assets (e.g. codicon.ttf) are copied as-is;
+		// vinyl-fs 4 (gulp 5) otherwise transcodes via utf8 and corrupts them.
+		const srcPipe = gulp.src(`${src}/**`, { base: `${src}`, encoding: false });
 
 		return srcPipe
 			.pipe(transpile())

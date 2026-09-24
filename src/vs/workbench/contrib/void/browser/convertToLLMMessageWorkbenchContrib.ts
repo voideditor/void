@@ -20,10 +20,10 @@ class ConvertContribWorkbenchContribution extends Disposable implements IWorkben
 		super()
 
 		const initializeURI = (uri: URI) => {
-			this.workspaceContext.getWorkspace()
-			const voidRulesURI = URI.joinPath(uri, '.voidrules')
-			this.voidModelService.initializeModel(voidRulesURI)
-		}
+			this.workspaceContext.getWorkspace();
+			const voidMdURI = URI.joinPath(uri, 'VOID.md');
+			this.voidModelService.initializeModel(voidMdURI);
+		};
 
 		// call
 		this._register(this.workspaceContext.onDidChangeWorkspaceFolders((e) => {

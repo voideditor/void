@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* eslint-disable @stylistic/ts/member-delimiter-style */
-/* eslint-disable local/code-no-unexternalized-strings */
-
 /**
  * Schema updated from the Model Context Protocol repository at
  * https://github.com/modelcontextprotocol/specification/tree/main/schema
@@ -20,8 +17,8 @@ export namespace MCP {
 		| JSONRPCResponse
 		| JSONRPCError;
 
-	export const LATEST_PROTOCOL_VERSION = "2024-11-05";
-	export const JSONRPC_VERSION = "2.0";
+	export const LATEST_PROTOCOL_VERSION = '2024-11-05';
+	export const JSONRPC_VERSION = '2.0';
 
 	/**
 	* A progress token, used to associate progress notifications with the original request.
@@ -140,7 +137,7 @@ export namespace MCP {
 	* A client MUST NOT attempt to cancel its `initialize` request.
 	*/
 	export interface CancelledNotification extends Notification {
-		method: "notifications/cancelled";
+		method: 'notifications/cancelled';
 		params: {
 			/**
 			 * The ID of the request to cancel.
@@ -161,7 +158,7 @@ export namespace MCP {
 	* This request is sent from the client to the server when it first connects, asking it to begin initialization.
 	*/
 	export interface InitializeRequest extends Request {
-		method: "initialize";
+		method: 'initialize';
 		params: {
 			/**
 			 * The latest version of the Model Context Protocol that the client supports. The client MAY decide to support older versions as well.
@@ -185,7 +182,7 @@ export namespace MCP {
 		/**
 		 * Instructions describing how to use the server and its features.
 		 *
-		 * This can be used by clients to improve the LLM's understanding of available tools, resources, etc. It can be thought of like a "hint" to the model. For example, this information MAY be added to the system prompt.
+		 * This can be used by clients to improve the LLM's understanding of available tools, resources, etc. It can be thought of like a 'hint" to the model. For example, this information MAY be added to the system prompt.
 		 */
 		instructions?: string;
 	}
@@ -194,7 +191,7 @@ export namespace MCP {
 	* This notification is sent from the client to the server after initialization has finished.
 	*/
 	export interface InitializedNotification extends Notification {
-		method: "notifications/initialized";
+		method: 'notifications/initialized';
 	}
 
 	/**
@@ -278,7 +275,7 @@ export namespace MCP {
 	* A ping, issued by either the server or the client, to check that the other party is still alive. The receiver must promptly respond, or else may be disconnected.
 	*/
 	export interface PingRequest extends Request {
-		method: "ping";
+		method: 'ping';
 	}
 
 	/* Progress notifications */
@@ -286,7 +283,7 @@ export namespace MCP {
 	* An out-of-band notification used to inform the receiver of a progress update for a long-running request.
 	*/
 	export interface ProgressNotification extends Notification {
-		method: "notifications/progress";
+		method: 'notifications/progress';
 		params: {
 			/**
 			 * The progress token which was given in the initial request, used to associate this notification with the request that is proceeding.
@@ -331,7 +328,7 @@ export namespace MCP {
 	* Sent from the client to request a list of resources the server has.
 	*/
 	export interface ListResourcesRequest extends PaginatedRequest {
-		method: "resources/list";
+		method: 'resources/list';
 	}
 
 	/**
@@ -345,7 +342,7 @@ export namespace MCP {
 	* Sent from the client to request a list of resource templates the server has.
 	*/
 	export interface ListResourceTemplatesRequest extends PaginatedRequest {
-		method: "resources/templates/list";
+		method: 'resources/templates/list';
 	}
 
 	/**
@@ -359,7 +356,7 @@ export namespace MCP {
 	* Sent from the client to the server, to read a specific resource URI.
 	*/
 	export interface ReadResourceRequest extends Request {
-		method: "resources/read";
+		method: 'resources/read';
 		params: {
 			/**
 			 * The URI of the resource to read. The URI can use any protocol; it is up to the server how to interpret it.
@@ -381,14 +378,14 @@ export namespace MCP {
 	* An optional notification from the server to the client, informing it that the list of resources it can read from has changed. This may be issued by servers without any previous subscription from the client.
 	*/
 	export interface ResourceListChangedNotification extends Notification {
-		method: "notifications/resources/list_changed";
+		method: 'notifications/resources/list_changed';
 	}
 
 	/**
 	* Sent from the client to request resources/updated notifications from the server whenever a particular resource changes.
 	*/
 	export interface SubscribeRequest extends Request {
-		method: "resources/subscribe";
+		method: 'resources/subscribe';
 		params: {
 			/**
 			 * The URI of the resource to subscribe to. The URI can use any protocol; it is up to the server how to interpret it.
@@ -403,7 +400,7 @@ export namespace MCP {
 	* Sent from the client to request cancellation of resources/updated notifications from the server. This should follow a previous resources/subscribe request.
 	*/
 	export interface UnsubscribeRequest extends Request {
-		method: "resources/unsubscribe";
+		method: 'resources/unsubscribe';
 		params: {
 			/**
 			 * The URI of the resource to unsubscribe from.
@@ -418,7 +415,7 @@ export namespace MCP {
 	* A notification from the server to the client, informing it that a resource has changed and may need to be read again. This should only be sent if the client previously sent a resources/subscribe request.
 	*/
 	export interface ResourceUpdatedNotification extends Notification {
-		method: "notifications/resources/updated";
+		method: 'notifications/resources/updated';
 		params: {
 			/**
 			 * The URI of the resource that has been updated. This might be a sub-resource of the one that the client actually subscribed to.
@@ -450,7 +447,7 @@ export namespace MCP {
 		/**
 		 * A description of what this resource represents.
 		 *
-		 * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a "hint" to the model.
+		 * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a 'hint' to the model.
 		 */
 		description?: string;
 
@@ -488,7 +485,7 @@ export namespace MCP {
 		/**
 		 * A description of what this template is for.
 		 *
-		 * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a "hint" to the model.
+		 * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a 'hint' to the model.
 		 */
 		description?: string;
 
@@ -535,7 +532,7 @@ export namespace MCP {
 	* Sent from the client to request a list of prompts and prompt templates the server has.
 	*/
 	export interface ListPromptsRequest extends PaginatedRequest {
-		method: "prompts/list";
+		method: 'prompts/list';
 	}
 
 	/**
@@ -549,7 +546,7 @@ export namespace MCP {
 	* Used by the client to get a prompt provided by the server.
 	*/
 	export interface GetPromptRequest extends Request {
-		method: "prompts/get";
+		method: 'prompts/get';
 		params: {
 			/**
 			 * The name of the prompt or prompt template.
@@ -612,7 +609,7 @@ export namespace MCP {
 	/**
 	* The sender or recipient of messages and data in a conversation.
 	*/
-	export type Role = "user" | "assistant";
+	export type Role = 'user' | 'assistant';
 
 	/**
 	* Describes a message returned as part of a prompt.
@@ -632,7 +629,7 @@ export namespace MCP {
 	* of the LLM and/or the user.
 	*/
 	export interface EmbeddedResource extends Annotated {
-		type: "resource";
+		type: 'resource';
 		resource: TextResourceContents | BlobResourceContents;
 	}
 
@@ -640,7 +637,7 @@ export namespace MCP {
 	* An optional notification from the server to the client, informing it that the list of prompts it offers has changed. This may be issued by servers without any previous subscription from the client.
 	*/
 	export interface PromptListChangedNotification extends Notification {
-		method: "notifications/prompts/list_changed";
+		method: 'notifications/prompts/list_changed';
 	}
 
 	/* Tools */
@@ -648,7 +645,7 @@ export namespace MCP {
 	* Sent from the client to request a list of tools the server has.
 	*/
 	export interface ListToolsRequest extends PaginatedRequest {
-		method: "tools/list";
+		method: 'tools/list';
 	}
 
 	/**
@@ -685,7 +682,7 @@ export namespace MCP {
 	* Used by the client to invoke a tool provided by the server.
 	*/
 	export interface CallToolRequest extends Request {
-		method: "tools/call";
+		method: 'tools/call';
 		params: {
 			name: string;
 			arguments?: { [key: string]: unknown };
@@ -696,7 +693,7 @@ export namespace MCP {
 	* An optional notification from the server to the client, informing it that the list of tools it offers has changed. This may be issued by servers without any previous subscription from the client.
 	*/
 	export interface ToolListChangedNotification extends Notification {
-		method: "notifications/tools/list_changed";
+		method: 'notifications/tools/list_changed';
 	}
 
 	/**
@@ -715,7 +712,7 @@ export namespace MCP {
 		 * A JSON Schema object defining the expected parameters for the tool.
 		 */
 		inputSchema: {
-			type: "object";
+			type: 'object';
 			properties?: { [key: string]: object };
 			required?: string[];
 		};
@@ -726,7 +723,7 @@ export namespace MCP {
 	* A request from the client to the server, to enable or adjust logging.
 	*/
 	export interface SetLevelRequest extends Request {
-		method: "logging/setLevel";
+		method: 'logging/setLevel';
 		params: {
 			/**
 			 * The level of logging that the client wants to receive from the server. The server should send all logs at this level and higher (i.e., more severe) to the client as notifications/message.
@@ -739,7 +736,7 @@ export namespace MCP {
 	* Notification of a log message passed from server to client. If no logging/setLevel request has been sent from the client, the server MAY decide which messages to send automatically.
 	*/
 	export interface LoggingMessageNotification extends Notification {
-		method: "notifications/message";
+		method: 'notifications/message';
 		params: {
 			/**
 			 * The severity of this log message.
@@ -763,21 +760,21 @@ export namespace MCP {
 	* https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1
 	*/
 	export type LoggingLevel =
-		| "debug"
-		| "info"
-		| "notice"
-		| "warning"
-		| "error"
-		| "critical"
-		| "alert"
-		| "emergency";
+		| 'debug'
+		| 'info'
+		| 'notice'
+		| 'warning'
+		| 'error'
+		| 'critical'
+		| 'alert'
+		| 'emergency';
 
 	/* Sampling */
 	/**
 	* A request from the server to sample an LLM via the client. The client has full discretion over which model to select. The client should also inform the user before beginning sampling, to allow them to inspect the request (human in the loop) and decide whether to approve it.
 	*/
 	export interface CreateMessageRequest extends Request {
-		method: "sampling/createMessage";
+		method: 'sampling/createMessage';
 		params: {
 			messages: SamplingMessage[];
 			/**
@@ -791,7 +788,7 @@ export namespace MCP {
 			/**
 			 * A request to include context from one or more MCP servers (including the caller), to be attached to the prompt. The client MAY ignore this request.
 			 */
-			includeContext?: "none" | "thisServer" | "allServers";
+			includeContext?: 'none' | 'thisServer' | 'allServers';
 			/**
 			 * @TJS-type number
 			 */
@@ -819,7 +816,7 @@ export namespace MCP {
 		/**
 		 * The reason why sampling stopped, if known.
 		 */
-		stopReason?: "endTurn" | "stopSequence" | "maxTokens" | string;
+		stopReason?: 'endTurn' | 'stopSequence' | 'maxTokens' | string;
 	}
 
 	/**
@@ -861,7 +858,7 @@ export namespace MCP {
 	* Text provided to or from an LLM.
 	*/
 	export interface TextContent extends Annotated {
-		type: "text";
+		type: 'text';
 		/**
 		 * The text content of the message.
 		 */
@@ -872,7 +869,7 @@ export namespace MCP {
 	* An image provided to or from an LLM.
 	*/
 	export interface ImageContent extends Annotated {
-		type: "image";
+		type: 'image';
 		/**
 		 * The base64-encoded image data.
 		 *
@@ -970,7 +967,7 @@ export namespace MCP {
 	* A request from the client to the server, to ask for completion options.
 	*/
 	export interface CompleteRequest extends Request {
-		method: "completion/complete";
+		method: 'completion/complete';
 		params: {
 			ref: PromptReference | ResourceReference;
 			/**
@@ -1013,7 +1010,7 @@ export namespace MCP {
 	* A reference to a resource or resource template definition.
 	*/
 	export interface ResourceReference {
-		type: "ref/resource";
+		type: 'ref/resource';
 		/**
 		 * The URI or URI template of the resource.
 		 *
@@ -1026,7 +1023,7 @@ export namespace MCP {
 	* Identifies a prompt.
 	*/
 	export interface PromptReference {
-		type: "ref/prompt";
+		type: 'ref/prompt';
 		/**
 		 * The name of the prompt or prompt template
 		 */
@@ -1044,7 +1041,7 @@ export namespace MCP {
 	* structure or access specific locations that the client has permission to read from.
 	*/
 	export interface ListRootsRequest extends Request {
-		method: "roots/list";
+		method: 'roots/list';
 	}
 
 	/**
@@ -1082,7 +1079,7 @@ export namespace MCP {
 	* The server should then request an updated list of roots using the ListRootsRequest.
 	*/
 	export interface RootsListChangedNotification extends Notification {
-		method: "notifications/roots/list_changed";
+		method: 'notifications/roots/list_changed';
 	}
 
 	/* Client messages */

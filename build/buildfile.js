@@ -13,7 +13,7 @@ function createModuleDescription(name) {
 	};
 }
 
-exports.workerEditor = createModuleDescription('vs/editor/common/services/editorWebWorkerMain');
+exports.workerEditor = createModuleDescription('vs/editor/common/language/services/editorWebWorkerMain');
 exports.workerExtensionHost = createModuleDescription('vs/workbench/api/worker/extensionHostWorkerMain');
 exports.workerNotebook = createModuleDescription('vs/workbench/contrib/notebook/common/services/notebookWebWorkerMain');
 exports.workerLanguageDetection = createModuleDescription('vs/workbench/services/languageDetection/browser/languageDetectionWebWorkerMain');

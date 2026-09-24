@@ -5,9 +5,9 @@
 
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { ICommand } from '../../../../common/editorCommon.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { BlockCommentCommand } from '../../browser/blockCommentCommand.js';
 import { testCommand } from '../../../../test/browser/testCommand.js';

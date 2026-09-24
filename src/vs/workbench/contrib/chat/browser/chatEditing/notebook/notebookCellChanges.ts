@@ -6,7 +6,7 @@
 import { ISettableObservable, ObservablePromise } from '../../../../../../base/common/observable.js';
 import { IDocumentDiff } from '../../../../../../editor/common/diff/documentDiffProvider.js';
 import { DetailedLineRangeMapping } from '../../../../../../editor/common/diff/rangeMapping.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 
 
 /**

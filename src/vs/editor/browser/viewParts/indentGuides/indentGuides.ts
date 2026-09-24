@@ -5,17 +5,17 @@
 
 import './indentGuides.css';
 import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
-import { editorBracketHighlightingForeground1, editorBracketHighlightingForeground2, editorBracketHighlightingForeground3, editorBracketHighlightingForeground4, editorBracketHighlightingForeground5, editorBracketHighlightingForeground6, editorBracketPairGuideActiveBackground1, editorBracketPairGuideActiveBackground2, editorBracketPairGuideActiveBackground3, editorBracketPairGuideActiveBackground4, editorBracketPairGuideActiveBackground5, editorBracketPairGuideActiveBackground6, editorBracketPairGuideBackground1, editorBracketPairGuideBackground2, editorBracketPairGuideBackground3, editorBracketPairGuideBackground4, editorBracketPairGuideBackground5, editorBracketPairGuideBackground6, editorIndentGuide1, editorIndentGuide2, editorIndentGuide3, editorIndentGuide4, editorIndentGuide5, editorIndentGuide6, editorActiveIndentGuide1, editorActiveIndentGuide2, editorActiveIndentGuide3, editorActiveIndentGuide4, editorActiveIndentGuide5, editorActiveIndentGuide6 } from '../../../common/core/editorColorRegistry.js';
+import { editorBracketHighlightingForeground1, editorBracketHighlightingForeground2, editorBracketHighlightingForeground3, editorBracketHighlightingForeground4, editorBracketHighlightingForeground5, editorBracketHighlightingForeground6, editorBracketPairGuideActiveBackground1, editorBracketPairGuideActiveBackground2, editorBracketPairGuideActiveBackground3, editorBracketPairGuideActiveBackground4, editorBracketPairGuideActiveBackground5, editorBracketPairGuideActiveBackground6, editorBracketPairGuideBackground1, editorBracketPairGuideBackground2, editorBracketPairGuideBackground3, editorBracketPairGuideBackground4, editorBracketPairGuideBackground5, editorBracketPairGuideBackground6, editorIndentGuide1, editorIndentGuide2, editorIndentGuide3, editorIndentGuide4, editorIndentGuide5, editorIndentGuide6, editorActiveIndentGuide1, editorActiveIndentGuide2, editorActiveIndentGuide3, editorActiveIndentGuide4, editorActiveIndentGuide5, editorActiveIndentGuide6 } from '../../../../editor/common/language/core/editorColorRegistry.js';
 import { RenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
 import { EditorOption, InternalGuidesOptions } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { ArrayQueue } from '../../../../base/common/arrays.js';
 import { Color } from '../../../../base/common/color.js';
 import { isDefined } from '../../../../base/common/types.js';
-import { BracketPairGuidesClassNames } from '../../../common/model/guidesTextModelPart.js';
+import { BracketPairGuidesClassNames } from '../../../../editor/common/language/model/guidesTextModelPart.js';
 import { IndentGuide, HorizontalGuidesState } from '../../../common/textModelGuides.js';
 
 /**

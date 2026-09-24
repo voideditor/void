@@ -8,18 +8,18 @@ import { hash, StringSHA1 } from '../../../../../base/common/hash.js';
 import { Disposable, DisposableStore, dispose } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
 import * as UUID from '../../../../../base/common/uuid.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import * as model from '../../../../../editor/common/model.js';
-import { PieceTreeTextBuffer } from '../../../../../editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
-import { createTextBuffer, TextModel } from '../../../../../editor/common/model/textModel.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import * as model from '../../../../../editor/common/language/model.js';
+import { PieceTreeTextBuffer } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
+import { createTextBuffer, TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../../editor/common/languages/modesRegistry.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { NotebookCellOutputTextModel } from './notebookCellOutputTextModel.js';
 import { CellInternalMetadataChangedEvent, CellKind, ICell, ICellDto2, ICellOutput, IOutputDto, IOutputItemDto, NotebookCellCollapseState, NotebookCellInternalMetadata, NotebookCellMetadata, NotebookCellOutputsSplice, TransientCellMetadata, TransientOptions } from '../notebookCommon.js';
 import { ThrottledDelayer } from '../../../../../base/common/async.js';
 import { ILanguageDetectionService } from '../../../../services/languageDetection/common/languageDetectionWorkerService.js';
 import { toFormattedString } from '../../../../../base/common/jsonFormatter.js';
-import { IModelContentChangedEvent } from '../../../../../editor/common/textModelEvents.js';
+import { IModelContentChangedEvent } from '../../../../../editor/common/language/textModelEvents.js';
 import { splitLines } from '../../../../../base/common/strings.js';
 
 export class NotebookCellTextModel extends Disposable implements ICell {

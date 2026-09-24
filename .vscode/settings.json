@@ -1,5 +1,6 @@
 {
 	"editor.insertSpaces": false,
+	"editor.renderWhitespace": "all",
 	"files.trimTrailingWhitespace": true,
 	"files.exclude": {
 		".git": true,
@@ -111,10 +112,14 @@
 		"files.insertFinalNewline": false
 	},
 	"[typescript]": {
+		"editor.insertSpaces": false,
+    "editor.detectIndentation": false,
 		"editor.defaultFormatter": "vscode.typescript-language-features",
 		"editor.formatOnSave": true
 	},
 	"[javascript]": {
+		"editor.insertSpaces": false,
+    "editor.detectIndentation": false,
 		"editor.defaultFormatter": "vscode.typescript-language-features",
 		"editor.formatOnSave": true
 	},

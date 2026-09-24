@@ -7,9 +7,9 @@ import { WebWorkerDescriptor } from '../../../../base/browser/webWorkerFactory.j
 import { FileAccess } from '../../../../base/common/network.js';
 import { EditorWorkerService } from '../../../../editor/browser/services/editorWorkerService.js';
 import { ILanguageConfigurationService } from '../../../../editor/common/languages/languageConfigurationRegistry.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 
 export class WorkbenchEditorWorkerService extends EditorWorkerService {
@@ -20,7 +20,8 @@ export class WorkbenchEditorWorkerService extends EditorWorkerService {
 		@ILanguageConfigurationService languageConfigurationService: ILanguageConfigurationService,
 		@ILanguageFeaturesService languageFeaturesService: ILanguageFeaturesService,
 	) {
-		const workerDescriptor = new WebWorkerDescriptor(FileAccess.asBrowserUri('vs/editor/common/services/editorWebWorkerMain.js'), 'TextEditorWorker');
+
+		const workerDescriptor = new WebWorkerDescriptor(FileAccess.asBrowserUri(`vs/editor/common/language/services/editorWebWorkerMain.js`), 'TextEditorWorker');
 		super(workerDescriptor, modelService, configurationService, logService, languageConfigurationService, languageFeaturesService);
 	}
 }

@@ -105,6 +105,7 @@ export const OPTIONS: OptionDescriptions<Required<NativeParsedArgs>> = {
 	'enable-proposed-api': { type: 'string[]', allowEmptyValue: true, cat: 'e', args: 'ext-id', description: localize('experimentalApis', "Enables proposed API features for extensions. Can receive one or more extension IDs to enable individually.") },
 
 	'add-mcp': { type: 'string[]', cat: 'o', args: 'json', description: localize('addMcp', "Adds a Model Context Protocol server definition to the user profile, or workspace or folder when used with --mcp-workspace. Accepts JSON input in the form '{\"name\":\"server-name\",\"command\":...}'") },
+	'acp-agent-addr': { type: 'string', cat: 't', args: 'host:port', description: localize('acpAgentAddr', "Run the built-in ACP agent on an alternate loopback address, for example 127.0.0.1:8720. Use this when the default port is already in use.") },
 
 	'version': { type: 'boolean', cat: 't', alias: 'v', description: localize('version', "Print version.") },
 	'verbose': { type: 'boolean', cat: 't', global: true, description: localize('verbose', "Print verbose output (implies --wait).") },
@@ -279,7 +280,6 @@ export function parseArgs<T>(args: string[], options: OptionDescriptions<T>, err
 		const newArgs = args.filter(a => a !== firstArg);
 		const reporter = errorReporter.getSubcommandReporter ? errorReporter.getSubcommandReporter(firstArg) : undefined;
 		const subcommandOptions = parseArgs(newArgs, options, reporter);
-		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		return <T>{
 			[firstArg]: subcommandOptions,
 			_: []

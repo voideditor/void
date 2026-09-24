@@ -14,15 +14,15 @@ import { IRelaxedTextModelCreationOptions, createModelServices, instantiateTextM
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ILanguageConfiguration, LanguageConfigurationFileHandler } from '../../common/languageConfigurationExtensionPoint.js';
 import { parse } from '../../../../../base/common/json.js';
-import { IRange } from '../../../../../editor/common/core/range.js';
-import { ISingleEditOperation } from '../../../../../editor/common/core/editOperation.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
+import { ISingleEditOperation } from '../../../../../editor/common/language/core/editOperation.js';
 import { trimTrailingWhitespace } from '../../../../../editor/common/commands/trimTrailingWhitespaceCommand.js';
 import { execSync } from 'child_process';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../../editor/common/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../../editor/common/language/languages.js';
 import { NullState } from '../../../../../editor/common/languages/nullTokenize.js';
-import { MetadataConsts, StandardTokenType } from '../../../../../editor/common/encodedTokenAttributes.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { MetadataConsts, StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { FileAccess } from '../../../../../base/common/network.js';
 
 function getIRange(range: IRange): IRange {

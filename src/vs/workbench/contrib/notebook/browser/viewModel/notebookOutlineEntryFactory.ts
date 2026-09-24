@@ -12,10 +12,10 @@ import { getMarkdownHeadersInCell } from './foldingModel.js';
 import { OutlineEntry } from './OutlineEntry.js';
 import { CellKind } from '../../common/notebookCommon.js';
 import { INotebookExecutionStateService } from '../../common/notebookExecutionStateService.js';
-import { IRange } from '../../../../../editor/common/core/range.js';
-import { SymbolKind } from '../../../../../editor/common/languages.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
+import { SymbolKind } from '../../../../../editor/common/language/languages.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 
 export const enum NotebookOutlineConstants {
 	NonHeaderOutlineLevel = 7,

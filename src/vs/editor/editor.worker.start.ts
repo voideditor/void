@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { initialize } from '../base/common/worker/webWorkerBootstrap.js';
-import { EditorWorker, IWorkerContext } from './common/services/editorWebWorker.js';
-import { EditorWorkerHost } from './common/services/editorWorkerHost.js';
+import { EditorWorker, IWorkerContext } from '../editor/common/language/services/editorWebWorker.js';
+import { EditorWorkerHost } from '../editor/common/language/services/editorWorkerHost.js';
 
 /**
  * Used by `monaco-editor` to hook up web worker rpc.

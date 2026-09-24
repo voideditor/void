@@ -13,7 +13,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { ContextKeyExpression } from '../../../../platform/contextkey/common/contextkey.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { Location } from '../../../../editor/common/languages.js';
+import { Location } from '../../../../editor/common/language/languages.js';
 import { IChatTerminalToolInvocationData, IChatToolInputInvocationData } from './chatService.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { PromptElementJSON, stringifyPromptElementJSON } from './tools/promptTsxTypes.js';
@@ -73,6 +73,7 @@ export interface IToolInvocation {
 	chatInteractionId?: string;
 	toolSpecificData?: IChatTerminalToolInvocationData | IChatToolInputInvocationData;
 	modelId?: string;
+	skipConfirmation?: boolean;
 }
 
 export interface IToolInvocationContext {

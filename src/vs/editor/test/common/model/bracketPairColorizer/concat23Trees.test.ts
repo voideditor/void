@@ -5,9 +5,9 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { AstNode, AstNodeKind, ListAstNode, TextAstNode } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/ast.js';
-import { concat23Trees } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/concat23Trees.js';
-import { toLength } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
+import { AstNode, AstNodeKind, ListAstNode, TextAstNode } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/ast.js';
+import { concat23Trees } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/concat23Trees.js';
+import { toLength } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
 
 suite('Bracket Pair Colorizer - mergeItems', () => {
 

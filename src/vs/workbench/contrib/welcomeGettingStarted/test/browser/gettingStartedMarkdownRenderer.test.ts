@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { FileAccess } from '../../../../../base/common/network.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { LanguageService } from '../../../../../editor/common/services/languageService.js';
+import { LanguageService } from '../../../../../editor/common/language/services/languageService.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
 import { GettingStartedDetailsRenderer } from '../../browser/gettingStartedDetailsRenderer.js';
 import { convertInternalMediaPathToFileURI } from '../../browser/gettingStartedService.js';

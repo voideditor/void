@@ -9,7 +9,7 @@ import { Disposable, IReference } from '../../../../base/common/lifecycle.js';
 import { basename } from '../../../../base/common/path.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../nls.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILabelService } from '../../../../platform/label/common/label.js';

@@ -9,9 +9,9 @@ import { AppResourcePath, FileAccess, nodeModulesAsarPath, nodeModulesPath } fro
 import { IObservable } from '../../../../../base/common/observable.js';
 import { isWeb } from '../../../../../base/common/platform.js';
 import { URI, UriComponents } from '../../../../../base/common/uri.js';
-import { IBackgroundTokenizationStore, IBackgroundTokenizer } from '../../../../../editor/common/languages.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { IBackgroundTokenizationStore, IBackgroundTokenizer } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { IExtensionResourceLoaderService } from '../../../../../platform/extensionResourceLoader/common/extensionResourceLoader.js';

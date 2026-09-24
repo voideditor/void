@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { IViewModel } from '../../../common/viewModel.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { Mimes } from '../../../../base/common/mime.js';
 

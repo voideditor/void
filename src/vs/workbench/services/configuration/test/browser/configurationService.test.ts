@@ -17,7 +17,7 @@ import { ConfigurationTarget, IConfigurationService, IConfigurationChangeEvent }
 import { workbenchInstantiationService, RemoteFileSystemProvider, TestEnvironmentService, TestTextFileService } from '../../../../test/browser/workbenchTestServices.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ITextFileService } from '../../../textfile/common/textfiles.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { TextModelResolverService } from '../../../textmodelResolver/common/textModelResolverService.js';
 import { IJSONEditingService } from '../../common/jsonEditing.js';
 import { JSONEditingService } from '../../common/jsonEditingService.js';

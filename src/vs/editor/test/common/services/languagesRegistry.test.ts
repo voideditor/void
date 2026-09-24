@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { LanguagesRegistry } from '../../../common/services/languagesRegistry.js';
+import { LanguagesRegistry } from '../../../../editor/common/language/services/languagesRegistry.js';
 
 suite('LanguagesRegistry', () => {
 

@@ -6,16 +6,16 @@
 import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { ColorId, FontStyle, MetadataConsts, TokenMetadata } from '../../../common/encodedTokenAttributes.js';
+import { ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ColorId, FontStyle, MetadataConsts, TokenMetadata } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { ILanguageConfigurationService, LanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
-import { TextModel } from '../../../common/model/textModel.js';
-import { LanguageIdCodec } from '../../../common/services/languagesRegistry.js';
-import { LineTokens } from '../../../common/tokens/lineTokens.js';
-import { SparseMultilineTokens } from '../../../common/tokens/sparseMultilineTokens.js';
-import { SparseTokensStore } from '../../../common/tokens/sparseTokensStore.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
+import { LanguageIdCodec } from '../../../../editor/common/language/services/languagesRegistry.js';
+import { LineTokens } from '../../../../editor/common/language/tokens/lineTokens.js';
+import { SparseMultilineTokens } from '../../../../editor/common/language/tokens/sparseMultilineTokens.js';
+import { SparseTokensStore } from '../../../../editor/common/language/tokens/sparseTokensStore.js';
 import { createModelServices, createTextModel, instantiateTextModel } from '../testTextModel.js';
 
 suite('TokensStore', () => {

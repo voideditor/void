@@ -13,8 +13,8 @@ import { ICodeEditor, IOverlayWidget, IOverlayWidgetPosition, OverlayWidgetPosit
 import { getColumnOfNodeOffset } from '../../../browser/viewParts/viewLines/viewLine.js';
 import { EmbeddedCodeEditorWidget } from '../../../browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorLayoutInfo, EditorOption, RenderLineNumbersType } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { StringBuilder } from '../../../common/core/stringBuilder.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { StringBuilder } from '../../../../editor/common/language/core/stringBuilder.js';
 import { LineDecoration } from '../../../common/viewLayout/lineDecorations.js';
 import { CharacterMapping, RenderLineInput, renderViewLine } from '../../../common/viewLayout/viewLineRenderer.js';
 import { foldingCollapsedIcon, foldingExpandedIcon } from '../../folding/browser/foldingDecorations.js';

@@ -38,8 +38,8 @@ import { FontMeasurements } from '../../../../editor/browser/config/fontMeasurem
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { IEditorOptions } from '../../../../editor/common/config/editorOptions.js';
 import { BareFontInfo, FontInfo } from '../../../../editor/common/config/fontInfo.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { SuggestController } from '../../../../editor/contrib/suggest/browser/suggestController.js';
 import * as nls from '../../../../nls.js';
 import { MenuId } from '../../../../platform/actions/common/actions.js';
@@ -91,7 +91,7 @@ import { IEditorGroupsService } from '../../../services/editor/common/editorGrou
 import { NotebookPerfMarks } from '../common/notebookPerformance.js';
 import { BaseCellEditorOptions } from './viewModel/cellEditorOptions.js';
 import { FloatingEditorClickMenu } from '../../../browser/codeeditor.js';
-import { IDimension } from '../../../../editor/common/core/dimension.js';
+import { IDimension } from '../../../../editor/common/language/core/dimension.js';
 import { CellFindMatchModel } from './contrib/find/findModel.js';
 import { INotebookLoggingService } from '../common/notebookLoggingService.js';
 import { Schemas } from '../../../../base/common/network.js';

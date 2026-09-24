@@ -11,7 +11,7 @@ const fixtures: { [filename: string]: Uint8Array } = {};
 
 export default fixtures;
 
-// encoded from 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя'
+
 fixtures['some_cyrillic.txt'] = Uint8Array.from([...range(128, 175 + 1), ...range(224, 239 + 1)]);
 
 // encoded from '中国abc'
@@ -73,7 +73,7 @@ fixtures['some.shiftjis.1.txt'] = Uint8Array.from([82, 177, 82, 241, 82, 201, 82
 
 const lorem = getLorem();
 
-// needle encoded from 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя'
+
 fixtures['lorem_cp866.txt'] = getTestData(
 	Uint8Array.from([...range(128, 175 + 1), ...range(224, 239 + 1)])
 );

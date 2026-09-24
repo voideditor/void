@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { BasePromptParser } from './basePromptParser.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { TextModelContentsProvider } from '../contentProviders/textModelContentsProvider.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';

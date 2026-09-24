@@ -9,14 +9,14 @@
  */
 
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
-import * as languages from '../../../common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { NullState, nullTokenizeEncoded, nullTokenize } from '../../../common/languages/nullTokenize.js';
 import { TokenTheme } from '../../../common/languages/supports/tokenization.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import * as monarchCommon from './monarchCommon.js';
 import { IStandaloneThemeService } from '../standaloneTheme.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { LanguageId, MetadataConsts } from '../../../common/encodedTokenAttributes.js';
+import { LanguageId, MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
 
 const CACHE_STACK_DEPTH = 5;
 

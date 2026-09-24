@@ -15,7 +15,7 @@ import { FuzzyScore, createMatches } from '../../../../../../base/common/filters
 import { Disposable, DisposableStore, IDisposable, toDisposable, type IReference } from '../../../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../../../base/common/themables.js';
 import { URI } from '../../../../../../base/common/uri.js';
-import { getIconClassesForLanguageId } from '../../../../../../editor/common/services/getIconClasses.js';
+import { getIconClassesForLanguageId } from '../../../../../../editor/common/language/services/getIconClasses.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../../../../../platform/configuration/common/configurationRegistry.js';
 import { IEditorOptions } from '../../../../../../platform/editor/common/editor.js';
@@ -36,8 +36,8 @@ import { LifecyclePhase } from '../../../../../services/lifecycle/common/lifecyc
 import { IBreadcrumbsDataSource, IOutline, IOutlineComparator, IOutlineCreator, IOutlineListConfig, IOutlineService, IQuickPickDataSource, IQuickPickOutlineElement, OutlineChangeEvent, OutlineConfigCollapseItemsValues, OutlineConfigKeys, OutlineTarget } from '../../../../../services/outline/browser/outline.js';
 import { OutlineEntry } from '../../viewModel/OutlineEntry.js';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
-import { IModelDeltaDecoration } from '../../../../../../editor/common/model.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
+import { IModelDeltaDecoration } from '../../../../../../editor/common/language/model.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
 import { mainWindow } from '../../../../../../base/browser/window.js';
 import { IContextMenuService } from '../../../../../../platform/contextview/browser/contextView.js';
 import { Action2, IMenu, IMenuService, MenuId, MenuItemAction, MenuRegistry, registerAction2 } from '../../../../../../platform/actions/common/actions.js';
@@ -53,7 +53,7 @@ import { NOTEBOOK_IS_ACTIVE_EDITOR } from '../../../common/notebookContextKeys.j
 import { NotebookOutlineConstants } from '../../viewModel/notebookOutlineEntryFactory.js';
 import { INotebookCellOutlineDataSourceFactory } from '../../viewModel/notebookOutlineDataSourceFactory.js';
 import { INotebookExecutionStateService, NotebookExecutionType } from '../../../common/notebookExecutionStateService.js';
-import { ILanguageFeaturesService } from '../../../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../../../editor/common/language/services/languageFeatures.js';
 
 class NotebookOutlineTemplate {
 

@@ -8,7 +8,7 @@ import { HierarchicalKind } from '../../../../base/common/hierarchicalKind.js';
 import { IJSONSchema, IJSONSchemaMap } from '../../../../base/common/jsonSchema.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { editorConfigurationBaseNode } from '../../../../editor/common/config/editorConfigurationSchema.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { codeActionCommandId, refactorCommandId, sourceActionCommandId } from '../../../../editor/contrib/codeAction/browser/codeAction.js';
 import { CodeActionKind } from '../../../../editor/contrib/codeAction/common/types.js';
 import * as nls from '../../../../nls.js';

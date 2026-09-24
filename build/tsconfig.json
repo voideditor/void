@@ -20,7 +20,7 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"newLine": "lf",
-		"noEmit": true
+		"noEmit": true,
 	},
 	"include": [
 		"**/*.ts",

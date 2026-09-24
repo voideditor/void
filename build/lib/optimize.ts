@@ -129,6 +129,8 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 				plugins: [contentsMapper, externalOverride],
 				target: ['es2022'],
 				loader: {
+					'.woff2': 'file',
+					'.woff': 'file',
 					'.ttf': 'file',
 					'.svg': 'file',
 					'.png': 'file',

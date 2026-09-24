@@ -5,7 +5,7 @@
 
 import * as nls from '../../../../nls.js';
 import * as dom from '../../../../base/browser/dom.js';
-import * as languages from '../../../../editor/common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { ActionsOrientation, ActionBar } from '../../../../base/browser/ui/actionbar/actionbar.js';
 import { Action, IAction, Separator, ActionRunner } from '../../../../base/common/actions.js';
 import { Disposable, DisposableStore, IDisposable, IReference, MutableDisposable, dispose } from '../../../../base/common/lifecycle.js';
@@ -34,7 +34,7 @@ import { MarshalledId } from '../../../../base/common/marshallingIds.js';
 import { TimestampWidget } from './timestamp.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { ICellRange } from '../../notebook/common/notebookRange.js';
 import { CommentMenus } from './commentMenus.js';
 import { Scrollable, ScrollbarVisibility } from '../../../../base/common/scrollable.js';
@@ -48,8 +48,8 @@ import { IAccessibilityService } from '../../../../platform/accessibility/common
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { MarshalledCommentThread } from '../../../common/comments.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
-import { Position } from '../../../../editor/common/core/position.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 
 class CommentsActionRunner extends ActionRunner {
 	protected override async runAction(action: IAction, context: any[]): Promise<void> {

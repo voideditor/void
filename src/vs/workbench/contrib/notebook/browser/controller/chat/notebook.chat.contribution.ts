@@ -6,12 +6,12 @@
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { codiconsLibrary } from '../../../../../../base/common/codiconsLibrary.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
-import { Position } from '../../../../../../editor/common/core/position.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
-import { IWordAtPosition } from '../../../../../../editor/common/core/wordHelper.js';
-import { CompletionContext, CompletionItemKind, CompletionList } from '../../../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
-import { ILanguageFeaturesService } from '../../../../../../editor/common/services/languageFeatures.js';
+import { Position } from '../../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
+import { IWordAtPosition } from '../../../../../../editor/common/language/core/wordHelper.js';
+import { CompletionContext, CompletionItemKind, CompletionList } from '../../../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../../../editor/common/language/services/languageFeatures.js';
 import { localize } from '../../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr, IContextKey, IContextKeyService } from '../../../../../../platform/contextkey/common/contextkey.js';

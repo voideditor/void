@@ -76,7 +76,7 @@ import { parseLinkedText } from '../../../../base/common/linkedText.js';
 import { Button } from '../../../../base/browser/ui/button/button.js';
 import { defaultButtonStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { IAccessibleViewInformationService } from '../../../services/accessibility/common/accessibleViewInformationService.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../src/vs/editor/common/language/language.ts';
 
 export class TreeViewPane extends ViewPane {
 

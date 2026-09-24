@@ -13,7 +13,7 @@ import { Iterable } from '../../../../base/common/iterator.js';
 import { URI } from '../../../../base/common/uri.js';
 import { mock, mockObject, MockObject } from '../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import * as editorRange from '../../../../editor/common/core/range.js';
+import * as editorRange from '../../../../editor/common/language/core/range.js';
 import { ExtensionIdentifier, IExtensionDescription } from '../../../../platform/extensions/common/extensions.js';
 import { NullLogService } from '../../../../platform/log/common/log.js';
 import { MainThreadTestingShape } from '../../common/extHost.protocol.js';

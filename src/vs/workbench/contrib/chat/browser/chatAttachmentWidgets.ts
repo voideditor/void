@@ -12,7 +12,7 @@ import { IHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegate.
 import { IManagedHoverTooltipMarkdownString } from '../../../../base/browser/ui/hover/hover.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';

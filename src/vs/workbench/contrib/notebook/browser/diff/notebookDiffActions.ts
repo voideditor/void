@@ -23,7 +23,7 @@ import { DEFAULT_EDITOR_ASSOCIATION } from '../../../../common/editor.js';
 import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
 import { CellEditType, ICellEditOperation, NOTEBOOK_DIFF_EDITOR_ID } from '../../common/notebookCommon.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { NotebookMultiTextDiffEditor } from './notebookMultiDiffEditor.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import type { URI } from '../../../../../base/common/uri.js';

@@ -5,8 +5,8 @@
 
 import { revive } from '../../../../base/common/marshalling.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
-import { IOffsetRange, OffsetRange } from '../../../../editor/common/core/offsetRange.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IOffsetRange, OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { IChatAgentCommand, IChatAgentData, IChatAgentService, reviveSerializedAgent } from './chatAgents.js';
 import { IChatRequestVariableEntry, IDiagnosticVariableEntryFilterData } from './chatModel.js';
 import { IChatSlashData } from './chatSlashCommands.js';

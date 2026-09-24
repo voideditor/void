@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { CoreEditingCommands, CoreNavigationCommands } from '../../../../browser/coreCommands.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { Handler } from '../../../../common/editorCommon.js';
 import { CursorUndo, CursorUndoRedoController } from '../../browser/cursorUndo.js';
 import { withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';

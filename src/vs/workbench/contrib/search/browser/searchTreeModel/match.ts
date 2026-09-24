@@ -7,7 +7,7 @@ import { memoize } from '../../../../../base/common/decorators.js';
 import { lcut } from '../../../../../base/common/strings.js';
 import { ISearchRange, ITextSearchMatch, OneLineRange } from '../../../../services/search/common/search.js';
 import { ISearchTreeMatch, ISearchTreeFileMatch, MATCH_PREFIX } from './searchTreeCommon.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 
 export function textSearchResultToMatches(rawMatch: ITextSearchMatch, fileMatch: ISearchTreeFileMatch, isAiContributed: boolean): ISearchTreeMatch[] {
 	const previewLines = rawMatch.previewText.split('\n');

@@ -5,18 +5,18 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { IDisposable, toDisposable, IReference, ReferenceCollection, Disposable, AsyncReferenceCollection } from '../../../../base/common/lifecycle.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { TextResourceEditorModel } from '../../../common/editor/textResourceEditorModel.js';
 import { ITextFileService, TextFileResolveReason } from '../../textfile/common/textfiles.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { ITextModelService, ITextModelContentProvider, ITextEditorModel, IResolvedTextEditorModel, isResolvedTextEditorModel } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService, ITextModelContentProvider, ITextEditorModel, IResolvedTextEditorModel, isResolvedTextEditorModel } from '../../../../editor/common/language/services/resolverService.js';
 import { TextFileEditorModel } from '../../textfile/common/textFileEditorModel.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IUndoRedoService } from '../../../../platform/undoRedo/common/undoRedo.js';
-import { ModelUndoRedoParticipant } from '../../../../editor/common/services/modelUndoRedoParticipant.js';
+import { ModelUndoRedoParticipant } from '../../../../editor/common/language/services/modelUndoRedoParticipant.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 import { UntitledTextEditorModel } from '../../untitled/common/untitledTextEditorModel.js';
 

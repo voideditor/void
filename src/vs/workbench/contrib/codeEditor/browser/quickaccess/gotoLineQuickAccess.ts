@@ -6,7 +6,7 @@
 import { localize, localize2 } from '../../../../../nls.js';
 import { IKeyMods, IQuickInputService } from '../../../../../platform/quickinput/common/quickInput.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IRange } from '../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
 import { AbstractGotoLineQuickAccessProvider } from '../../../../../editor/contrib/quickAccess/browser/gotoLineQuickAccess.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { IQuickAccessRegistry, Extensions as QuickaccesExtensions } from '../../../../../platform/quickinput/common/quickAccess.js';

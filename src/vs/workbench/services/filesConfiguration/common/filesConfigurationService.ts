@@ -24,7 +24,7 @@ import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { EditorResourceAccessor, SaveReason, SideBySideEditor } from '../../../common/editor.js';
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IStringDictionary } from '../../../../base/common/collections.js';
 
 export const AutoSaveAfterShortDelayContext = new RawContextKey<boolean>('autoSaveAfterShortDelayContext', false, true);

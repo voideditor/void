@@ -5,7 +5,7 @@
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { localize2 } from '../../../../nls.js';
 import { Action2, MenuId } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';

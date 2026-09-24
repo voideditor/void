@@ -7,11 +7,11 @@ import { AsyncIterableObject } from '../../../../base/common/async.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { onUnexpectedExternalError } from '../../../../base/common/errors.js';
 import { registerModelAndPositionCommand } from '../../../browser/editorExtensions.js';
-import { Position } from '../../../common/core/position.js';
-import { ITextModel } from '../../../common/model.js';
-import { Hover, HoverProvider } from '../../../common/languages.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { Hover, HoverProvider } from '../../../../editor/common/language/languages.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 export class HoverProviderResult {
 	constructor(

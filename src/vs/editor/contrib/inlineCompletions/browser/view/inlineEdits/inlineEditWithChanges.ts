@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SingleLineEdit } from '../../../../../common/core/lineEdit.js';
-import { Position } from '../../../../../common/core/position.js';
-import { AbstractText, TextEdit } from '../../../../../common/core/textEdit.js';
-import { Command } from '../../../../../common/languages.js';
+import { SingleLineEdit } from '../../../../../../editor/common/language/core/lineEdit.js';
+import { Position } from '../../../../../../editor/common/language/core/position.js';
+import { AbstractText, TextEdit } from '../../../../../../editor/common/language/core/textEdit.js';
+import { Command } from '../../../../../../editor/common/language/languages.js';
 import { InlineCompletionItem } from '../../model/provideInlineCompletions.js';
 
 export class InlineEditWithChanges {

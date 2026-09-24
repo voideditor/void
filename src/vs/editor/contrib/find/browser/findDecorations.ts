@@ -5,10 +5,10 @@
 
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IActiveCodeEditor } from '../../../browser/editorBrowser.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { FindMatch, IModelDecorationsChangeAccessor, IModelDeltaDecoration, MinimapPosition, OverviewRulerLane, TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { FindMatch, IModelDecorationsChangeAccessor, IModelDeltaDecoration, MinimapPosition, OverviewRulerLane, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { minimapFindMatch, overviewRulerFindMatchForeground } from '../../../../platform/theme/common/colorRegistry.js';
 import { themeColorFromId } from '../../../../platform/theme/common/themeService.js';
 

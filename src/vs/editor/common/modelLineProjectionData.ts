@@ -6,9 +6,9 @@
 import { assertNever } from '../../base/common/assert.js';
 import { WrappingIndent } from './config/editorOptions.js';
 import { FontInfo } from './config/fontInfo.js';
-import { Position } from './core/position.js';
-import { InjectedTextCursorStops, InjectedTextOptions, PositionAffinity } from './model.js';
-import { LineInjectedText } from './textModelEvents.js';
+import { Position } from '../../editor/common/language/core/position.js';
+import { InjectedTextCursorStops, InjectedTextOptions, PositionAffinity } from '../../editor/common/language/model.js';
+import { LineInjectedText } from '../../editor/common/language/textModelEvents.js';
 
 /**
  * *input*:

@@ -7,13 +7,13 @@ import assert from 'assert';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { mock } from '../../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { IOutlineModelService, OutlineModel } from '../../../../../../editor/contrib/documentSymbols/browser/outlineModel.js';
 import { ICellViewModel } from '../../../browser/notebookBrowser.js';
 import { NotebookOutlineEntryFactory } from '../../../browser/viewModel/notebookOutlineEntryFactory.js';
 import { INotebookExecutionStateService } from '../../../common/notebookExecutionStateService.js';
 import { MockDocumentSymbol } from '../testNotebookEditor.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../../../editor/common/services/resolverService.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../../../editor/common/language/services/resolverService.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { IReference } from '../../../../../../base/common/lifecycle.js';
 

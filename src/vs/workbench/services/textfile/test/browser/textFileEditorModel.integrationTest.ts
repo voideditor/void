@@ -9,7 +9,7 @@ import { TextFileEditorModel } from '../../common/textFileEditorModel.js';
 import { workbenchInstantiationService, TestServiceAccessor } from '../../../../test/browser/workbenchTestServices.js';
 import { ensureNoDisposablesAreLeakedInTestSuite, toResource } from '../../../../../base/test/common/utils.js';
 import { TextFileEditorModelManager } from '../../common/textFileEditorModelManager.js';
-import { createTextBufferFactoryFromStream } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactoryFromStream } from '../../../../../editor/common/language/model/textModel.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { bufferToStream, VSBuffer } from '../../../../../base/common/buffer.js';

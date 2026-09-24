@@ -6,10 +6,10 @@
 import { CharCode } from '../../../base/common/charCode.js';
 import * as strings from '../../../base/common/strings.js';
 import { WrappingIndent, IComputedEditorOptions, EditorOption } from '../config/editorOptions.js';
-import { CharacterClassifier } from '../core/characterClassifier.js';
+import { CharacterClassifier } from '../../../editor/common/language/core/characterClassifier.js';
 import { FontInfo } from '../config/fontInfo.js';
-import { LineInjectedText } from '../textModelEvents.js';
-import { InjectedTextOptions } from '../model.js';
+import { LineInjectedText } from '../../../editor/common/language/textModelEvents.js';
+import { InjectedTextOptions } from '../../../editor/common/language/model.js';
 import { ILineBreaksComputerFactory, ILineBreaksComputer, ModelLineProjectionData } from '../modelLineProjectionData.js';
 
 export class MonospaceLineBreaksComputerFactory implements ILineBreaksComputerFactory {

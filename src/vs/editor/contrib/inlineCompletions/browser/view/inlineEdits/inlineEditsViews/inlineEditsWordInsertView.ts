@@ -13,8 +13,8 @@ import { ObservableCodeEditor } from '../../../../../../browser/observableCodeEd
 import { Point } from '../../../../../../browser/point.js';
 import { Rect } from '../../../../../../browser/rect.js';
 import { EditorOption } from '../../../../../../common/config/editorOptions.js';
-import { OffsetRange } from '../../../../../../common/core/offsetRange.js';
-import { SingleTextEdit } from '../../../../../../common/core/textEdit.js';
+import { OffsetRange } from '../../../../../../../editor/common/language/core/offsetRange.js';
+import { SingleTextEdit } from '../../../../../../../editor/common/language/core/textEdit.js';
 import { IInlineEditsView, InlineEditTabAction } from '../inlineEditsViewInterface.js';
 import { getModifiedBorderColor } from '../theme.js';
 import { mapOutFalsy, rectToProps } from '../utils/utils.js';

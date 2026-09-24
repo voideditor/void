@@ -10,9 +10,9 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { TestDiffProviderFactoryService } from '../../../../../editor/test/browser/diff/testDiffProviderFactoryService.js';
 import { IActiveCodeEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { IDiffProviderFactoryService } from '../../../../../editor/browser/widget/diffEditor/diffProviderFactoryService.js';
-import { Range } from '../../../../../editor/common/core/range.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { instantiateTestCodeEditor } from '../../../../../editor/test/browser/testCodeEditor.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
@@ -32,9 +32,9 @@ import { InlineChatSessionServiceImpl } from '../../browser/inlineChatSessionSer
 import { workbenchInstantiationService } from '../../../../test/browser/workbenchTestServices.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { assertType } from '../../../../../base/common/types.js';
-import { EditOperation } from '../../../../../editor/common/core/editOperation.js';
-import { Position } from '../../../../../editor/common/core/position.js';
-import { IEditorWorkerService } from '../../../../../editor/common/services/editorWorker.js';
+import { EditOperation } from '../../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { IEditorWorkerService } from '../../../../../editor/common/language/services/editorWorker.js';
 import { TestWorkerService } from './testWorkerService.js';
 import { IExtensionService, nullExtensionDescription } from '../../../../services/extensions/common/extensions.js';
 import { ILogService, NullLogService } from '../../../../../platform/log/common/log.js';

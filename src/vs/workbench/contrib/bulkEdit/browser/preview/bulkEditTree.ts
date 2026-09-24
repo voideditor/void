@@ -4,16 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IAsyncDataSource, ITreeRenderer, ITreeNode, ITreeSorter } from '../../../../../base/browser/ui/tree/tree.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { FuzzyScore, createMatches } from '../../../../../base/common/filters.js';
 import { IResourceLabel, ResourceLabels } from '../../../../browser/labels.js';
 import { HighlightedLabel, IHighlight } from '../../../../../base/browser/ui/highlightedlabel/highlightedLabel.js';
 import { IIdentityProvider, IListVirtualDelegate, IKeyboardNavigationLabelProvider } from '../../../../../base/browser/ui/list/list.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import * as dom from '../../../../../base/browser/dom.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { IDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
-import { TextModel } from '../../../../../editor/common/model/textModel.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { BulkFileOperations, BulkFileOperation, BulkFileOperationType, BulkTextEdit, BulkCategory } from './bulkEditPreview.js';
 import { FileKind } from '../../../../../platform/files/common/files.js';
 import { localize } from '../../../../../nls.js';

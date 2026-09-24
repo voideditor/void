@@ -8,11 +8,11 @@ import { FoldingModel, updateFoldingStateAtIndex } from '../../browser/viewModel
 import { changeCellToKind, computeCellLinesContents, copyCellRange, insertCell, joinNotebookCells, moveCellRange, runDeleteAction } from '../../browser/controller/cellOperations.js';
 import { CellEditType, CellKind, SelectionStateType } from '../../common/notebookCommon.js';
 import { withTestNotebook } from './testNotebookEditor.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ResourceTextEdit } from '../../../../../editor/browser/services/bulkEditService.js';
 import { ResourceNotebookCellEdit } from '../../../bulkEdit/browser/bulkCellEdits.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
-import { ITextBuffer, ValidAnnotatedEditOperation } from '../../../../../editor/common/model.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { ITextBuffer, ValidAnnotatedEditOperation } from '../../../../../editor/common/language/model.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 suite('CellOperations', () => {

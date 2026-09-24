@@ -18,7 +18,7 @@ import { IEditorService } from '../../services/editor/common/editorService.js';
 import { EditorService } from '../../services/editor/browser/editorService.js';
 import { PickerEditorState } from '../../browser/quickaccess.js';
 import { EditorsOrder } from '../../common/editor.js';
-import { Range } from '../../../editor/common/core/range.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { TestInstantiationService } from '../../../platform/instantiation/test/common/instantiationServiceMock.js';
 
 suite('QuickAccess', () => {

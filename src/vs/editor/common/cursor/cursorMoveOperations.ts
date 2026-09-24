@@ -5,12 +5,12 @@
 
 import * as strings from '../../../base/common/strings.js';
 import { Constants } from '../../../base/common/uint.js';
-import { CursorColumns } from '../core/cursorColumns.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
+import { CursorColumns } from '../../../editor/common/language/core/cursorColumns.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { AtomicTabMoveOperations, Direction } from './cursorAtomicMoveOperations.js';
 import { CursorConfiguration, ICursorSimpleModel, SelectionStartKind, SingleCursorState } from '../cursorCommon.js';
-import { PositionAffinity } from '../model.js';
+import { PositionAffinity } from '../../../editor/common/language/model.js';
 
 export class CursorPosition {
 	_cursorPositionBrand: void = undefined;

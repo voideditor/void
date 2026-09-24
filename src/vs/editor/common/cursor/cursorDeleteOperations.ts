@@ -7,13 +7,13 @@ import * as strings from '../../../base/common/strings.js';
 import { ReplaceCommand } from '../commands/replaceCommand.js';
 import { EditorAutoClosingEditStrategy, EditorAutoClosingStrategy } from '../config/editorOptions.js';
 import { CursorConfiguration, EditOperationResult, EditOperationType, ICursorSimpleModel, isQuote } from '../cursorCommon.js';
-import { CursorColumns } from '../core/cursorColumns.js';
+import { CursorColumns } from '../../../editor/common/language/core/cursorColumns.js';
 import { MoveOperations } from './cursorMoveOperations.js';
-import { Range } from '../core/range.js';
-import { Selection } from '../core/selection.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection } from '../../../editor/common/language/core/selection.js';
 import { ICommand } from '../editorCommon.js';
 import { StandardAutoClosingPairConditional } from '../languages/languageConfiguration.js';
-import { Position } from '../core/position.js';
+import { Position } from '../../../editor/common/language/core/position.js';
 
 export class DeleteOperations {
 

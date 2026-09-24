@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './highlightDecorations.css';
-import { MinimapPosition, OverviewRulerLane, TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
-import { DocumentHighlightKind } from '../../../common/languages.js';
+import { MinimapPosition, OverviewRulerLane, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
+import { DocumentHighlightKind } from '../../../../editor/common/language/languages.js';
 import * as nls from '../../../../nls.js';
 import { activeContrastBorder, editorSelectionHighlight, minimapSelectionOccurrenceHighlight, overviewRulerSelectionHighlightForeground, registerColor } from '../../../../platform/theme/common/colorRegistry.js';
 import { registerThemingParticipant, themeColorFromId } from '../../../../platform/theme/common/themeService.js';

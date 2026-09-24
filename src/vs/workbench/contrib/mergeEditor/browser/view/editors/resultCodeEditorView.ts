@@ -10,7 +10,7 @@ import { CompareResult } from '../../../../../../base/common/arrays.js';
 import { BugIndicatingError } from '../../../../../../base/common/errors.js';
 import { toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { autorun, autorunWithStore, derived, IObservable } from '../../../../../../base/common/observable.js';
-import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/model.js';
+import { IModelDeltaDecoration, MinimapPosition, OverviewRulerLane } from '../../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../../nls.js';
 import { MenuId } from '../../../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';

@@ -8,9 +8,9 @@ import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.j
 import { IReader, autorun, autorunWithStore, derived, observableFromEvent, observableFromPromise, observableFromValueWithChangeEvent, observableSignalFromEvent, wasEventTriggeredRecently } from '../../../../base/common/observable.js';
 import { isDefined } from '../../../../base/common/types.js';
 import { ICodeEditor, isCodeEditor, isDiffEditor } from '../../../../editor/browser/editorBrowser.js';
-import { Position } from '../../../../editor/common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { CursorChangeReason } from '../../../../editor/common/cursorEvents.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { FoldingController } from '../../../../editor/contrib/folding/browser/folding.js';
 import { AccessibilityModality, AccessibilitySignal, IAccessibilitySignalService } from '../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

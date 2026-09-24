@@ -14,7 +14,7 @@ import { IAsyncDataSource, ITreeNode, ITreeRenderer } from '../../../../../base/
 import { createMatches, FuzzyScore, IMatch } from '../../../../../base/common/filters.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { basename, dirname } from '../../../../../base/common/resources.js';
-import { ITextModelService } from '../../../../common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../../nls.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';

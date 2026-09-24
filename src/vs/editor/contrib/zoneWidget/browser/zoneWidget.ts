@@ -13,11 +13,11 @@ import * as objects from '../../../../base/common/objects.js';
 import './zoneWidget.css';
 import { ICodeEditor, IOverlayWidget, IOverlayWidgetPosition, IViewZone, IViewZoneChangeAccessor } from '../../../browser/editorBrowser.js';
 import { EditorLayoutInfo, EditorOption } from '../../../common/config/editorOptions.js';
-import { IPosition, Position } from '../../../common/core/position.js';
-import { IRange, Range } from '../../../common/core/range.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorDecorationsCollection, ScrollType } from '../../../common/editorCommon.js';
-import { TrackedRangeStickiness } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 
 export interface IOptions {
 	showFrame?: boolean;

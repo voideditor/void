@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Token, TokenizationResult, EncodedTokenizationResult, IState } from '../languages.js';
-import { LanguageId, FontStyle, ColorId, StandardTokenType, MetadataConsts } from '../encodedTokenAttributes.js';
+import { Token, TokenizationResult, EncodedTokenizationResult, IState } from '../language/languages.js';
+import { LanguageId, FontStyle, ColorId, StandardTokenType, MetadataConsts } from '../language/encodedTokenAttributes.js';
 
 export const NullState: IState = new class implements IState {
 	public clone(): IState {

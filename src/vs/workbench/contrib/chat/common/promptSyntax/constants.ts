@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LanguageFilter } from '../../../../../editor/common/languageSelector.js';
+import { LanguageFilter } from '../../../../../editor/common/language/languageSelector.js';
 import { COPILOT_CUSTOM_INSTRUCTIONS_FILENAME, PROMPT_FILE_EXTENSION } from '../../../../../platform/prompts/common/constants.js';
 
 /**

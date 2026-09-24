@@ -11,12 +11,12 @@ import { deepClone } from '../../../../base/common/objects.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { coalesce } from '../../../../base/common/arrays.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 const _formatPIIRegexp = /{([^}]+)}/g;
 

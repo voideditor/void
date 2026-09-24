@@ -9,7 +9,7 @@ import { ICodeEditorService } from '../../services/codeEditorService.js';
 import { CodeEditorWidget, ICodeEditorWidgetOptions } from './codeEditorWidget.js';
 import { ConfigurationChangedEvent, IEditorOptions } from '../../../common/config/editorOptions.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { IAccessibilityService } from '../../../../platform/accessibility/common/accessibility.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';

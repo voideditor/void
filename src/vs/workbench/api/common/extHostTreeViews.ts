@@ -21,7 +21,7 @@ import { IExtensionDescription } from '../../../platform/extensions/common/exten
 import { MarkdownString, ViewBadge, DataTransfer } from './extHostTypeConverters.js';
 import { IMarkdownString, isMarkdownString } from '../../../base/common/htmlContent.js';
 import { CancellationToken, CancellationTokenSource } from '../../../base/common/cancellation.js';
-import { ITreeViewsDnDService, TreeViewsDnDService } from '../../../editor/common/services/treeViewsDnd.js';
+import { ITreeViewsDnDService, TreeViewsDnDService } from '../../../editor/common/language/services/treeViewsDnd.js';
 import { IAccessibilityInformation } from '../../../platform/accessibility/common/accessibility.js';
 import { checkProposedApiEnabled } from '../../services/extensions/common/extensions.js';
 

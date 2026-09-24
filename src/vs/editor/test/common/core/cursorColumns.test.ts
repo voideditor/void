@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { CursorColumns } from '../../../common/core/cursorColumns.js';
+import { CursorColumns } from '../../../../editor/common/language/core/cursorColumns.js';
 
 suite('CursorColumns', () => {
 

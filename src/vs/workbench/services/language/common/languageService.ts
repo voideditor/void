@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { localize } from '../../../../nls.js';
-import { clearConfiguredLanguageAssociations, registerConfiguredLanguageAssociation } from '../../../../editor/common/services/languagesAssociations.js';
+import { clearConfiguredLanguageAssociations, registerConfiguredLanguageAssociation } from '../../../../editor/common/language/services/languagesAssociations.js';
 import { joinPath } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ILanguageExtensionPoint, ILanguageService } from '../../../../editor/common/languages/language.js';
-import { LanguageService } from '../../../../editor/common/services/languageService.js';
+import { ILanguageExtensionPoint, ILanguageService } from '../../../../editor/common/language/language.js';
+import { LanguageService } from '../../../../editor/common/language/services/languageService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';
 import { FILES_ASSOCIATIONS_CONFIG, IFilesConfiguration } from '../../../../platform/files/common/files.js';

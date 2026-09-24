@@ -10,7 +10,7 @@ import { ICellDiffInfo } from '../../browser/chatEditing/notebook/notebookCellCh
 import { nullDocumentDiff } from '../../../../../editor/common/diff/documentDiffProvider.js';
 import { ObservablePromise, observableValue } from '../../../../../base/common/observable.js';
 import { CellEditType, CellKind, ICell, ICellEditOperation, NotebookCellsChangeType } from '../../../notebook/common/notebookCommon.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { hash } from '../../../../../base/common/hash.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';

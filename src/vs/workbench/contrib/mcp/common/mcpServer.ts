@@ -70,6 +70,9 @@ export class McpServerMetadataCache extends Disposable {
 	private readonly cache = new LRUCache<string, IToolCacheEntry>(128);
 	private readonly extensionServers = new Map</* collection ID */string, IServerCacheEntry>();
 
+	private readonly _changeCounter = observableValue<number>(this, 0);
+	public readonly changeCounter: IObservable<number> = this._changeCounter;
+
 	constructor(
 		scope: StorageScope,
 		@IStorageService storageService: IStorageService,
@@ -101,6 +104,11 @@ export class McpServerMetadataCache extends Disposable {
 		}
 	}
 
+	private _bump(): void {
+		this.didChange = true;
+		this._changeCounter.set(this._changeCounter.get() + 1, undefined);
+	}
+
 	/** Resets the cache for tools and extension servers */
 	reset() {
 		this.cache.clear();
@@ -116,12 +124,18 @@ export class McpServerMetadataCache extends Disposable {
 	/** Sets cached tools for a server */
 	storeTools(definitionId: string, tools: readonly IValidatedMcpTool[]): void {
 		this.cache.set(definitionId, { ...this.cache.get(definitionId), tools });
-		this.didChange = true;
+		this._bump();
 	}
 
 	/** Gets cached servers for a collection (used for extensions, before the extension activates) */
 	getServers(collectionId: string) {
 		return this.extensionServers.get(collectionId);
+	}
+
+	clearTools(definitionId: string): void {
+		if (this.cache.delete(definitionId)) {
+			this._bump();
+		}
 	}
 
 	/** Sets cached servers for a collection */
@@ -131,7 +145,7 @@ export class McpServerMetadataCache extends Disposable {
 		} else {
 			this.extensionServers.delete(collectionId);
 		}
-		this.didChange = true;
+		this._bump();
 	}
 }
 
@@ -160,6 +174,7 @@ export class McpServer extends Disposable implements IMcpServer {
 	public readonly tools: IObservable<readonly IMcpTool[]>;
 
 	public readonly toolsState = derived(reader => {
+		this._toolCache.changeCounter.read(reader);
 		const fromServer = this.toolsFromServerPromise.read(reader);
 		const connectionState = this.connectionState.read(reader);
 		const isIdle = McpConnectionState.canBeStarted(connectionState.state) && !fromServer;
@@ -247,6 +262,7 @@ export class McpServer extends Disposable implements IMcpServer {
 		// 4. Publish tools
 		const toolPrefix = this._mcpRegistry.collectionToolPrefix(this.collection);
 		this.tools = derived(reader => {
+			this._toolCache.changeCounter.read(reader);
 			const serverTools = this.toolsFromServer.read(reader);
 			const definitions = serverTools ?? this.toolsFromCache ?? [];
 			const prefix = toolPrefix.read(reader);
@@ -312,6 +328,11 @@ export class McpServer extends Disposable implements IMcpServer {
 
 	public stop(): Promise<void> {
 		return this._connection.get()?.stop() || Promise.resolve();
+	}
+
+	public resetToolCache(): void {
+		this._toolCache.clearTools(this.definition.id);
+		this.resetLiveData();
 	}
 
 	private resetLiveData() {

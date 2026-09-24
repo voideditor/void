@@ -6,8 +6,8 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { GlyphMarginLanesModel, } from '../../../common/viewModel/glyphLanesModel.js';
-import { Range } from '../../../common/core/range.js';
-import { GlyphMarginLane } from '../../../common/model.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { GlyphMarginLane } from '../../../../editor/common/language/model.js';
 
 suite('GlyphLanesModel', () => {
 	let model: GlyphMarginLanesModel;

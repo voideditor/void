@@ -25,7 +25,7 @@ import { Gesture, EventType as TouchEventType } from '../../../../base/browser/t
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import product from '../../../../platform/product/common/product.js';
 import { isObject } from '../../../../base/common/types.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { Button } from '../../../../base/browser/ui/button/button.js';
 import { renderLabelWithIcons } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
@@ -35,7 +35,7 @@ import { Link } from '../../../../platform/opener/browser/link.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IChatStatusItemService, ChatStatusEntry } from './chatStatusItemService.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { EditorResourceAccessor, SideBySideEditor } from '../../../common/editor.js';
 import { getCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 

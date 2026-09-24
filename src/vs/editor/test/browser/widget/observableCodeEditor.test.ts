@@ -9,8 +9,8 @@ import { IObservable, derivedHandleChanges } from "../../../../base/common/obser
 import { ensureNoDisposablesAreLeakedInTestSuite } from "../../../../base/test/common/utils.js";
 import { ICodeEditor } from "../../../browser/editorBrowser.js";
 import { ObservableCodeEditor, observableCodeEditor } from "../../../browser/observableCodeEditor.js";
-import { Position } from "../../../common/core/position.js";
-import { Range } from "../../../common/core/range.js";
+import { Position } from "../../../../editor/common/language/core/position.js";
+import { Range } from "../../../../editor/common/language/core/range.js";
 import { ViewModel } from "../../../common/viewModel/viewModelImpl.js";
 import { withTestCodeEditor } from "../testCodeEditor.js";
 

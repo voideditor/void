@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { getNonWhitespacePrefix } from '../../browser/snippetsService.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 suite('getNonWhitespacePrefix', () => {

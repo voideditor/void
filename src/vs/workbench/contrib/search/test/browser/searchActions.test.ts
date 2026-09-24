@@ -7,7 +7,7 @@ import assert from 'assert';
 import { Keybinding } from '../../../../../base/common/keybindings.js';
 import { OS } from '../../../../../base/common/platform.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
 import { USLayoutResolvedKeybinding } from '../../../../../platform/keybinding/common/usLayoutResolvedKeybinding.js';

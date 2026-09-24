@@ -14,13 +14,13 @@ import { CodeEditorStateFlag, EditorState } from '../../../editorState/browser/e
 import { ICodeEditor, MouseTargetType } from '../../../../browser/editorBrowser.js';
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../../browser/editorExtensions.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { Position } from '../../../../common/core/position.js';
-import { IRange, Range } from '../../../../common/core/range.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../../editor/common/language/core/range.js';
 import { IEditorContribution, IEditorDecorationsCollection } from '../../../../common/editorCommon.js';
-import { IModelDeltaDecoration, ITextModel } from '../../../../common/model.js';
-import { LocationLink } from '../../../../common/languages.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
-import { ITextModelService } from '../../../../common/services/resolverService.js';
+import { IModelDeltaDecoration, ITextModel } from '../../../../../editor/common/language/model.js';
+import { LocationLink } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { ClickLinkGesture, ClickLinkKeyboardEvent, ClickLinkMouseEvent } from './clickLinkGesture.js';
 import { PeekContext } from '../../../peekView/browser/peekView.js';
 import * as nls from '../../../../../nls.js';
@@ -28,9 +28,9 @@ import { IContextKeyService } from '../../../../../platform/contextkey/common/co
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { DefinitionAction } from '../goToCommands.js';
 import { getDefinitionsAtPosition } from '../goToSymbol.js';
-import { IWordAtPosition } from '../../../../common/core/wordHelper.js';
-import { ILanguageFeaturesService } from '../../../../common/services/languageFeatures.js';
-import { ModelDecorationInjectedTextOptions } from '../../../../common/model/textModel.js';
+import { IWordAtPosition } from '../../../../../editor/common/language/core/wordHelper.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeatures.js';
+import { ModelDecorationInjectedTextOptions } from '../../../../../editor/common/language/model/textModel.js';
 
 export class GotoDefinitionAtPositionEditorContribution implements IEditorContribution {
 

@@ -5,10 +5,10 @@
 
 import { IDiffChange, LcsDiff } from '../../../../../base/common/diff/diff.js';
 import { getLeadingWhitespace } from '../../../../../base/common/strings.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { SingleTextEdit } from '../../../../common/core/textEdit.js';
-import { ITextModel } from '../../../../common/model.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { SingleTextEdit } from '../../../../../editor/common/language/core/textEdit.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { GhostText, GhostTextPart } from './ghostText.js';
 import { singleTextRemoveCommonPrefix } from './singleTextEditHelpers.js';
 

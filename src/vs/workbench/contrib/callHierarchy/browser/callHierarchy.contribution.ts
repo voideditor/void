@@ -20,8 +20,8 @@ import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.j
 import { PeekContext } from '../../../../editor/contrib/peekView/browser/peekView.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { IPosition } from '../../../../editor/common/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { IPosition } from '../../../../editor/common/language/core/position.js';
 import { MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';

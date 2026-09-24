@@ -9,7 +9,7 @@ import { IDiffEditor } from '../../../../editor/browser/editorBrowser.js';
 import { registerDiffEditorContribution } from '../../../../editor/browser/editorExtensions.js';
 import { EmbeddedDiffEditorWidget } from '../../../../editor/browser/widget/diffEditor/embeddedDiffEditorWidget.js';
 import { IDiffEditorContribution } from '../../../../editor/common/editorCommon.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { localize } from '../../../../nls.js';
 import { AccessibleViewRegistry } from '../../../../platform/accessibility/browser/accessibleViewRegistry.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';

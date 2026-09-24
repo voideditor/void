@@ -9,10 +9,10 @@ import { Emitter } from '../../../../base/common/event.js';
 import { Disposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { CharacterSet } from '../../../common/core/characterClassifier.js';
+import { CharacterSet } from '../../../../editor/common/language/core/characterClassifier.js';
 import { ICursorSelectionChangedEvent } from '../../../common/cursorEvents.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import * as languages from '../../../common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { provideSignatureHelp } from './provideSignatureHelp.js';
 
 export interface TriggerContext {

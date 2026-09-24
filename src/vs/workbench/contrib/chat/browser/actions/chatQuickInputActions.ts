@@ -5,7 +5,7 @@
 
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';

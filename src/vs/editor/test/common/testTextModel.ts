@@ -5,12 +5,12 @@
 
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
 import { URI } from '../../../base/common/uri.js';
-import { BracketPairColorizationOptions, DefaultEndOfLine, ITextBufferFactory, ITextModelCreationOptions } from '../../common/model.js';
-import { TextModel } from '../../common/model/textModel.js';
+import { BracketPairColorizationOptions, DefaultEndOfLine, ITextBufferFactory, ITextModelCreationOptions } from '../../../editor/common/language/model.js';
+import { TextModel } from '../../../editor/common/language/model/textModel.js';
 import { ILanguageConfigurationService } from '../../common/languages/languageConfigurationRegistry.js';
-import { ILanguageService } from '../../common/languages/language.js';
-import { LanguageService } from '../../common/services/languageService.js';
-import { ITextResourcePropertiesService } from '../../common/services/textResourceConfiguration.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
+import { LanguageService } from '../../../editor/common/language/services/languageService.js';
+import { ITextResourcePropertiesService } from '../../../editor/common/language/services/textResourceConfiguration.js';
 import { TestLanguageConfigurationService } from './modes/testLanguageConfigurationService.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../platform/configuration/test/common/testConfigurationService.js';
@@ -25,16 +25,16 @@ import { TestThemeService } from '../../../platform/theme/test/common/testThemeS
 import { IUndoRedoService } from '../../../platform/undoRedo/common/undoRedo.js';
 import { UndoRedoService } from '../../../platform/undoRedo/common/undoRedoService.js';
 import { TestTextResourcePropertiesService } from './services/testTextResourcePropertiesService.js';
-import { IModelService } from '../../common/services/model.js';
-import { ModelService } from '../../common/services/modelService.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { ModelService } from '../../../editor/common/language/services/modelService.js';
 import { createServices, ServiceIdCtorPair, TestInstantiationService } from '../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../common/languages/modesRegistry.js';
-import { ILanguageFeatureDebounceService, LanguageFeatureDebounceService } from '../../common/services/languageFeatureDebounce.js';
-import { ILanguageFeaturesService } from '../../common/services/languageFeatures.js';
-import { LanguageFeaturesService } from '../../common/services/languageFeaturesService.js';
+import { ILanguageFeatureDebounceService, LanguageFeatureDebounceService } from '../../../editor/common/language/services/languageFeatureDebounce.js';
+import { ILanguageFeaturesService } from '../../../editor/common/language/services/languageFeatures.js';
+import { LanguageFeaturesService } from '../../../editor/common/language/services/languageFeaturesService.js';
 import { IEnvironmentService } from '../../../platform/environment/common/environment.js';
 import { mock } from '../../../base/test/common/mock.js';
-import { ITreeSitterParserService } from '../../common/services/treeSitterParserService.js';
+import { ITreeSitterParserService } from '../../../editor/common/language/services/treeSitterParserService.js';
 import { TestTreeSitterParserService } from './services/testTreeSitterService.js';
 
 class TestTextModel extends TextModel {

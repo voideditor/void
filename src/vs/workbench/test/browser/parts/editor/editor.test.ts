@@ -21,7 +21,7 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { SideBySideEditorInput } from '../../../../common/editor/sideBySideEditorInput.js';
 import { EditorResolution, IResourceEditorInput } from '../../../../../platform/editor/common/editor.js';
 import { ICodeEditorViewState, IDiffEditorViewState } from '../../../../../editor/common/editorCommon.js';
-import { Position } from '../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
 
 suite('Workbench editor utils', () => {
 

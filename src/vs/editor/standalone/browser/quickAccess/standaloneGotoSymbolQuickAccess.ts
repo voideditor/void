@@ -18,7 +18,7 @@ import { KeybindingWeight } from '../../../../platform/keybinding/common/keybind
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IQuickInputService, ItemActivation } from '../../../../platform/quickinput/common/quickInput.js';
 import { IOutlineModelService } from '../../../contrib/documentSymbols/browser/outlineModel.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 export class StandaloneGotoSymbolQuickAccessProvider extends AbstractGotoSymbolQuickAccessProvider {
 

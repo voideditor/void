@@ -5,19 +5,19 @@
 
 import assert from 'assert';
 import { SnippetCompletion, SnippetCompletionProvider } from '../../browser/snippetCompletionProvider.js';
-import { IPosition, Position } from '../../../../../editor/common/core/position.js';
+import { IPosition, Position } from '../../../../../editor/common/language/core/position.js';
 import { createModelServices, instantiateTextModel } from '../../../../../editor/test/common/testTextModel.js';
 import { ISnippetsService } from '../../browser/snippets.js';
 import { Snippet, SnippetSource } from '../../browser/snippetsFile.js';
-import { CompletionContext, CompletionItemLabel, CompletionItemRanges, CompletionTriggerKind } from '../../../../../editor/common/languages.js';
+import { CompletionContext, CompletionItemLabel, CompletionItemRanges, CompletionTriggerKind } from '../../../../../editor/common/language/languages.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { TestLanguageConfigurationService } from '../../../../../editor/test/common/modes/testLanguageConfigurationService.js';
-import { EditOperation } from '../../../../../editor/common/core/editOperation.js';
+import { EditOperation } from '../../../../../editor/common/language/core/editOperation.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
-import { ILanguageService } from '../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { CompletionModel } from '../../../../../editor/contrib/suggest/browser/completionModel.js';
 import { CompletionItem } from '../../../../../editor/contrib/suggest/browser/suggest.js';
 import { WordDistance } from '../../../../../editor/contrib/suggest/browser/wordDistance.js';

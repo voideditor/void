@@ -6,7 +6,7 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { assertType } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextModelService } from '../../../common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { IOutlineModelService } from './outlineModel.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { SortLinesCommand } from '../../browser/sortLinesCommand.js';
 import { testCommand } from '../../../../test/browser/testCommand.js';
 

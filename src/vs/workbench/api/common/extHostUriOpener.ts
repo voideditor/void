@@ -7,7 +7,7 @@ import { CancellationToken } from '../../../base/common/cancellation.js';
 import { toDisposable } from '../../../base/common/lifecycle.js';
 import { Schemas } from '../../../base/common/network.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
-import * as languages from '../../../editor/common/languages.js';
+import * as languages from '../../../editor/common/language/languages.js';
 import { ExtensionIdentifier } from '../../../platform/extensions/common/extensions.js';
 import type * as vscode from 'vscode';
 import { ExtHostUriOpenersShape, IMainContext, MainContext, MainThreadUriOpenersShape } from './extHost.protocol.js';

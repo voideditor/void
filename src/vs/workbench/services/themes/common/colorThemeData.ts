@@ -24,7 +24,7 @@ import { CharCode } from '../../../../base/common/charCode.js';
 import { StorageScope, IStorageService, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { ThemeConfiguration } from './themeConfiguration.js';
 import { ColorScheme, ThemeTypeSelector } from '../../../../platform/theme/common/theme.js';
-import { ColorId, FontStyle, MetadataConsts } from '../../../../editor/common/encodedTokenAttributes.js';
+import { ColorId, FontStyle, MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { toStandardTokenType } from '../../../../editor/common/languages/supports/tokenization.js';
 
 const colorRegistry = Registry.as<IColorRegistry>(ColorRegistryExtensions.ColorContribution);

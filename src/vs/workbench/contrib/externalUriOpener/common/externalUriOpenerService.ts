@@ -9,7 +9,7 @@ import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { LinkedList } from '../../../../base/common/linkedList.js';
 import { isWeb } from '../../../../base/common/platform.js';
 import { URI } from '../../../../base/common/uri.js';
-import * as languages from '../../../../editor/common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import * as nls from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';

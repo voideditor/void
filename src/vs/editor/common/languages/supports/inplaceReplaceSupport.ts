@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IRange } from '../../core/range.js';
-import { IInplaceReplaceSupportResult } from '../../languages.js';
+import { IRange } from '../../language/core/range.js';
+import { IInplaceReplaceSupportResult } from '../../language/languages.js';
 
 export class BasicInplaceReplace {
 

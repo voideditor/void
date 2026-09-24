@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { URI } from '../../../base/common/uri.js';
-import * as editorRange from '../../../editor/common/core/range.js';
+import * as editorRange from '../../../editor/common/language/core/range.js';
 import { TestId, TestIdPathParts } from '../../contrib/testing/common/testId.js';
 import { createTestItemChildren, ExtHostTestItemEvent, ITestChildrenLike, ITestItemApi, ITestItemChildren, TestItemCollection, TestItemEventOp } from '../../contrib/testing/common/testItemCollection.js';
 import { denamespaceTestTag, ITestItem, ITestItemContext } from '../../contrib/testing/common/testTypes.js';

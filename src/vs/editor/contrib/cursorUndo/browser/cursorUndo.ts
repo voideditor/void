@@ -7,7 +7,7 @@ import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorAction, EditorContributionInstantiation, registerEditorAction, registerEditorContribution, ServicesAccessor } from '../../../browser/editorExtensions.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
 import * as nls from '../../../../nls.js';

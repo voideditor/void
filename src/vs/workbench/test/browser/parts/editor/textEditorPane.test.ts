@@ -14,7 +14,7 @@ import { EditorService } from '../../../../services/editor/browser/editorService
 import { EditorPaneSelectionChangeReason, EditorPaneSelectionCompareResult, IEditorPaneSelectionChangeEvent, isEditorPaneWithSelection } from '../../../../common/editor.js';
 import { DeferredPromise } from '../../../../../base/common/async.js';
 import { TextEditorPaneSelection } from '../../../../browser/parts/editor/textEditor.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { IEditorOptions } from '../../../../../platform/editor/common/editor.js';
 
 suite('TextEditorPane', () => {

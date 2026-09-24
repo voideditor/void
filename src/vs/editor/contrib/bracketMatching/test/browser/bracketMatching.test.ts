@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
-import { Position } from '../../../../common/core/position.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
 import { BracketMatchingController } from '../../browser/bracketMatching.js';
 import { createCodeEditorServices, instantiateTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { instantiateTextModel } from '../../../../test/common/testTextModel.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 suite('bracket matching', () => {

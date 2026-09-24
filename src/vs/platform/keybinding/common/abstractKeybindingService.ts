@@ -179,6 +179,13 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 
 	private _expectAnotherChord(firstChord: string, keypressLabel: string | null): void {
 
+		// Dispose any previous chord status notification before showing a new one
+		// so that the disposable is correctly marked as disposed for leak tracking.
+		if (this._currentChordStatusMessage) {
+			this._currentChordStatusMessage.dispose();
+			this._currentChordStatusMessage = null;
+		}
+
 		this._currentChords.push({ keypress: firstChord, label: keypressLabel });
 
 		switch (this._currentChords.length) {
@@ -186,11 +193,15 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 				throw illegalState('impossible');
 			case 1:
 				// TODO@ulugbekna: revise this message and the one below (at least, fix terminology)
-				this._currentChordStatusMessage = this._notificationService.status(nls.localize('first.chord', "({0}) was pressed. Waiting for second key of chord...", keypressLabel));
+				this._currentChordStatusMessage = this._notificationService.status(
+					nls.localize('first.chord', "({0}) was pressed. Waiting for second key of chord...", keypressLabel)
+				);
 				break;
 			default: {
 				const fullKeypressLabel = this._currentChords.map(({ label }) => label).join(', ');
-				this._currentChordStatusMessage = this._notificationService.status(nls.localize('next.chord', "({0}) was pressed. Waiting for next key of chord...", fullKeypressLabel));
+				this._currentChordStatusMessage = this._notificationService.status(
+					nls.localize('next.chord', "({0}) was pressed. Waiting for next key of chord...", fullKeypressLabel)
+				);
 			}
 		}
 
@@ -201,8 +212,8 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 		}
 	}
 
-	private _leaveChordMode(): void {
-		if (this._currentChordStatusMessage) {
+	private _leaveChordMode(clearStatusMessage: boolean = true): void {
+		if (clearStatusMessage && this._currentChordStatusMessage) {
 			this._currentChordStatusMessage.dispose();
 			this._currentChordStatusMessage = null;
 		}
@@ -322,8 +333,16 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 				if (this.inChordMode) {
 					const currentChordsLabel = this._currentChords.map(({ label }) => label).join(', ');
 					this._log(`+ Leaving multi-chord mode: Nothing bound to "${currentChordsLabel}, ${keypressLabel}".`);
-					this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 /* 10s */ });
-					this._leaveChordMode();
+					// Dispose any previous chord status message and remember this one so it
+					// can be disposed when leaving chord mode.
+					if (this._currentChordStatusMessage) {
+						this._currentChordStatusMessage.dispose();
+					}
+					this._currentChordStatusMessage = this._notificationService.status(
+						nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel),
+						{ hideAfter: 10 * 1000 /* 10s */ }
+					);
+					this._leaveChordMode(false);
 
 					shouldPreventDefault = true;
 				}
@@ -349,8 +368,14 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 					if (this.inChordMode) {
 						const currentChordsLabel = this._currentChords.map(({ label }) => label).join(', ');
 						this._log(`+ Leaving chord mode: Nothing bound to "${currentChordsLabel}, ${keypressLabel}".`);
-						this._notificationService.status(nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel), { hideAfter: 10 * 1000 /* 10s */ });
-						this._leaveChordMode();
+						if (this._currentChordStatusMessage) {
+							this._currentChordStatusMessage.dispose();
+						}
+						this._currentChordStatusMessage = this._notificationService.status(
+							nls.localize('missing.chord', "The key combination ({0}, {1}) is not a command.", currentChordsLabel, keypressLabel),
+							{ hideAfter: 10 * 1000 /* 10s */ }
+						);
+						this._leaveChordMode(false);
 						shouldPreventDefault = true;
 					}
 

@@ -8,11 +8,11 @@ import { ILanguageDetectionService, ILanguageDetectionStats, LanguageDetectionSt
 import { AppResourcePath, FileAccess, nodeModulesAsarPath, nodeModulesPath, Schemas } from '../../../../base/common/network.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { URI } from '../../../../base/common/uri.js';
 import { isWeb } from '../../../../base/common/platform.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { IWebWorkerClient } from '../../../../base/common/worker/webWorker.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IDiagnosticsService } from '../../../../platform/diagnostics/common/diagnostics.js';
@@ -23,7 +23,7 @@ import { LRUCache } from '../../../../base/common/map.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { canASAR } from '../../../../amdX.js';
 import { createWebWorker } from '../../../../base/browser/webWorkerFactory.js';
-import { WorkerTextModelSyncClient } from '../../../../editor/common/services/textModelSync/textModelSync.impl.js';
+import { WorkerTextModelSyncClient } from '../../../../editor/common/language/services/textModelSync/textModelSync.impl.js';
 import { ILanguageDetectionWorker, LanguageDetectionWorkerHost } from './languageDetectionWorker.protocol.js';
 
 const TOP_LANG_COUNTS = 12;

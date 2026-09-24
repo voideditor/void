@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ITextModel, ITextBufferFactory, ITextSnapshot, ModelConstants } from '../../../editor/common/model.js';
+import { ITextModel, ITextBufferFactory, ITextSnapshot, ModelConstants, } from '../../../editor/common/language/model.js';
 import { EditorModel } from './editorModel.js';
 import { ILanguageSupport } from '../../services/textfile/common/textfiles.js';
 import { URI } from '../../../base/common/uri.js';
-import { ITextEditorModel, IResolvedTextEditorModel } from '../../../editor/common/services/resolverService.js';
-import { ILanguageService, ILanguageSelection } from '../../../editor/common/languages/language.js';
-import { IModelService } from '../../../editor/common/services/model.js';
+import { ITextEditorModel, IResolvedTextEditorModel } from '../../../editor/common/language/services/resolverService.js';
+import { ILanguageService, ILanguageSelection } from '../../../editor/common/language/language.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
 import { MutableDisposable } from '../../../base/common/lifecycle.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../editor/common/languages/modesRegistry.js';
 import { ILanguageDetectionService, LanguageDetectionLanguageEventSource } from '../../services/languageDetection/common/languageDetectionWorkerService.js';

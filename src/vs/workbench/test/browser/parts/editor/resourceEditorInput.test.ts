@@ -14,7 +14,7 @@ import { EditorInputCapabilities, Verbosity } from '../../../../common/editor.js
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { IFilesConfigurationService } from '../../../../services/filesConfiguration/common/filesConfigurationService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { CustomEditorLabelService, ICustomEditorLabelService } from '../../../../services/editor/common/customEditorLabelService.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';

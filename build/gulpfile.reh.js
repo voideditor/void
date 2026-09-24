@@ -32,6 +32,7 @@ const { vscodeWebResourceIncludes, createVSCodeWebFileContentMapper } = require(
 const cp = require('child_process');
 const log = require('fancy-log');
 const buildfile = require('./buildfile');
+const gulpSrcCompat = require('./lib/gulpSrcCompat');
 
 const REPO_ROOT = path.dirname(__dirname);
 const commit = getVersion(REPO_ROOT);
@@ -185,7 +186,7 @@ if (defaultNodeTask) {
 
 function nodejs(platform, arch) {
 	const { fetchUrls, fetchGithub } = require('./lib/fetch');
-	const untar = require('gulp-untar');
+	const { untar } = require('./lib/untar');
 
 	if (arch === 'armhf') {
 		arch = 'armv7l';
@@ -295,7 +296,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 		const extensionPaths = [...localWorkspaceExtensions, ...marketplaceExtensions]
 			.map(name => `.build/extensions/${name}/**`);
 
-		const extensions = gulp.src(extensionPaths, { base: '.build', dot: true });
+		const extensions = gulpSrcCompat.src(extensionPaths, { base: '.build', dot: true });
 		const extensionsCommonDependencies = gulp.src('.build/extensions/node_modules/**', { base: '.build', dot: true });
 		const sources = es.merge(src, extensions, extensionsCommonDependencies)
 			.pipe(filter(['**', '!**/*.js.map'], { dot: true }));

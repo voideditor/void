@@ -12,7 +12,7 @@ import { Event } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { uppercaseFirstLetter } from '../../../../../base/common/strings.js';
-import { Command } from '../../../../../editor/common/languages.js';
+import { Command } from '../../../../../editor/common/language/languages.js';
 import { localize } from '../../../../../nls.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';

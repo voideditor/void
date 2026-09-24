@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../base/common/cancellation.js';
-import { shouldSynchronizeModel } from '../../../editor/common/model.js';
+import { shouldSynchronizeModel } from '../../../editor/common/language/model.js';
 import { localize } from '../../../nls.js';
 import { IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
 import { IProgressStep, IProgress } from '../../../platform/progress/common/progress.js';

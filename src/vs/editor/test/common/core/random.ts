@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { numberComparator } from '../../../../base/common/arrays.js';
-import { OffsetRange } from '../../../common/core/offsetRange.js';
-import { Position } from '../../../common/core/position.js';
-import { PositionOffsetTransformer } from '../../../common/core/positionToOffset.js';
-import { Range } from '../../../common/core/range.js';
-import { AbstractText, SingleTextEdit, TextEdit } from '../../../common/core/textEdit.js';
+import { OffsetRange } from '../../../../editor/common/language/core/offsetRange.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { PositionOffsetTransformer } from '../../../../editor/common/language/core/positionToOffset.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { AbstractText, SingleTextEdit, TextEdit } from '../../../../editor/common/language/core/textEdit.js';
 
 export abstract class Random {
 	public static basicAlphabet: string = '      abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

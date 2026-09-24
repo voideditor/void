@@ -10,7 +10,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import * as marked from '../../../../base/common/marked/marked.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { escape } from '../../../../base/common/strings.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { tokenizeToString } from '../../../../editor/common/languages/textToHtmlTokenizer.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { markedGfmHeadingIdPlugin } from './markedGfmHeadingIdPlugin.js';

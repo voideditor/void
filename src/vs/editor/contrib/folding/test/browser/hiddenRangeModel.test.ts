@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
-import { IRange } from '../../../../common/core/range.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
 import { FoldingModel } from '../../browser/foldingModel.js';
 import { HiddenRangeModel } from '../../browser/hiddenRangeModel.js';
 import { computeRanges } from '../../browser/indentRangeProvider.js';

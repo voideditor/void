@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Selection } from '../../../common/core/selection.js';
-import { TextChange } from '../../../common/core/textChange.js';
-import { EndOfLineSequence } from '../../../common/model.js';
-import { SingleModelEditStackData } from '../../../common/model/editStack.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { TextChange } from '../../../../editor/common/language/core/textChange.js';
+import { EndOfLineSequence } from '../../../../editor/common/language/model.js';
+import { SingleModelEditStackData } from '../../../../editor/common/language/model/editStack.js';
 
 suite('EditStack', () => {
 

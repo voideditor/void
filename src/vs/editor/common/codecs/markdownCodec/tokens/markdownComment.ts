@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { BaseToken } from '../../baseToken.js';
-import { Range } from '../../../core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { MarkdownToken } from './markdownToken.js';
 import { assert } from '../../../../../base/common/assert.js';
 

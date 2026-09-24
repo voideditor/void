@@ -5,7 +5,7 @@
 
 import { Codicon } from '../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 import { localize } from '../../../../nls.js';
 import { registerColor } from '../../../../platform/theme/common/colorRegistry.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';

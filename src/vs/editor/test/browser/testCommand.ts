@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { IRange } from '../../common/core/range.js';
-import { Selection, ISelection } from '../../common/core/selection.js';
+import { IRange } from '../../../editor/common/language/core/range.js';
+import { Selection, ISelection } from '../../../editor/common/language/core/selection.js';
 import { ICommand, IEditOperationBuilder } from '../../common/editorCommon.js';
-import { ITextModel } from '../../common/model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 import { instantiateTestCodeEditor, createCodeEditorServices } from './testCodeEditor.js';
 import { instantiateTextModel } from '../common/testTextModel.js';
 import { ServicesAccessor } from '../../../platform/instantiation/common/instantiation.js';
 import { DisposableStore } from '../../../base/common/lifecycle.js';
-import { ISingleEditOperation } from '../../common/core/editOperation.js';
+import { ISingleEditOperation } from '../../../editor/common/language/core/editOperation.js';
 
 export function testCommand(
 	lines: string[],

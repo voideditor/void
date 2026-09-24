@@ -5,11 +5,11 @@
 
 import * as strings from '../../../../base/common/strings.js';
 import { ICodeEditor, IActiveCodeEditor } from '../../../browser/editorBrowser.js';
-import { Position } from '../../../common/core/position.js';
-import { Range, IRange } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range, IRange } from '../../../../editor/common/language/core/range.js';
 import { CancellationTokenSource, CancellationToken } from '../../../../base/common/cancellation.js';
 import { IDisposable, DisposableStore } from '../../../../base/common/lifecycle.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { EditorKeybindingCancellationTokenSource } from './keybindingCancellation.js';
 
 export const enum CodeEditorStateFlag {

@@ -10,7 +10,7 @@ import { registerAction2 } from '../../../../platform/actions/common/actions.js'
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { EditorContributionInstantiation, registerEditorAction, registerEditorContribution } from '../../../browser/editorExtensions.js';
 import { registerEditorFeature } from '../../../common/editorFeatures.js';
-import { IColorPresentation } from '../../../common/languages.js';
+import { IColorPresentation } from '../../../../editor/common/language/languages.js';
 import { HoverParticipantRegistry } from '../../hover/browser/hoverTypes.js';
 import { _findColorData, _setupColorCommand, ColorPresentationsCollector, ExtColorDataCollector, IExtColorData } from './color.js';
 import { ColorDetector } from './colorDetector.js';
@@ -19,7 +19,7 @@ import { HoverColorPickerContribution } from './hoverColorPicker/hoverColorPicke
 import { HoverColorPickerParticipant } from './hoverColorPicker/hoverColorPickerParticipant.js';
 import { HideStandaloneColorPicker, InsertColorWithStandaloneColorPicker, ShowOrFocusStandaloneColorPicker } from './standaloneColorPicker/standaloneColorPickerActions.js';
 import { StandaloneColorPickerController } from './standaloneColorPicker/standaloneColorPickerController.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 
 registerEditorAction(HideStandaloneColorPicker);
 registerEditorAction(InsertColorWithStandaloneColorPicker);

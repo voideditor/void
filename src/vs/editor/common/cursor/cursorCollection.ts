@@ -8,9 +8,9 @@ import { findLastMax, findFirstMin } from '../../../base/common/arraysFind.js';
 import { CursorState, PartialCursorState } from '../cursorCommon.js';
 import { CursorContext } from './cursorContext.js';
 import { Cursor } from './oneCursor.js';
-import { Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { ISelection, Selection } from '../core/selection.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { ISelection, Selection } from '../../../editor/common/language/core/selection.js';
 
 export class CursorCollection {
 

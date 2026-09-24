@@ -7,7 +7,7 @@ import { createTrustedTypesPolicy } from '../../../../../../base/browser/trusted
 import { Disposable, DisposableStore, dispose, toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { splitLines } from '../../../../../../base/common/strings.js';
 import { EditorOption } from '../../../../../../editor/common/config/editorOptions.js';
-import { ILanguageService } from '../../../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../../../editor/common/language/language.js';
 import { tokenizeToString } from '../../../../../../editor/common/languages/textToHtmlTokenizer.js';
 import { NotebookCellTextModel } from '../../../common/model/notebookCellTextModel.js';
 import { NotebookTextModel } from '../../../common/model/notebookTextModel.js';

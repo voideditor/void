@@ -10,7 +10,7 @@ import { Event, Emitter } from '../../../base/common/event.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
 import { IWorkspaceContextService, IWorkspace, WorkbenchState, IWorkspaceFolder, IWorkspaceFoldersChangeEvent, Workspace, IWorkspaceFoldersWillChangeEvent, ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from '../../../platform/workspace/common/workspace.js';
 import { TestWorkspace } from '../../../platform/workspace/test/common/testWorkspace.js';
-import { ITextResourcePropertiesService } from '../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../editor/common/language/services/textResourceConfiguration.js';
 import { isLinux, isMacintosh } from '../../../base/common/platform.js';
 import { InMemoryStorageService, WillSaveStateReason } from '../../../platform/storage/common/storage.js';
 import { IWorkingCopy, IWorkingCopyBackup, WorkingCopyCapabilities } from '../../services/workingCopy/common/workingCopy.js';

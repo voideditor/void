@@ -8,7 +8,7 @@ import { URI } from '../../../../../../base/common/uri.js';
 import { Schemas } from '../../../../../../base/common/network.js';
 import { extUri } from '../../../../../../base/common/resources.js';
 import { isWindows } from '../../../../../../base/common/platform.js';
-import { Range } from '../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { IMockFolder, MockFilesystem } from './testUtils/mockFilesystem.js';
 import { IFileService } from '../../../../../../platform/files/common/files.js';

@@ -6,16 +6,16 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { onUnexpectedExternalError } from '../../../../base/common/errors.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextModel } from '../../../common/model.js';
-import { DocumentSemanticTokensProvider, SemanticTokens, SemanticTokensEdits, SemanticTokensLegend, DocumentRangeSemanticTokensProvider } from '../../../common/languages.js';
-import { IModelService } from '../../../common/services/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { DocumentSemanticTokensProvider, SemanticTokens, SemanticTokensEdits, SemanticTokensLegend, DocumentRangeSemanticTokensProvider } from '../../../../editor/common/language/languages.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
 import { assertType } from '../../../../base/common/types.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
-import { encodeSemanticTokensDto } from '../../../common/services/semanticTokensDto.js';
-import { Range } from '../../../common/core/range.js';
+import { encodeSemanticTokensDto } from '../../../../editor/common/language/services/semanticTokensDto.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 export function isSemanticTokens(v: SemanticTokens | SemanticTokensEdits): v is SemanticTokens {
 	return v && !!((<SemanticTokens>v).data);

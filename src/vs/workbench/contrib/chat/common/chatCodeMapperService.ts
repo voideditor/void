@@ -6,7 +6,7 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
-import { TextEdit } from '../../../../editor/common/languages.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICellEditOperation } from '../../notebook/common/notebookCommon.js';
 

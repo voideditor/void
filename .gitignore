@@ -21,6 +21,9 @@ vscode.db
 product.overrides.json
 *.snap.actual
 .vscode-test
+.void
+.serena
+VOID.md
 
 # Void added these:
 .tmp/
@@ -28,3 +31,6 @@ product.overrides.json
 .tool-versions
 src/vs/workbench/contrib/void/browser/react/out/**
 src/vs/workbench/contrib/void/browser/react/src2/**
+.devcontainer-local
+.codex
+openspec

@@ -16,7 +16,7 @@ import { DiffEditorInput } from '../../../common/editor/diffEditorInput.js';
 import { TextDiffEditorModel } from '../../../common/editor/textDiffEditorModel.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
-import { ITextResourceConfigurationChangeEvent, ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationChangeEvent, ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { TextFileOperationError, TextFileOperationResult } from '../../../services/textfile/common/textfiles.js';

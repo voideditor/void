@@ -14,6 +14,17 @@ import workerpool from 'workerpool';
 import { StaticLanguageServiceHost } from './staticLanguageServiceHost';
 const buildfile = require('../../buildfile');
 
+function parsePositiveInt(value: string | undefined): number | undefined {
+	if (!value) {
+		return undefined;
+	}
+	const parsed = Number(value);
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		return undefined;
+	}
+	return parsed;
+}
+
 class ShortIdent {
 
 	private static _keywords = new Set(['await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger',
@@ -405,11 +416,21 @@ export class Mangler {
 		private readonly log: typeof console.log = () => { },
 		private readonly config: { readonly manglePrivateFields: boolean; readonly mangleExports: boolean },
 	) {
+		const maxWorkers = parsePositiveInt(process.env['VSCODE_MANGLE_MAX_WORKERS']) ?? 4;
+		const workerMaxOldSpaceSizeMb = parsePositiveInt(process.env['VSCODE_MANGLE_WORKER_MAX_OLD_SPACE_SIZE'])
+			?? parsePositiveInt(process.env['npm_config_max_old_space_size']);
+		const execArgv = [...process.execArgv];
+		if (workerMaxOldSpaceSizeMb && !execArgv.some(arg => arg.startsWith('--max-old-space-size='))) {
+			execArgv.push(`--max-old-space-size=${workerMaxOldSpaceSizeMb}`);
+		}
 
 		this.renameWorkerPool = workerpool.pool(path.join(__dirname, 'renameWorker.js'), {
-			maxWorkers: 4,
-			minWorkers: 'max'
+			workerType: 'process',
+			maxWorkers,
+			minWorkers: 'max',
+			forkOpts: { execArgv }
 		});
+		this.log(`[mangler] Rename worker pool: type=process workers=${maxWorkers} max-old-space-size=${workerMaxOldSpaceSizeMb ?? 'inherit'}`);
 	}
 
 	async computeNewFileContents(strictImplicitPublicHandling?: Set<string>): Promise<Map<string, MangleOutput>> {
@@ -555,6 +576,11 @@ export class Mangler {
 
 		type Edit = { newText: string; offset: number; length: number };
 		const editsByFile = new Map<string, Edit[]>();
+		const projectSourceRoot = normalize(path.dirname(this.projectPath)) + '/';
+		const shouldApplyRenameToFile = (fileName: string): boolean => {
+			const normalizedFileName = normalize(fileName);
+			return normalizedFileName.startsWith(projectSourceRoot) && !normalizedFileName.endsWith('.d.ts');
+		};
 
 		const appendEdit = (fileName: string, edit: Edit) => {
 			const edits = editsByFile.get(fileName);
@@ -565,6 +591,9 @@ export class Mangler {
 			}
 		};
 		const appendRename = (newText: string, loc: ts.RenameLocation) => {
+			if (!shouldApplyRenameToFile(loc.fileName)) {
+				return;
+			}
 			appendEdit(loc.fileName, {
 				newText: (loc.prefixText || '') + newText + (loc.suffixText || ''),
 				offset: loc.textSpan.start,

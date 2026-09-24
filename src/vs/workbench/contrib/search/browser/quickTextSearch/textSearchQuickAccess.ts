@@ -7,7 +7,7 @@ import { DisposableStore, IDisposable } from '../../../../../base/common/lifecyc
 import { ResourceSet } from '../../../../../base/common/map.js';
 import { basenameOrAuthority, dirname } from '../../../../../base/common/resources.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
-import { IRange } from '../../../../../editor/common/core/range.js';
+import { IRange } from '../../../../../editor/common/language/core/range.js';
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ITextEditorSelection } from '../../../../../platform/editor/common/editor.js';

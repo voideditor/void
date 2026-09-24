@@ -6,8 +6,8 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IRange } from '../../../../editor/common/core/range.js';
-import { Location } from '../../../../editor/common/languages.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { Location } from '../../../../editor/common/language/languages.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IChatModel, IChatRequestVariableData, IChatRequestVariableEntry, IDiagnosticVariableEntryFilterData } from './chatModel.js';
 import { IParsedChatRequest } from './chatParserTypes.js';

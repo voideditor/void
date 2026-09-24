@@ -13,8 +13,8 @@ import { MockContextKeyService } from '../../../../../platform/keybinding/test/c
 import { MarkerService } from '../../../../../platform/markers/common/markerService.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import * as languages from '../../../../common/languages.js';
-import { TextModel } from '../../../../common/model/textModel.js';
+import * as languages from '../../../../../editor/common/language/languages.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { createTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { CodeActionModel, CodeActionsState } from '../../browser/codeActionModel.js';

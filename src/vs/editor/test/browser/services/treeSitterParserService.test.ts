@@ -11,9 +11,9 @@ import { ConsoleMainLogger, ILogService } from '../../../../platform/log/common/
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { LogService } from '../../../../platform/log/common/logService.js';
 import { mock } from '../../../../base/test/common/mock.js';
-import { ITreeSitterImporter } from '../../../common/services/treeSitterParserService.js';
-import { TextModelTreeSitter } from '../../../common/services/treeSitter/textModelTreeSitter.js';
-import { TreeSitterLanguages } from '../../../common/services/treeSitter/treeSitterLanguages.js';
+import { ITreeSitterImporter } from '../../../../editor/common/language/services/treeSitterParserService.js';
+import { TextModelTreeSitter } from '../../../../editor/common/language/services/treeSitter/textModelTreeSitter.js';
+import { TreeSitterLanguages } from '../../../../editor/common/language/services/treeSitter/treeSitterLanguages.js';
 
 class MockParser implements Parser.Parser {
 	language: Parser.Language | null = null;

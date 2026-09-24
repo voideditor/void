@@ -9,7 +9,7 @@ import * as marked from '../../../../base/common/marked/marked.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
-import { ITextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { EditorInputCapabilities, IUntypedEditorInput } from '../../../common/editor.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';

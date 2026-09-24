@@ -6,9 +6,9 @@
 import { Event } from '../../../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../../../../editor/browser/editorBrowser.js';
-import { Selection, SelectionDirection } from '../../../../../../editor/common/core/selection.js';
+import { Selection, SelectionDirection } from '../../../../../../editor/common/language/core/selection.js';
 import { CursorChangeReason } from '../../../../../../editor/common/cursorEvents.js';
-import { FindMatch, IModelDeltaDecoration, ITextModel } from '../../../../../../editor/common/model.js';
+import { FindMatch, IModelDeltaDecoration, ITextModel } from '../../../../../../editor/common/language/model.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { IActiveNotebookEditor, ICellViewModel, INotebookEditor, INotebookEditorContribution } from '../../notebookBrowser.js';
 import { registerNotebookContribution } from '../../notebookEditorExtensions.js';

@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { StandardTokenType } from '../../../../common/encodedTokenAttributes.js';
+import { StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
 import { StandardAutoClosingPairConditional } from '../../../../common/languages/languageConfiguration.js';
 import { CharacterPairSupport } from '../../../../common/languages/supports/characterPair.js';
 import { TokenText, createFakeScopedLineTokens } from '../../modesTestUtils.js';

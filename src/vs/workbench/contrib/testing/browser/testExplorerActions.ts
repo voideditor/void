@@ -15,10 +15,10 @@ import { IActiveCodeEditor, ICodeEditor } from '../../../../editor/browser/edito
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { EmbeddedCodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorOption, GoToLocationValues } from '../../../../editor/common/config/editorOptions.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { SymbolNavigationAction } from '../../../../editor/contrib/gotoSymbol/browser/goToCommands.js';
 import { ReferencesModel } from '../../../../editor/contrib/gotoSymbol/browser/referencesModel.js';
 import { MessageController } from '../../../../editor/contrib/message/browser/messageController.js';

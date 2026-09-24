@@ -17,19 +17,19 @@ import { LineNumbersOverlay } from '../../../viewParts/lineNumbers/lineNumbers.j
 import { Margin } from '../../../viewParts/margin/margin.js';
 import { RenderLineNumbersType, EditorOption, IComputedEditorOptions, EditorOptions } from '../../../../common/config/editorOptions.js';
 import { FontInfo } from '../../../../common/config/fontInfo.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { ScrollType } from '../../../../common/editorCommon.js';
-import { EndOfLinePreference } from '../../../../common/model.js';
+import { EndOfLinePreference } from '../../../../../editor/common/language/model.js';
 import { RenderingContext, RestrictedRenderingContext, HorizontalPosition, LineVisibleRanges } from '../../../view/renderingContext.js';
 import { ViewContext } from '../../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../../common/viewEvents.js';
 import { AccessibilitySupport } from '../../../../../platform/accessibility/common/accessibility.js';
 import { IEditorAriaOptions } from '../../../editorBrowser.js';
 import { MOUSE_CURSOR_TEXT_CSS_CLASS_NAME } from '../../../../../base/browser/ui/mouseCursor/mouseCursor.js';
-import { TokenizationRegistry } from '../../../../common/languages.js';
-import { ColorId, ITokenPresentation } from '../../../../common/encodedTokenAttributes.js';
+import { TokenizationRegistry } from '../../../../../editor/common/language/languages.js';
+import { ColorId, ITokenPresentation } from '../../../../../editor/common/language/encodedTokenAttributes.js';
 import { Color } from '../../../../../base/common/color.js';
 import { IME } from '../../../../../base/common/ime.js';
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
@@ -39,7 +39,7 @@ import { ICompositionData, IPasteData, ITextAreaInputHost, TextAreaInput, TextAr
 import { ariaLabelForScreenReaderContent, ISimpleModel, newlinecount, PagedScreenReaderStrategy } from '../screenReaderUtils.js';
 import { ClipboardDataToCopy, getDataToCopy } from '../clipboardUtils.js';
 import { _debugComposition, ITypeData, TextAreaState } from './textAreaEditContextState.js';
-import { getMapForWordSeparators, WordCharacterClass } from '../../../../common/core/wordCharacterClassifier.js';
+import { getMapForWordSeparators, WordCharacterClass } from '../../../../../editor/common/language/core/wordCharacterClassifier.js';
 
 export interface IVisibleRangeProvider {
 	visibleRangeForPosition(position: Position): HorizontalPosition | null;

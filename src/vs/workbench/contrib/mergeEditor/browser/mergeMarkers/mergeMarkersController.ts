@@ -7,7 +7,7 @@ import { h } from '../../../../../base/browser/dom.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { autorun, IObservable } from '../../../../../base/common/observable.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { LineRange } from '../model/lineRange.js';
 import { MergeEditorViewModel } from '../view/viewModel.js';
 import * as nls from '../../../../../nls.js';

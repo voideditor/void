@@ -8,8 +8,8 @@ import { combinedDisposable, IDisposable, DisposableStore } from '../../../../ba
 import * as resources from '../../../../base/common/resources.js';
 import { isFalsyOrWhitespace } from '../../../../base/common/strings.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { setSnippetSuggestSupport } from '../../../../editor/contrib/suggest/browser/suggest.js';
 import { localize } from '../../../../nls.js';
 import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';

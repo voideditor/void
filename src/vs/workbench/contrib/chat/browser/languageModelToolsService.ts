@@ -259,7 +259,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				}
 
 				model.acceptResponseProgress(request, toolInvocation);
-				if (prepared?.confirmationMessages) {
+				if (!dto.skipConfirmation && prepared?.confirmationMessages) {
 					this._accessibilityService.alert(localize('toolConfirmationMessage', "Action required: {0}", prepared.confirmationMessages.title));
 					const userConfirmed = await toolInvocation.confirmed.p;
 					if (!userConfirmed) {
@@ -275,7 +275,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 				}
 			} else {
 				const prepared = await this.prepareToolInvocation(tool, dto, token);
-				if (prepared?.confirmationMessages) {
+				if (!dto.skipConfirmation && prepared?.confirmationMessages) {
 					const result = await this._dialogService.confirm({ message: prepared.confirmationMessages.title, detail: renderStringAsPlaintext(prepared.confirmationMessages.message) });
 					if (!result.confirmed) {
 						throw new CancellationError();

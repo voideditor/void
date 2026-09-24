@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../common/languages/modesRegistry.js';
-import { LanguageService } from '../../../common/services/languageService.js';
+import { LanguageService } from '../../../../editor/common/language/services/languageService.js';
 
 suite('LanguageService', () => {
 

@@ -414,7 +414,7 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 		readonly splitviewProportionalLayout: boolean,
 		size: number = 0,
 		orthogonalSize: number = 0,
-		edgeSnapping: boolean = false,
+		_edgeSnapping: boolean = false,
 		childDescriptors?: INodeDescriptor[]
 	) {
 		this._styles = styles;

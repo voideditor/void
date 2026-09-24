@@ -5,8 +5,8 @@
 
 import { URI } from '../../../../../base/common/uri.js';
 import { UnchangedRegion } from '../../../../../editor/browser/widget/diffEditor/diffEditorViewModel.js';
-import { IEditorWorkerService } from '../../../../../editor/common/services/editorWorker.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { IEditorWorkerService } from '../../../../../editor/common/language/services/editorWorker.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { getEditorPadding } from './diffCellEditorOptions.js';
 import { HeightOfHiddenLinesRegionInDiffEditor } from './diffElementViewModel.js';

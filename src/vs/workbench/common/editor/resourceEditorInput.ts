@@ -12,7 +12,7 @@ import { dirname, isEqual } from '../../../base/common/resources.js';
 import { IFilesConfigurationService } from '../../services/filesConfiguration/common/filesConfigurationService.js';
 import { IMarkdownString } from '../../../base/common/htmlContent.js';
 import { isConfigured } from '../../../platform/configuration/common/configuration.js';
-import { ITextResourceConfigurationService } from '../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../editor/common/language/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../services/editor/common/customEditorLabelService.js';
 
 /**

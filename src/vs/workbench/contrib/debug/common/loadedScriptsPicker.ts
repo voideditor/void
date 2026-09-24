@@ -8,9 +8,9 @@ import { Source } from './debugSource.js';
 import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../platform/quickinput/common/quickInput.js';
 import { IDebugService, IDebugSession } from './debug.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { getIconClasses } from '../../../../editor/common/language/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 
 import { dirname } from '../../../../base/common/resources.js';

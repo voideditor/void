@@ -7,7 +7,7 @@ import { FastDomNode, createFastDomNode } from '../../../../base/browser/fastDom
 import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { IViewZone, IViewZoneChangeAccessor } from '../../editorBrowser.js';
 import { ViewPart } from '../../view/viewPart.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { RenderingContext, RestrictedRenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';

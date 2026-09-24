@@ -6,7 +6,7 @@
 import { coalesce } from '../../../../base/common/arrays.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IActiveCodeEditor, ICodeEditor } from '../../../browser/editorBrowser.js';
-import { IModelDecoration } from '../../../common/model.js';
+import { IModelDecoration } from '../../../../editor/common/language/model.js';
 import { HoverStartSource, IHoverComputer } from './hoverOperation.js';
 import { HoverAnchor, HoverAnchorType, IEditorHoverParticipant, IHoverPart } from './hoverTypes.js';
 import { AsyncIterableObject } from '../../../../base/common/async.js';

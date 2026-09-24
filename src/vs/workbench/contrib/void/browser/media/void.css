@@ -17,10 +17,12 @@
 
 .void-greenBG {
 	background-color: var(--vscode-void-greenBG);
+	box-shadow: inset 2px 0 0 var(--vscode-void-greenBorder);
 }
 
 .void-redBG {
 	background-color: var(--vscode-void-redBG);
+	box-shadow: inset 2px 0 0 var(--vscode-void-redBorder);
 }
 
 

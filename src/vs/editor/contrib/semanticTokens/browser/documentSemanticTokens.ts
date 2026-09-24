@@ -13,14 +13,14 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { registerEditorFeature } from '../../../common/editorFeatures.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { DocumentSemanticTokensProvider, SemanticTokens, SemanticTokensEdits } from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
-import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../common/services/languageFeatureDebounce.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { IModelService } from '../../../common/services/model.js';
-import { SemanticTokensProviderStyling, toMultilineTokens2 } from '../../../common/services/semanticTokensProviderStyling.js';
-import { ISemanticTokensStylingService } from '../../../common/services/semanticTokensStyling.js';
-import { IModelContentChangedEvent } from '../../../common/textModelEvents.js';
+import { DocumentSemanticTokensProvider, SemanticTokens, SemanticTokensEdits } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../../editor/common/language/services/languageFeatureDebounce.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { SemanticTokensProviderStyling, toMultilineTokens2 } from '../../../../editor/common/language/services/semanticTokensProviderStyling.js';
+import { ISemanticTokensStylingService } from '../../../../editor/common/language/services/semanticTokensStyling.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
 import { getDocumentSemanticTokens, hasDocumentSemanticTokensProvider, isSemanticTokens, isSemanticTokensEdits } from '../common/getSemanticTokens.js';
 import { SEMANTIC_HIGHLIGHTING_SETTING_ID, isSemanticColoringEnabled } from '../common/semanticTokensConfig.js';
 

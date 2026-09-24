@@ -4,16 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as nls from '../../../../nls.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { ITextMateTokenizationService } from '../../../services/textMate/browser/textMateTokenizationFeature.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { Constants } from '../../../../base/common/uint.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { INativeWorkbenchEnvironmentService } from '../../../services/environment/electron-sandbox/environmentService.js';

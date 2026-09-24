@@ -8,10 +8,10 @@ import { URI } from '../../../../base/common/uri.js';
 import { MainThreadDocumentContentProviders } from '../../browser/mainThreadDocumentContentProviders.js';
 import { createTextModel } from '../../../../editor/test/common/testTextModel.js';
 import { mock } from '../../../../base/test/common/mock.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 import { TestRPCProtocol } from '../common/testRPCProtocol.js';
-import { TextEdit } from '../../../../editor/common/languages.js';
+import { TextEdit } from '../../../../editor/common/language/languages.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 suite('MainThreadDocumentContentProviders', function () {

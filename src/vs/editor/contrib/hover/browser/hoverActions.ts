@@ -8,14 +8,14 @@ import { KeyChord, KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorAction, ServicesAccessor } from '../../../browser/editorExtensions.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
 import { GotoDefinitionAtPositionEditorContribution } from '../../gotoSymbol/browser/link/goToDefinitionAtPosition.js';
 import { HoverStartMode, HoverStartSource } from './hoverOperation.js';
 import { AccessibilitySupport } from '../../../../platform/accessibility/common/accessibility.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContentHoverController } from './contentHoverController.js';
-import { HoverVerbosityAction } from '../../../common/languages.js';
+import { HoverVerbosityAction } from '../../../../editor/common/language/languages.js';
 import * as nls from '../../../../nls.js';
 import './hover.css';
 

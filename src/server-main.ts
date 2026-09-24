@@ -271,7 +271,7 @@ function prompt(question: string): Promise<boolean> {
 		input: process.stdin,
 		output: process.stdout
 	});
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		rl.question(question + ' ', async function (data) {
 			rl.close();
 			const str = data.toString().trim().toLowerCase();

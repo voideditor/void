@@ -12,14 +12,14 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IOutputChannel, IOutputService, OUTPUT_VIEW_ID, LOG_MIME, OUTPUT_MIME, OutputChannelUpdateMode, IOutputChannelDescriptor, Extensions, IOutputChannelRegistry, ACTIVE_OUTPUT_CHANNEL_CONTEXT, CONTEXT_ACTIVE_FILE_OUTPUT, CONTEXT_ACTIVE_OUTPUT_LEVEL_SETTABLE, CONTEXT_ACTIVE_OUTPUT_LEVEL, CONTEXT_ACTIVE_OUTPUT_LEVEL_IS_DEFAULT, IOutputViewFilters, SHOW_DEBUG_FILTER_CONTEXT, SHOW_ERROR_FILTER_CONTEXT, SHOW_INFO_FILTER_CONTEXT, SHOW_TRACE_FILTER_CONTEXT, SHOW_WARNING_FILTER_CONTEXT, CONTEXT_ACTIVE_LOG_FILE_OUTPUT, IMultiSourceOutputChannelDescriptor, isSingleSourceOutputChannelDescriptor, HIDE_CATEGORY_FILTER_CONTEXT, isMultiSourceOutputChannelDescriptor, ILogEntry } from '../../../services/output/common/output.js';
 import { OutputLinkProvider } from './outputLinkProvider.js';
-import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/services/resolverService.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModelService, ITextModelContentProvider } from '../../../../editor/common/language/services/resolverService.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { ILogService, ILoggerService, LogLevel, LogLevelToString } from '../../../../platform/log/common/log.js';
 import { ILifecycleService } from '../../../services/lifecycle/common/lifecycle.js';
 import { DelegatedOutputChannelModel, FileOutputChannelModel, IOutputChannelModel, MultiFileOutputChannelModel } from '../common/outputChannelModel.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { OutputViewPane } from './outputView.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IDefaultLogLevelsService } from '../../logs/common/defaultLogLevels.js';
 import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';

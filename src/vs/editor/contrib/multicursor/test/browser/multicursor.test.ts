@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../common/core/range.js';
-import { Selection } from '../../../../common/core/selection.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { Handler } from '../../../../common/editorCommon.js';
-import { EndOfLineSequence } from '../../../../common/model.js';
+import { EndOfLineSequence } from '../../../../../editor/common/language/model.js';
 import { CommonFindController } from '../../../find/browser/findController.js';
 import { AddSelectionToNextFindMatchAction, InsertCursorAbove, InsertCursorBelow, MultiCursorSelectionController, SelectHighlightsAction } from '../../browser/multicursor.js';
 import { ITestCodeEditor, withTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';

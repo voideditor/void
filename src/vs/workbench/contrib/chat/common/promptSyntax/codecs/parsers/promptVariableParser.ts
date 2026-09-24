@@ -5,7 +5,7 @@
 
 import { pick } from '../../../../../../../base/common/arrays.js';
 import { assert } from '../../../../../../../base/common/assert.js';
-import { Range } from '../../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
 import { PromptVariable, PromptVariableWithData } from '../tokens/promptVariable.js';
 import { Tab } from '../../../../../../../editor/common/codecs/simpleCodec/tokens/tab.js';
 import { Hash } from '../../../../../../../editor/common/codecs/simpleCodec/tokens/hash.js';

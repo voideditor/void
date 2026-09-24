@@ -6,15 +6,15 @@
 import assert from 'assert';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { LanguageId, MetadataConsts, StandardTokenType } from '../../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../common/languages.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { LanguageId, MetadataConsts, StandardTokenType } from '../../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IState, ITokenizationSupport, TokenizationRegistry } from '../../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
-import { LanguageAgnosticBracketTokens } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/brackets.js';
-import { Length, lengthAdd, lengthsToRange, lengthZero } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
-import { DenseKeyProvider } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/smallImmutableSet.js';
-import { TextBufferTokenizer, Token, Tokenizer, TokenKind } from '../../../../common/model/bracketPairsTextModelPart/bracketPairsTree/tokenizer.js';
-import { TextModel } from '../../../../common/model/textModel.js';
+import { LanguageAgnosticBracketTokens } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/brackets.js';
+import { Length, lengthAdd, lengthsToRange, lengthZero } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/length.js';
+import { DenseKeyProvider } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/smallImmutableSet.js';
+import { TextBufferTokenizer, Token, Tokenizer, TokenKind } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/bracketPairsTree/tokenizer.js';
+import { TextModel } from '../../../../../editor/common/language/model/textModel.js';
 import { createModelServices, instantiateTextModel } from '../../testTextModel.js';
 
 suite('Bracket Pair Colorizer - Tokenizer', () => {

@@ -94,6 +94,7 @@ export interface NativeParsedArgs {
 	'export-default-configuration'?: string;
 	'install-source'?: string;
 	'add-mcp'?: string[];
+	'acp-agent-addr'?: string;
 	'disable-updates'?: boolean;
 	'use-inmemory-secretstorage'?: boolean;
 	'password-store'?: string;

@@ -7,7 +7,7 @@ import { Event, Disposable, EventEmitter, SourceControlHistoryItemRef, l10n, wor
 import { dirname, sep, relative } from 'path';
 import { Readable } from 'stream';
 import { promises as fs, createReadStream } from 'fs';
-import byline from 'byline';
+import { createInterface } from 'readline';
 
 export const isMacintosh = process.platform === 'darwin';
 export const isWindows = process.platform === 'win32';
@@ -211,16 +211,33 @@ export function find<T>(array: T[], fn: (t: T) => boolean): T | undefined {
 export async function grep(filename: string, pattern: RegExp): Promise<boolean> {
 	return new Promise<boolean>((c, e) => {
 		const fileStream = createReadStream(filename, { encoding: 'utf8' });
-		const stream = byline(fileStream);
-		stream.on('data', (line: string) => {
+		const stream = createInterface({ input: fileStream, crlfDelay: Infinity });
+		let done = false;
+
+		const complete = (result: boolean) => {
+			if (!done) {
+				done = true;
+				c(result);
+			}
+		};
+
+		const fail = (err: Error) => {
+			if (!done) {
+				done = true;
+				e(err);
+			}
+		};
+
+		stream.on('line', (line: string) => {
 			if (pattern.test(line)) {
-				fileStream.close();
-				c(true);
+				stream.close();
+				fileStream.destroy();
+				complete(true);
 			}
 		});
 
-		stream.on('error', e);
-		stream.on('end', () => c(false));
+		stream.on('close', () => complete(false));
+		fileStream.on('error', fail);
 	});
 }
 

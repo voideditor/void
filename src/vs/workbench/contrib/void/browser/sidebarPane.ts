@@ -61,7 +61,7 @@ class SidebarViewPane extends ViewPane {
 		@IContextMenuService contextMenuService: IContextMenuService,
 		@IKeybindingService keybindingService: IKeybindingService,
 		@IOpenerService openerService: IOpenerService,
-		@ITelemetryService telemetryService: ITelemetryService,
+		@ITelemetryService _telemetryService: ITelemetryService,
 		@IHoverService hoverService: IHoverService,
 		// @ICodeEditorService private readonly editorService: ICodeEditorService,
 		// @IContextKeyService private readonly editorContextKeyService: IContextKeyService,

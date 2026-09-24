@@ -19,10 +19,10 @@ import { IPromptsService } from '../service/types.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { assertOneOf } from '../../../../../../base/common/types.js';
 import { isWindows } from '../../../../../../base/common/platform.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { CancellationError } from '../../../../../../base/common/errors.js';
-import { Position } from '../../../../../../editor/common/core/position.js';
+import { Position } from '../../../../../../editor/common/language/core/position.js';
 import { IPromptFileReference, IPromptReference } from '../parsers/types.js';
 import { dirname, extUri } from '../../../../../../base/common/resources.js';
 import { assert, assertNever } from '../../../../../../base/common/assert.js';
@@ -30,9 +30,9 @@ import { IFileService } from '../../../../../../platform/files/common/files.js';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { Registry } from '../../../../../../platform/registry/common/platform.js';
 import { LifecyclePhase } from '../../../../../services/lifecycle/common/lifecycle.js';
-import { ILanguageFeaturesService } from '../../../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../../../editor/common/language/services/languageFeatures.js';
 import { IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } from '../../../../../common/contributions.js';
-import { CompletionContext, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList } from '../../../../../../editor/common/languages.js';
+import { CompletionContext, CompletionItem, CompletionItemKind, CompletionItemProvider, CompletionList } from '../../../../../../editor/common/language/languages.js';
 
 /**
  * Type for a filesystem completion item - the one that has its {@link CompletionItem.kind kind} set

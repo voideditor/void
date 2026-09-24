@@ -7,13 +7,13 @@ import { localize } from '../../../../nls.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { getLocation, parse } from '../../../../base/common/json.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { Position } from '../../../../editor/common/core/position.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { CompletionContext, CompletionList, CompletionItemKind, CompletionItem } from '../../../../editor/common/languages.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { CompletionContext, CompletionList, CompletionItemKind, CompletionItem } from '../../../../editor/common/language/languages.js';
 import { IExtensionManagementService } from '../../../../platform/extensionManagement/common/extensionManagement.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 
 export class ExtensionsCompletionItemsProvider extends Disposable implements IWorkbenchContribution {

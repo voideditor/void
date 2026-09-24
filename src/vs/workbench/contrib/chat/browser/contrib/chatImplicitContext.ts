@@ -12,7 +12,7 @@ import { basename } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ICodeEditor, isCodeEditor, isDiffEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
-import { Location } from '../../../../../editor/common/languages.js';
+import { Location } from '../../../../../editor/common/language/languages.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { EditorsOrder } from '../../../../common/editor.js';

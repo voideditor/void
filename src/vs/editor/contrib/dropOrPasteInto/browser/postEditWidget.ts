@@ -23,9 +23,9 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition } from '../../../browser/editorBrowser.js';
 import { IBulkEditResult, IBulkEditService } from '../../../browser/services/bulkEditService.js';
-import { Range } from '../../../common/core/range.js';
-import { DocumentDropEdit, DocumentPasteEdit } from '../../../common/languages.js';
-import { TrackedRangeStickiness } from '../../../common/model.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { DocumentDropEdit, DocumentPasteEdit } from '../../../../editor/common/language/languages.js';
+import { TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
 import { CodeEditorStateFlag, EditorStateCancellationTokenSource } from '../../editorState/browser/editorState.js';
 import { createCombinedWorkspaceEdit } from './edit.js';
 import './postEditWidget.css';

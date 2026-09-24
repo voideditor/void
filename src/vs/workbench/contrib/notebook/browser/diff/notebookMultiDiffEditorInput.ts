@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../../base/common/uri.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { MultiDiffEditorInput } from '../../../multiDiffEditor/browser/multiDiffEditorInput.js';
 import { IMultiDiffSourceResolverService, IResolvedMultiDiffSource, type IMultiDiffSourceResolver } from '../../../multiDiffEditor/browser/multiDiffSourceResolverService.js';

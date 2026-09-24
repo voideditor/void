@@ -16,9 +16,9 @@ import { PartFingerprint, PartFingerprints, ViewPart } from '../../view/viewPart
 import { DomReadingContext } from './domReadingContext.js';
 import { ViewLine } from './viewLine.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { ScrollType } from '../../../common/editorCommon.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { ViewportData } from '../../../common/viewLayout/viewLinesViewportData.js';

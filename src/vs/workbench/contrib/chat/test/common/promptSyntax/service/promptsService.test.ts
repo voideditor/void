@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { createURI } from '../testUtils/createUri.js';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { Range } from '../../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
 import { assertDefined } from '../../../../../../../base/common/types.js';
 import { waitRandom } from '../../../../../../../base/test/common/testUtils.js';
 import { IPromptsService } from '../../../../common/promptSyntax/service/types.js';

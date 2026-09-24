@@ -5,9 +5,9 @@
 import assert from 'assert';
 import { Constants } from '../../../../base/common/uint.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { DiffComputer, ICharChange, ILineChange } from '../../../common/diff/legacyLinesDiffComputer.js';
-import { IIdentifiedSingleEditOperation, ITextModel } from '../../../common/model.js';
+import { IIdentifiedSingleEditOperation, ITextModel } from '../../../../editor/common/language/model.js';
 import { createTextModel } from '../testTextModel.js';
 
 function assertDiff(originalLines: string[], modifiedLines: string[], expectedChanges: ILineChange[], shouldComputeCharChanges: boolean = true, shouldPostProcessCharChanges: boolean = false, shouldIgnoreTrimWhitespace: boolean = false) {

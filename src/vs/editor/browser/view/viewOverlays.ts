@@ -8,7 +8,7 @@ import { applyFontInfo } from '../config/domFontInfo.js';
 import { DynamicViewOverlay } from './dynamicViewOverlay.js';
 import { IVisibleLine, VisibleLinesCollection } from './viewLayer.js';
 import { ViewPart } from './viewPart.js';
-import { StringBuilder } from '../../common/core/stringBuilder.js';
+import { StringBuilder } from '../../../editor/common/language/core/stringBuilder.js';
 import { RenderingContext, RestrictedRenderingContext } from './renderingContext.js';
 import { ViewContext } from '../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../common/viewEvents.js';

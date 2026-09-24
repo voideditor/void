@@ -5,8 +5,8 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { ResourceTextEdit } from '../../../browser/services/bulkEditService.js';
-import { DocumentDropEdit, DocumentPasteEdit, DropYieldTo, WorkspaceEdit } from '../../../common/languages.js';
-import { Range } from '../../../common/core/range.js';
+import { DocumentDropEdit, DocumentPasteEdit, DropYieldTo, WorkspaceEdit } from '../../../../editor/common/language/languages.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { SnippetParser } from '../../snippet/browser/snippetParser.js';
 import { HierarchicalKind } from '../../../../base/common/hierarchicalKind.js';
 

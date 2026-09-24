@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { VSBuffer } from '../../../../../../../base/common/buffer.js';
-import { Range } from '../../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
 import { newWriteableStream } from '../../../../../../../base/common/stream.js';
 import { TestDecoder } from '../../../../../../../editor/test/common/utils/testDecoder.js';
 import { FileReference } from '../../../../common/promptSyntax/codecs/tokens/fileReference.js';

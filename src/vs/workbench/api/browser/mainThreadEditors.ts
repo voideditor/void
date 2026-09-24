@@ -8,10 +8,10 @@ import { IDisposable, dispose, DisposableStore } from '../../../base/common/life
 import { equals as objectEquals } from '../../../base/common/objects.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
 import { ICodeEditorService } from '../../../editor/browser/services/codeEditorService.js';
-import { IRange } from '../../../editor/common/core/range.js';
-import { ISelection } from '../../../editor/common/core/selection.js';
+import { IRange } from '../../../editor/common/language/core/range.js';
+import { ISelection } from '../../../editor/common/language/core/selection.js';
 import { IDecorationOptions, IDecorationRenderOptions } from '../../../editor/common/editorCommon.js';
-import { ISingleEditOperation } from '../../../editor/common/core/editOperation.js';
+import { ISingleEditOperation } from '../../../editor/common/language/core/editOperation.js';
 import { CommandsRegistry } from '../../../platform/commands/common/commands.js';
 import { ITextEditorOptions, IResourceEditorInput, EditorActivation, EditorResolution, ITextEditorDiffInformation, isTextEditorDiffInformationEqual, ITextEditorChange } from '../../../platform/editor/common/editor.js';
 import { ServicesAccessor } from '../../../platform/instantiation/common/instantiation.js';
@@ -31,11 +31,11 @@ import { IConfigurationService } from '../../../platform/configuration/common/co
 import { IQuickDiffModelService } from '../../contrib/scm/browser/quickDiffModel.js';
 import { autorun, constObservable, derived, derivedOpts, IObservable, observableFromEvent } from '../../../base/common/observable.js';
 import { IUriIdentityService } from '../../../platform/uriIdentity/common/uriIdentity.js';
-import { isITextModel } from '../../../editor/common/model.js';
+import { isITextModel } from '../../../editor/common/language/model.js';
 import { LineRangeMapping } from '../../../editor/common/diff/rangeMapping.js';
 import { equals } from '../../../base/common/arrays.js';
 import { Event } from '../../../base/common/event.js';
-import { DiffAlgorithmName } from '../../../editor/common/services/editorWorker.js';
+import { DiffAlgorithmName } from '../../../editor/common/language/services/editorWorker.js';
 
 export interface IMainThreadEditorLocator {
 	getEditor(id: string): MainThreadTextEditor | undefined;

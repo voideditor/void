@@ -230,7 +230,7 @@
     "@octokit/graphql": "8.2.0",
     "@octokit/graphql-schema": "14.4.0",
     "@octokit/rest": "21.1.0",
-    "tunnel": "^0.0.6",
+    "https-proxy-agent": "^7.0.5",
     "@vscode/extension-telemetry": "^0.9.8"
   },
   "devDependencies": {

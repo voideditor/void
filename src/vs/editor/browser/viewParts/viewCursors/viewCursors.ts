@@ -9,12 +9,12 @@ import { IntervalTimer, TimeoutTimer } from '../../../../base/common/async.js';
 import { ViewPart } from '../../view/viewPart.js';
 import { IViewCursorRenderData, ViewCursor, CursorPlurality } from './viewCursor.js';
 import { TextEditorCursorBlinkingStyle, TextEditorCursorStyle, EditorOption } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import {
 	editorCursorBackground, editorCursorForeground,
 	editorMultiCursorPrimaryForeground, editorMultiCursorPrimaryBackground,
 	editorMultiCursorSecondaryForeground, editorMultiCursorSecondaryBackground
-} from '../../../common/core/editorColorRegistry.js';
+} from '../../../../editor/common/language/core/editorColorRegistry.js';
 import { RenderingContext, RestrictedRenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';

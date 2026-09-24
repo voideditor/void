@@ -7,7 +7,7 @@ import { CancellationToken, CancellationTokenSource } from '../../../../base/com
 import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IAccessibilityInformation } from '../../../../platform/accessibility/common/accessibility.js';

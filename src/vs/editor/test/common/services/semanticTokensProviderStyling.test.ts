@@ -5,13 +5,13 @@
 
 import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { SparseMultilineTokens } from '../../../common/tokens/sparseMultilineTokens.js';
-import { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
-import { SemanticTokensProviderStyling, toMultilineTokens2 } from '../../../common/services/semanticTokensProviderStyling.js';
+import { SparseMultilineTokens } from '../../../../editor/common/language/tokens/sparseMultilineTokens.js';
+import { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
+import { SemanticTokensProviderStyling, toMultilineTokens2 } from '../../../../editor/common/language/services/semanticTokensProviderStyling.js';
 import { createModelServices } from '../testTextModel.js';
 import { TestInstantiationService } from '../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { IColorTheme, IThemeService, ITokenStyle } from '../../../../platform/theme/common/themeService.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 suite('ModelService', () => {

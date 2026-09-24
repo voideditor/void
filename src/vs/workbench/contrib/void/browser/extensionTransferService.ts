@@ -11,7 +11,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { TransferEditorType, TransferFilesInfo } from './extensionTransferTypes.js';
-
+import { ILogService } from '../../../../platform/log/common/log.js';
 
 export interface IExtensionTransferService {
 	readonly _serviceBrand: undefined; // services need this, just leave it undefined
@@ -21,10 +21,6 @@ export interface IExtensionTransferService {
 }
 
 export const IExtensionTransferService = createDecorator<IExtensionTransferService>('ExtensionTransferService');
-
-
-
-
 
 // Define extensions to skip when transferring
 const extensionBlacklist = [
@@ -51,6 +47,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 
 	constructor(
 		@IFileService private readonly _fileService: IFileService,
+		@ILogService private readonly logService: ILogService,
 	) {
 		super()
 	}
@@ -65,7 +62,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 			// Check if the source file exists before attempting to copy
 			try {
 				if (!isExtensions) {
-					console.log('transferring item', from, to)
+					this.logService.debug('transferring item', from, to)
 
 					const exists = await fileService.exists(from)
 					if (exists) {
@@ -77,12 +74,12 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 						}
 						await fileService.copy(from, to, true)
 					} else {
-						console.log(`Skipping file that doesn't exist: ${from.toString()}`)
+						this.logService.debug(`Skipping file that doesn't exist: ${from.toString()}`)
 					}
 				}
 				// extensions folder
 				else {
-					console.log('transferring extensions...', from, to)
+					this.logService.debug('transferring extensions...', from, to)
 					const exists = await fileService.exists(from)
 					if (exists) {
 						const stat = await fileService.resolve(from)
@@ -111,7 +108,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 										await fileService.writeFile(to, VSBuffer.fromString(jsonStr))
 									}
 									catch {
-										console.log('Error copying extensions.json, skipping')
+										this.logService.debug('Error copying extensions.json, skipping')
 									}
 								}
 							}
@@ -120,11 +117,11 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 					} else {
 						console.log(`Skipping file that doesn't exist: ${from.toString()}`)
 					}
-					console.log('done transferring extensions.')
+					this.logService.debug('done transferring extensions.')
 				}
 			}
 			catch (e) {
-				console.error('Error copying file:', e)
+				this.logService.error('Error copying file:', e)
 				errAcc += `Error copying ${from.toString()}: ${e}\n`
 			}
 		}
@@ -145,7 +142,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 				if (child.isDirectory) {
 					// if is blacklisted
 					if (isBlacklisted(child.resource.fsPath)) {
-						console.log('Deleting extension', child.resource.fsPath)
+						this.logService.debug('Deleting extension', child.resource.fsPath)
 						await fileService.del(child.resource, { recursive: true, useTrash: true })
 					}
 				}
@@ -153,7 +150,7 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 					// if is extensions.json
 
 					if (child.name === 'extensions.json') {
-						console.log('Updating extensions.json', child.resource.fsPath)
+						this.logService.debug('Updating extensions.json', child.resource.fsPath)
 						try {
 							const contentsStr = await fileService.readFile(child.resource)
 							const json: any = JSON.parse(contentsStr.value.toString())
@@ -162,13 +159,13 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 							await fileService.writeFile(child.resource, VSBuffer.fromString(jsonStr))
 						}
 						catch {
-							console.log('Error copying extensions.json, skipping')
+							this.logService.debug('Error copying extensions.json, skipping')
 						}
 					}
 				}
 			}
 			catch (e) {
-				console.error('Could not delete extension', child.resource.fsPath, e)
+				this.logService.error('Could not delete extension', child.resource.fsPath, e)
 			}
 		}
 	}
@@ -176,14 +173,6 @@ class ExtensionTransferService extends Disposable implements IExtensionTransferS
 
 
 registerSingleton(IExtensionTransferService, ExtensionTransferService, InstantiationType.Eager); // lazily loaded, even if Eager
-
-
-
-
-
-
-
-
 
 const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null, fromEditor: TransferEditorType = 'VS Code'): TransferFilesInfo => {
 	if (os === null)

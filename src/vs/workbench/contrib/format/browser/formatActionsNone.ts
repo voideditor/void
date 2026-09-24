@@ -14,7 +14,7 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IExtensionsWorkbenchService } from '../../extensions/common/extensions.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 registerEditorAction(class FormatDocumentMultipleAction extends EditorAction {
 

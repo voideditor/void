@@ -13,7 +13,7 @@ import { TextFileEditorModelManager } from '../../common/textFileEditorModelMana
 import { FileOperationResult, FileOperationError, NotModifiedSinceFileOperationError } from '../../../../../platform/files/common/files.js';
 import { DeferredPromise, timeout } from '../../../../../base/common/async.js';
 import { assertIsDefined } from '../../../../../base/common/types.js';
-import { createTextBufferFactory } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 import { DisposableStore, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { SaveReason, SaveSourceRegistry } from '../../../../common/editor.js';
 import { isEqual } from '../../../../../base/common/resources.js';

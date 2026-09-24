@@ -5,9 +5,9 @@
 
 import { Event } from '../../../../base/common/event.js';
 import { LRUCache } from '../../../../base/common/map.js';
-import { Range } from '../../../common/core/range.js';
-import { ITextModel } from '../../../common/model.js';
-import { CodeLens, CodeLensList, CodeLensProvider } from '../../../common/languages.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { CodeLens, CodeLensList, CodeLensProvider } from '../../../../editor/common/language/languages.js';
 import { CodeLensModel } from './codelens.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';

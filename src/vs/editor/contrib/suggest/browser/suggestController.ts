@@ -18,13 +18,13 @@ import { StableEditorScrollState } from '../../../browser/stableEditorScroll.js'
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorAction, EditorCommand, EditorContributionInstantiation, registerEditorAction, registerEditorCommand, registerEditorContribution, ServicesAccessor } from '../../../browser/editorExtensions.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { EditOperation } from '../../../common/core/editOperation.js';
-import { IPosition, Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution, ScrollType } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { ITextModel, TrackedRangeStickiness } from '../../../common/model.js';
-import { CompletionItemInsertTextRule, CompletionItemProvider, CompletionTriggerKind } from '../../../common/languages.js';
+import { ITextModel, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
+import { CompletionItemInsertTextRule, CompletionItemProvider, CompletionTriggerKind } from '../../../../editor/common/language/languages.js';
 import { SnippetController2 } from '../../snippet/browser/snippetController2.js';
 import { SnippetParser } from '../../snippet/browser/snippetParser.js';
 import { ISuggestMemoryService } from './suggestMemory.js';
@@ -45,7 +45,7 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { basename, extname } from '../../../../base/common/resources.js';
 import { hash } from '../../../../base/common/hash.js';
 import { WindowIdleValue, getWindow } from '../../../../base/browser/dom.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
 
 // sticky suggest widget which doesn't disappear on focus out and such
 const _sticky = false

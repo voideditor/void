@@ -5,13 +5,13 @@
 
 import * as strings from '../../../../base/common/strings.js';
 import { ShiftCommand } from '../../../common/commands/shiftCommand.js';
-import { EditOperation, ISingleEditOperation } from '../../../common/core/editOperation.js';
-import { normalizeIndentation } from '../../../common/core/indentation.js';
-import { Selection } from '../../../common/core/selection.js';
-import { StandardTokenType } from '../../../common/encodedTokenAttributes.js';
+import { EditOperation, ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { normalizeIndentation } from '../../../../editor/common/language/core/indentation.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { StandardTokenType } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { ProcessedIndentRulesSupport } from '../../../common/languages/supports/indentationLineProcessor.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 
 export function getReindentEditOperations(model: ITextModel, languageConfigurationService: ILanguageConfigurationService, startLineNumber: number, endLineNumber: number): ISingleEditOperation[] {
 	if (model.getLineCount() === 1 && model.getLineMaxColumn(1) === 1) {

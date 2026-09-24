@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { VSBuffer } from '../../../../../../base/common/buffer.js';
-import { TextEdit } from '../../../../../../editor/common/languages.js';
+import { TextEdit } from '../../../../../../editor/common/language/languages.js';
 import { NotebookTextModel } from '../../../../notebook/common/model/notebookTextModel.js';
 import { CellEditType, ICellEditOperation } from '../../../../notebook/common/notebookCommon.js';
 import { INotebookService } from '../../../../notebook/common/notebookService.js';

@@ -8,7 +8,7 @@ import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.j
 import { MarkdownRenderer } from '../../../browser/widget/markdownRenderer/browser/markdownRenderer.js';
 import { ICodeEditor, IEditorMouseEvent, IOverlayWidget, IOverlayWidgetPosition, MouseTargetType } from '../../../browser/editorBrowser.js';
 import { ConfigurationChangedEvent, EditorOption } from '../../../common/config/editorOptions.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { HoverOperation, HoverResult, HoverStartMode } from './hoverOperation.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { HoverWidget } from '../../../../base/browser/ui/hover/hoverWidget.js';

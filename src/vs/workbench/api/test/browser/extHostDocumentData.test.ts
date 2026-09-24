@@ -7,12 +7,12 @@ import assert from 'assert';
 import { URI } from '../../../../base/common/uri.js';
 import { ExtHostDocumentData } from '../../common/extHostDocumentData.js';
 import { Position } from '../../common/extHostTypes.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { MainThreadDocumentsShape } from '../../common/extHost.protocol.js';
-import { IModelChangedEvent } from '../../../../editor/common/model/mirrorTextModel.js';
+import { IModelChangedEvent } from '../../../../editor/common/language/model/mirrorTextModel.js';
 import { mock } from '../../../../base/test/common/mock.js';
 import * as perfData from './extHostDocumentData.test.perf-data.js';
-import { setDefaultGetWordAtTextConfig } from '../../../../editor/common/core/wordHelper.js';
+import { setDefaultGetWordAtTextConfig } from '../../../../editor/common/language/core/wordHelper.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 
 suite('ExtHostDocumentData', () => {

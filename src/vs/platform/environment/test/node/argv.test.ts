@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { formatOptions, Option, OptionDescriptions, Subcommand, parseArgs, ErrorReporter } from '../../node/argv.js';
+import { buildHelpMessage, formatOptions, Option, OptionDescriptions, Subcommand, parseArgs, ErrorReporter, OPTIONS } from '../../node/argv.js';
 import { addArg } from '../../node/argvHelper.js';
 
 function o(description: string, type: 'boolean' | 'string' | 'string[]' = 'string'): Option<any> {
@@ -158,6 +158,17 @@ suite('parseArgs', () => {
 			{ testcmd: { testArg: 'foo', testX: true, '_': [] }, '_': [] },
 			[]
 		);
+	});
+
+	test('parses acp-agent-addr native option', () => {
+		const args = parseArgs(['--acp-agent-addr=127.0.0.1:8720'], OPTIONS);
+		assert.strictEqual(args['acp-agent-addr'], '127.0.0.1:8720');
+	});
+
+	test('help includes acp-agent-addr usage', () => {
+		const help = buildHelpMessage('Void', 'void', '1.0.0', OPTIONS, { noInputFiles: true });
+		assert.ok(help.includes('--acp-agent-addr <host:port>'));
+		assert.ok(help.includes('127.0.0.1:8720'));
 	});
 
 	ensureNoDisposablesAreLeakedInTestSuite();

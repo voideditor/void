@@ -38,8 +38,6 @@ export class ExtensionsProposedApi {
 
 		this._productEnabledExtensions = new Map<string, ApiProposalName[]>();
 
-
-		// NEW world - product.json spells out what proposals each extension can use
 		if (productService.extensionEnabledApiProposals) {
 			for (const [k, value] of Object.entries(productService.extensionEnabledApiProposals)) {
 				const key = ExtensionIdentifier.toKey(k);

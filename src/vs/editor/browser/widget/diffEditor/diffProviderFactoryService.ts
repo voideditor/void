@@ -9,11 +9,11 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
-import { LineRange } from '../../../common/core/lineRange.js';
+import { LineRange } from '../../../../editor/common/language/core/lineRange.js';
 import { IDocumentDiff, IDocumentDiffProvider, IDocumentDiffProviderOptions } from '../../../common/diff/documentDiffProvider.js';
 import { DetailedLineRangeMapping, RangeMapping } from '../../../common/diff/rangeMapping.js';
-import { ITextModel } from '../../../common/model.js';
-import { DiffAlgorithmName, IEditorWorkerService } from '../../../common/services/editorWorker.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { DiffAlgorithmName, IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 
 export const IDiffProviderFactoryService = createDecorator<IDiffProviderFactoryService>('diffProviderFactoryService');

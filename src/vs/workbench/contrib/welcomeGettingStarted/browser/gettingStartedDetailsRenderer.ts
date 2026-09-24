@@ -5,7 +5,7 @@
 
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { generateTokensCSSForColorMap } from '../../../../editor/common/languages/supports/tokenization.js';
-import { TokenizationRegistry } from '../../../../editor/common/languages.js';
+import { TokenizationRegistry } from '../../../../editor/common/language/languages.js';
 import { DEFAULT_MARKDOWN_STYLES, renderMarkdownDocument } from '../../markdown/browser/markdownDocumentRenderer.js';
 import { URI } from '../../../../base/common/uri.js';
 import { language } from '../../../../base/common/platform.js';
@@ -15,7 +15,7 @@ import { asWebviewUri } from '../../webview/common/webview.js';
 import { ResourceMap } from '../../../../base/common/map.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { gettingStartedContentRegistry } from '../common/gettingStartedContent.js';
 

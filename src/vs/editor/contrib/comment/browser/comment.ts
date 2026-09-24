@@ -7,7 +7,7 @@ import { KeyChord, KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorAction, IActionOptions, registerEditorAction, ServicesAccessor } from '../../../browser/editorExtensions.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { ICommand } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';

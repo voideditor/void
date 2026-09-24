@@ -13,10 +13,10 @@ import { IRevertOptions, SaveReason, SaveSourceRegistry } from '../../../common/
 import { BaseTextEditorModel } from '../../../common/editor/textEditorModel.js';
 import { IWorkingCopyBackupService, IResolvedWorkingCopyBackup } from '../../workingCopy/common/workingCopyBackup.js';
 import { IFileService, FileOperationError, FileOperationResult, FileChangesEvent, FileChangeType, IFileStatWithMetadata, ETAG_DISABLED, NotModifiedSinceFileOperationError } from '../../../../platform/files/common/files.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
 import { timeout, TaskSequentializer } from '../../../../base/common/async.js';
-import { ITextBufferFactory, ITextModel } from '../../../../editor/common/model.js';
+import { ITextBufferFactory, ITextModel } from '../../../../editor/common/language/model.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { basename } from '../../../../base/common/path.js';
 import { IWorkingCopyService } from '../../workingCopy/common/workingCopyService.js';
@@ -25,7 +25,7 @@ import { IFilesConfigurationService } from '../../filesConfiguration/common/file
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { UTF16be, UTF16le, UTF8, UTF8_with_bom } from './encoding.js';
-import { createTextBufferFactoryFromStream } from '../../../../editor/common/model/textModel.js';
+import { createTextBufferFactoryFromStream } from '../../../../editor/common/language/model/textModel.js';
 import { ILanguageDetectionService } from '../../languageDetection/common/languageDetectionWorkerService.js';
 import { IPathService } from '../../path/common/pathService.js';
 import { extUri } from '../../../../base/common/resources.js';

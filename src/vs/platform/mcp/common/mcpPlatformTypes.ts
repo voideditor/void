@@ -18,10 +18,14 @@ export interface IMcpConfigurationStdio {
 	args?: readonly string[];
 	env?: Record<string, string | number | null>;
 	envFile?: string;
+	/** Optional list of MCP tool names to exclude for this server. */
+	excludeTools?: readonly string[];
 }
 
 export interface IMcpConfigurationSSE {
 	type: 'sse';
 	url: string;
 	headers?: Record<string, string>;
+	/** Optional list of MCP tool names to exclude for this server. */
+	excludeTools?: readonly string[];
 }

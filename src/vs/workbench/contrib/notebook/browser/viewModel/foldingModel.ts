@@ -7,7 +7,7 @@ import { renderMarkdownAsPlaintext } from '../../../../../base/browser/markdownR
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { DisposableStore, IDisposable } from '../../../../../base/common/lifecycle.js';
 import { marked } from '../../../../../base/common/marked/marked.js';
-import { TrackedRangeStickiness } from '../../../../../editor/common/model.js';
+import { TrackedRangeStickiness } from '../../../../../editor/common/language/model.js';
 import { FoldingLimitReporter } from '../../../../../editor/contrib/folding/browser/folding.js';
 import { FoldingRegion, FoldingRegions } from '../../../../../editor/contrib/folding/browser/foldingRanges.js';
 import { IFoldingRangeData, sanitizeRanges } from '../../../../../editor/contrib/folding/browser/syntaxRangeProvider.js';

@@ -17,8 +17,8 @@ import { DeleteOperations } from '../common/cursor/cursorDeleteOperations.js';
 import { CursorChangeReason } from '../common/cursorEvents.js';
 import { CursorMove as CursorMove_, CursorMoveCommands } from '../common/cursor/cursorMoveCommands.js';
 import { TypeOperations } from '../common/cursor/cursorTypeOperations.js';
-import { IPosition, Position } from '../common/core/position.js';
-import { Range } from '../common/core/range.js';
+import { IPosition, Position } from '../../editor/common/language/core/position.js';
+import { Range } from '../../editor/common/language/core/range.js';
 import { Handler, ScrollType } from '../common/editorCommon.js';
 import { EditorContextKeys } from '../common/editorContextKeys.js';
 import { VerticalRevealType } from '../common/viewEvents.js';
@@ -28,7 +28,7 @@ import { ServicesAccessor } from '../../platform/instantiation/common/instantiat
 import { KeybindingWeight, KeybindingsRegistry } from '../../platform/keybinding/common/keybindingsRegistry.js';
 import { EditorOption } from '../common/config/editorOptions.js';
 import { IViewModel } from '../common/viewModel.js';
-import { ISelection } from '../common/core/selection.js';
+import { ISelection } from '../../editor/common/language/core/selection.js';
 import { getActiveElement, isEditableElement } from '../../base/browser/dom.js';
 import { EnterOperation } from '../common/cursor/cursorTypeEditOperations.js';
 

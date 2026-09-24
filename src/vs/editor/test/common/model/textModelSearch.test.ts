@@ -5,13 +5,13 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { getMapForWordSeparators } from '../../../common/core/wordCharacterClassifier.js';
-import { USUAL_WORD_SEPARATORS } from '../../../common/core/wordHelper.js';
-import { EndOfLineSequence, FindMatch, SearchData } from '../../../common/model.js';
-import { TextModel } from '../../../common/model/textModel.js';
-import { SearchParams, TextModelSearch, isMultilineRegexSource } from '../../../common/model/textModelSearch.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { getMapForWordSeparators } from '../../../../editor/common/language/core/wordCharacterClassifier.js';
+import { USUAL_WORD_SEPARATORS } from '../../../../editor/common/language/core/wordHelper.js';
+import { EndOfLineSequence, FindMatch, SearchData } from '../../../../editor/common/language/model.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
+import { SearchParams, TextModelSearch, isMultilineRegexSource } from '../../../../editor/common/language/model/textModelSearch.js';
 import { createTextModel } from '../testTextModel.js';
 
 // --------- Find

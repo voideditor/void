@@ -5,11 +5,11 @@
 
 import { CharCode } from '../../../base/common/charCode.js';
 import * as strings from '../../../base/common/strings.js';
-import { CursorColumns } from '../core/cursorColumns.js';
-import { Range } from '../core/range.js';
-import { Selection, SelectionDirection } from '../core/selection.js';
+import { CursorColumns } from '../../../editor/common/language/core/cursorColumns.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { Selection, SelectionDirection } from '../../../editor/common/language/core/selection.js';
 import { ICommand, ICursorStateComputerData, IEditOperationBuilder } from '../editorCommon.js';
-import { ITextModel } from '../model.js';
+import { ITextModel } from '../../../editor/common/language/model.js';
 import { EditorAutoIndentStrategy } from '../config/editorOptions.js';
 import { getEnterAction } from '../languages/enterAction.js';
 import { ILanguageConfigurationService } from '../languages/languageConfigurationRegistry.js';

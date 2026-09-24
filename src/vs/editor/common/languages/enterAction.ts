@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Range } from '../core/range.js';
-import { ITextModel } from '../model.js';
+import { Range } from '../language/core/range.js';
+import { ITextModel } from '../language/model.js';
 import { IndentAction, CompleteEnterAction } from './languageConfiguration.js';
 import { EditorAutoIndentStrategy } from '../config/editorOptions.js';
 import { getIndentationAtPosition, ILanguageConfigurationService } from './languageConfigurationRegistry.js';

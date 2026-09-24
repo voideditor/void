@@ -14,12 +14,12 @@ import { relativePath } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { IPosition } from '../../../common/core/position.js';
-import { IRange } from '../../../common/core/range.js';
-import { DocumentDropEditProvider, DocumentDropEditsSession, DocumentPasteContext, DocumentPasteEdit, DocumentPasteEditProvider, DocumentPasteEditsSession, DocumentPasteTriggerKind } from '../../../common/languages.js';
-import { LanguageFilter } from '../../../common/languageSelector.js';
-import { ITextModel } from '../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
+import { IPosition } from '../../../../editor/common/language/core/position.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
+import { DocumentDropEditProvider, DocumentDropEditsSession, DocumentPasteContext, DocumentPasteEdit, DocumentPasteEditProvider, DocumentPasteEditsSession, DocumentPasteTriggerKind } from '../../../../editor/common/language/languages.js';
+import { LanguageFilter } from '../../../../editor/common/language/languageSelector.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 
 
 abstract class SimplePasteAndDropProvider implements DocumentDropEditProvider, DocumentPasteEditProvider {

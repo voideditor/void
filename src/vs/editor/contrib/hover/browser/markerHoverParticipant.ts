@@ -11,11 +11,11 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { basename } from '../../../../base/common/resources.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { Range } from '../../../common/core/range.js';
-import { CodeActionTriggerType } from '../../../common/languages.js';
-import { IModelDecoration } from '../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { IMarkerDecorationsService } from '../../../common/services/markerDecorations.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { CodeActionTriggerType } from '../../../../editor/common/language/languages.js';
+import { IModelDecoration } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { IMarkerDecorationsService } from '../../../../editor/common/language/services/markerDecorations.js';
 import { ApplyCodeActionReason, getCodeActions, quickFixCommandId } from '../../codeAction/browser/codeAction.js';
 import { CodeActionController } from '../../codeAction/browser/codeActionController.js';
 import { CodeActionKind, CodeActionSet, CodeActionTrigger, CodeActionTriggerSource } from '../../codeAction/common/types.js';

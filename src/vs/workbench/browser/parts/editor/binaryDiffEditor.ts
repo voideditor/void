@@ -12,7 +12,7 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { BaseBinaryResourceEditor } from './binaryEditor.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 

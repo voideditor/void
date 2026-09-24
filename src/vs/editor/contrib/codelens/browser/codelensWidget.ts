@@ -8,10 +8,10 @@ import { renderLabelWithIcons } from '../../../../base/browser/ui/iconLabel/icon
 import { Constants } from '../../../../base/common/uint.js';
 import './codelensWidget.css';
 import { ContentWidgetPositionPreference, IActiveCodeEditor, IContentWidget, IContentWidgetPosition, IViewZone, IViewZoneChangeAccessor } from '../../../browser/editorBrowser.js';
-import { Range } from '../../../common/core/range.js';
-import { IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel } from '../../../common/model.js';
-import { ModelDecorationOptions } from '../../../common/model/textModel.js';
-import { CodeLens, Command } from '../../../common/languages.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { IModelDecorationsChangeAccessor, IModelDeltaDecoration, ITextModel } from '../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
+import { CodeLens, Command } from '../../../../editor/common/language/languages.js';
 import { CodeLensItem } from './codelens.js';
 
 class CodeLensViewZone implements IViewZone {

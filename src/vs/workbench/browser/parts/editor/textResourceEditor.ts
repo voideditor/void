@@ -14,18 +14,18 @@ import { UntitledTextEditorInput } from '../../../services/untitled/common/untit
 import { AbstractTextCodeEditor } from './textCodeEditor.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { ScrollType, ICodeEditorViewState } from '../../../../editor/common/editorCommon.js';
 import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../editor/common/languages/modesRegistry.js';
 import { EditorOption, IEditorOptions as ICodeEditorOptions } from '../../../../editor/common/config/editorOptions.js';
-import { ModelConstants } from '../../../../editor/common/model.js';
+import { ModelConstants } from '../../../../editor/common/language/model.js';
 import { ITextEditorOptions } from '../../../../platform/editor/common/editor.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 

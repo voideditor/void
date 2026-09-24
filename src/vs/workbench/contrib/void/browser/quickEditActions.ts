@@ -12,8 +12,8 @@ import { IEditCodeService } from './editCodeServiceInterface.js';
 import { roundRangeToLines } from './sidebarActions.js';
 import { VOID_CTRL_K_ACTION_ID } from './actionIDs.js';
 import { localize2 } from '../../../../nls.js';
-import { IMetricsService } from '../common/metricsService.js';
-import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
+
 
 export type QuickEditPropsType = {
 	diffareaid: number,
@@ -42,7 +42,6 @@ registerAction2(class extends Action2 {
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
 				weight: KeybindingWeight.VoidExtension,
-				when: ContextKeyExpr.deserialize('editorFocus && !terminalFocus'),
 			}
 		});
 	}

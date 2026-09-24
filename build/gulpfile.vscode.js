@@ -14,6 +14,7 @@ const rename = require('gulp-rename');
 const replace = require('gulp-replace');
 const filter = require('gulp-filter');
 const util = require('./lib/util');
+const gulpSrcCompat = require('./lib/gulpSrcCompat');
 const { getVersion } = require('./lib/getVersion');
 const { readISODate } = require('./lib/date');
 const task = require('./lib/task');
@@ -58,6 +59,7 @@ const vscodeResourceIncludes = [
 
 	// Workbench
 	'out-build/vs/code/electron-sandbox/workbench/workbench.html',
+	'out-build/vs/code/electron-sandbox/workbench/assets/fonts/*.{woff2,ttf}',
 
 	// Electron Preload
 	'out-build/vs/base/parts/sandbox/electron-sandbox/preload.js',
@@ -257,7 +259,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
+		const extensions = gulpSrcCompat.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
 
 		const sources = es.merge(src, extensions)
 			.pipe(filter(['**', '!**/*.js.map'], { dot: true }));
@@ -302,7 +304,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 		const jsFilter = util.filter(data => !data.isDirectory() && /\.js$/.test(data.path));
 		const root = path.resolve(path.join(__dirname, '..'));
 		const productionDependencies = getProductionDependencies(root);
-		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk');
+		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk', '!**/.bin/**');
 
 		const deps = gulp.src(dependenciesSrc, { base: '.', dot: true })
 			.pipe(filter(['**', `!**/${config.version}/**`, '!**/bin/darwin-arm64-87/**', '!**/package-lock.json', '!**/yarn.lock', '!**/*.js.map']))

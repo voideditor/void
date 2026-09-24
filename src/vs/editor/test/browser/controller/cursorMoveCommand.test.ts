@@ -6,9 +6,9 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { CoreNavigationCommands } from '../../../browser/coreCommands.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { CursorMove } from '../../../common/cursor/cursorMoveCommands.js';
 import { ViewModel } from '../../../common/viewModel/viewModelImpl.js';
 import { ITestCodeEditor, withTestCodeEditor } from '../testCodeEditor.js';

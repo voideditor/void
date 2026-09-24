@@ -10,9 +10,9 @@ import { PickerQuickAccessProvider, IPickerQuickAccessItem, TriggerAction } from
 import { IEditorGroupsService, GroupsOrder } from '../../../services/editor/common/editorGroupsService.js';
 import { EditorsOrder, IEditorIdentifier, EditorResourceAccessor, SideBySideEditor, GroupIdentifier } from '../../../common/editor.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
-import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
+import { getIconClasses } from '../../../../editor/common/language/services/getIconClasses.js';
 import { prepareQuery, scoreItemFuzzy, compareItemsByFuzzyScore, FuzzyScorerCache } from '../../../../base/common/fuzzyScorer.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';

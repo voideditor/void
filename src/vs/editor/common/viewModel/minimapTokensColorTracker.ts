@@ -5,9 +5,9 @@
 
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, markAsSingleton } from '../../../base/common/lifecycle.js';
-import { RGBA8 } from '../core/rgba.js';
-import { TokenizationRegistry } from '../languages.js';
-import { ColorId } from '../encodedTokenAttributes.js';
+import { RGBA8 } from '../../../editor/common/language/core/rgba.js';
+import { TokenizationRegistry } from '../../../editor/common/language/languages.js';
+import { ColorId } from '../../../editor/common/language/encodedTokenAttributes.js';
 
 export class MinimapTokensColorTracker extends Disposable {
 	private static _INSTANCE: MinimapTokensColorTracker | null = null;

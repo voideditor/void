@@ -10,18 +10,18 @@ import { onUnexpectedExternalError } from '../../../../../base/common/errors.js'
 import { Disposable, IDisposable } from '../../../../../base/common/lifecycle.js';
 import { SetMap } from '../../../../../base/common/map.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
-import { ISingleEditOperation } from '../../../../common/core/editOperation.js';
-import { SingleOffsetEdit } from '../../../../common/core/offsetEdit.js';
-import { OffsetRange } from '../../../../common/core/offsetRange.js';
-import { Position } from '../../../../common/core/position.js';
-import { Range } from '../../../../common/core/range.js';
-import { SingleTextEdit } from '../../../../common/core/textEdit.js';
+import { ISingleEditOperation } from '../../../../../editor/common/language/core/editOperation.js';
+import { SingleOffsetEdit } from '../../../../../editor/common/language/core/offsetEdit.js';
+import { OffsetRange } from '../../../../../editor/common/language/core/offsetRange.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { SingleTextEdit } from '../../../../../editor/common/language/core/textEdit.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import { Command, InlineCompletion, InlineCompletionContext, InlineCompletionProviderGroupId, InlineCompletions, InlineCompletionsProvider, InlineCompletionTriggerKind } from '../../../../common/languages.js';
+import { Command, InlineCompletion, InlineCompletionContext, InlineCompletionProviderGroupId, InlineCompletions, InlineCompletionsProvider, InlineCompletionTriggerKind } from '../../../../../editor/common/language/languages.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
-import { ITextModel } from '../../../../common/model.js';
-import { fixBracketsInLine } from '../../../../common/model/bracketPairsTextModelPart/fixBrackets.js';
-import { TextModelText } from '../../../../common/model/textModelText.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { fixBracketsInLine } from '../../../../../editor/common/language/model/bracketPairsTextModelPart/fixBrackets.js';
+import { TextModelText } from '../../../../../editor/common/language/model/textModelText.js';
 import { SnippetParser, Text } from '../../../snippet/browser/snippetParser.js';
 import { getReadonlyEmptyArray } from '../utils.js';
 

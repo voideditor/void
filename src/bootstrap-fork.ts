@@ -50,7 +50,7 @@ function pipeLoggingToParent(): void {
 		}
 
 		try {
-			const res = JSON.stringify(argsArray, function (key, value: unknown) {
+			const res = JSON.stringify(argsArray, function (_key, value: unknown) {
 
 				// Objects get special treatment to prevent circles
 				if (isObject(value) || Array.isArray(value)) {
@@ -123,7 +123,7 @@ function pipeLoggingToParent(): void {
 
 		Object.defineProperty(stream, 'write', {
 			set: () => { },
-			get: () => (chunk: string | Buffer | Uint8Array, encoding: BufferEncoding | undefined, callback: ((err?: Error | undefined) => void) | undefined) => {
+			get: () => (chunk: string | Buffer | Uint8Array, encoding: BufferEncoding | undefined, callback: ((err?: Error | null) => void) | undefined) => {
 				buf += chunk.toString(encoding);
 				const eol = buf.length > MAX_STREAM_BUFFER_LENGTH ? buf.length : buf.lastIndexOf('\n');
 				if (eol !== -1) {

@@ -12,7 +12,7 @@ import { ICodeEditor } from '../../../../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../../../../editor/browser/services/codeEditorService.js';
 import { EditorOption } from '../../../../../../editor/common/config/editorOptions.js';
 import { EditorContextKeys } from '../../../../../../editor/common/editorContextKeys.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { FindStartFocusAction, getSelectionSearchString, IFindStartOptions, StartFindAction, StartFindReplaceAction } from '../../../../../../editor/contrib/find/browser/findController.js';
 import { localize2 } from '../../../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../../../platform/actions/common/actions.js';

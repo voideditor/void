@@ -18,7 +18,7 @@ import { EditorAction, EditorContributionInstantiation, registerEditorAction, re
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { IEditorContribution, ScrollType } from '../../../common/editorCommon.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import * as nls from '../../../../nls.js';
 import { IMenuService, MenuId, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';

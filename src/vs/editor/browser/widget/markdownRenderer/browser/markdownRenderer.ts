@@ -10,7 +10,7 @@ import { IMarkdownString, MarkdownStringTrustedOptions } from '../../../../../ba
 import { DisposableStore, IDisposable } from '../../../../../base/common/lifecycle.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { ILanguageService } from '../../../../common/languages/language.js';
+import { ILanguageService } from '../../../../../editor/common/language/language.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../common/languages/modesRegistry.js';
 import { tokenizeToString } from '../../../../common/languages/textToHtmlTokenizer.js';
 import { applyFontInfo } from '../../../config/domFontInfo.js';

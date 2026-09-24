@@ -5,7 +5,7 @@
 const glob = require('glob');
 const path = require('path');
 
-require('ts-node').register({ experimentalResolver: true, transpileOnly: true });
+require('ts-node').register({ experimentalResolver: true, transpileOnly: true, project: path.join(__dirname, 'tsconfig.json') });
 
 // Re-export all .ts files as rules
 const rules = {};

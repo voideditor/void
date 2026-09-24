@@ -7,7 +7,7 @@ import { ResizableHTMLElement } from '../../../../base/browser/ui/resizable/resi
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentWidgetPosition } from '../../../browser/editorBrowser.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
-import { IPosition, Position } from '../../../common/core/position.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
 import * as dom from '../../../../base/browser/dom.js';
 
 const TOP_HEIGHT = 30;

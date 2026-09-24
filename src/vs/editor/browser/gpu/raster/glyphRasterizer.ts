@@ -6,8 +6,8 @@
 import { memoize } from '../../../../base/common/decorators.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { isMacintosh } from '../../../../base/common/platform.js';
-import { StringBuilder } from '../../../common/core/stringBuilder.js';
-import { FontStyle, TokenMetadata } from '../../../common/encodedTokenAttributes.js';
+import { StringBuilder } from '../../../../editor/common/language/core/stringBuilder.js';
+import { FontStyle, TokenMetadata } from '../../../../editor/common/language/encodedTokenAttributes.js';
 import { ensureNonNullable } from '../gpuUtils.js';
 import { ViewGpuContext } from '../viewGpuContext.js';
 import { type IBoundingBox, type IGlyphRasterizer, type IRasterizedGlyph } from './raster.js';

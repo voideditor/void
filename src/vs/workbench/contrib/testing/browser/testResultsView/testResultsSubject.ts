@@ -6,7 +6,7 @@
 
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { TestId } from '../../common/testId.js';
 import { ITestResult } from '../../common/testResult.js';
 import { IRichLocation, ITestItem, ITestMessage, ITestMessageMenuArgs, ITestRunTask, ITestTaskState, InternalTestItem, TestMessageType, TestResultItem } from '../../common/testTypes.js';

@@ -10,10 +10,10 @@ import { findNodeAtLocation, Node, parseTree } from '../../../../base/common/jso
 import { Disposable, DisposableStore, dispose, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { IObservable } from '../../../../base/common/observable.js';
 import { isEqual } from '../../../../base/common/resources.js';
-import { Range } from '../../../../editor/common/core/range.js';
-import { CodeLensList, CodeLensProvider, InlayHint, InlayHintList } from '../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { CodeLensList, CodeLensProvider, InlayHint, InlayHintList } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { localize } from '../../../../nls.js';
 import { IMarkerData, IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
@@ -23,7 +23,7 @@ import { IMcpConfigPath, IMcpConfigPathsService } from '../common/mcpConfigPaths
 import { mcpConfigurationSection } from '../common/mcpConfiguration.js';
 import { IMcpRegistry } from '../common/mcpRegistryTypes.js';
 import { IMcpService, McpConnectionState } from '../common/mcpTypes.js';
-import { EditStoredInput, RemoveStoredInput, RestartServer, ShowOutput, StartServer, StopServer } from './mcpCommands.js';
+import { EditStoredInput, RemoveStoredInput, ResetMcpCachedTools, RestartServer, ShowOutput, StartServer, StopServer } from './mcpCommands.js';
 
 const diagnosticOwner = 'vscode.mcp';
 
@@ -259,6 +259,13 @@ export class McpLanguageFeatures extends Disposable implements IWorkbenchContrib
 								id: '',
 								title: localize('server.toolCountCached', '{0} cached tools', toolCount),
 							}
+						}, {
+							range,
+							command: {
+								id: ResetMcpCachedTools.ID,
+								title: localize('mcp.clearCache', "Clear Cache"),
+								arguments: [],
+							},
 						});
 					}
 				}

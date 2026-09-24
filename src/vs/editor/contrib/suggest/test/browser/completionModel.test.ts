@@ -5,8 +5,8 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { EditorOptions, InternalSuggestOptions } from '../../../../common/config/editorOptions.js';
-import { IPosition } from '../../../../common/core/position.js';
-import * as languages from '../../../../common/languages.js';
+import { IPosition } from '../../../../../editor/common/language/core/position.js';
+import * as languages from '../../../../../editor/common/language/languages.js';
 import { CompletionModel } from '../../browser/completionModel.js';
 import { CompletionItem, getSuggestionComparator, SnippetSortOrder } from '../../browser/suggest.js';
 import { WordDistance } from '../../browser/wordDistance.js';

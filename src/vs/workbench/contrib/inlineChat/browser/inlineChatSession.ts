@@ -5,18 +5,18 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { IIdentifiedSingleEditOperation, IModelDecorationOptions, IModelDeltaDecoration, ITextModel, IValidEditOperation, TrackedRangeStickiness } from '../../../../editor/common/model.js';
+import { IIdentifiedSingleEditOperation, IModelDecorationOptions, IModelDeltaDecoration, ITextModel, IValidEditOperation, TrackedRangeStickiness } from '../../../../editor/common/language/model.js';
 import { CTX_INLINE_CHAT_HAS_STASHED_SESSION } from '../common/inlineChat.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
-import { ModelDecorationOptions } from '../../../../editor/common/model/textModel.js';
-import { EditOperation, ISingleEditOperation } from '../../../../editor/common/core/editOperation.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { ModelDecorationOptions } from '../../../../editor/common/language/model/textModel.js';
+import { EditOperation, ISingleEditOperation } from '../../../../editor/common/language/core/editOperation.js';
 import { DetailedLineRangeMapping, LineRangeMapping, RangeMapping } from '../../../../editor/common/diff/rangeMapping.js';
 import { IInlineChatSessionService } from './inlineChatSessionService.js';
-import { LineRange } from '../../../../editor/common/core/lineRange.js';
-import { IEditorWorkerService } from '../../../../editor/common/services/editorWorker.js';
+import { LineRange } from '../../../../editor/common/language/core/lineRange.js';
+import { IEditorWorkerService } from '../../../../editor/common/language/services/editorWorker.js';
 import { coalesceInPlace } from '../../../../base/common/arrays.js';
 import { Iterable } from '../../../../base/common/iterator.js';
-import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
+import { IModelContentChangedEvent } from '../../../../editor/common/language/textModelEvents.js';
 import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';

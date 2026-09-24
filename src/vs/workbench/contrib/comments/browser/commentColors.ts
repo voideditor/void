@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Color } from '../../../../base/common/color.js';
-import * as languages from '../../../../editor/common/languages.js';
+import * as languages from '../../../../editor/common/language/languages.js';
 import { peekViewTitleBackground } from '../../../../editor/contrib/peekView/browser/peekView.js';
 import * as nls from '../../../../nls.js';
 import { contrastBorder, disabledForeground, listFocusOutline, registerColor, transparent } from '../../../../platform/theme/common/colorRegistry.js';

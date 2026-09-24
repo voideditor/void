@@ -14,7 +14,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IAccessibilityService } from '../../../../platform/accessibility/common/accessibility.js';
 import { EditorContextKeys } from '../../../common/editorContextKeys.js';
 import { getHoverAccessibleViewHint, HoverWidget } from '../../../../base/browser/ui/hover/hoverWidget.js';
-import { PositionAffinity } from '../../../common/model.js';
+import { PositionAffinity } from '../../../../editor/common/language/model.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { RenderedContentHover } from './contentHoverRendered.js';
 import { ScrollEvent } from '../../../../base/common/scrollable.js';

@@ -7,16 +7,16 @@ import * as arrays from '../../../base/common/arrays.js';
 import { IDisposable } from '../../../base/common/lifecycle.js';
 import { WrappingIndent } from '../config/editorOptions.js';
 import { FontInfo } from '../config/fontInfo.js';
-import { IPosition, Position } from '../core/position.js';
-import { Range } from '../core/range.js';
-import { IModelDecoration, IModelDeltaDecoration, ITextModel, PositionAffinity } from '../model.js';
+import { IPosition, Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
+import { IModelDecoration, IModelDeltaDecoration, ITextModel, PositionAffinity } from '../../../editor/common/language/model.js';
 import { IActiveIndentGuideInfo, BracketGuideOptions, IndentGuide, IndentGuideHorizontalLine } from '../textModelGuides.js';
-import { ModelDecorationOptions } from '../model/textModel.js';
-import { LineInjectedText } from '../textModelEvents.js';
+import { ModelDecorationOptions } from '../../../editor/common/language/model/textModel.js';
+import { LineInjectedText } from '../../../editor/common/language/textModelEvents.js';
 import * as viewEvents from '../viewEvents.js';
 import { createModelLineProjection, IModelLineProjection } from './modelLineProjection.js';
 import { ILineBreaksComputer, ModelLineProjectionData, InjectedText, ILineBreaksComputerFactory } from '../modelLineProjectionData.js';
-import { ConstantTimePrefixSumComputer } from '../model/prefixSumComputer.js';
+import { ConstantTimePrefixSumComputer } from '../../../editor/common/language/model/prefixSumComputer.js';
 import { ICoordinatesConverter, ViewLineData } from '../viewModel.js';
 
 export interface IViewModelLines extends IDisposable {

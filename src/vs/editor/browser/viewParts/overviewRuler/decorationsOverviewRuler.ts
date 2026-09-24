@@ -7,10 +7,10 @@ import { FastDomNode, createFastDomNode } from '../../../../base/browser/fastDom
 import { Color } from '../../../../base/common/color.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { ViewPart } from '../../view/viewPart.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 import { IEditorConfiguration } from '../../../common/config/editorConfiguration.js';
-import { TokenizationRegistry } from '../../../common/languages.js';
-import { editorCursorForeground, editorOverviewRulerBorder, editorOverviewRulerBackground, editorMultiCursorSecondaryForeground, editorMultiCursorPrimaryForeground } from '../../../common/core/editorColorRegistry.js';
+import { TokenizationRegistry } from '../../../../editor/common/language/languages.js';
+import { editorCursorForeground, editorOverviewRulerBorder, editorOverviewRulerBackground, editorMultiCursorSecondaryForeground, editorMultiCursorPrimaryForeground } from '../../../../editor/common/language/core/editorColorRegistry.js';
 import { RenderingContext, RestrictedRenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import { EditorTheme } from '../../../common/editorTheme.js';

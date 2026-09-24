@@ -11,7 +11,7 @@ import { CellEditState, CellFindMatch, CellFoldingState, CellLayoutContext, Cell
 import { BaseCellViewModel } from './baseCellViewModel.js';
 import { NotebookCellTextModel } from '../../common/model/notebookCellTextModel.js';
 import { CellKind, INotebookFindOptions } from '../../common/notebookCommon.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { ViewContext } from './viewContext.js';
 import { IUndoRedoService } from '../../../../../platform/undoRedo/common/undoRedo.js';
 import { NotebookOptionsChangeEvent } from '../notebookOptions.js';

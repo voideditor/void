@@ -12,9 +12,9 @@ import { Schemas, matchesScheme } from '../../../base/common/network.js';
 import Severity from '../../../base/common/severity.js';
 import { URI } from '../../../base/common/uri.js';
 import { TextEditorCursorStyle } from '../../../editor/common/config/editorOptions.js';
-import { score, targetsNotebooks } from '../../../editor/common/languageSelector.js';
+import { score, targetsNotebooks } from '../../../editor/common/language/languageSelector.js';
 import * as languageConfiguration from '../../../editor/common/languages/languageConfiguration.js';
-import { OverviewRulerLane } from '../../../editor/common/model.js';
+import { OverviewRulerLane } from '../../../editor/common/language/model.js';
 import { ExtensionError, ExtensionIdentifierSet, IExtensionDescription } from '../../../platform/extensions/common/extensions.js';
 import * as files from '../../../platform/files/common/files.js';
 import { ServicesAccessor } from '../../../platform/instantiation/common/instantiation.js';
@@ -1544,7 +1544,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			}
 		};
 
-		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		return <typeof vscode>{
 			version: initData.version,
 			// namespaces

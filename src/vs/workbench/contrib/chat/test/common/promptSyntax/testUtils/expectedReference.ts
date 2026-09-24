@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { Range } from '../../../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
 import { assertDefined } from '../../../../../../../base/common/types.js';
 import { ResolveError } from '../../../../common/promptFileReferenceErrors.js';
 import { IPromptReference } from '../../../../common/promptSyntax/parsers/types.js';

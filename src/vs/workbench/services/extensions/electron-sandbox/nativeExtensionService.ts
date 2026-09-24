@@ -184,7 +184,13 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 
 			if (this._localCrashTracker.shouldAutomaticallyRestart()) {
 				this._logService.info(`Automatically restarting the extension host.`);
-				this._notificationService.status(nls.localize('extensionService.autoRestart', "The extension host terminated unexpectedly. Restarting..."), { hideAfter: 5000 });
+				// Track the status message as a disposable so it is properly
+				// disposed on shutdown and does not trigger leaked disposable
+				// warnings from the lifecycle tracker.
+				this._register(this._notificationService.status(
+					nls.localize('extensionService.autoRestart', "The extension host terminated unexpectedly. Restarting..."),
+					{ hideAfter: 5000 }
+				));
 				this.startExtensionHosts();
 			} else {
 				const choices: IPromptChoice[] = [];

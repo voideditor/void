@@ -6,7 +6,7 @@
 import { compareBy, numberComparator } from '../../../../../base/common/arrays.js';
 import { BugIndicatingError } from '../../../../../base/common/errors.js';
 import { Disposable, toDisposable } from '../../../../../base/common/lifecycle.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { DetailedLineRangeMapping } from './mapping.js';
 import { LineRangeEdit } from './editing.js';
 import { LineRange } from './lineRange.js';

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from '../../common/core/position.js';
-import { Range } from '../../common/core/range.js';
+import { Position } from '../../../editor/common/language/core/position.js';
+import { Range } from '../../../editor/common/language/core/range.js';
 import { ViewportData } from '../../common/viewLayout/viewLinesViewportData.js';
 import { IViewLayout, ViewModelDecoration } from '../../common/viewModel.js';
 

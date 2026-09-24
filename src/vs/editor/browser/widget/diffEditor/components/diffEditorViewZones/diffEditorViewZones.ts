@@ -21,16 +21,16 @@ import { InlineDiffDeletedCodeMargin } from './inlineDiffDeletedCodeMargin.js';
 import { LineSource, RenderOptions, renderLines } from './renderLines.js';
 import { IObservableViewZone, animatedObservable, joinCombine } from '../../utils.js';
 import { EditorOption } from '../../../../../common/config/editorOptions.js';
-import { LineRange } from '../../../../../common/core/lineRange.js';
-import { Position } from '../../../../../common/core/position.js';
+import { LineRange } from '../../../../../../editor/common/language/core/lineRange.js';
+import { Position } from '../../../../../../editor/common/language/core/position.js';
 import { DetailedLineRangeMapping } from '../../../../../common/diff/rangeMapping.js';
 import { ScrollType } from '../../../../../common/editorCommon.js';
-import { BackgroundTokenizationState } from '../../../../../common/tokenizationTextModelPart.js';
+import { BackgroundTokenizationState } from '../../../../../../editor/common/language/tokenizationTextModelPart.js';
 import { InlineDecoration, InlineDecorationType } from '../../../../../common/viewModel.js';
 import { IClipboardService } from '../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextMenuService } from '../../../../../../platform/contextview/browser/contextView.js';
 import { DiffEditorOptions } from '../../diffEditorOptions.js';
-import { Range } from '../../../../../common/core/range.js';
+import { Range } from '../../../../../../editor/common/language/core/range.js';
 
 /**
  * Ensures both editors have the same height by aligning unchanged lines.

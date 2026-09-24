@@ -5,7 +5,7 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { ITextResourcePropertiesService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourcePropertiesService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { OperatingSystem, OS } from '../../../../base/common/platform.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';

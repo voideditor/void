@@ -7,7 +7,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
-import { score } from '../../../../editor/common/languageSelector.js';
+import { score } from '../../../../editor/common/language/languageSelector.js';
 import { localize } from '../../../../nls.js';
 import { ISubmenuItem, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';

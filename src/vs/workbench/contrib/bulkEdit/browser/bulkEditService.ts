@@ -11,7 +11,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor, isCodeEditor, isDiffEditor } from '../../../../editor/browser/editorBrowser.js';
 import { IBulkEditOptions, IBulkEditPreviewHandler, IBulkEditResult, IBulkEditService, ResourceEdit, ResourceFileEdit, ResourceTextEdit } from '../../../../editor/browser/services/bulkEditService.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
-import { WorkspaceEdit } from '../../../../editor/common/languages.js';
+import { WorkspaceEdit } from '../../../../editor/common/language/languages.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { Extensions, IConfigurationRegistry } from '../../../../platform/configuration/common/configurationRegistry.js';

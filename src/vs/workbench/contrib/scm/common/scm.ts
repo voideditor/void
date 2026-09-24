@@ -7,14 +7,14 @@ import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 import { IAction } from '../../../../base/common/actions.js';
 import { IMenu } from '../../../../platform/actions/common/actions.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 import { ResourceTree } from '../../../../base/common/resourceTree.js';
 import { ISCMHistoryProvider } from './history.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { IObservable } from '../../../../base/common/observable.js';
 
 export const VIEWLET_ID = 'workbench.view.scm';

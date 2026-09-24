@@ -27,7 +27,7 @@ import { DEFAULT_EDITOR_MIN_DIMENSIONS } from './editor.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { SIDE_BY_SIDE_EDITOR_HORIZONTAL_BORDER, SIDE_BY_SIDE_EDITOR_VERTICAL_BORDER } from '../../../common/theme.js';
 import { AbstractEditorWithViewState } from './editorWithViewState.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';

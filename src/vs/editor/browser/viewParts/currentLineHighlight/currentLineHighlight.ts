@@ -5,16 +5,16 @@
 
 import './currentLineHighlight.css';
 import { DynamicViewOverlay } from '../../view/dynamicViewOverlay.js';
-import { editorLineHighlight, editorLineHighlightBorder } from '../../../common/core/editorColorRegistry.js';
+import { editorLineHighlight, editorLineHighlightBorder } from '../../../../editor/common/language/core/editorColorRegistry.js';
 import { RenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import * as arrays from '../../../../base/common/arrays.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
-import { Selection } from '../../../common/core/selection.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { isHighContrast } from '../../../../platform/theme/common/theme.js';
-import { Position } from '../../../common/core/position.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
 
 export abstract class AbstractLineHighlightOverlay extends DynamicViewOverlay {
 	private readonly _context: ViewContext;

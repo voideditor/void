@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { LanguageSelector, score } from '../../../common/languageSelector.js';
+import { LanguageSelector, score } from '../../../../editor/common/language/languageSelector.js';
 
 suite('LanguageSelector', function () {
 

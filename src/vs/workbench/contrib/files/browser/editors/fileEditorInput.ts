@@ -13,7 +13,7 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ITextFileService, TextFileEditorModelState, TextFileResolveReason, TextFileOperationError, TextFileOperationResult, ITextFileEditorModel, EncodingMode } from '../../../../services/textfile/common/textfiles.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IReference, dispose, DisposableStore } from '../../../../../base/common/lifecycle.js';
-import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { FILE_EDITOR_INPUT_ID, TEXT_FILE_EDITOR_ID, BINARY_FILE_EDITOR_ID } from '../../common/files.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { IFilesConfigurationService } from '../../../../services/filesConfiguration/common/filesConfigurationService.js';
@@ -21,9 +21,9 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { isEqual } from '../../../../../base/common/resources.js';
 import { Event } from '../../../../../base/common/event.js';
 import { Schemas } from '../../../../../base/common/network.js';
-import { createTextBufferFactory } from '../../../../../editor/common/model/textModel.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
-import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../../editor/common/language/services/textResourceConfiguration.js';
 import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { ICustomEditorLabelService } from '../../../../services/editor/common/customEditorLabelService.js';
 

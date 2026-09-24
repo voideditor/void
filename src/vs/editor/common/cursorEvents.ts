@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Position } from './core/position.js';
-import { Selection } from './core/selection.js';
+import { Position } from '../../editor/common/language/core/position.js';
+import { Selection } from '../../editor/common/language/core/selection.js';
 
 /**
  * Describes the reason the cursor has changed its position.

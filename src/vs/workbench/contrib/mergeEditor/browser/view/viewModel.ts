@@ -6,9 +6,9 @@
 import { findLast } from '../../../../../base/common/arraysFind.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { derived, derivedObservableWithWritableCache, IObservable, IReader, ITransaction, observableValue, transaction } from '../../../../../base/common/observable.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { ScrollType } from '../../../../../editor/common/editorCommon.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';

@@ -7,7 +7,7 @@ import '../../../../base/browser/ui/codicons/codiconStyles.js'; // The codicon s
 import { Codicon } from '../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { ResolvedKeybinding } from '../../../../base/common/keybindings.js';
-import { CodeAction } from '../../../common/languages.js';
+import { CodeAction } from '../../../../editor/common/language/languages.js';
 import { CodeActionItem, CodeActionKind } from '../common/types.js';
 import '../../symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
 import { localize } from '../../../../nls.js';

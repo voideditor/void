@@ -1,50 +1,3 @@
-/**
- * mcp-response-types.ts
- * --------------------------------------------------
- * **Pure** TypeScript interfaces (no external imports)
- * describing the JSON-RPC response shapes for:
- *
- *   1. tools/list      -> ToolsListResponse
- *   2. prompts/list    -> PromptsListResponse
- *   3. tools/call      -> ToolCallResponse
- *
- * They are distilled directly from the official MCP
- * 2025‑03‑26 specification:
- *   • Tools list response examples
- *   • Prompts list response examples
- *   • Tool call response examples
- *
- * Use them to get full IntelliSense when working with
- * @modelcontextprotocol/inspector‑cli responses.
- */
-
-
-/* -------------------------------------------------- */
-/* Core JSON‑RPC envelope                              */
-/* -------------------------------------------------- */
-
-// export interface JsonRpcSuccess<T> {
-// 	/** JSON‑RPC version – always '2.0' */
-// 	jsonrpc: '2.0';
-// 	/** Request identifier echoed back by the server */
-// 	id: string | number | null;
-// 	/** The successful result payload */
-// 	result: T;
-// }
-
-/* -------------------------------------------------- */
-/* Utility: pagination                                 */
-/* -------------------------------------------------- */
-
-// export interface Paginated {
-// 	/** Opaque cursor for fetching the next page */
-// 	nextCursor?: string;
-// }
-
-/* -------------------------------------------------- */
-/* 1. tools/list                                       */
-/* -------------------------------------------------- */
-
 export interface MCPTool {
 	/** Unique tool identifier */
 	name: string;
@@ -56,71 +9,13 @@ export interface MCPTool {
 	annotations?: Record<string, unknown>;
 }
 
-// export interface ToolsListResult extends Paginated {
-// 	tools: MCPTool[];
-// }
-
-// export type ToolsListResponse = JsonRpcSuccess<ToolsListResult>;
-
-/* -------------------------------------------------- */
-/* 2. prompts/list                                     */
-/* -------------------------------------------------- */
-
-// export interface PromptArgument {
-// 	name: string;
-// 	description?: string;
-// 	/** Whether the argument is required */
-// 	required?: boolean;
-// }
-
-// export interface Prompt {
-// 	name: string;
-// 	description?: string;
-// 	arguments?: PromptArgument[];
-// }
-
-// export interface PromptsListResult extends Paginated {
-// 	prompts: Prompt[];
-// }
-
-// export type PromptsListResponse = JsonRpcSuccess<PromptsListResult>;
-
-/* -------------------------------------------------- */
-/* 3. tools/call                                       */
-/* -------------------------------------------------- */
-
-/** Additional resource structure that can be embedded in tool results */
-// export interface Resource {
-// 	uri: string;
-// 	mimeType: string;
-// 	/** Either plain‑text or base64‑encoded binary data */
-// 	text?: string;
-// 	data?: string;
-// }
-
-/** Individual content items returned by a tool */
-// export type ToolContent =
-// 	| { type: 'text'; text: string }
-// 	| { type: 'image'; data: string; mimeType: string }
-// 	| { type: 'audio'; data: string; mimeType: string }
-// 	| { type: 'resource'; resource: Resource };
-
-// export interface ToolCallResult {
-// 	/** List of content parts (text, images, resources, etc.) */
-// 	content: ToolContent[];
-// 	/** True if the tool itself encountered a domain‑level error */
-// 	isError?: boolean;
-// }
-
-// export type ToolCallResponse = JsonRpcSuccess<ToolCallResult>;
-
-// MCP SERVER CONFIG FILE TYPES -----------------------------
-
 export interface MCPConfigFileEntryJSON {
 	// Command-based server properties
 	command?: string;
 	args?: string[];
 	env?: Record<string, string>;
+	/** Optional list of MCP tool names to exclude for this server. */
+	excludeTools?: string[];
 
 	// URL-based server properties
 	url?: URL;
@@ -130,9 +25,6 @@ export interface MCPConfigFileEntryJSON {
 export interface MCPConfigFileJSON {
 	mcpServers: Record<string, MCPConfigFileEntryJSON>;
 }
-
-
-// SERVER EVENT TYPES ------------------------------------------
 
 export type MCPServer = {
 	// Command-based server properties
@@ -164,20 +56,6 @@ export interface MCPConfigFileParseErrorResponse {
 		error: string | null;
 	}
 }
-
-
-// export type MCPServerResponse = MCPAddResponse | MCPUpdateResponse | MCPDeleteResponse | MCPLoadingResponse;
-
-// Event parameter types
-// export type MCPServerEventAddParam = { response: MCPAddResponse };
-// export type MCPServerEventUpdateParam = { response: MCPUpdateResponse };
-// export type MCPServerEventDeleteParam = { response: MCPDeleteResponse };
-// export type MCPServerEventLoadingParam = { response: MCPLoadingResponse };
-
-// Event Param union type
-// export type MCPServerEventParam = MCPServerEventAddParam | MCPServerEventUpdateParam | MCPServerEventDeleteParam | MCPServerEventLoadingParam;
-
-// TOOL CALL EVENT TYPES ------------------------------------------
 
 type MCPToolResponseType = 'text' | 'image' | 'audio' | 'resource' | 'error';
 
@@ -235,8 +113,10 @@ export interface MCPToolCallParams {
 	params: Record<string, unknown>;
 }
 
-
-
 export const removeMCPToolNamePrefix = (name: string) => {
-	return name.split('_').slice(1).join('_')
+	const parts = String(name ?? '').split('__');
+	if (parts.length > 1) {
+		return parts.slice(1).join('__');
+	}
+	return name;
 }

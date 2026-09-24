@@ -8,6 +8,7 @@ require('events').EventEmitter.defaultMaxListeners = 100;
 
 const gulp = require('gulp');
 const path = require('path');
+const fs = require('fs');
 const nodeUtil = require('util');
 const es = require('event-stream');
 const filter = require('gulp-filter');
@@ -85,7 +86,10 @@ const tasks = compilations.map(function (tsconfigFile) {
 	const name = relativeDirname.replace(/\//g, '-');
 
 	const srcRoot = path.dirname(tsconfigFile);
-	const srcBase = path.join(srcRoot, 'src');
+	// gulp 5 (vinyl-fs 4 / glob-stream 8) errors on globs rooted at a missing directory,
+	// where vinyl-fs 3 silently produced an empty stream. Extensions without a `src/`
+	// folder keep their sources next to the tsconfig, so use that folder instead.
+	const srcBase = fs.existsSync(path.join(root, srcRoot, 'src')) ? path.join(srcRoot, 'src') : srcRoot;
 	const src = path.join(srcBase, '**');
 	const srcOpts = { cwd: root, base: srcBase, dot: true };
 

@@ -7,18 +7,18 @@ import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Event } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { Position } from '../../../../common/core/position.js';
-import { IRange, Range } from '../../../../common/core/range.js';
-import { SelectionRangeProvider } from '../../../../common/languages.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { IRange, Range } from '../../../../../editor/common/language/core/range.js';
+import { SelectionRangeProvider } from '../../../../../editor/common/language/languages.js';
 import { ILanguageConfigurationService } from '../../../../common/languages/languageConfigurationRegistry.js';
-import { IModelService } from '../../../../common/services/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
 import { BracketSelectionRangeProvider } from '../../browser/bracketSelections.js';
 import { provideSelectionRanges } from '../../browser/smartSelect.js';
 import { WordSelectionRangeProvider } from '../../browser/wordSelections.js';
 import { createModelServices } from '../../../../test/common/testTextModel.js';
 import { javascriptOnEnterRules } from '../../../../test/common/modes/supports/onEnterRules.js';
 import { LanguageFeatureRegistry } from '../../../../common/languageFeatureRegistry.js';
-import { ILanguageSelection, ILanguageService } from '../../../../common/languages/language.js';
+import { ILanguageSelection, ILanguageService } from '../../../../../editor/common/language/language.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 
 class StaticLanguageSelector implements ILanguageSelection {

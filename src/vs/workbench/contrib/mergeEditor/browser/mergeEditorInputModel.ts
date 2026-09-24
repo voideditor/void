@@ -11,8 +11,8 @@ import { derived, IObservable, observableFromEvent, observableValue } from '../.
 import { basename, isEqual } from '../../../../base/common/resources.js';
 import Severity from '../../../../base/common/severity.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IModelService } from '../../../../editor/common/services/model.js';
-import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { IModelService } from '../../../../editor/common/language/services/model.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../nls.js';
 import { ConfirmResult, IDialogService, IPromptButton } from '../../../../platform/dialogs/common/dialogs.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
@@ -27,8 +27,8 @@ import { MergeEditorTelemetry } from './telemetry.js';
 import { StorageCloseWithConflicts } from '../common/mergeEditor.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { ITextFileEditorModel, ITextFileSaveOptions, ITextFileService } from '../../../services/textfile/common/textfiles.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 
 export interface MergeEditorArgs {
 	base: URI;

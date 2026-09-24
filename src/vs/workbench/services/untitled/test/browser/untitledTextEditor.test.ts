@@ -11,8 +11,8 @@ import { IUntitledTextEditorService, UntitledTextEditorService } from '../../com
 import { workbenchInstantiationService, TestServiceAccessor } from '../../../../test/browser/workbenchTestServices.js';
 import { snapshotToString } from '../../../textfile/common/textfiles.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../../editor/common/languages/modesRegistry.js';
-import { ISingleEditOperation } from '../../../../../editor/common/core/editOperation.js';
-import { Range } from '../../../../../editor/common/core/range.js';
+import { ISingleEditOperation } from '../../../../../editor/common/language/core/editOperation.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
 import { UntitledTextEditorInput } from '../../common/untitledTextEditorInput.js';
 import { IUntitledTextEditorModel, UntitledTextEditorModel } from '../../common/untitledTextEditorModel.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';

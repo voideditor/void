@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useMemo, useState } from 'react';
-import { CopyButton, IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
-import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useFullChatThreadsStreamState, useSettingsState } from '../util/services.js';
-import { IconX } from './SidebarChat.js';
-import { Check, Copy, Icon, LoaderCircle, MessageCircleQuestion, Trash2, UserCheck, X } from 'lucide-react';
-import { IsRunningType, ThreadType } from '../../../chatThreadService.js';
+import { IconShell1 } from '../markdown/ApplyBlockHoverButtons.js';
+import { useAccessor, useAllThreads, useFullChatThreadsStreamState } from '../util/services.js';
+import { Check, Copy, LoaderCircle, MessageCircleQuestion, Trash2, X } from 'lucide-react';
+import { IsRunningType } from '../../../ChatExecutionEngine.js';
+import { ThreadType } from '../../../chatThreadService.js';
 
 
 const numInitialThreads = 3
@@ -18,25 +18,34 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 
 	const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
 
-	const threadsState = useChatThreadsState()
-	const { allThreads } = threadsState
+	// Subscribe only to allThreads, not to current thread changes.
+	// This prevents unnecessary re-renders of PastThreadsList on every new message
+	// in the active thread.
+	const allThreads = useAllThreads()
 
 	const streamState = useFullChatThreadsStreamState()
 
-	const runningThreadIds: { [threadId: string]: IsRunningType | undefined } = {}
-	for (const threadId in streamState) {
-		const isRunning = streamState[threadId]?.isRunning
-		if (isRunning) { runningThreadIds[threadId] = isRunning }
-	}
+	const runningThreadIds = useMemo(() => {
+		const out: { [threadId: string]: IsRunningType | undefined } = {}
+		for (const threadId in streamState) {
+			const isRunning = streamState[threadId]?.isRunning
+			if (isRunning) { out[threadId] = isRunning }
+		}
+		return out;
+	}, [streamState]);
 
 	if (!allThreads) {
 		return <div key="error" className="p-1">{`Error accessing chat history.`}</div>;
 	}
 
-	// sorted by most recent to least recent
-	const sortedThreadIds = Object.keys(allThreads ?? {})
-		.sort((threadId1, threadId2) => (allThreads[threadId1]?.lastModified ?? 0) > (allThreads[threadId2]?.lastModified ?? 0) ? -1 : 1)
-		.filter(threadId => (allThreads![threadId]?.messages.length ?? 0) !== 0)
+
+	const sortedThreadIds = useMemo(() => {
+		return Object.keys(allThreads ?? {})
+			.sort((threadId1, threadId2) =>
+				(allThreads![threadId1]?.lastModified ?? 0) > (allThreads![threadId2]?.lastModified ?? 0) ? -1 : 1
+			)
+			.filter(threadId => (allThreads![threadId]?.messages.length ?? 0) !== 0);
+	}, [allThreads]);
 
 	// Get only first 5 threads if not showing all
 	const hasMoreThreads = sortedThreadIds.length > numInitialThreads;
@@ -85,10 +94,6 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 	);
 };
 
-
-
-
-
 // Format date to display as today, yesterday, or date
 const formatDate = (date: Date) => {
 	const now = new Date();
@@ -114,7 +119,6 @@ const formatTime = (date: Date) => {
 	});
 };
 
-
 const DuplicateButton = ({ threadId }: { threadId: string }) => {
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
@@ -127,7 +131,6 @@ const DuplicateButton = ({ threadId }: { threadId: string }) => {
 		data-tooltip-content='Duplicate thread'
 	>
 	</IconShell1>
-
 }
 
 const TrashButton = ({ threadId }: { threadId: string }) => {
@@ -182,31 +185,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const accessor = useAccessor()
 	const chatThreadsService = accessor.get('IChatThreadService')
 
-	// const settingsState = useSettingsState()
-	// const convertService = accessor.get('IConvertToLLMMessageService')
-	// const chatMode = settingsState.globalSettings.chatMode
-	// const modelSelection = settingsState.modelSelectionOfFeature?.Chat ?? null
-	// const copyChatButton = <CopyButton
-	// 	codeStr={async () => {
-	// 		const { messages } = await convertService.prepareLLMChatMessages({
-	// 			chatMessages: currentThread.messages,
-	// 			chatMode,
-	// 			modelSelection,
-	// 		})
-	// 		return JSON.stringify(messages, null, 2)
-	// 	}}
-	// 	toolTipName={modelSelection === null ? 'Copy As Messages Payload' : `Copy As ${displayInfoOfProviderName(modelSelection.providerName).title} Payload`}
-	// />
-
-
-	// const currentThread = chatThreadsService.getCurrentThread()
-	// const copyChatButton2 = <CopyButton
-	// 	codeStr={async () => {
-	// 		return JSON.stringify(currentThread.messages, null, 2)
-	// 	}}
-	// 	toolTipName={`Copy As Void Chat`}
-	// />
-
 	let firstMsg = null;
 	const firstUserMsgIdx = pastThread.messages.findIndex((msg) => msg.role === 'user');
 
@@ -220,9 +198,6 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
 	const detailsHTML = <span
-	// data-tooltip-id='void-tooltip'
-	// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
-	// data-tooltip-place='top'
 	>
 		<span className='opacity-60'>{numMessages}</span>
 		{` `}

@@ -17,12 +17,12 @@ import { IContextKeyService } from '../../../../../platform/contextkey/common/co
 import { WorkbenchHoverDelegate } from '../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { LineRange, LineRangeSet } from '../../../../common/core/lineRange.js';
-import { OffsetRange } from '../../../../common/core/offsetRange.js';
-import { Range } from '../../../../common/core/range.js';
-import { TextEdit } from '../../../../common/core/textEdit.js';
+import { LineRange, LineRangeSet } from '../../../../../editor/common/language/core/lineRange.js';
+import { OffsetRange } from '../../../../../editor/common/language/core/offsetRange.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { TextEdit } from '../../../../../editor/common/language/core/textEdit.js';
 import { DetailedLineRangeMapping } from '../../../../common/diff/rangeMapping.js';
-import { TextModelText } from '../../../../common/model/textModelText.js';
+import { TextModelText } from '../../../../../editor/common/language/model/textModelText.js';
 import { ActionRunnerWithContext } from '../../multiDiffEditor/utils.js';
 import { DiffEditorEditors } from '../components/diffEditorEditors.js';
 import { DiffEditorSash, SashLayout } from '../components/diffEditorSash.js';

@@ -8,7 +8,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 import * as dom from '../../../../base/browser/dom.js';
-import { IMetricsService } from '../common/metricsService.js';
+import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
 
 
 

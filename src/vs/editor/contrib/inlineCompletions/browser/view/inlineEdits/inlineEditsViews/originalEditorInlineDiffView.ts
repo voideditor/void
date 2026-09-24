@@ -10,12 +10,12 @@ import { autorunWithStore, derived, IObservable, observableFromEvent } from '../
 import { ICodeEditor, MouseTargetType } from '../../../../../../browser/editorBrowser.js';
 import { observableCodeEditor } from '../../../../../../browser/observableCodeEditor.js';
 import { rangeIsSingleLine } from '../../../../../../browser/widget/diffEditor/components/diffEditorViewZones/diffEditorViewZones.js';
-import { OffsetRange } from '../../../../../../common/core/offsetRange.js';
-import { Range } from '../../../../../../common/core/range.js';
-import { AbstractText } from '../../../../../../common/core/textEdit.js';
+import { OffsetRange } from '../../../../../../../editor/common/language/core/offsetRange.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
+import { AbstractText } from '../../../../../../../editor/common/language/core/textEdit.js';
 import { DetailedLineRangeMapping } from '../../../../../../common/diff/rangeMapping.js';
-import { EndOfLinePreference, IModelDeltaDecoration, InjectedTextCursorStops, ITextModel } from '../../../../../../common/model.js';
-import { ModelDecorationOptions } from '../../../../../../common/model/textModel.js';
+import { EndOfLinePreference, IModelDeltaDecoration, InjectedTextCursorStops, ITextModel } from '../../../../../../../editor/common/language/model.js';
+import { ModelDecorationOptions } from '../../../../../../../editor/common/language/model/textModel.js';
 import { IInlineEditsView } from '../inlineEditsViewInterface.js';
 import { classNames } from '../utils/utils.js';
 

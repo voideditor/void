@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ISettingsEditorModel, ISetting, ISettingsGroup, ISearchResult, IGroupFilter, SettingMatchType, ISettingMatch, SettingKeyMatchTypes, ISettingMatcher } from '../../../services/preferences/common/preferences.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { distinct } from '../../../../base/common/arrays.js';
 import * as strings from '../../../../base/common/strings.js';
 import { IMatch, matchesContiguousSubString, matchesSubString, matchesWords } from '../../../../base/common/filters.js';
@@ -30,7 +30,6 @@ export interface IEndpointDetails {
 export class PreferencesSearchService extends Disposable implements IPreferencesSearchService {
 	declare readonly _serviceBrand: undefined;
 
-	// @ts-expect-error disable remote search for now, ref https://github.com/microsoft/vscode/issues/172411
 	private _installedExtensions: Promise<ILocalExtension[]>;
 	private _remoteSearchProvider: IRemoteSearchProvider | undefined;
 

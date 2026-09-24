@@ -5,11 +5,11 @@
 
 import { IReference, ReferenceCollection } from '../../../../../../base/common/lifecycle.js';
 import { createDecorator, IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
-import { ITextModel } from '../../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../../editor/common/language/model.js';
 import { CellKind } from '../../../common/notebookCommon.js';
 import { URI } from '../../../../../../base/common/uri.js';
-import { ILanguageService } from '../../../../../../editor/common/languages/language.js';
-import { IModelService } from '../../../../../../editor/common/services/model.js';
+import { ILanguageService } from '../../../../../../editor/common/language/language.js';
+import { IModelService } from '../../../../../../editor/common/language/services/model.js';
 
 
 export const INotebookOriginalCellModelFactory = createDecorator<INotebookOriginalCellModelFactory>('INotebookOriginalCellModelFactory');

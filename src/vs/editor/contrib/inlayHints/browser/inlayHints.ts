@@ -6,11 +6,11 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { CancellationError, onUnexpectedExternalError } from '../../../../base/common/errors.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { IPosition, Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { IPosition, Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { InlayHint, InlayHintList, InlayHintsProvider, Command } from '../../../common/languages.js';
-import { ITextModel } from '../../../common/model.js';
+import { InlayHint, InlayHintList, InlayHintsProvider, Command } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { URI } from '../../../../base/common/uri.js';
 

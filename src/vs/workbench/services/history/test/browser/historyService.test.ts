@@ -24,7 +24,7 @@ import { IResolvedTextFileEditorModel, ITextFileService } from '../../../textfil
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { FileChangesEvent, FileChangeType, FileOperation, FileOperationEvent } from '../../../../../platform/files/common/files.js';
 import { isLinux } from '../../../../../base/common/platform.js';
-import { Selection } from '../../../../../editor/common/core/selection.js';
+import { Selection } from '../../../../../editor/common/language/core/selection.js';
 import { EditorPane } from '../../../../browser/parts/editor/editorPane.js';
 import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';

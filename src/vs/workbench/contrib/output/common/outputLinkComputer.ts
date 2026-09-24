@@ -3,16 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ILink } from '../../../../editor/common/languages.js';
+import { ILink } from '../../../../editor/common/language/languages.js';
 import { URI } from '../../../../base/common/uri.js';
 import * as extpath from '../../../../base/common/extpath.js';
 import * as resources from '../../../../base/common/resources.js';
 import * as strings from '../../../../base/common/strings.js';
-import { Range } from '../../../../editor/common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { isWindows } from '../../../../base/common/platform.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IWebWorkerServerRequestHandler, IWebWorkerServer } from '../../../../base/common/worker/webWorker.js';
-import { WorkerTextModelSyncServer, ICommonModel } from '../../../../editor/common/services/textModelSync/textModelSync.impl.js';
+import { WorkerTextModelSyncServer, ICommonModel } from '../../../../editor/common/language/services/textModelSync/textModelSync.impl.js';
 
 export interface IResourceCreator {
 	toResource: (folderRelativePath: string) => URI | null;

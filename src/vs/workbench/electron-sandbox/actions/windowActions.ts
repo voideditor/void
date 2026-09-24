@@ -10,10 +10,10 @@ import { ApplyZoomTarget, MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL, applyZoom } from '../.
 import { IKeybindingService } from '../../../platform/keybinding/common/keybinding.js';
 import { getZoomLevel } from '../../../base/browser/browser.js';
 import { FileKind } from '../../../platform/files/common/files.js';
-import { IModelService } from '../../../editor/common/services/model.js';
-import { ILanguageService } from '../../../editor/common/languages/language.js';
+import { IModelService } from '../../../editor/common/language/services/model.js';
+import { ILanguageService } from '../../../editor/common/language/language.js';
 import { IQuickInputService, IQuickInputButton, IQuickPickItem, QuickPickInput } from '../../../platform/quickinput/common/quickInput.js';
-import { getIconClasses } from '../../../editor/common/services/getIconClasses.js';
+import { getIconClasses } from '../../../editor/common/language/services/getIconClasses.js';
 import { ICommandHandler } from '../../../platform/commands/common/commands.js';
 import { ServicesAccessor } from '../../../platform/instantiation/common/instantiation.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';

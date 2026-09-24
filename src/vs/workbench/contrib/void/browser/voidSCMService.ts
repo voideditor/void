@@ -9,14 +9,14 @@ import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/c
 import { ContextKeyExpr, IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js'
 import { ISCMService } from '../../scm/common/scm.js'
 import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js'
-import { IVoidSCMService } from '../common/voidSCMTypes.js'
+import { IVoidSCMService } from '../../../../platform/void/common/voidSCMTypes.js'
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js'
-import { IVoidSettingsService } from '../common/voidSettingsService.js'
+import { IVoidSettingsService } from '../../../../platform/void/common/voidSettingsService.js'
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js'
 import { ILLMMessageService } from '../common/sendLLMMessageService.js'
-import { ModelSelection, OverridesOfModel, ModelSelectionOptions } from '../common/voidSettingsTypes.js'
-import { gitCommitMessage_systemMessage, gitCommitMessage_userMessage } from '../common/prompt/prompts.js'
-import { LLMChatMessage } from '../common/sendLLMMessageTypes.js'
+import { ModelSelection, OverridesOfModel, ModelSelectionOptions } from '../../../../platform/void/common/voidSettingsTypes.js'
+import { gitCommitMessageSystemMessage, gitCommitMessageUserMessage } from '../common/prompt/prompts.js'
+import { LLMChatMessage } from '../../../../platform/void/common/sendLLMMessageTypes.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
 import { ThrottledDelayer } from '../../../../base/common/async.js'
 import { CancellationError, isCancellationError } from '../../../../base/common/errors.js'
@@ -92,12 +92,12 @@ class GenerateCommitMessageService extends Disposable implements IGenerateCommit
 
 				const modelOptions: ModelOptions = { modelSelection, modelSelectionOptions, overridesOfModel }
 
-				const prompt = gitCommitMessage_userMessage(stat, sampledDiffs, branch, log)
+				const prompt = gitCommitMessageUserMessage(stat, sampledDiffs, branch, log)
 
 				const simpleMessages = [{ role: 'user', content: prompt } as const]
 				const { messages, separateSystemMessage } = this.convertToLLMMessageService.prepareLLMSimpleMessages({
 					simpleMessages,
-					systemMessage: gitCommitMessage_systemMessage,
+					systemMessage: gitCommitMessageSystemMessage,
 					modelSelection: modelOptions.modelSelection,
 					featureName: 'SCM',
 				})

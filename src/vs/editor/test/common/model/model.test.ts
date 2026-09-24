@@ -6,16 +6,16 @@
 import assert from 'assert';
 import { Disposable, DisposableStore, dispose } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { EditOperation } from '../../../common/core/editOperation.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
-import { MetadataConsts } from '../../../common/encodedTokenAttributes.js';
-import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../common/languages.js';
-import { ILanguageService } from '../../../common/languages/language.js';
+import { EditOperation } from '../../../../editor/common/language/core/editOperation.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
+import { MetadataConsts } from '../../../../editor/common/language/encodedTokenAttributes.js';
+import { EncodedTokenizationResult, IState, TokenizationRegistry } from '../../../../editor/common/language/languages.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { ILanguageConfigurationService } from '../../../common/languages/languageConfigurationRegistry.js';
 import { NullState } from '../../../common/languages/nullTokenize.js';
-import { TextModel } from '../../../common/model/textModel.js';
-import { InternalModelContentChangeEvent, ModelRawContentChangedEvent, ModelRawFlush, ModelRawLineChanged, ModelRawLinesDeleted, ModelRawLinesInserted } from '../../../common/textModelEvents.js';
+import { TextModel } from '../../../../editor/common/language/model/textModel.js';
+import { InternalModelContentChangeEvent, ModelRawContentChangedEvent, ModelRawFlush, ModelRawLineChanged, ModelRawLinesDeleted, ModelRawLinesInserted } from '../../../../editor/common/language/textModelEvents.js';
 import { createModelServices, createTextModel, instantiateTextModel } from '../testTextModel.js';
 
 // --------- utils

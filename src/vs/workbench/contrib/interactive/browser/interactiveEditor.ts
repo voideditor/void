@@ -29,7 +29,7 @@ import { GroupsOrder, IEditorGroup, IEditorGroupsService } from '../../../servic
 import { ExecutionStateCellStatusBarContrib, TimerCellStatusBarContrib } from '../../notebook/browser/contrib/cellStatusBar/executionStatusBarItemController.js';
 import { INotebookKernelService } from '../../notebook/common/notebookKernelService.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../editor/common/languages/modesRegistry.js';
-import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { ILanguageService } from '../../../../editor/common/language/language.js';
 import { IMenuService, MenuId } from '../../../../platform/actions/common/actions.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { ReplEditorSettings, INTERACTIVE_INPUT_CURSOR_BOUNDARY } from './interactiveCommon.js';
@@ -48,7 +48,7 @@ import { SnippetController2 } from '../../../../editor/contrib/snippet/browser/s
 import { TabCompletionController } from '../../snippets/browser/tabCompletion.js';
 import { MarkerController } from '../../../../editor/contrib/gotoError/browser/gotoError.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
-import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
+import { ITextResourceConfigurationService } from '../../../../editor/common/language/services/textResourceConfiguration.js';
 import { ITextEditorOptions, TextEditorSelectionSource } from '../../../../platform/editor/common/editor.js';
 import { INotebookExecutionStateService, NotebookExecutionType } from '../../notebook/common/notebookExecutionStateService.js';
 import { NOTEBOOK_KERNEL } from '../../notebook/common/notebookContextKeys.js';

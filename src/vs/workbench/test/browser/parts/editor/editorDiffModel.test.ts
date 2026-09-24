@@ -9,7 +9,7 @@ import { DiffEditorInput } from '../../../../common/editor/diffEditorInput.js';
 import { TextResourceEditorInput } from '../../../../common/editor/textResourceEditorInput.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { workbenchInstantiationService, TestServiceAccessor } from '../../workbenchTestServices.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';

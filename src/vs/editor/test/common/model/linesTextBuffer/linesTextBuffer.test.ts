@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { Range } from '../../../../common/core/range.js';
-import { DefaultEndOfLine } from '../../../../common/model.js';
-import { IValidatedEditOperation, PieceTreeTextBuffer } from '../../../../common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
-import { createTextBufferFactory } from '../../../../common/model/textModel.js';
+import { Range } from '../../../../../editor/common/language/core/range.js';
+import { DefaultEndOfLine } from '../../../../../editor/common/language/model.js';
+import { IValidatedEditOperation, PieceTreeTextBuffer } from '../../../../../editor/common/language/model/pieceTreeTextBuffer/pieceTreeTextBuffer.js';
+import { createTextBufferFactory } from '../../../../../editor/common/language/model/textModel.js';
 
 suite('PieceTreeTextBuffer._getInverseEdits', () => {
 

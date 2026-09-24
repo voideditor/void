@@ -5,11 +5,11 @@
 
 import { CharCode } from '../../../base/common/charCode.js';
 import * as strings from '../../../base/common/strings.js';
-import { IViewLineTokens, LineTokens } from '../tokens/lineTokens.js';
-import { ILanguageIdCodec, IState, ITokenizationSupport, TokenizationRegistry } from '../languages.js';
-import { LanguageId } from '../encodedTokenAttributes.js';
+import { IViewLineTokens, LineTokens } from '../language/tokens/lineTokens.js';
+import { ILanguageIdCodec, IState, ITokenizationSupport, TokenizationRegistry } from '../language/languages.js';
+import { LanguageId } from '../language/encodedTokenAttributes.js';
 import { NullState, nullTokenizeEncoded } from './nullTokenize.js';
-import { ILanguageService } from './language.js';
+import { ILanguageService } from '../language/language.js';
 
 export type IReducedTokenizationSupport = Omit<ITokenizationSupport, 'tokenize'>;
 

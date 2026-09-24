@@ -16,7 +16,7 @@ import { isThemeColor } from '../../../../editor/common/editorCommon.js';
 import { addDisposableListener, EventType, hide, show, append, EventHelper, $ } from '../../../../base/browser/dom.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { assertIsDefined } from '../../../../base/common/types.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 import { StandardKeyboardEvent } from '../../../../base/browser/keyboardEvent.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { renderIcon, renderLabelWithIcons } from '../../../../base/browser/ui/iconLabel/iconLabels.js';

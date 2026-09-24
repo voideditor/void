@@ -17,11 +17,11 @@ import { observableCodeEditor } from '../../../../../../browser/observableCodeEd
 import { Rect } from '../../../../../../browser/rect.js';
 import { EmbeddedCodeEditorWidget } from '../../../../../../browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorOption } from '../../../../../../common/config/editorOptions.js';
-import { LineRange } from '../../../../../../common/core/lineRange.js';
-import { OffsetRange } from '../../../../../../common/core/offsetRange.js';
-import { Position } from '../../../../../../common/core/position.js';
-import { Range } from '../../../../../../common/core/range.js';
-import { ITextModel } from '../../../../../../common/model.js';
+import { LineRange } from '../../../../../../../editor/common/language/core/lineRange.js';
+import { OffsetRange } from '../../../../../../../editor/common/language/core/offsetRange.js';
+import { Position } from '../../../../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../../../../editor/common/language/core/range.js';
+import { ITextModel } from '../../../../../../../editor/common/language/model.js';
 import { StickyScrollController } from '../../../../../stickyScroll/browser/stickyScrollController.js';
 import { InlineCompletionContextKeys } from '../../../controller/inlineCompletionContextKeys.js';
 import { IInlineEditsView, InlineEditTabAction } from '../inlineEditsViewInterface.js';

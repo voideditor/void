@@ -8,8 +8,8 @@ import { FastDomNode, createFastDomNode } from '../../../../base/browser/fastDom
 import * as strings from '../../../../base/common/strings.js';
 import { applyFontInfo } from '../../config/domFontInfo.js';
 import { TextEditorCursorStyle, EditorOption } from '../../../common/config/editorOptions.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { RenderingContext, RestrictedRenderingContext } from '../../view/renderingContext.js';
 import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';

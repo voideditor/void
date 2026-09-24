@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { PositionAffinity } from '../../../common/model.js';
-import { ModelDecorationInjectedTextOptions } from '../../../common/model/textModel.js';
+import { PositionAffinity } from '../../../../editor/common/language/model.js';
+import { ModelDecorationInjectedTextOptions } from '../../../../editor/common/language/model/textModel.js';
 import { ModelLineProjectionData } from '../../../common/modelLineProjectionData.js';
 
 suite('Editor ViewModel - LineBreakData', () => {

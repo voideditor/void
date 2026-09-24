@@ -3,10 +3,11 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { spawn } from 'cross-spawn'
 // Added lines below
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -56,6 +57,44 @@ function findDesiredPathFromLocalPath(localDesiredPath, currentPath) {
 	return globalDesiredPath;
 }
 
+function requireRepoPath(localDesiredPath) {
+	const desiredPath = findDesiredPathFromLocalPath(localDesiredPath, __dirname);
+	if (!desiredPath) {
+		throw new Error(`Could not resolve required path: ${localDesiredPath}`);
+	}
+	return desiredPath;
+}
+
+function createTailwindShim(tailwindCliPath) {
+	const shimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'void-tailwind-'));
+	const shimPath = path.join(shimDir, 'tailwindcss');
+	const script = `#!/usr/bin/env sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(tailwindCliPath)} "$@"\n`;
+	fs.writeFileSync(shimPath, script, { mode: 0o755 });
+
+	return {
+		shimDir,
+		cleanup: () => {
+			try {
+				fs.rmSync(shimDir, { recursive: true, force: true });
+			} catch {
+				// ignore cleanup errors
+			}
+		}
+	};
+}
+
+const scopeTailwindCliPath = requireRepoPath('./node_modules/scope-tailwind/dist/main.js');
+const nodemonCliPath = requireRepoPath('./node_modules/nodemon/bin/nodemon.js');
+const tsupCliPath = requireRepoPath('./node_modules/tsup/dist/cli-default.js');
+const tailwindCliPath = requireRepoPath('./node_modules/tailwindcss/lib/cli.js');
+
+const { shimDir: tailwindShimDir, cleanup: cleanupTailwindShim } = createTailwindShim(tailwindCliPath);
+const buildEnv = {
+	...process.env,
+	PATH: `${tailwindShimDir}${path.delimiter}${process.env.PATH ?? ''}`,
+};
+process.on('exit', cleanupTailwindShim);
+
 // hack to refresh styles automatically
 function saveStylesFile() {
 	setTimeout(() => {
@@ -86,10 +125,14 @@ if (isWatch) {
 	if (!fs.existsSync('src2')) {
 		try {
 			console.log('🔨 Running initial scope-tailwind build to create src2 folder...');
-			execSync(
-				'npx scope-tailwind ./src -o src2/ -s void-scope -c styles.css -p "void-"',
-				{ stdio: 'inherit' }
-			);
+			execFileSync(process.execPath, [
+				scopeTailwindCliPath,
+				'./src',
+				'-o', 'src2/',
+				'-s', 'void-scope',
+				'-c', 'styles.css',
+				'-p', 'void-',
+			], { stdio: 'inherit', env: buildEnv });
 			console.log('✅ src2/ created successfully.');
 		} catch (err) {
 			console.error('❌ Error running initial scope-tailwind build:', err);
@@ -98,18 +141,18 @@ if (isWatch) {
 	}
 
 	// Watch mode
-	const scopeTailwindWatcher = spawn('npx', [
-		'nodemon',
+	const scopeTailwindWatcher = spawn(process.execPath, [
+		nodemonCliPath,
 		'--watch', 'src',
 		'--ext', 'ts,tsx,css',
 		'--exec',
-		'npx scope-tailwind ./src -o src2/ -s void-scope -c styles.css -p "void-"'
-	]);
+		`${JSON.stringify(process.execPath)} ${JSON.stringify(scopeTailwindCliPath)} ./src -o src2/ -s void-scope -c styles.css -p void-`
+	], { env: buildEnv });
 
-	const tsupWatcher = spawn('npx', [
-		'tsup',
+	const tsupWatcher = spawn(process.execPath, [
+		tsupCliPath,
 		'--watch'
-	]);
+	], { env: buildEnv });
 
 	scopeTailwindWatcher.stdout.on('data', (data) => {
 		console.log(`[scope-tailwind] ${data}`);
@@ -136,6 +179,7 @@ if (isWatch) {
 	process.on('SIGINT', () => {
 		scopeTailwindWatcher.kill();
 		tsupWatcher.kill();
+		cleanupTailwindShim();
 		process.exit();
 	});
 
@@ -145,10 +189,18 @@ if (isWatch) {
 	console.log('📦 Building...');
 
 	// Run scope-tailwind once
-	execSync('npx scope-tailwind ./src -o src2/ -s void-scope -c styles.css -p "void-"', { stdio: 'inherit' });
+	execFileSync(process.execPath, [
+		scopeTailwindCliPath,
+		'./src',
+		'-o', 'src2/',
+		'-s', 'void-scope',
+		'-c', 'styles.css',
+		'-p', 'void-',
+	], { stdio: 'inherit', env: buildEnv });
 
 	// Run tsup once
-	execSync('npx tsup', { stdio: 'inherit' });
+	execFileSync(process.execPath, [tsupCliPath], { stdio: 'inherit', env: buildEnv });
 
 	console.log('✅ Build complete!');
+	cleanupTailwindShim();
 }

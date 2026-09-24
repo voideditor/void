@@ -32,7 +32,7 @@ import { ThemeIcon } from '../../../../base/common/themables.js';
 import { buttonBackground, buttonForeground, buttonHoverBackground, registerColor, editorWarningForeground, editorInfoForeground, editorErrorForeground, buttonSeparator } from '../../../../platform/theme/common/colorRegistry.js';
 import { IJSONEditingService } from '../../../services/configuration/common/jsonEditing.js';
 import { ITextEditorSelection } from '../../../../platform/editor/common/editor.js';
-import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
+import { ITextModelService } from '../../../../editor/common/language/services/resolverService.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { MenuId, IMenuService, MenuItemAction, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
 import { PICK_WORKSPACE_FOLDER_COMMAND_ID } from '../../../browser/actions/workspaceCommands.js';

@@ -8,7 +8,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { normalize, isAbsolute } from '../../../../base/common/path.js';
 import * as resources from '../../../../base/common/resources.js';
 import { DEBUG_SCHEME } from './debug.js';
-import { IRange } from '../../../../editor/common/core/range.js';
+import { IRange } from '../../../../editor/common/language/core/range.js';
 import { IEditorService, SIDE_GROUP, ACTIVE_GROUP } from '../../../services/editor/common/editorService.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { isUri } from './debugUtils.js';

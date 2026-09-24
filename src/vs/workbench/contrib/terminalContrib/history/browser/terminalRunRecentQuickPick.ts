@@ -5,9 +5,9 @@
 
 import { Toggle } from '../../../../../base/browser/ui/toggle/toggle.js';
 import { isMacintosh, OperatingSystem } from '../../../../../base/common/platform.js';
-import { ITextModel } from '../../../../../editor/common/model.js';
-import { IModelService } from '../../../../../editor/common/services/model.js';
-import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { IModelService } from '../../../../../editor/common/language/services/model.js';
+import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/language/services/resolverService.js';
 import { localize } from '../../../../../nls.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IQuickInputButton, IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../../platform/quickinput/common/quickInput.js';

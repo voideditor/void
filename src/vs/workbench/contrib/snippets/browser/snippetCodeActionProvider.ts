@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
-import { IRange, Range } from '../../../../editor/common/core/range.js';
-import { Selection } from '../../../../editor/common/core/selection.js';
-import { CodeAction, CodeActionList, CodeActionProvider, WorkspaceEdit } from '../../../../editor/common/languages.js';
-import { ITextModel } from '../../../../editor/common/model.js';
-import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
+import { IRange, Range } from '../../../../editor/common/language/core/range.js';
+import { Selection } from '../../../../editor/common/language/core/selection.js';
+import { CodeAction, CodeActionList, CodeActionProvider, WorkspaceEdit } from '../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
 import { CodeActionKind } from '../../../../editor/contrib/codeAction/common/types.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';

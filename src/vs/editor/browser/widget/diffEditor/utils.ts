@@ -10,11 +10,11 @@ import { Disposable, DisposableStore, IDisposable, IReference, toDisposable } fr
 import { IObservable, IObservableWithChange, ISettableObservable, autorun, autorunHandleChanges, autorunOpts, autorunWithStore, observableValue, transaction } from '../../../../base/common/observable.js';
 import { ElementSizeObserver } from '../../config/elementSizeObserver.js';
 import { ICodeEditor, IOverlayWidget, IViewZone } from '../../editorBrowser.js';
-import { Position } from '../../../common/core/position.js';
-import { Range } from '../../../common/core/range.js';
+import { Position } from '../../../../editor/common/language/core/position.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { DetailedLineRangeMapping } from '../../../common/diff/rangeMapping.js';
-import { IModelDeltaDecoration } from '../../../common/model.js';
-import { TextLength } from '../../../common/core/textLength.js';
+import { IModelDeltaDecoration } from '../../../../editor/common/language/model.js';
+import { TextLength } from '../../../../editor/common/language/core/textLength.js';
 
 export function joinCombine<T>(arr1: readonly T[], arr2: readonly T[], keySelector: (val: T) => number, combine: (v1: T, v2: T) => T): readonly T[] {
 	if (arr1.length === 0) {

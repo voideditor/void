@@ -14,8 +14,7 @@ import * as filetype from 'file-type';
 import { assign, groupBy, IDisposable, toDisposable, dispose, mkdirp, readBytes, detectUnicodeEncoding, Encoding, onceEvent, splitInChunks, Limiter, Versions, isWindows, pathEquals, isMacintosh, isDescendant, relativePath } from './util';
 import { CancellationError, CancellationToken, ConfigurationChangeEvent, LogOutputChannel, Progress, Uri, workspace } from 'vscode';
 import { Commit as ApiCommit, Ref, RefType, Branch, Remote, ForcePushMode, GitErrorCodes, LogOptions, Change, Status, CommitOptions, RefQuery as ApiRefQuery, InitOptions } from './api/git';
-import * as byline from 'byline';
-import { StringDecoder } from 'string_decoder';
+import { createInterface } from 'readline';
 
 // https://github.com/microsoft/vscode/issues/65693
 const MAX_CLI_LENGTH = 30000;
@@ -429,14 +428,12 @@ export class Git {
 		await mkdirp(options.parentPath);
 
 		const onSpawn = (child: cp.ChildProcess) => {
-			const decoder = new StringDecoder('utf8');
-			const lineStream = new byline.LineStream({ encoding: 'utf8' });
-			child.stderr!.on('data', (buffer: Buffer) => lineStream.write(decoder.write(buffer)));
+			const lineStream = createInterface({ input: child.stderr!, crlfDelay: Infinity });
 
 			let totalProgress = 0;
 			let previousProgress = 0;
 
-			lineStream.on('data', (line: string) => {
+			lineStream.on('line', (line: string) => {
 				let match: RegExpExecArray | null = null;
 
 				if (match = /Counting objects:\s*(\d+)%/i.exec(line)) {

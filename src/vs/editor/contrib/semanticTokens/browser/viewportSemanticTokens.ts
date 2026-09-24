@@ -7,20 +7,20 @@ import { CancelablePromise, createCancelablePromise, RunOnceScheduler } from '..
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../browser/editorBrowser.js';
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../browser/editorExtensions.js';
-import { Range } from '../../../common/core/range.js';
+import { Range } from '../../../../editor/common/language/core/range.js';
 import { IEditorContribution } from '../../../common/editorCommon.js';
-import { ITextModel } from '../../../common/model.js';
+import { ITextModel } from '../../../../editor/common/language/model.js';
 import { getDocumentRangeSemanticTokens, hasDocumentRangeSemanticTokensProvider } from '../common/getSemanticTokens.js';
 import { isSemanticColoringEnabled, SEMANTIC_HIGHLIGHTING_SETTING_ID } from '../common/semanticTokensConfig.js';
-import { toMultilineTokens2 } from '../../../common/services/semanticTokensProviderStyling.js';
+import { toMultilineTokens2 } from '../../../../editor/common/language/services/semanticTokensProviderStyling.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../common/services/languageFeatureDebounce.js';
+import { IFeatureDebounceInformation, ILanguageFeatureDebounceService } from '../../../../editor/common/language/services/languageFeatureDebounce.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { LanguageFeatureRegistry } from '../../../common/languageFeatureRegistry.js';
-import { DocumentRangeSemanticTokensProvider } from '../../../common/languages.js';
-import { ILanguageFeaturesService } from '../../../common/services/languageFeatures.js';
-import { ISemanticTokensStylingService } from '../../../common/services/semanticTokensStyling.js';
+import { DocumentRangeSemanticTokensProvider } from '../../../../editor/common/language/languages.js';
+import { ILanguageFeaturesService } from '../../../../editor/common/language/services/languageFeatures.js';
+import { ISemanticTokensStylingService } from '../../../../editor/common/language/services/semanticTokensStyling.js';
 
 export class ViewportSemanticTokensContribution extends Disposable implements IEditorContribution {
 

@@ -9,10 +9,10 @@ import { autorunWithStore, observableSignalFromEvent } from '../../../../../base
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
-import { Position } from '../../../../common/core/position.js';
-import { IInlineEdit, InlineCompletion, InlineCompletionContext, InlineCompletions, InlineCompletionsProvider, InlineEditProvider, InlineEditTriggerKind } from '../../../../common/languages.js';
-import { ITextModel } from '../../../../common/model.js';
-import { ILanguageFeaturesService } from '../../../../common/services/languageFeatures.js';
+import { Position } from '../../../../../editor/common/language/core/position.js';
+import { IInlineEdit, InlineCompletion, InlineCompletionContext, InlineCompletions, InlineCompletionsProvider, InlineEditProvider, InlineEditTriggerKind } from '../../../../../editor/common/language/languages.js';
+import { ITextModel } from '../../../../../editor/common/language/model.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/language/services/languageFeatures.js';
 
 export class InlineEditsAdapterContribution extends Disposable {
 	public static ID = 'editor.contrib.inlineEditsAdapter';

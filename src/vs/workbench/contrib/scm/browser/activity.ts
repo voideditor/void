@@ -22,7 +22,7 @@ import { EditorInput } from '../../../common/editor/editorInput.js';
 import { getRepositoryResourceCount } from './util.js';
 import { autorun, autorunWithStore, derived, IObservable, observableFromEvent } from '../../../../base/common/observable.js';
 import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
-import { Command } from '../../../../editor/common/languages.js';
+import { Command } from '../../../../editor/common/language/languages.js';
 
 const ActiveRepositoryContextKeys = {
 	ActiveRepositoryName: new RawContextKey<string>('scmActiveRepositoryName', ''),

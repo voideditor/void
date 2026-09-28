@@ -64,6 +64,10 @@ const ts = require("typescript");
 const watch = require('./watch');
 // --- gulp-tsb: compile and transpile --------------------------------
 const reporter = (0, reporter_1.createReporter)();
+function binarySrc(globs, options = {}) {
+    const binaryOptions = { ...options, encoding: false };
+    return gulp_1.default.src(globs, binaryOptions);
+}
 function getTypeScriptCompilerOptions(src) {
     const rootDir = path_1.default.join(__dirname, `../../${src}`);
     const options = {};
@@ -134,7 +138,7 @@ function transpileTask(src, out, esbuild) {
         const transpile = createCompile(src, { build: false, emitError: true, transpileOnly: { esbuild }, preserveEnglish: false });
         // `encoding: false` is required so binary assets (e.g. codicon.ttf) are copied as-is;
         // vinyl-fs 4 (gulp 5) otherwise transcodes via utf8 and corrupts them.
-        const srcPipe = gulp_1.default.src(`${src}/**`, { base: `${src}`, encoding: false });
+        const srcPipe = binarySrc(`${src}/**`, { base: `${src}` });
         return srcPipe
             .pipe(transpile())
             .pipe(gulp_1.default.dest(out));
@@ -148,7 +152,7 @@ function compileTask(src, out, build, options = {}) {
             throw new Error('compilation requires 4GB of RAM');
         }
         const compile = createCompile(src, { build, emitError: true, transpileOnly: false, preserveEnglish: !!options.preserveEnglish });
-        const srcPipe = gulp_1.default.src(`${src}/**`, { base: `${src}` });
+        const srcPipe = gulp_1.default.src(`${src}/**`, { base: `${src}`, encoding: false });
         const generator = new MonacoGenerator(false);
         if (src === 'src') {
             generator.execute();

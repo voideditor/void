@@ -56,6 +56,12 @@ const gulp_sourcemaps_1 = __importDefault(require("gulp-sourcemaps"));
 const fancy_log_1 = __importDefault(require("fancy-log"));
 const ansi_colors_1 = __importDefault(require("ansi-colors"));
 const REPO_ROOT_PATH = path_1.default.join(__dirname, '../..');
+
+function binarySrc(globs, options = {}) {
+    const binaryOptions = { ...options, encoding: false };
+    return gulp_1.default.src(globs, binaryOptions);
+}
+
 const DEFAULT_FILE_HEADER = [
     '/*!--------------------------------------------------------',
     ' * Copyright (C) Microsoft Corporation. All rights reserved.',

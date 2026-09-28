@@ -246,7 +246,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 			'vs/code/electron-sandbox/workbench/workbench.js'
 		]);
 
-		const src = gulp.src(out + '/**', { base: '.' })
+		const src = gulp.src(out + '/**', { base: '.', encoding: false })
 			.pipe(rename(function (path) { path.dirname = path.dirname.replace(new RegExp('^' + out), 'out'); }))
 			.pipe(util.setExecutableBit(['**/*.sh']));
 
@@ -259,7 +259,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulpSrcCompat.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
+		const extensions = gulpSrcCompat.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true, encoding: false });
 
 		const sources = es.merge(src, extensions)
 			.pipe(filter(['**', '!**/*.js.map'], { dot: true }));
@@ -306,7 +306,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 		const productionDependencies = getProductionDependencies(root);
 		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk', '!**/.bin/**');
 
-		const deps = gulp.src(dependenciesSrc, { base: '.', dot: true })
+		const deps = gulp.src(dependenciesSrc, { base: '.', dot: true, encoding: false })
 			.pipe(filter(['**', `!**/${config.version}/**`, '!**/bin/darwin-arm64-87/**', '!**/package-lock.json', '!**/yarn.lock', '!**/*.js.map']))
 			.pipe(util.cleanNodeModules(path.join(__dirname, '.moduleignore')))
 			.pipe(util.cleanNodeModules(path.join(__dirname, `.moduleignore.${process.platform}`)))

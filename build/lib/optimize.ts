@@ -19,6 +19,13 @@ import ansiColors from 'ansi-colors';
 
 const REPO_ROOT_PATH = path.join(__dirname, '../..');
 
+type GulpSrcOptions = Parameters<typeof gulp.src>[1];
+
+function binarySrc(globs: Parameters<typeof gulp.src>[0], options: GulpSrcOptions = {}): ReturnType<typeof gulp.src> {
+	const binaryOptions: GulpSrcOptions & { encoding: false } = { ...options, encoding: false };
+	return gulp.src(globs, binaryOptions);
+}
+
 export interface IBundleESMTaskOpts {
 	/**
 	 * The folder to read files from.
@@ -178,7 +185,7 @@ function bundleESMTask(opts: IBundleESMTaskOpts): NodeJS.ReadWriteStream {
 		es.readArray(output.files).pipe(bundlesStream);
 
 		// forward all resources
-		gulp.src(opts.resources ?? [], { base: `${opts.src}`, allowEmpty: true }).pipe(resourcesStream);
+		binarySrc(opts.resources ?? [], { base: `${opts.src}`, allowEmpty: true }).pipe(resourcesStream);
 	});
 
 	const result = es.merge(

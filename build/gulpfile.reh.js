@@ -296,8 +296,8 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 		const extensionPaths = [...localWorkspaceExtensions, ...marketplaceExtensions]
 			.map(name => `.build/extensions/${name}/**`);
 
-		const extensions = gulpSrcCompat.src(extensionPaths, { base: '.build', dot: true });
-		const extensionsCommonDependencies = gulp.src('.build/extensions/node_modules/**', { base: '.build', dot: true });
+		const extensions = gulpSrcCompat.src(extensionPaths, { base: '.build', dot: true, encoding: false });
+		const extensionsCommonDependencies = gulp.src('.build/extensions/node_modules/**', { base: '.build', dot: true, encoding: false });
 		const sources = es.merge(src, extensions, extensionsCommonDependencies)
 			.pipe(filter(['**', '!**/*.js.map'], { dot: true }));
 
@@ -332,7 +332,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 
 		const productionDependencies = getProductionDependencies(REMOTE_FOLDER);
 		const dependenciesSrc = productionDependencies.map(d => path.relative(REPO_ROOT, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`, `!${d}/.bin/**`]).flat();
-		const deps = gulp.src(dependenciesSrc, { base: 'remote', dot: true })
+		const deps = gulp.src(dependenciesSrc, { base: 'remote', dot: true, encoding: false })
 			// filter out unnecessary files, no source maps in server build
 			.pipe(filter(['**', '!**/package-lock.json', '!**/*.js.map']))
 			.pipe(util.cleanNodeModules(path.join(__dirname, '.moduleignore')))
@@ -342,7 +342,7 @@ function packageTask(type, platform, arch, sourceFolderName, destinationFolderNa
 			.pipe(jsFilter.restore);
 
 		const nodePath = `.build/node/v${nodeVersion}/${platform}-${arch}`;
-		const node = gulp.src(`${nodePath}/**`, { base: nodePath, dot: true });
+		const node = gulp.src(`${nodePath}/**`, { base: nodePath, dot: true, encoding: false });
 
 		let web = [];
 		if (type === 'reh-web') {

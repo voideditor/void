@@ -28,11 +28,12 @@ let originalReaddir = null;
 function installPatch() {
     if (patchDepth++ === 0) {
         originalReaddir = fs.readdir;
+        const readdir = originalReaddir;
         fs.readdir = function patchedReaddir(target, options, callback) {
             // Only intercept the glob-stream walker signature
             // (readdir with { withFileTypes: true } and a callback).
             if (options && typeof options === 'object' && options.withFileTypes === true && typeof callback === 'function') {
-                return originalReaddir.call(fs, target, options, function(err, dirents) {
+                return readdir.call(fs, target, options, function(err, dirents) {
                     if (err && skippedErrors.has(err.code)) {
                         // Mimic vinyl-fs 3: a missing/unreadable directory
                         // simply yields no entries instead of failing the stream.
@@ -41,7 +42,7 @@ function installPatch() {
                     return callback(err, dirents);
                 });
             }
-            return originalReaddir.apply(fs, arguments);
+            return readdir.apply(fs, arguments);
         };
     }
 }

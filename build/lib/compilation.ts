@@ -27,6 +27,13 @@ const watch = require('./watch');
 
 const reporter = createReporter();
 
+type GulpSrcOptions = Parameters<typeof gulp.src>[1];
+
+function binarySrc(globs: Parameters<typeof gulp.src>[0], options: GulpSrcOptions = {}): ReturnType<typeof gulp.src> {
+	const binaryOptions: GulpSrcOptions & { encoding: false } = { ...options, encoding: false };
+	return gulp.src(globs, binaryOptions);
+}
+
 function getTypeScriptCompilerOptions(src: string): ts.CompilerOptions {
 	const rootDir = path.join(__dirname, `../../${src}`);
 	const options: ts.CompilerOptions = {};
@@ -116,7 +123,7 @@ export function transpileTask(src: string, out: string, esbuild: boolean): task.
 		const transpile = createCompile(src, { build: false, emitError: true, transpileOnly: { esbuild }, preserveEnglish: false });
 		// `encoding: false` is required so binary assets (e.g. codicon.ttf) are copied as-is;
 		// vinyl-fs 4 (gulp 5) otherwise transcodes via utf8 and corrupts them.
-		const srcPipe = gulp.src(`${src}/**`, { base: `${src}`, encoding: false });
+		const srcPipe = binarySrc(`${src}/**`, { base: `${src}` });
 
 		return srcPipe
 			.pipe(transpile())
@@ -136,7 +143,7 @@ export function compileTask(src: string, out: string, build: boolean, options: {
 		}
 
 		const compile = createCompile(src, { build, emitError: true, transpileOnly: false, preserveEnglish: !!options.preserveEnglish });
-		const srcPipe = gulp.src(`${src}/**`, { base: `${src}` });
+		const srcPipe = binarySrc(`${src}/**`, { base: `${src}` });
 		const generator = new MonacoGenerator(false);
 		if (src === 'src') {
 			generator.execute();

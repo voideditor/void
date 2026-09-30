@@ -121,6 +121,8 @@ const voidQuickBrowserTests = [
 	'src/vs/workbench/contrib/void/test/browser/editCodeService.test.ts',
 	'src/vs/workbench/contrib/void/test/browser/chatAcpNormalizeReadFileArgs.test.ts',
 	'src/vs/workbench/contrib/void/test/browser/chatThreadService.nonAcpToAcpSwitch.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatThreadService.midStreamFollowUp.test.ts',
+	'src/vs/workbench/contrib/void/test/browser/chatAcpHandler.midStreamPrompt.test.ts',
 	'src/vs/workbench/contrib/void/test/browser/chatThreadService.test.ts',
 	'src/vs/workbench/contrib/void/test/browser/chatThreadService.modelConfigSwitch.test.ts',
 	'src/vs/workbench/contrib/void/browser/test/terminalToolService.runCommand.test.ts',

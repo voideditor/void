@@ -266,7 +266,6 @@ export const SidebarChat = () => {
 	const onSubmit = useCallback(async (_forceSubmit?: string) => {
 
 		if (isDisabled && !_forceSubmit) return
-		if (isRunning) return
 
 		const threadId = chatThreadsService.state.currentThreadId
 
@@ -285,7 +284,7 @@ export const SidebarChat = () => {
 		textAreaFnsRef.current?.setValue('')
 		textAreaRef.current?.focus()
 
-	}, [attachments, chatThreadsService, isDisabled, isRunning, textAreaRef, textAreaFnsRef, setSelections, settingsState, selections])
+	}, [attachments, chatThreadsService, isDisabled, textAreaRef, textAreaFnsRef, setSelections, settingsState, selections])
 
 	const onAbort = async () => {
 		const threadId = currentThread.id

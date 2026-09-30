@@ -106,6 +106,24 @@ export type ThreadsState = {
 	currentThreadId: string;
 }
 
+/**
+ * A user message sent while a stream is already running in a thread (send-message-during-stream).
+ * Kept in runtime state (not serialized) and delivered as a follow-up turn when the stream finishes.
+ */
+export type FollowUpMessage = {
+	content: string;
+	displayContent: string;
+	selections: StagingSelectionItem[] | null;
+	attachments: ChatAttachment[] | null;
+	/**
+	 * Index of this message's user message in thread.messages at queue time. The running
+	 * agent re-reads the thread on every loop iteration, so a mid-stream message may be
+	 * delivered by the still-running turn; this index lets the follow-up drain detect that
+	 * and skip re-sending it (otherwise the model would answer the same message twice).
+	 */
+	userMessageIdx: number;
+};
+
 export type ThreadStreamState = {
 	[threadId: string]: undefined | {
 		isRunning: undefined;
@@ -309,6 +327,8 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 
 	// State
 	readonly streamState: ThreadStreamState = {};
+	// Mid-stream follow-up queue (send-message-during-stream): keyed by threadId, FIFO order.
+	private readonly _pendingFollowUpByThread = new Map<string, FollowUpMessage[]>();
 	state: ThreadsState;
 
 	// Storage: per-thread debounce timers
@@ -423,9 +443,47 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 			_metricsService, _convertToLLMMessagesService, _fileService, _mcpService,
 			this._historyCompressor, this._toolOutputManager,
 			async threadId => {
+				// Resume the agent loop after a tool approval was granted: the tool result is
+				// already in the thread history, so runChatAgent continues from there.
 				await this._executionEngine.runChatAgent({ threadId, ...this._currentModelSelectionProps() }, this._threadAccess);
 			},
 			this._logService,
+			// send-message-during-stream: when a stream finishes naturally, drain one queued
+			// follow-up turn (if any) as a new agent turn. An empty queue is a no-op - the agent
+			// must never re-run on its own, or a finished stream would loop forever.
+			(threadId, nThreadMessagesConsumed) => {
+				const queue = this._pendingFollowUpByThread.get(threadId);
+				if (!queue || queue.length === 0) return;
+				// The running agent re-reads the thread on every loop iteration, so a mid-stream
+				// message may have already been included in (and answered by) the finished turn.
+				// Drop already-delivered entries - re-sending them would make the model answer
+				// the same message twice (an extra redundant response). The stored index is
+				// verified against the thread, so a shifted index (e.g. checkpoint slicing) falls
+				// back to delivering the message instead of dropping it.
+				const threadMessages = this.state.allThreads[threadId]?.messages ?? [];
+				while (queue.length > 0) {
+					const head = queue[0];
+					const atIdx = threadMessages[head.userMessageIdx];
+					const alreadyDelivered =
+						!!atIdx && atIdx.role === 'user' && atIdx.displayContent === head.displayContent
+						&& head.userMessageIdx < (nThreadMessagesConsumed ?? 0);
+					if (!alreadyDelivered) break;
+					queue.shift();
+				}
+				if (queue.length === 0) {
+					this._pendingFollowUpByThread.delete(threadId);
+					return;
+				}
+				queue.shift();
+				if (queue.length === 0) this._pendingFollowUpByThread.delete(threadId);
+				this._notificationManager.wrapRunAgentToNotify(
+					this._executionEngine.runChatAgent({ threadId, ...this._currentModelSelectionProps() }, this._threadAccess),
+					threadId,
+					() => this.state.currentThreadId,
+					() => this._getLastUserMessageContent(threadId),
+					(id: string) => this.switchToThread(id)
+				);
+			},
 		);
 	}
 
@@ -508,11 +566,13 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 			this._setState({ allThreads: newThreads });
 		}
 
-		if (this.streamState[threadId]?.isRunning) {
-			await this.abortRunning(threadId);
-		}
+		// send-message-during-stream: when a stream is already running, do NOT abort it.
+		// The message is added to the thread immediately and delivered per mode:
+		// - ACP: sent to the active ACP session right away (no session restart)
+		// - non-ACP: queued as a follow-up turn, sent after the current stream finishes
+		const midStream = !!this.streamState[threadId]?.isRunning;
 
-		if (thread.messages.length === 0) {
+		if (!midStream && thread.messages.length === 0) {
 			this._checkpointManager.addUserCheckpoint(threadId, this._threadAccess);
 		}
 
@@ -537,6 +597,10 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 			attachments: attachments && attachments.length ? attachments : null,
 			state: { stagingSelections: [], isBeingEdited: false },
 		});
+		// send-message-during-stream: index of the just-added user message, used by the
+		// follow-up drain to detect whether the running stream already delivered it.
+		const userThread = this.state.allThreads[threadId];
+		const userMessageIdx = userThread ? userThread.messages.length - 1 : -1;
 
 		this._setThreadState(threadId, { currCheckpointIdx: null });
 
@@ -553,6 +617,30 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 				this._setThreadState(threadId, { tokenUsageLastRequestLimits: { maxInputTokens } });
 			}
 		} catch { }
+
+		if (midStream) {
+			// send-message-during-stream: the current stream keeps running.
+			if (this._settingsService.state.globalSettings.useAcp === true) {
+				// ACP: deliver the prepared message content to the active session right away.
+				try {
+					await this._acpHandler.sendMidStreamPrompt({ threadId, userMessageContent }, this._threadAccess);
+				} catch (e) {
+					this._logService.warn('[ChatThreadService] Failed to deliver mid-stream message to ACP session:', e);
+				}
+			} else {
+				// non-ACP: queue a follow-up turn; ChatExecutionEngine sends it when the current stream finishes.
+				const queue = this._pendingFollowUpByThread.get(threadId) ?? [];
+				queue.push({
+					content: userMessageContent,
+					displayContent: userMessage,
+					selections: currSelns,
+					attachments: attachments && attachments.length ? attachments : null,
+					userMessageIdx,
+				});
+				this._pendingFollowUpByThread.set(threadId, queue);
+			}
+			return;
+		}
 
 		if (this._settingsService.state.globalSettings.useAcp === true) {
 			this._notificationManager.wrapRunAgentToNotify(
@@ -584,6 +672,9 @@ export class ChatThreadService extends Disposable implements IChatThreadService 
 	}
 
 	async abortRunning(threadId: string) {
+		// send-message-during-stream: an explicit abort cancels any pending follow-up turns.
+		this._pendingFollowUpByThread.delete(threadId);
+
 		const st = this.streamState[threadId];
 		const runningToolIds = new Set<string>();
 		const thread = this.state.allThreads[threadId];

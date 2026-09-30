@@ -393,6 +393,56 @@ export class ChatAcpHandler extends Disposable {
 		access.setStreamState(threadId, { isRunning: 'awaiting_user' });
 	}
 
+	/**
+	 * send-message-during-stream: deliver a new user prompt to the ACTIVE ACP session without
+	 * cancelling the current turn, restarting the session or touching stream state. The message
+	 * is already stored in the thread; we only forward the prepared content to the agent.
+	 * Failures are surfaced through the existing stream error path by the caller.
+	 */
+	public async sendMidStreamPrompt(opts: {
+		threadId: string;
+		userMessageContent: string;
+	}, access: IThreadStateAccess): Promise<void> {
+		const { threadId, userMessageContent } = opts;
+
+		const entry = this._acpStreamByThread.get(threadId);
+		const gs = this._settingsService.state.globalSettings;
+
+		// No active stream for this thread: nothing to deliver to.
+		if (!entry) {
+			this._logService.warn('[ChatAcpHandler] sendMidStreamPrompt: no active ACP stream for thread, dropping message', { threadId });
+			return;
+		}
+
+		try {
+			// Reuse the same send path as a normal turn: the session for this thread already exists,
+			// so no newSession is created; chunks stream back through the existing per-session emitter.
+			await this._acpService.sendChatMessage(
+				threadId,
+				[],
+				{ role: 'user', content: userMessageContent } as IAcpUserMessage,
+				{
+					mode: gs.acpMode,
+					agentUrl: gs.acpAgentUrl || undefined,
+					command: gs.acpProcessCommand || undefined,
+					args: gs.acpProcessArgs || undefined,
+					env: gs.acpProcessEnv || undefined,
+					model: gs.acpModel || undefined,
+					featureName: 'Chat',
+					maxToolOutputLength: gs.maxToolOutputLength,
+					readFileChunkLines: gs.readFileChunkLines,
+				}
+			);
+		} catch (e) {
+			// Surface the failure through the existing stream error path; the current turn is left intact.
+			access.setStreamState(threadId, {
+				isRunning: undefined,
+				error: { message: getErrorMessage(e), fullError: e instanceof Error ? e : null }
+			});
+			this._logService.warn('[ChatAcpHandler] sendMidStreamPrompt: failed to deliver prompt to ACP session', { threadId, error: getErrorMessage(e) });
+		}
+	}
+
 	public async runAcp(opts: {
 		threadId: string;
 		userMessage: string;

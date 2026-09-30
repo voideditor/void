@@ -280,6 +280,13 @@ export class ChatExecutionEngine {
 		private readonly _toolOutputManager: ChatToolOutputManager,
 		private readonly _resumeToolTurn?: (threadId: string) => Promise<void>,
 		@ILogService private readonly _logService?: ILogService,
+		// send-message-during-stream: invoked when the agent loop finishes naturally, so
+		// ChatThreadService can launch a queued follow-up turn (no-op on an empty queue).
+		// `nThreadMessagesConsumed` is the number of thread messages that were included in the
+		// last LLM request of the finished turn, so the drain can skip mid-stream messages the
+		// finished turn already delivered (the agent loop re-reads the thread on every
+		// iteration) and would otherwise answer twice.
+		private readonly _drainPendingFollowUp?: (threadId: string, nThreadMessagesConsumed?: number) => void,
 	) { }
 
 	public async runChatAgent(opts: {
@@ -361,6 +368,11 @@ export class ChatExecutionEngine {
 		let nMessagesSent = 0;
 		let shouldSendAnotherMessage = true;
 		let isRunningWhenEnd: IsRunningType = undefined
+		// send-message-during-stream: thread message count included in the LLM request of the
+		// latest loop iteration. The agent loop re-reads the thread on every iteration, so a
+		// mid-stream message added before the last request was already delivered to the model
+		// by this turn; the follow-up drain uses this boundary to not deliver it twice.
+		let nThreadMessagesAtLastRequest: number | undefined;
 
 		const loopDetector = new LLMLoopDetector({
 			maxTurnsPerPrompt: gs.loopGuardMaxTurnsPerPrompt,
@@ -441,6 +453,7 @@ export class ChatExecutionEngine {
 
 
 			const baseChatMessages = access.getThreadMessages(threadId);
+			nThreadMessagesAtLastRequest = baseChatMessages.length;
 			let compressionInfoForSentPayload: ThreadHistoryCompressionInfo | undefined;
 			let compressedChatMessages: ChatMessage[] | undefined;
 
@@ -897,6 +910,12 @@ export class ChatExecutionEngine {
 		access.setStreamState(threadId, { isRunning: isRunningWhenEnd });
 		if (!isRunningWhenEnd) access.addUserCheckpoint(threadId);
 		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode });
+
+		// send-message-during-stream: when the agent loop finished naturally (no awaiting_user),
+		// hand any queued follow-up turns back to ChatThreadService so they run as a new turn.
+		// (The drain is a no-op on an empty queue: `_resumeToolTurn` is reserved for the
+		// tool-approval resume path and re-running the agent here would loop the stream forever.)
+		if (!isRunningWhenEnd) this._drainPendingFollowUp?.(threadId, nThreadMessagesAtLastRequest);
 	}
 
 	private _addToolErrorMessage(

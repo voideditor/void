@@ -2,19 +2,10 @@
 
 The Void codebase is not as intimidating as it seems!
 
-Most of Void's code lives in the folder `src/vs/workbench/contrib/void/`.
+Most of Void's code lives in the folder `src/vs/workbench/contrib/void/` (platform-level code lives in `src/vs/platform/void/`).
 
-The purpose of this document is to explain how Void's codebase works. If you want build instructions instead, see [Contributing](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+The purpose of this document is to explain how Void's codebase works. If you want build instructions instead, see [BUILD](./BUILD.md).
 
-
-
-
-
-
-
-
-
-## Void Codebase Guide
 
 ### VSCode Rundown
 Here's a VSCode rundown if you're just getting started with Void. You can also see Microsoft's [wiki](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) for some pictures. VSCode is an Electron app. Electron runs two processes: a **main** process (for internals) and a **browser** process (browser means HTML in general, not just "web browser").
@@ -28,8 +19,6 @@ Here's a VSCode rundown if you're just getting started with Void. You can also s
 - The browser environment is not allowed to import `node_modules`. We came up with two workarounds:
   1. Bundle the raw node_module code to the browser - we're doing this for React.
   2. Implement the code on `electron-main/` and set up a channel between main/browser - we're doing this for sendLLMMessage.
-
-
 
 
 ### Terminology
@@ -54,114 +43,64 @@ Here's some terminology you might want to know about when working inside VSCode:
 
 ### Internal LLM Message Pipeline
 
-Here's a picture of all the dependencies that are relevent between the time you first send a message through Void's sidebar, and the time a request is sent to your provider.
-Sending LLM messages from the main process avoids CSP issues with local providers and lets us use node_modules more easily.
+LLM messages are sent from the **main** process, not the browser process. This avoids CSP issues with local providers and lets us use `node_modules` freely.
+
+`common/sendLLMMessageService.ts` defines `ILLMMessageService`, a browser-side service that forwards requests to the main process over an IPC channel (see `llmMessageChannel` on the electron-main side). Each request registers hooks - `onText` (streaming tokens), `onFinalMessage`, `onError`, and `onAbort` - and the main process streams results back through the channel. Model lists are fetched the same way (`ollamaList`, `openAICompatibleList`).
+
+Model capabilities come from `getModelCapabilities` (`src/vs/platform/void/common/modelInference.ts`). Capabilities are looked up dynamically (models are fetched automatically from OpenRouter and other providers), with sensible defaults for unrecognized models, and optional per-model overrides from settings - no manual updates needed when new models come out.
 
 
-<div align="center">
-	<img width="100%" src="https://github.com/user-attachments/assets/9cf54dbb-82c4-4488-97a2-bd8dea890b50">
-</div>
+### Chat and the Agent Loop
+
+`browser/chatThreadService.ts` owns chat threads. A thread stores its messages, the files the user has changed, and state like the current checkpoint index and staged selections. The service is a shell around several managers, each in its own file:
+
+- `ChatExecutionEngine` (`browser/ChatExecutionEngine.ts`) drives the LLM <-> tools loop: it streams responses, executes tool calls through `ToolTurnCoordinator`, enforces tool approval (`getToolApprovalRequirement`), detects infinite loops (`LLMLoopDetector`), compresses old history (`ChatHistoryCompressor`), and rotates to fallback models when a provider fails (`chatModelFallbackPolicy`).
+- `ChatAcpHandler` (`browser/ChatAcpHandler.ts`) bridges ACP agents (both the built-in one and external ones) into the same thread model, normalizing paths and message shapes.
+- `ChatCheckpointManager` (`browser/ChatCheckpointManager.ts`) records checkpoints after tool edits and user edits, so you can jump back to any point in a thread.
+- `ChatCodespanManager` links `codespans` in chat messages to editor locations.
+- `ChatNotificationManager` and `ChatToolOutputManager` handle notifications and tool output bookkeeping.
 
 
+### Tools
 
-**Notes:** `modelCapabilities` is an important file that must be updated when new models come out!
-
-
-### Apply
-
-Void has two types of Apply: **Fast Apply** (uses Search/Replace, see below), and **Slow Apply** (rewrites whole file).
-
-When you click Apply and Fast Apply is enabled, we prompt the LLM to output Search/Replace block(s) like this:
-```
-<<<<<<< ORIGINAL
-// original code goes here
-=======
-// replaced code goes here
->>>>>>> UPDATED
-```
-This is what allows Void to quickly apply code even on 1000-line files. It's the same as asking the LLM to press Ctrl+F and enter in a search/replace query.
-
-### Apply Inner Workings
-
-The `editCodeService` file runs Apply. The same exact code is also used when the LLM calls the Edit tool, and when you submit Cmd+K. Just different versions of Fast/Slow Apply mode.
-
-Here is some important terminology:
-- A **DiffZone** is a {startLine, endLine} region of text where we compute and show red/green areas, or **Diffs**. When any changes are made to a file, we loop through all the DiffAreas on that file and refresh its Diffs.
-- A **DiffArea** is a generalization that just tracks line numbers like a DiffZone.
-- The only type of DiffArea that can "stream" is a DiffZone. Each DiffZone has an llmCancelToken if it's streaming.
-
-How Apply works:
-- When you click Apply, we create a **DiffZone** over that the full file so that any changes that the LLM makes will show up in red/green. We then stream the change.
-- When an LLM calls Edit, it's really calling Apply.
-- When you submit Cmd+K, it's the same as Apply except we create a smaller DiffZone (not on the whole file).
+`common/toolsService.ts` defines every tool the model can call - reading files page-by-page, searching, editing files, running terminal commands, and more. Each tool has a validator that sanitizes the LLM's output before anything runs, and `isDangerousTerminalCommand` guards the terminal tool. Tools support parallel calls, MCP servers (`common/mcpService.ts`), and Agent Skills (`common/skills/`), which are markdown-defined skills the agent can activate.
 
 
-### Writing Files Inner Workings
-When Void wants to change your code, it just writes to a text model. This means all you need to know to write to a file is its URI - you don't have to load it, save it, etc. There are some annoying background URI/model things to think about to get this to work, but we handled them all in `voidModelService`.
+### Apply and Quick Edit
 
-### Void Settings Inner Workings
-We have a service `voidSettingsService` that stores all your Void settings (providers, models, global Void settings, etc). Imagine this as an implicit dependency for any of the core Void services:
+`browser/editCodeService.ts` (interface in `editCodeServiceInterface.ts`) renders and applies code changes:
 
-<div align="center">
-	<img width="800" src="https://github.com/user-attachments/assets/9f3cb68c-a61b-4810-8429-bb90b992b3fa">
-</div>
-
-Here's a guide to some of the terminology we're using:
-- **FeatureName**: Autocomplete | Chat | CtrlK | Apply
-- **ModelSelection**: a {providerName, modelName} pair.
-- **ProviderName**: The name of a provider: `'ollama'`, `'openAI'`, etc.
-- **ModelName**: The name of a model (string type, eg `'gpt-4o'`).
-- **RefreshProvider**: a provider that we ping repeatedly to update the models list.
-- **ChatMode** = normal | gather | agent
+- A **DiffArea** tracks a {startLine, endLine} region of a file. **DiffZone** and **CtrlKZone** are the two concrete types - a DiffZone computes and shows red/green diffs, a CtrlKZone powers the Quick Edit (Ctrl+K) selection.
+- `startApplying` streams an edit into a DiffZone. It's called either from `ClickApply` (an apply box in the chat) or from `QuickEdit` (Ctrl+K), and takes a `startBehavior` (`accept-conflicts` / `reject-conflicts` / `keep-conflicts`) describing what to do when it conflicts with your own concurrent edits.
+- `previewEditFileSimple` creates a preview DiffZone from an ORIGINAL/UPDATED snippet pair - this is what the `edit_file` tool uses, so edits show up as accept/reject diffs in the editor instead of being written silently.
+- `instantlyRewriteFile` replaces the whole file content.
+- `inferSelectionForApply` picks the best location for an Apply snippet - AST-first (tree-sitter) with a heuristic fallback (`react/src/markdown/inferSelection.ts`).
+- Apply boxes in the chat are bound to files with `bindApplyBoxUri` / `applyBoxId`, so each box knows which URI its diffs belong to.
+- If an instant apply can't locate the ORIGINAL snippet, it falls back to re-locating it and retries (`onDidUseFallback`).
 
 
+### Writing Files
 
-### Approval State
-`editCodeService`'s data structures contain all the information about changes that the user needs to review. However, they don't store that information in a useful format. We wrote the following service to get a more useful derived state:
+Void writes changes directly to text models, so all you need to know to change a file is its URI - no need to load or save it yourself. `common/voidModelService.ts` handles creating model references, getting models by URI or fsPath, and saving them.
 
-<div align="center">
-	<img width="600" src="https://github.com/user-attachments/assets/f3645355-dff6-467c-bc38-ffe52077c08b">
-</div>
 
+### Settings
+
+`voidSettingsService` (in `src/vs/platform/void/common/`) stores your providers, models, and Void settings, and is an implicit dependency of the core Void services. A **ModelSelection** is a {providerName, modelName} pair. Custom OpenAI-compatible providers are supported through the dynamic provider registry, with optional per-model config. Model capabilities (tool support, reasoning, etc.) come from `getModelCapabilities` in `modelInference.ts`.
+
+
+### React UI
+
+Most of Void's UI is React, compiled separately from the rest of VSCode. It lives in `browser/react/` - the sidebar (`sidebar-tsx`), Quick Edit (`quick-edit-tsx`), settings (`void-settings-tsx`), and diff rendering (`diff/`). Run `node build.js` in that folder to compile it into `out/`. See `browser/react/README.md` for the two rules that matter: external imports must end with `.js`, and `src/` must stay one folder deep.
 
 
 ### Build process
-If you want to know how our build pipeline works, see our build repo [here](https://github.com/voideditor/void-builder).
 
+For how to build and run Void, see [BUILD](./BUILD.md). The original distribution build pipeline lives in the [void-builder](https://github.com/voideditor/void-builder) repo.
 
 
 ## VSCode Codebase Guide
 
 For additional references, the Void team put together this list of links to get up and running with VSCode.
-<details>
-	
-
-#### Links for Beginners
-
-- [VSCode UI guide](https://code.visualstudio.com/docs/getstarted/userinterface)  - covers auxbar, panels, etc.
-- [UX guide](https://code.visualstudio.com/api/ux-guidelines/overview) - covers Containers, Views, Items, etc.
-
-#### Links for Contributors
-
-- [How VSCode's sourcecode is organized](https://github.com/microsoft/vscode/wiki/Source-Code-Organization) - this explains where the entry point files are, what `browser/` and `common/` mean, etc. This is the most important read on this whole list! We recommend reading the whole thing.
-- [Built-in VSCode styles](https://code.visualstudio.com/api/references/theme-color) - CSS variables that are built into VSCode. Use `var(--vscode-{theme but replacing . with -})`. You can also see their [Webview theming guide](https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content).
 
 
-#### Misc
-
-- [Every command](https://code.visualstudio.com/api/references/commands) built-in to VSCode - not used often, but here for reference.
-- Note: VSCode's repo is the source code for the Monaco editor! An "editor" is a Monaco editor, and it shares the code for ITextModel, etc.
-
-
-#### VSCode's Extension API
-
-Void is no longer an extension, so these links are no longer required, but they might be useful if we ever build an extension again.
-
-- [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
-- [An extension's `package.json` schema](https://code.visualstudio.com/api/references/extension-manifest).
-- ["Contributes" Guide](https://code.visualstudio.com/api/references/contribution-points) - the `"contributes"` part of `package.json` is how an extension mounts.
-- [The Full VSCode Extension API](https://code.visualstudio.com/api/references/vscode-api) - look on the right side for organization. The [bottom](https://code.visualstudio.com/api/references/vscode-api#api-patterns) of the page is easy to miss but is useful - cancellation tokens, events, disposables.
-- [Activation events](https://code.visualstudio.com/api/references/activation-events) you can define in `package.json` (not the most useful).
-
-
-</details>
